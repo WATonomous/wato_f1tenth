@@ -1,0 +1,18 @@
+services:
+  sim:
+    build:
+      context: ..
+      dockerfile: docker/sim/sim.Dockerfile
+      # cache_from:
+      #   - "${GAZEBO_SERVER_IMAGE:?}:${TAG}"
+      #   - "${GAZEBO_SERVER_IMAGE:?}:main"
+      # args:
+      #   BASE_IMAGE: ${BASE_IMAGE_OVERRIDE-}
+    # image: "${GAZEBO_SERVER_IMAGE:?}:${TAG}"
+    image: f1tenth:latest
+    # ports:
+    #   - "${GAZEBO_PORT:?}:9002"
+    profiles: [deploy, develop]
+    command: /bin/bash -c "ros2 launch f1tenth_gym_ros gym_bridge_launch.py"
+    # tty: true
+    # command: /bin/bash
