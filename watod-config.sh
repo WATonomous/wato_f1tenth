@@ -11,7 +11,7 @@
 ##
 ## Possible values:
 ##   - vis_tools        :   starts tools for data visualization (foxglove)
-##   - gazebo           :   starts robot simulator (gazebo)
+##   - sim              :   starts robot simulator
 ##   - robot            :   starts up robot nodes
 ##   - samples          :   starts up sample nodes for reference
 
