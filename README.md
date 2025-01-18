@@ -1,13 +1,15 @@
 # WATonomous F1Tenth
 
-## Prerequisite Installation
-These steps are to setup the wato_f1tenth to work on your own PC. We utilize docker to enable ease of reproducibility and deployability.
+## Initial Windows Setup for visualizing in Foxglove
+1. Download Ubuntu in Microsoft Store (The one without any extension)
+2. Install Docker Destop: Settings -> Resources -> WSL Integration -> Enable Ubuntu
+3. Go into Ubuntu and setup username and password, if first time installing
+4. In the your home directory (~), run: git clone https://github.com/WATonomous/wato_f1tenth.git
+5. Go into the repo by running: cd wato_f1tenth
+6. Attach vscode to this repo by running (Asssuming you have vscode): code . 
+7. In VS Code, manually forward the port by going to PORTS -> Add Port -> Enter 2000 for port number
+8. Run ./watod up to build and up the container
+9. Go to foxglove: Open Connection -> Foxglove Websocket -> Enter ws://localhost:20000
+10. Now go to the Panel section on the left -> click the 3D Panel in the middle -> Topics -> Hover your cursor on the map and click the eye button to make map visible
 
-> Why docker? It's so that you don't need to download any coding libraries on your bare metal pc, saving headache :3
-
-1. This assignment is supported on Linux Ubuntu >= 22.04, Windows (WSL), and MacOS. This is standard practice that roboticists can't get around. To setup, you can either setup an [Ubuntu Virtual Machine](https://ubuntu.com/tutorials/how-to-run-ubuntu-desktop-on-a-virtual-machine-using-virtualbox#1-overview), setting up [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), or setting up your computer to [dual boot](https://opensource.com/article/18/5/dual-boot-linux). You can find online resources for all three approaches.
-2. Once inside Linux, [Download Docker Engine using the `apt` repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
-3. You're all set! You can begin the assignment by visiting the WATonomous Wiki.
-
-Link to Onboarding Assignment: https://wiki.watonomous.ca/
-
+Now you should be able to see the car with transforms and the map
