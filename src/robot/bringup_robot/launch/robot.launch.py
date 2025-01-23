@@ -18,6 +18,15 @@ def generate_launch_description():
     )
     ld.add_action(gym_vis_node)
 
+    # #################### Example Node #####################
+
+    # name1_node = Node(
+    #     package='package_name',
+    #     name='name_node',
+    #     executable='name_node',
+    # )
+    # ld.add_action(name1_node)
+
     # #################### Costmap Node #####################
     # costmap_pkg_prefix = get_package_share_directory('costmap')
     # costmap_param_file = os.path.join(
