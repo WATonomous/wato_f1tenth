@@ -55,7 +55,8 @@ private:
 
 void GymVis::publisher_timer_callback(){
 
-  this->car_publisher_->publish(car_marker);   
+  car_publisher_->publish(car_marker);   
+  lidar_publisher_->publish(lidar_scan_markers);
 
   // SAMPLE CODE TO MOVE THE ROBOT STRAIGHT
   // auto straight_drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
@@ -64,8 +65,8 @@ void GymVis::publisher_timer_callback(){
   // straight_drive_msg.drive.steering_angle = 0.0; 
 
   // drive_publisher_->publish(straight_drive_msg);
-  // // Publish the marker
-  // lidar_publisher_->publish(lidar_scan_markers);
+  // Publish the marker
+
 }
 
 void GymVis::car_callback (const nav_msgs::msg::Odometry::SharedPtr msg){
