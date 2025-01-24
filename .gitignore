@@ -2,4 +2,4 @@
 __pycache__
 .vscode/
 
-watod-config.sh
+watod-config.local.sh
