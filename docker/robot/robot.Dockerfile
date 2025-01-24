@@ -5,12 +5,12 @@ FROM ${BASE_IMAGE} AS source
 
 WORKDIR ${AMENT_WS}/src
 
-# Copy in source code 
-COPY src/robot/odometry_spoof odometry_spoof
-COPY src/robot/costmap costmap
-COPY src/robot/map_memory map_memory
-COPY src/robot/planner planner
-COPY src/robot/control control
+# Clean up and update apt-get, then update rosdep
+RUN sudo apt-get clean && \
+    sudo apt-get update && \
+    sudo rosdep update
+
+# Copy in source code
 COPY src/robot/bringup_robot bringup_robot
 COPY src/robot/gym_vis gym_vis
 
@@ -24,6 +24,11 @@ RUN apt-get -qq update && rosdep update && \
 ################################# Dependencies ################################
 FROM ${BASE_IMAGE} AS dependencies
 
+# Clean up and update apt-get, then update rosdep
+RUN sudo apt-get clean && \
+    sudo apt-get update && \
+    sudo rosdep update
+
 # ADD MORE DEPENDENCIES HERE
 
 # Install Rosdep requirements
@@ -35,12 +40,17 @@ WORKDIR ${AMENT_WS}
 COPY --from=source ${AMENT_WS}/src src
 
 # Dependency Cleanup
-WORKDIR /
+WORKDIR / 
 RUN apt-get -qq autoremove -y && apt-get -qq autoclean && apt-get -qq clean && \
     rm -rf /root/* /root/.ros /tmp/* /var/lib/apt/lists/* /usr/share/doc/*
 
 ################################ Build ################################
 FROM dependencies AS build
+
+# Clean up and update apt-get, then update rosdep
+RUN sudo apt-get clean && \
+    sudo apt-get update && \
+    sudo rosdep update
 
 # Build ROS2 packages
 WORKDIR ${AMENT_WS}
