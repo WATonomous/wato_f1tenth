@@ -11,8 +11,9 @@ RUN sudo apt-get clean && \
     sudo rosdep update
 
 # Copy in source code
-COPY src/robot/bringup_robot bringup_robot
-COPY src/robot/gym_vis gym_vis
+# COPY src/robot/bringup_robot bringup_robot
+# COPY src/robot/gym_vis gym_vis
+COPY src/robot .
 
 # Scan for rosdeps
 RUN apt-get -qq update && rosdep update && \
