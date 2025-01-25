@@ -1,9 +1,8 @@
 #ifndef PURE_PURSUIT_HPP_
-#define PURE_PURESUIT_HPP_
+#define PURE_PURSUIT_HPP_
 
 #include <chrono>
 #include <memory>
-#include <string>
 #include <thread>
 #include <string>
 

@@ -2,12 +2,12 @@
 
 class PurePursuit : public rclcpp::Node {
 public:
-  PurePursuit(): Node("pure_pursuit"), count_(0) {
+  PurePursuit(): Node("pure_pursuit") {
     // Publishers
-    drive_publisher = this->create_publisher<ackermann_msgs/msg/ackermann_drive_stamped>("drive", 10);
+    drive_publisher = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>("drive", 10);
 
     // Subscribers
-    point_subscriber = this->create_subscriber<geometry_msgs/msg/point>("/planning_point", 10,
+    point_subscriber = this->create_subscription<geometry_msgs::msg::Point>("/planning_point", 10,
     std::bind(&PurePursuit::goal_subscriber_callback, this, std::placeholders::_1));
 
     // Publish timers
@@ -17,24 +17,20 @@ public:
     int pub_drive_speed = 0;
     int pub_steering_angle = 0;
 
-}
+  }
 
 private:
   // Pub, Sub & Timers
-  rclcpp::Publisher<ackermann_msgs/msg/ackermann_drive_stamped>::SharedPtr gym_drive_publisher;
+  rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr gym_drive_publisher;
   rclcpp::TimerBase::SharedPtr publisher_timer_;
-  rclcpp::Subscriber<geometry_msgs/msg/point>::SharedPtr point_subscriber;
-
-  // Next driving command to publish
-  int pub_drive_speed;
-  int pub_steering_angle;
+  rclcpp::Subscriber<geometry_msgs::msg::Point>::SharedPtr point_subscriber;
 
   void publisher_timer_callback();
   void goal_subscriber_callback();
   void find_drive_params();
-}
+};
 
-void PurePursuit::publisher_timer_callback(const geometry_msgs::msg::point::SharedPtr msg) {
+void PurePursuit::publisher_timer_callback(const geometry_msgs::msg::Point::SharedPtr msg) {
   RCLCPP_INFO(this->get_logger(), "Received: '%s'", msg->data.c_str());
 
   // SAMPLE CODE TO MOVE THE ROBOT STRAIGHT
@@ -53,7 +49,12 @@ void PurePursuit::goal_subscriber_callback() {
 }
 
 void PurePursuit::find_drive_params() {
-    pub_drive_speed = 0.3;
-    pub_steering_angle = 0.3;
     return;
+}
+
+int main(int argc, char * argv[]) {
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<PurePursuit>());
+  rclcpp::shutdown();
+  return 0;
 }
