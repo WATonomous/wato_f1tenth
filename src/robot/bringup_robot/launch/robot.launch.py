@@ -10,15 +10,23 @@ def generate_launch_description():
     
     ld = LaunchDescription() # Begin building a launch description
 
+    odom_node = Node(
+        package='vehicle_odometry',
+        executable='ekf_bicycle_odometry',
+        name='bicycle_odometry_publisher',
+        output='screen'
+    )
+    ld.add_action(odom_node)
+
     #################### Costmap Node #####################
 
-    gym_vis_node = Node(
-        package='gym_vis',
-        name='gym_vis_node',
-        executable='gym_vis_node',
-    )
+    # gym_vis_node = Node(
+    #     package='gym_vis',
+    #     name='gym_vis_node',
+    #     executable='gym_vis_node',
+    # )
 
-    ld.add_action(gym_vis_node)
+    # ld.add_action(gym_vis_node)
 
     # #################### Example Node #####################
 

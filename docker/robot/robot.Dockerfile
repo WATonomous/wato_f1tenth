@@ -33,9 +33,17 @@ RUN sudo apt-get clean && \
 # ADD MORE DEPENDENCIES HERE
 RUN sudo apt-get install libeigen3-dev
 
+# Install slam_toolbox for 2D SLAM w/ loop closure & pose‐graph optimization
+RUN sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends \
+      ros-$ROS_DISTRO-slam-toolbox && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
-RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
+RUN apt-get update && \
+    apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list) && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy in source code from source stage
 WORKDIR ${AMENT_WS}
