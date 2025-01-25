@@ -20,6 +20,14 @@ def generate_launch_description():
 
     ld.add_action(gym_vis_node)
 
+    gym_vis_node = Node(
+        package='emergency_brake',
+        name='emergency_brake_node',
+        executable='emergency_brake_node',
+    )
+
+    ld.add_action(emergency_brake)
+
     # #################### Example Node #####################
 
     # name1_node = Node(

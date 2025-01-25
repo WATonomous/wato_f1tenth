@@ -20,4 +20,4 @@ services:
     profiles:
       - develop
     volumes:
-      - ${MONO_DIR}/src/robot:/home/bolty/ament_ws/src/robot
+      - ${MONO_DIR}/src:/home/bolty/ament_ws/src
