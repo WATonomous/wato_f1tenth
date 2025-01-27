@@ -10,12 +10,12 @@ from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
 
-class SafetyNode(Node):
+class EmergencyBrake(Node):
     """
     The class that handles emergency braking.
     """
     def __init__(self):
-        super().__init__('safety_node')
+        super().__init__('emergency_brake')
         """
         One publisher should publish to the /drive topic with a AckermannDriveStamped drive message.
 
@@ -77,13 +77,13 @@ class SafetyNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    safety_node = SafetyNode()
-    rclpy.spin(safety_node)
+    emergency_node = EmergencyBrake()
+    rclpy.spin(emergency_node)
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    safety_node.destroy_node()
+    emergency_node.destroy_node()
     rclpy.shutdown()
 
 

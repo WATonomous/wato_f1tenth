@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'emergency_brake = emergency_brake.emergency_brake:main'
+            'emergency_brake_node = emergency_brake.emergency_brake:main'
         ],
     },
 )
