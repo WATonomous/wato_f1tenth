@@ -12,6 +12,10 @@ services:
     image: autodrive_f1tenth:latest
     ports:
       - "4567:4567"
+      - "7400:7400/udp"
+      - "7401:7401/udp"
+      - "7410:7410/udp"
+      - "7411:7411/udp"
     profiles: [deploy, develop]
     # command: /bin/sh -c "echosus" #"ros2 launch autodrive_f1tenth simulator_bringup_headless.launch.py"
     # tty: true
