@@ -20,6 +20,14 @@ def generate_launch_description():
 
     ld.add_action(gym_vis_node)
 
+    planning_node = Node(
+        package='planning',
+        name='planning_node',
+        executable='planning_node',
+    )
+
+    ld.add_action(planning_node)
+
     # #################### Example Node #####################
 
     # name1_node = Node(
