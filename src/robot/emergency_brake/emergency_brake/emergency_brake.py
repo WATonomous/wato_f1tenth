@@ -7,6 +7,7 @@ import numpy as np
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
 
@@ -16,64 +17,54 @@ class EmergencyBrake(Node):
     """
     def __init__(self):
         super().__init__('emergency_brake')
-        """
-        One publisher should publish to the /drive topic with a AckermannDriveStamped drive message.
-
-        You should also subscribe to the /scan topic to get the LaserScan messages and
-        the /ego_racecar/odom topic to get the current speed of the vehicle.
-
-        The subscribers should use the provided odom_callback and scan_callback as callback methods
-
-        NOTE that the x component of the linear velocity in odom is the speed
-        """
-
-        self.speed = 0.0
-        # Create ROS subscribers and publishers.
-        self.scan_subscription = self.create_subscription( # Subscribe to the scan topic
-            LaserScan,
-            'scan',
-            self.scan_callback,
-            10
-        )
-
-        self.odom_subscription = self.create_subscription(
-            Odometry,
-            '/odom', # this is more reliable than /pf/pose/odom
-            self.odom_callback,
-            10
+        
+        # Create a subscriber to /cmd_vel topic
+        self.cmd_vel_subscription = self.create_subscription(
+            Twist,
+            '/teleop',
+            self.cmd_vel_callback,
+            1000
         )
         
-        # Update the speed of the car
-        self.publisher_ = self.create_publisher(AckermannDriveStamped, 'drive', 1000)
-        self.teleop_publisher_ = self.create_publisher(AckermannDriveStamped, 'teleop', 1000)
-        self.bool_publisher_ = self.create_publisher(Bool, 'emergency_breaking', 1000)
-
-    def odom_callback(self, odom_msg):
-        # Update current speed
-        self.speed = odom_msg.twist.twist.linear.x
-
-    def scan_callback(self, scan_msg):
-        # Calculate TTC
-        emergency_breaking = False
-        for idx, r in enumerate(scan_msg.ranges):
-            if (np.isnan(r)or r > scan_msg.range_max or r < scan_msg.range_min): continue
-            threshold = 1 # To be tuned in real vehicle
-            if r / max(self.speed * np.cos(scan_msg.angle_min + idx * scan_msg.angle_increment), 0.001) < threshold: 
-                emergency_breaking = True
-                break
-
-        emergency_msg = Bool()
-        emergency_msg.data = emergency_breaking
+        # Create a publisher to /drive topic
+        self.drive_publisher = self.create_publisher(
+            AckermannDriveStamped,
+            '/drive',
+            1000
+        )
         
-        # Publish command to brake
-        if emergency_breaking:
-            drive_msg = AckermannDriveStamped()
-            drive_msg.drive.speed = 0.0
-            self.get_logger().info("emergency brake engaged at speed {}".format(self.speed)) # Output to Log
-            self.publisher_.publish(drive_msg) # for autonomous control
-            self.teleop_publisher_.publish(drive_msg) # for manual control
-        
-        self.bool_publisher_.publish(emergency_msg)
+        # Store current speed and steering angle
+        self.current_speed = 0.0
+        self.current_steering_angle = 0.0
+
+        # Timer to continuously publish the latest command every 100ms
+        self.timer = self.create_timer(0.01, self.publish_drive_command)
+
+        self.get_logger().info("TeleopToAckermann node initialized")
+    
+    def cmd_vel_callback(self, twist_msg):
+        """
+        Callback function to process Twist messages and update stored speed/steering.
+        """
+        if twist_msg.linear.x == 1:  # Forward
+            self.current_speed = 1.0  
+        elif twist_msg.linear.x == -1:  # Stop
+            self.current_speed = 0.0
+            self.current_steering_angle = 0.0  
+
+        if twist_msg.angular.z == 1:  # Left turn
+            self.current_steering_angle = 0.1  
+        elif twist_msg.angular.z == -1:  # Right turn
+            self.current_steering_angle = -0.1  
+
+    def publish_drive_command(self):
+        """
+        Publishes the latest speed and steering values continuously.
+        """
+        drive_msg = AckermannDriveStamped()
+        drive_msg.drive.speed = self.current_speed
+        drive_msg.drive.steering_angle = self.current_steering_angle
+        self.drive_publisher.publish(drive_msg)
 
 def main(args=None):
     rclpy.init(args=args)
