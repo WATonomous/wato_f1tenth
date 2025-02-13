@@ -25,7 +25,8 @@ public:
 private:
   // Planner Data
   std::vector<std::vector<double>> midline;
-  std::vector<std::vector<std::vector<double>>> vertice_group;
+  std::vector<std::vector<std::vector<double>>> midline_vertice_group;
+  std::vector<std::vector<double>> raceline_vertices;
 
   void generate_vertices(int sample_size, int vertices_per_step, double BUFFER);
 
@@ -34,8 +35,9 @@ private:
 
   // Map data
   std::string package_path = ament_index_cpp::get_package_share_directory("planning");
-  std::string file_path = package_path + "/assets/centerlineTest21.csv";
-  Map levine = Map(file_path);
+  std::string centreline_path = package_path + "/assets/centerline.csv";
+  std::string raceline_path = package_path + "/assets/raceline.csv";
+  Map levine = Map(centreline_path,raceline_path);
 
   // Timers
   rclcpp::TimerBase::SharedPtr publisher_timer_;
@@ -77,10 +79,10 @@ void Planning::publisher_timer_callback(){
 
 void Planning::generate_vertices(int sample_size, int vertices_per_step, double BUFFER)
 {
-  int step = levine.get_size()/sample_size;
+  int step = levine.get_midline_size()/sample_size;
   double VERTEX_X_OFFSET;
 
-  for(int i = 0; i<=levine.get_size() - step; i+=step){
+  for(int i = 0; i<=levine.get_midline_size() - step; i+=step){
 
     std::vector<double> base_point = levine.get_midpoint(i);
     std::vector<std::vector<double>> vertices;
@@ -102,7 +104,9 @@ void Planning::generate_vertices(int sample_size, int vertices_per_step, double 
       std::vector<double> vertex = {x,y,theta,kappa};
       vertices.push_back(vertex);
     }
-    vertice_group.push_back(vertices);
+
+    raceline_vertices.push_back(levine.get_closest_raceline(vertices));
+    midline_vertice_group.push_back(vertices);
   }
 }
 
@@ -124,7 +128,7 @@ void Planning::publish_markers()
   marker.color.b = 0.0;
   marker.points.clear();
 
-  for(int i=0; i<levine.get_size(); i++){
+  for(int i=0; i<levine.get_midline_size(); i++){
 
     std::vector<double> midpoint = levine.get_midpoint(i);
 
@@ -165,6 +169,34 @@ void Planning::publish_markers()
    }
   
   marker_publisher_->publish(marker1);
+
+  visualization_msgs::msg::Marker marker2;
+  marker2.header.frame_id = "map";
+  marker2.header.stamp = this->get_clock()->now();
+  marker2.ns = "raceline";
+  marker2.id = 2;
+  marker2.type = visualization_msgs::msg::Marker::POINTS;
+  marker2.action = visualization_msgs::msg::Marker::ADD;
+  marker2.scale.x = 0.2;  
+  marker2.scale.y = 0.2;
+  marker2.color.a = 1.0;
+  marker2.color.r = 0.0;  
+  marker2.color.g = 0.6;
+  marker2.color.b = 0.53;
+  marker2.points.clear();
+
+  for(int i=0; i<levine.get_raceline_size(); i++){
+
+    std::vector<double> raceline = levine.get_raceline(i);
+
+    geometry_msgs::msg::Point point;
+    point.x = raceline.at(0);
+    point.y = raceline.at(1);
+    point.z = 0.0;
+    marker2.points.push_back(point);
+
+  }
+  marker_publisher_->publish(marker2);
 }
 
 int main(int argc, char * argv[])
