@@ -38,4 +38,4 @@ MODE_OF_OPERATION="deploy"
 
 ## Platform in which to build the docker images with. 
 ## Either arm64 (apple silicon, raspberry pi) or amd64 (most computers)
-# PLATFORM="amd64"
+PLATFORM="arm64"

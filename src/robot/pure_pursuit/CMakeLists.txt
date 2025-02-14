@@ -32,10 +32,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(pure_pursuit src/pure_pursuit.cpp)
-target_include_directories(pure_pursuit PUBLIC include)
+add_executable(pure_pursuit_node src/pure_pursuit.cpp)
+target_include_directories(pure_pursuit_node PUBLIC include)
 
-ament_target_dependencies(pure_pursuit rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(pure_pursuit_node rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
 
 
 # Install the meshes folder
@@ -44,7 +44,7 @@ install(DIRECTORY assets/
 )
 
 install(TARGETS
-  pure_pursuit
+  pure_pursuit_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

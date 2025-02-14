@@ -17,7 +17,6 @@ def generate_launch_description():
         name='gym_vis_node',
         executable='gym_vis_node',
     )
-
     ld.add_action(gym_vis_node)
 
     pure_pursuit_node = Node(
@@ -25,7 +24,6 @@ def generate_launch_description():
         name='pure_pursuit_node',
         executable='pure_pursuit_node',
     )
-
     ld.add_action(pure_pursuit_node)
 
     # #################### Example Node #####################
