@@ -24,15 +24,16 @@ class PurePursuit : public rclcpp::Node {
     PurePursuit(): Node("pure_pursuit") {
 
       waypoints = {};
+      velocities = {};
     
       string package_path = ament_index_cpp::get_package_share_directory("pure_pursuit");
-      string file_path = package_path + "/assets/MexicoCity_centerline.csv";
+      string file_path = package_path + "/assets/MexicoCity_raceline.csv";
 
       pointsFile.open(file_path);
       if (pointsFile.is_open()) {
         RCLCPP_ERROR(this->get_logger(), "Successfully opened waypoints file");
       }
-      addWaypoints(pointsFile);
+      addWaypointsRaceline(pointsFile);
       num_waypoints = static_cast<int>(waypoints.size());
       goal_point = waypoints[0];
 
@@ -73,8 +74,10 @@ class PurePursuit : public rclcpp::Node {
   private:
 
     vector<pair<double, double>> waypoints;
+    vector<double> velocities;
     ifstream pointsFile;
     void addWaypoints(ifstream &file);
+    void addWaypointsRaceline(ifstream &file);
     int num_waypoints;
 
     // Odom Data
@@ -87,6 +90,7 @@ class PurePursuit : public rclcpp::Node {
     // Drive
     rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr drive_publisher_;
     rclcpp::TimerBase::SharedPtr drive_timer_;
+    double target_speed;
     void driveTimerCallback();
 
     // Car Pose
@@ -112,6 +116,40 @@ class PurePursuit : public rclcpp::Node {
     double heading;
 };
 
+void PurePursuit::addWaypointsRaceline(ifstream &file) {
+  string line;
+  bool first_line = true;  
+
+
+  while (getline(file, line)) {  
+    if (first_line) {
+      first_line = false;
+      continue; 
+    }
+
+    stringstream ss(line);
+    string s_m_str, x_str, y_str, psi_str, kappa_str, vx_str, ax_str;
+
+    if (!getline(ss, s_m_str, ';') || 
+        !getline(ss, x_str, ';') || 
+        !getline(ss, y_str, ';') || 
+        !getline(ss, psi_str, ';') || 
+        !getline(ss, kappa_str, ';') || 
+        !getline(ss, vx_str, ';') || 
+        !getline(ss, ax_str, ';')) {
+      continue; 
+    }
+
+    // Convert strings to doubles
+    double x = stod(x_str);
+    double y = stod(y_str);
+    double v = stod(vx_str);  
+
+    waypoints.emplace_back(x, y);
+    velocities.emplace_back(v);
+  }
+}
+
 void PurePursuit::addWaypoints(ifstream &file) {
   string line;
   bool first_line = true;  
@@ -131,10 +169,10 @@ void PurePursuit::addWaypoints(ifstream &file) {
 
     double x = stod(x_str);
     double y = stod(y_str);
-    RCLCPP_ERROR(this->get_logger(), "x = %.2f y= %.2f", x, y);
     waypoints.emplace_back(x, y);
   }
 }
+
 
 // ODOM SUBSCRIBER CALLBACKS -----------------------------------------------------------------------------------------------------------
 void PurePursuit::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -177,7 +215,7 @@ void PurePursuit::driveTimerCallback() {
   auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
   drive_msg.header.stamp = this->get_clock()->now();
 
-  double target_speed = 0.5; // meters per second
+  target_speed = 0.18*velocities[last_point]; // meters per second
 
   drive_msg.drive.speed = target_speed;
   drive_msg.drive.steering_angle = steering_angle;
@@ -190,7 +228,7 @@ void PurePursuit::driveTimerCallback() {
 
 // GOAL POINT -------------------------------------------------------------------------------------------------------------------------
 void PurePursuit::gptask_callback() {
-  double ld = 2.6;
+  double ld = target_speed*2;
 
   goal_point = getGoalPoint(ld, carPosition);
 
