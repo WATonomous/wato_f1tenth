@@ -8,10 +8,12 @@
 #include <iostream>
 #include <cmath>
 
+#include "common.hpp"
+
 class Map{
 
-    std::vector<std::vector<double>> midline;
-    std::vector<std::vector<double>> raceline;
+    std::vector<Midpoint> midline;
+    std::vector<Point> raceline;
     std::string m_path;
     std::string r_path;
     int m_size;
@@ -21,6 +23,7 @@ class Map{
     public:
 
     Map(std::string midline_path, std::string raceline_path);
+    Map(){}
 
     int get_midline_size();
     int get_raceline_size();
@@ -32,9 +35,11 @@ class Map{
 
     bool file_found = false;
 
-    std::vector<double> get_midpoint(int idx);
-    std::vector<double> get_raceline(int idx); 
-    std::vector<double> get_closest_raceline(std::vector<std::vector<double>> vertices);
+    Midpoint get_midpoint(int idx);
+    Point get_raceline(int idx); 
+
+    Point get_closest_raceline(std::vector<Point> vertices);
+    Midpoint get_closest_midline(Point pose, int offset = 0);
 
 };
 

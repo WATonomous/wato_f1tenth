@@ -4,13 +4,13 @@ Map::Map(std::string midline_path, std::string raceline_path) : m_size(0), r_siz
     m_path = midline_path;
     r_path = raceline_path;
 
+    if(!generate_raceline()){
+        file_found = false;
+    }
+
     if(generate_midline()){
         file_found = true;
         generate_angles_and_curvatures();
-    }
-
-    if(!generate_raceline()){
-        file_found = false;
     }
     
 }
@@ -33,8 +33,6 @@ bool Map::generate_raceline(){
 
     while (std::getline(mapData, line)) {
 
-        std::vector<double> data;
-  
         for(size_t i = 0; i<line.length(); i++){
           if(line.at(i) == ';'){
             line.replace(i,1,1,' ');
@@ -44,14 +42,8 @@ bool Map::generate_raceline(){
         std::stringstream numStream(line);
 
         numStream >> station >> x_m >> y_m >> theta >> kappa >> vel >> accel;
-  
-        data.push_back(x_m);
-        data.push_back(y_m);
-        data.push_back(theta); 
-        data.push_back(kappa);
-        data.push_back(vel);
-        data.push_back(accel);
-        data.push_back(station);
+
+        Point data = {x_m, y_m, normalise_angle(theta), kappa, vel, accel};
 
         raceline.push_back(data);
         file_size++;
@@ -83,8 +75,6 @@ bool Map::generate_midline(){
     std::getline(mapData, line);
 
     while (std::getline(mapData, line)) {
-
-        std::vector<double> data;
   
         for(size_t i = 0; i<line.length(); i++){
           if(line.at(i) == ','){
@@ -96,12 +86,8 @@ bool Map::generate_midline(){
 
         numStream >> x_m >> y_m >> w_i >> w_o;
   
-        data.push_back(x_m);
-        data.push_back(y_m);
-        data.push_back(0); //theta to be updated
-        data.push_back(0); //kappa to be updated
-        data.push_back(w_i);
-        data.push_back(w_o);
+        //theta and kappa will be updated later
+        Midpoint data = {x_m, y_m, 0,0, w_i, w_o};
 
         midline.push_back(data);
         file_size++;
@@ -121,28 +107,43 @@ void Map::generate_angles_and_curvatures(){
 
     for(int i = 0; i<m_size-1; i++){
 
-        double angle, curvature, dx, dy, ds, dtheta;
+        double angle, dx, dy;
 
         if(i == m_size-1){
-            dx = midline[0][0] - midline[i][0];
-            dy = midline[0][1] - midline[i][1];
-
-            dtheta = midline[0][2] - midline[i][2]; // Angle difference        
+            dx = midline[0].x - midline[i].x;
+            dy = midline[0].y - midline[i].y;     
         }
         else{
-            dx = midline[i+1][0]- midline[i][0];
-            dy = midline[i+1][1] - midline[i][1];
-
-            dtheta = midline[i+1][2] - midline[i][2]; // Angle difference
+            dx = midline[i+1].x- midline[i].x;
+            dy = midline[i+1].y - midline[i].y;
         }
 
         angle = std::atan2(dy,dx);
 
+        midline[i].theta = angle;
+    }
+
+    for(int i = 0; i<m_size-1; i++){
+
+        double curvature, dx, dy, ds, dtheta;
+
+        if(i == m_size-1){
+            dx = midline[0].x - midline[i].x;
+            dy = midline[0].y - midline[i].y;
+
+            dtheta = midline[0].theta - midline[i].theta; // Angle difference        
+        }
+        else{
+            dx = midline[i+1].x- midline[i].x;
+            dy = midline[i+1].y - midline[i].y;
+
+            dtheta = midline[i+1].theta - midline[i].theta; // Angle difference
+        }
+
         ds = std::sqrt(dx * dx + dy * dy);  // Step size (arc length difference), computed as a straight line as points are really close together
         curvature = (ds > 1e-6) ? (dtheta / ds) : 0.0;
 
-        midline[i][2] = angle;
-        midline[i][3] = curvature;
+        midline[i].kappa = curvature;
     }
 
 }
@@ -156,17 +157,18 @@ int Map::get_raceline_size(){
     return r_size;
 }
 
-std::vector<double> Map::get_raceline(int idx){
+Point Map::get_raceline(int idx){
 
     if (idx < 0 || idx >= r_size) {
+        Point empty = {0,0,0,0};
         std::cerr << "Error: Index " << idx << " is out of bounds.\n";
-        return {};
+        return empty;
     }
     return raceline.at(idx);
 
 }
 
-std::vector<double> Map::get_midpoint(int idx){
+Midpoint Map::get_midpoint(int idx){
 
     if (idx < 0 || idx >= m_size) {
         std::cerr << "Error: Index " << idx << " is out of bounds.\n";
@@ -176,7 +178,7 @@ std::vector<double> Map::get_midpoint(int idx){
 
 }
 
-std::vector<double> Map::get_closest_raceline(std::vector<std::vector<double>> vertices){
+Point Map::get_closest_raceline(std::vector<Point> vertices){
 
     double min_dist = 1e9;
     double min_idx = -1;
@@ -184,9 +186,9 @@ std::vector<double> Map::get_closest_raceline(std::vector<std::vector<double>> v
     for(int i = 0; i < r_size; i++){
         
         for(const auto& vertex : vertices){
-        
-            double dist = std::sqrt(std::pow(raceline.at(i)[0] - vertex[0], 2) + std::pow(raceline.at(i)[1] - vertex[1], 2));
 
+            double dist = euc_dist(vertex.x, raceline.at(i).x, vertex.y, raceline.at(i).y);
+        
             if(dist < min_dist){
                 min_dist = dist;
                 min_idx = i;
@@ -195,7 +197,28 @@ std::vector<double> Map::get_closest_raceline(std::vector<std::vector<double>> v
         }
 
     }
-
     return raceline.at(min_idx);
+}
 
+Midpoint Map::get_closest_midline(Point pose, int offset){
+
+    double min_dist = 1e9;
+    double min_idx = -1;
+
+    for(int i = 0; i < m_size; i++){
+    
+        double dist = euc_dist(pose.x,midline.at(i).x,pose.y,midline.at(i).y);
+
+        if(dist < min_dist){
+            min_dist = dist;
+            min_idx = i;
+        }
+    }
+
+    if(min_idx+offset > m_size){
+        int idx = min_idx + offset - m_size;
+        return midline.at(idx);
+    }
+
+    return midline.at(min_idx+offset);
 }
