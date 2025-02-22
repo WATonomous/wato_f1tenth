@@ -18,6 +18,7 @@ find_package(tf2 REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -31,10 +32,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(planning_node src/planning_main.cpp src/car.cpp src/map.cpp)
+add_executable(planning_node src/planning_main.cpp src/car.cpp src/map.cpp src/curve_gen.cpp)
 target_include_directories(planning_node PUBLIC include)
 
-ament_target_dependencies(planning_node rclcpp std_msgs geometry_msgs nav_msgs tf2 sensor_msgs visualization_msgs ackermann_msgs)
+ament_target_dependencies(planning_node rclcpp std_msgs geometry_msgs nav_msgs tf2 sensor_msgs visualization_msgs ackermann_msgs tf2_eigen)
 
 install(DIRECTORY assets/
   DESTINATION share/${PROJECT_NAME}/assets
