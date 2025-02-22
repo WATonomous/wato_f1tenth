@@ -10,9 +10,10 @@
 #include <fstream>
 #include <sstream>
 
+#include "common.hpp"
+
 //file includes
-#include "car.hpp"
-#include "map.hpp"
+#include "curve_gen.hpp"
 
 //ros2 includes
 #include <ament_index_cpp/get_package_share_directory.hpp>
