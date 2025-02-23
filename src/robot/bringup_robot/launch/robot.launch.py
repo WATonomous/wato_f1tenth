@@ -19,12 +19,22 @@ def generate_launch_description():
     )
     ld.add_action(gym_vis_node)
 
+
+    planning_node = Node(
+        package='planning',
+        name='planning_node',
+        executable='planning_node',
+    )
+
+    ld.add_action(planning_node)
+
     pure_pursuit_node = Node(
         package='pure_pursuit',
         name='pure_pursuit_node',
         executable='pure_pursuit_node',
     )
     ld.add_action(pure_pursuit_node)
+
 
     # #################### Example Node #####################
 
