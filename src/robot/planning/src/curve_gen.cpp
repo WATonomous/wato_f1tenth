@@ -37,7 +37,7 @@ int Lattice::find_closest_vertices_idx(Car ego_car){
 
 }
 
-std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_raceline, int target_point){
+std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_raceline, int current_idx){
 
     std::vector<std::vector<Point>> traj;
     Point start;
@@ -45,28 +45,36 @@ std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_ra
 
     int starting_idx = find_closest_vertices_idx(ego_car);
 
-    if(on_raceline) {
-        start = raceline_vertices[starting_idx];
-    }
-    else{
-        start = vertice_group[starting_idx][target_point];
-    }
+    if(starting_idx != prev_curve_idx){
 
-    if(starting_idx+1 == map.get_midline_size()){
-        target_set = vertice_group[0];
-    }
-    else{
-        target_set = vertice_group[starting_idx+1];
-    }
+        start = on_raceline ? raceline_vertices[starting_idx] : vertice_group[starting_idx][current_idx];
 
-    for(const auto& target : target_set){
-        std::vector<Point> points;
-        generateCurve(start, target, 25, points);
-        traj.push_back(points);
-    }
+        if(starting_idx+1 == map.get_midline_size()){
+            target_set = vertice_group[0];
+            if(on_raceline) target_set.push_back(raceline_vertices.at(0));
+        }
+        else{
+            target_set = vertice_group[starting_idx+1];
+            if(on_raceline) target_set.push_back(raceline_vertices.at(starting_idx+1));
+        }
 
+        for(const auto& target : target_set){
+            std::vector<Point> points;
+            generateCurve(start, target, 25, points);
+            traj.push_back(points);
+        }
+
+        if(on_raceline){
+            std::vector<Point> points;
+            for(int i = starting_idx*step; i < (starting_idx*step + step); i++){
+                if(i < map.get_raceline_size()) points.push_back(map.get_raceline(i));
+            }
+            traj.push_back(points);
+        }
+
+        prev_curve_idx = starting_idx;
+    }
     return traj;
-
 }
 
 void Lattice::generate_vertices(int sample_size, int vertices_per_step, double BUFFER)
@@ -108,7 +116,7 @@ void Lattice::generate_vertices(int sample_size, int vertices_per_step, double B
         idx += step;
     }
 
-    raceline_vertices.push_back(map.get_closest_raceline(vertices));
+    raceline_vertices.push_back(map.get_associated_raceline(vertices));
     vertice_group.push_back(vertices);
   }
 }

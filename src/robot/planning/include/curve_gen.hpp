@@ -17,7 +17,7 @@ class Lattice{
   
     void generate_vertices(int sample_size, int vertices_per_step, double BUFFER);
     int step;
-    int find_closest_vertices_idx(Car ego_car);
+    
 
     Map map;
 
@@ -26,14 +26,17 @@ class Lattice{
     Eigen::Vector4d computeError(const Point& actual, const Point& target);
     Point generateSpiral(Point start, double a, double b, double c, double d, double sf, int steps, std::vector<Point>& points);
     void calculateSpiralCoeffs(double p0, double p1, double p2, double p3, double sf,double& a, double& b, double& c, double& d);
-    void generateCurve(Point start, Point target, int steps, std::vector<Point>& points);
+
+    int prev_curve_idx = -1;
 
     public:
 
     std::vector<Point> get_vertice_set(int idx) {return vertice_group.at(idx);}   
     Point get_raceline_vertex(int idx) { return raceline_vertices.at(idx); }
     Lattice(Map in_map, int sample_size, int vertices_per_step, double BUFFER);
-    std::vector<std::vector<Point>> getTrajectories(Car ego_car,bool on_raceline = true, int target_point=0);
+    std::vector<std::vector<Point>> getTrajectories(Car ego_car,bool on_raceline = true, int current_idx=-1);
+    void generateCurve(Point start, Point target, int steps, std::vector<Point>& points);
+    int find_closest_vertices_idx(Car ego_car);
  
 };
 

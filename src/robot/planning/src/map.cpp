@@ -178,7 +178,7 @@ Midpoint Map::get_midpoint(int idx){
 
 }
 
-Point Map::get_closest_raceline(std::vector<Point> vertices){
+Point Map::get_associated_raceline(std::vector<Point> vertices){
 
     double min_dist = 1e9;
     double min_idx = -1;

@@ -21,8 +21,6 @@ public:
       RCLCPP_INFO(this->get_logger(), "WAS NOT ABLE TO GENERATE MIDLINE");
     }
 
-    trajs = lattice.getTrajectories(ego_car);
-
   }
 
 private:
@@ -56,8 +54,11 @@ private:
   void publish_markers(); 
   void publisher_timer_callback();
 
-  std::vector<std::vector<Point>> trajs;
-
+  //trajectory calc
+  bool on_raceline = false;
+  int current_lane_idx = -1;
+  std::vector<Point> local_traj;
+  void generate_traj();
 
   size_t point_count;
   void marker_callback(const visualization_msgs::msg::Marker::SharedPtr msg) {
@@ -79,6 +80,7 @@ void Planning::publisher_timer_callback(){
   // if(point_count == 0){
   //   publish_markers(); // Publish markers after generating points
   // }
+  generate_traj();
   publish_markers();
 
   // SAMPLE CODE TO MOVE THE ROBOT STRAIGHT
@@ -88,6 +90,30 @@ void Planning::publisher_timer_callback(){
   // straight_drive_msg.drive.steering_angle = 1.0; 
   // drive_publisher_->publish(straight_drive_msg);
   // Publish the marker
+}
+
+void Planning::generate_traj(){
+
+  std::vector<std::vector<Point>> trajs;
+  Point pose = Point(ego_car.get_x(), ego_car.get_y(), ego_car.get_theta(), 0.0);
+
+  //startup init
+  if(current_lane_idx == -1){
+    int idx = lattice.find_closest_vertices_idx(ego_car);
+    lattice.generateCurve(pose, lattice.get_raceline_vertex(idx), 25, local_traj);
+    current_lane_idx = vertices_per_step;
+  }
+
+  trajs = current_lane_idx == vertices_per_step ? trajs = lattice.getTrajectories(ego_car) : lattice.getTrajectories(ego_car, false, current_lane_idx);
+
+  //replace with cost map
+  if (vertices_per_step < trajs.size()) {
+    for (auto& point : trajs[vertices_per_step]) {
+        local_traj.push_back(point);
+    }
+  }
+  current_lane_idx = vertices_per_step;
+
 }
 
 //visulization
@@ -202,19 +228,17 @@ void Planning::publish_markers()
   marker3.color.b = 0.53;
   marker3.points.clear();
 
-  for(const auto& points : trajs){
+  for(const auto& point : local_traj){
 
-    for(const auto& point : points){
-      geometry_msgs::msg::Point curve_point;
-      curve_point.x = point.x;
-      curve_point.y = point.y;
-      curve_point.z = 0;
-  
-      marker3.points.push_back(curve_point);
-    }
-  
-    marker_publisher_->publish(marker3);
+    geometry_msgs::msg::Point curve_point;
+    curve_point.x = point.x;
+    curve_point.y = point.y;
+    curve_point.z = 0;
+
+    marker3.points.push_back(curve_point);
+
   }
+  marker_publisher_->publish(marker3);
 
 }
 
