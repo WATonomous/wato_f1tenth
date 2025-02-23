@@ -44,6 +44,14 @@ RUN cd f1tenth_gym && \
 # Clone source code
 WORKDIR /sim_ws/src
 RUN git clone https://github.com/f1tenth/f1tenth_gym_ros.git
+
+WORKDIR /sim_ws/src/f1tenth_gym_ros/maps
+COPY src/maps .
+
+WORKDIR /sim_ws/src/f1tenth_gym_ros/config
+RUN ls sim.yaml && rm sim.yaml
+COPY src/config .
+
 WORKDIR /sim_ws/src/f1tenth_gym_ros
 RUN source /opt/ros/foxy/setup.bash && \
     cd /sim_ws/ && \
