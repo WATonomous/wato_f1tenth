@@ -1,9 +1,11 @@
 #include "curve_gen.hpp"
 
-Lattice::Lattice(Map in_map, int sample_size, int vertices_per_step, double BUFFER){
+Lattice::Lattice(Map in_map, double DIST_PER_STEP ,int VERT_PER_STEP, int RES_PER_STEP, double BUFFER, int& SAMPLE_SIZE){
 
     map = in_map;
-    generate_vertices(sample_size, vertices_per_step, BUFFER);
+    resolution = RES_PER_STEP;
+
+    generate_vertices(DIST_PER_STEP, VERT_PER_STEP, BUFFER, SAMPLE_SIZE);
 
 }
 
@@ -24,10 +26,22 @@ int Lattice::find_closest_vertices_idx(Car ego_car){
             min_dist = dist;
             min_idx = i;
         }
-
     }
 
     if(min_dist>-1){
+
+        //check if point is in right direction
+        double rejection_range = 0.9; //compared to pi
+        double delta_angle = abs(std::atan2( (vertice_group[min_idx][2].y - base.y), (vertice_group[min_idx][2].x - base.x) )) - base.theta;
+        if(delta_angle > rejection_range*M_PI && delta_angle < M_PI/rejection_range){
+            if(min_idx + 1 < vertice_group.size()){
+                return min_idx+1;
+            }
+            else{
+                return 0;
+            }
+        }
+
         return min_idx;
     }
     else{
@@ -49,27 +63,32 @@ std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_ra
 
         start = on_raceline ? raceline_vertices[starting_idx] : vertice_group[starting_idx][current_idx];
 
-        if(starting_idx+1 == map.get_midline_size()){
+        if(starting_idx+1 == vertice_group.size()){
             target_set = vertice_group[0];
-            if(on_raceline) target_set.push_back(raceline_vertices.at(0));
+            if(!on_raceline) target_set.push_back(raceline_vertices.at(0));
         }
         else{
             target_set = vertice_group[starting_idx+1];
-            if(on_raceline) target_set.push_back(raceline_vertices.at(starting_idx+1));
+            if(!on_raceline) target_set.push_back(raceline_vertices.at(starting_idx+1));
         }
 
         for(const auto& target : target_set){
             std::vector<Point> points;
-            generateCurve(start, target, 25, points);
+            generateCurve(start, target, resolution, points);
             traj.push_back(points);
         }
 
         if(on_raceline){
             std::vector<Point> points;
-            for(int i = starting_idx*step; i < (starting_idx*step + step); i++){
-                if(i < map.get_raceline_size()) points.push_back(map.get_raceline(i));
+
+            int end_idx = starting_idx+1 == vertice_group.size() ? 0 : starting_idx+1;
+
+            for(int i = raceline_vert_idx.at(starting_idx); i < raceline_vert_idx.at(end_idx); i++){
+                points.push_back(raceline_vertices.at(i));
             }
+
             traj.push_back(points);
+
         }
 
         prev_curve_idx = starting_idx;
@@ -77,48 +96,60 @@ std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_ra
     return traj;
 }
 
-void Lattice::generate_vertices(int sample_size, int vertices_per_step, double BUFFER)
+void Lattice::generate_vertices(double DIST_PER_STEP ,int VERT_PER_STEP, double BUFFER, int& SAMPLE_SIZE)
 {
-  step = map.get_midline_size()/(sample_size);
-  int rem = (map.get_midline_size()%sample_size);
+  
   double VERTEX_X_OFFSET;
-  int idx = 0;
 
-  for(int i = 0; i<sample_size; i++){
+  int midline_size = map.get_midline_size();
 
-    if(idx > map.get_midline_size()) break;
+  SAMPLE_SIZE = 0;
+ 
+  for(int i = 0; i < midline_size; i++){
 
-    Midpoint base_point = map.get_midpoint(idx);
-    std::vector<Point> vertices;
+    static double local_dist = 0;
+    static Midpoint curr_point = map.get_midpoint(0);
+    static Midpoint next_point = map.get_midpoint(1);
 
-    for(int j = 0; j < vertices_per_step; j++){
-
-      if(j <= vertices_per_step/2){
-        VERTEX_X_OFFSET = (base_point.w_i - BUFFER) / (vertices_per_step/2);
-      }
-      else{
-        VERTEX_X_OFFSET = (base_point.w_o - BUFFER) / (vertices_per_step/2);
-      }
-
-      double x = base_point.x + (VERTEX_X_OFFSET * (j - vertices_per_step/2) * std::cos(base_point.theta + M_PI_2));
-      double y = base_point.y + (VERTEX_X_OFFSET * (j - vertices_per_step/2) * std::sin(base_point.theta + M_PI_2));
-      double theta = base_point.theta;
-      double kappa = (base_point.kappa > 1e-6) ? (1 / ((1 / base_point.kappa) + VERTEX_X_OFFSET)) : 0.0;
-
-      Point vertex = {x,y,theta,kappa};
-      vertices.push_back(vertex);
+    if(i != 0){
+        curr_point = next_point;
+        next_point = i+1 < midline_size ? map.get_midpoint(i+1) : map.get_midpoint(0);
     }
 
-    if(i < rem-1){
-        idx += (step + 1);
+    if(local_dist < DIST_PER_STEP){
+        local_dist += euc_dist(curr_point.x, next_point.x, curr_point.y, next_point.y);
     }
     else{
-        idx += step;
+        std::vector<Point> vertices;
+
+        for(int j = 0; j < VERT_PER_STEP; j++){
+
+            if(j <= VERT_PER_STEP/2){
+              VERTEX_X_OFFSET = (curr_point.w_i - BUFFER) / (VERT_PER_STEP/2);
+            }
+            else{
+              VERTEX_X_OFFSET = (curr_point.w_o - BUFFER) / (VERT_PER_STEP/2);
+            }
+      
+            double x = curr_point.x + (VERTEX_X_OFFSET * (j - VERT_PER_STEP/2) * std::cos(curr_point.theta + M_PI_2));
+            double y = curr_point.y + (VERTEX_X_OFFSET * (j - VERT_PER_STEP/2) * std::sin(curr_point.theta + M_PI_2));
+            double theta = curr_point.theta;
+            double kappa = (curr_point.kappa > 1e-6) ? (1 / ((1 / curr_point.kappa) + VERTEX_X_OFFSET)) : 0.0;
+      
+            Point vertex = {x,y,theta,kappa};
+            vertices.push_back(vertex);
+        }
+
+        local_dist = 0;
+        SAMPLE_SIZE++;
+
+        raceline_vertices.push_back(map.get_associated_raceline(vertices));
+        raceline_vert_idx.push_back(i);
+        vertice_group.push_back(vertices);
     }
 
-    raceline_vertices.push_back(map.get_associated_raceline(vertices));
-    vertice_group.push_back(vertices);
   }
+
 }
 
 // Calculate cubic spiral coefficients
@@ -134,7 +165,8 @@ void Lattice::calculateSpiralCoeffs(double p0, double p1, double p2, double p3, 
 // Generate spiral and return final state
 Point Lattice::generateSpiral(Point start, double a, double b, double c, double d, double sf, int steps, std::vector<Point>& points) {
     double ds = sf / steps;
-    double x = start.x, y = start.y, theta = start.theta;
+    double x = start.x, y = start.y, theta = start.theta, accel = start.accel;
+    double vel, time;
 
     for (int i = 1; i <= steps; ++i) {
         double s = i * ds;
@@ -142,8 +174,10 @@ Point Lattice::generateSpiral(Point start, double a, double b, double c, double 
         theta += kappa * ds;
         x += cos(theta) * ds;
         y += sin(theta) * ds;
+        vel = (start.vel + 2*accel*s) >= 0 ? std::sqrt(start.vel + 2*accel*s) : -1;
+        time = accel == 0 ? sf/vel : (vel - start.vel)/accel;
 
-        Point point = {x,y,theta,kappa,0,0,0};
+        Point point = {x,y,theta,kappa,vel,accel,time};
         points.push_back(point);
     }
 

@@ -9,6 +9,7 @@
 #include <cmath> 
 #include <fstream>
 #include <sstream>
+#include <cstdint>
 
 #include "common.hpp"
 
@@ -31,12 +32,11 @@
 
 #include "nav_msgs/msg/odometry.hpp"
 
-#include <sensor_msgs/msg/point_cloud.hpp>
+#include "sensor_msgs/msg/point_cloud.hpp"
+#include "sensor_msgs/msg/channel_float32.hpp"
 
 #include "visualization_msgs/msg/marker.hpp"
 
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
-
-
 
 #endif

@@ -22,7 +22,7 @@ class Map{
     
     public:
 
-    Map(std::string midline_path, std::string raceline_path);
+    Map(std::string midline_path, std::string raceline_path, double& MAX_KAPPA);
     Map(){}
 
     int get_midline_size();
@@ -31,7 +31,7 @@ class Map{
     bool generate_midline();
     void generate_angles_and_curvatures();
 
-    bool generate_raceline();
+    bool generate_raceline(double& MAX_KAPPA);
 
     bool file_found = false;
 

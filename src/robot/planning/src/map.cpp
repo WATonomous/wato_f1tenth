@@ -1,10 +1,10 @@
 #include "map.hpp"
 
-Map::Map(std::string midline_path, std::string raceline_path) : m_size(0), r_size(0) {
+Map::Map(std::string midline_path, std::string raceline_path, double& MAX_KAPPA) : m_size(0), r_size(0) {
     m_path = midline_path;
     r_path = raceline_path;
 
-    if(!generate_raceline()){
+    if(!generate_raceline(MAX_KAPPA)){
         file_found = false;
     }
 
@@ -15,7 +15,15 @@ Map::Map(std::string midline_path, std::string raceline_path) : m_size(0), r_siz
     
 }
 
-bool Map::generate_raceline(){
+bool Map::generate_raceline(double& MAX_KAPPA){
+    /*
+    Opens raceline csv and extracts x, y, theta, kappa, velocity, acceleration, and station. 
+    station gets discard while the rest is stored within a Point. Check common.hpp for Point
+    definition. All points are stored in raceline vector. 
+    NOTE: theta gets normalised to be within -pi and pi
+    Returns boolean value to confirm if opening and extracting data was successful
+    */
+    MAX_KAPPA = -1e6;
 
     std::ifstream mapData(r_path);
     if (!mapData.is_open()) {
@@ -45,6 +53,8 @@ bool Map::generate_raceline(){
 
         Point data = {x_m, y_m, normalise_angle(theta), kappa, vel, accel};
 
+        if(fabs(kappa) > MAX_KAPPA) MAX_KAPPA = fabs(kappa);
+
         raceline.push_back(data);
         file_size++;
     }
@@ -61,6 +71,12 @@ bool Map::generate_raceline(){
 }
 
 bool Map::generate_midline(){
+    /*
+    Opens midline csv file and extracts, x, y, inner width(w_i), and outer widht(w_o) for each point. 
+    All data is stored in a Point data structure. Check common.hpp for more information. Angle and Curvature are generated 
+    in generate_angles_and_curvatures()
+    Returns bool for if opening and extracting the data was a success
+    */
 
     std::ifstream mapData(m_path);
     if (!mapData.is_open()) {
@@ -104,6 +120,11 @@ bool Map::generate_midline(){
 }
 
 void Map::generate_angles_and_curvatures(){
+    /*
+    Angles are generated using the x and y components of a vector formed from the current point
+    to the next point. Curvature is generated as an integral of angle from 0 to ending station,
+    and calculated using riemann sum. 
+    */
 
     for(int i = 0; i<m_size-1; i++){
 
@@ -179,6 +200,11 @@ Midpoint Map::get_midpoint(int idx){
 }
 
 Point Map::get_associated_raceline(std::vector<Point> vertices){
+    /*
+    Finds closest raceline point to set of vertices to allow path generation to the raceline.
+    returns closest raceline point 
+    */
+
 
     double min_dist = 1e9;
     double min_idx = -1;
