@@ -5,7 +5,8 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <string>
+#include <vector>
+#include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -14,9 +15,27 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+#define PI 3.14159
 
-#endif  
+// class that inherits from rclcpp::Node
+class EmergencyBraking : public rclcpp::Node{
+    public: 
+        // constructor
+        EmergencyBraking();
+    private:
+        double current_speed_;
+        // publishers
+        rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr brake_pub_;
+        // subscribers
+        rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
+        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+        // callback functions
+        void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg); 
+        void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+        // functions
+        void apply_brake();
+        std::vector<double> compute_ittc(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+};
+
+#endif

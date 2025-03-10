@@ -35,11 +35,7 @@ endif()
 add_executable(emergency_braking_node src/emergency_braking.cpp)
 target_include_directories(emergency_braking_node PUBLIC include)
 
-add_executable(obstacle_publisher src/obstacle_publisher.cpp)
-ament_target_dependencies(obstacle_publisher rclcpp sensor_msgs)
 
-add_executable(test_drive src/test_drive.cpp)
-ament_target_dependencies(test_drive rclcpp sensor_msgs)
 
 ament_target_dependencies(emergency_braking_node rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
 
@@ -52,7 +48,6 @@ ament_target_dependencies(emergency_braking_node rclcpp std_msgs nav_msgs visual
 install(TARGETS
   emergency_braking_node
   obstacle_publisher
-  test_drive
   DESTINATION lib/${PROJECT_NAME}
 )
 
