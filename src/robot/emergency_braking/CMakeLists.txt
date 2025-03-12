@@ -47,7 +47,7 @@ ament_target_dependencies(emergency_braking_node rclcpp std_msgs nav_msgs visual
 
 install(TARGETS
   emergency_braking_node
-  obstacle_publisher
+  
   DESTINATION lib/${PROJECT_NAME}
 )
 
