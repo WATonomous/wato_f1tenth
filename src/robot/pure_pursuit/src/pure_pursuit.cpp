@@ -18,7 +18,7 @@ class PurePursuit : public rclcpp::Node {
       }
       //addWaypointsRaceline(pointsFile);
       num_waypoints = static_cast<int>(waypoints.size());
-      //goal_point = waypoints[0];
+      goal_point = {0.17, 0.78};
 
       // SUBSCRIBERS ------------------------------------------------------------------------------------------------------------------
       odom_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -243,7 +243,7 @@ void PurePursuit::driveTimerCallback() {
   auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
   drive_msg.header.stamp = this->get_clock()->now();
 
-  drive_msg.drive.speed = 0.2;
+  drive_msg.drive.speed = 0.05;
   drive_msg.drive.steering_angle = steering_angle;
   drive_msg.drive.steering_angle_velocity = 100;
 
@@ -380,7 +380,7 @@ pair<double, double> PurePursuit::getGoalPoint(double ld, geometry_msgs::msg::Po
 
       if(goalPoint.first != 0 && goalPoint.second != 0) {
         last_point = j;
-        RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f", goalPoint.first, goalPoint.second);
+        RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f   Car Position: x=%.2f y=%.2f", goalPoint.first, goalPoint.second, waypoints[i].first, waypoints[i].second);
         return goalPoint;
       }
     }
