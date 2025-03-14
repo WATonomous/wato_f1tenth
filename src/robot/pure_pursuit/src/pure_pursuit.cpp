@@ -172,6 +172,7 @@ void PurePursuit::traj_callback(const sensor_msgs::msg::PointCloud::SharedPtr ms
   int num_points = static_cast<int>(current_traj_->points.size());
   waypoints.clear();
   velocities.clear();
+  last_point= 0;
 
   const sensor_msgs::msg::ChannelFloat32* vel_channel = nullptr;
   for (const auto& channel : current_traj_->channels) {
@@ -243,7 +244,7 @@ void PurePursuit::driveTimerCallback() {
   auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
   drive_msg.header.stamp = this->get_clock()->now();
 
-  drive_msg.drive.speed = 0.2;
+  drive_msg.drive.speed = target_speed;
   drive_msg.drive.steering_angle = steering_angle;
   drive_msg.drive.steering_angle_velocity = 100;
 
@@ -256,7 +257,7 @@ void PurePursuit::driveTimerCallback() {
 void PurePursuit::gptask_callback() {
   if(traj_received) {
     RCLCPP_INFO(this->get_logger(), "VELOCITIES: v=%d", last_point);
-    target_speed = 0.25*velocities[last_point]; // meters per second
+    target_speed = 0.15*velocities[last_point]; // meters per second
     double ld = target_speed*2;
     //ld = 0.3;
     goal_point = getGoalPoint(ld, carPosition);

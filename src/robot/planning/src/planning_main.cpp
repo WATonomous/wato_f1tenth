@@ -258,29 +258,29 @@ void Planning::publish_markers(){
   marker1.color.b = 1.0;
   marker1.points.clear();
 
-  for (int i = 0; i < SAMPLE_SIZE; i++) {
-    std::vector<Point> vertices = lattice.get_vertice_set(i);
-    for(const auto& vertex : vertices){
-      geometry_msgs::msg::Point vertex_point;
-      vertex_point.x = vertex.x;
-      vertex_point.y = vertex.y;
-      vertex_point.z = 0;
+  // for (int i = 0; i < SAMPLE_SIZE; i++) {
+  //   std::vector<Point> vertices = lattice.get_vertice_set(i);
+  //   for(const auto& vertex : vertices){
+  //     geometry_msgs::msg::Point vertex_point;
+  //     vertex_point.x = vertex.x;
+  //     vertex_point.y = vertex.y;
+  //     vertex_point.z = 0;
 
-      // RCLCPP_INFO(this->get_logger(), "x=%.2f, y=%.2f, z=%.2f", vertex[0], vertex[1], 0.0);
+  //     // RCLCPP_INFO(this->get_logger(), "x=%.2f, y=%.2f, z=%.2f", vertex[0], vertex[1], 0.0);
 
-      marker1.points.push_back(vertex_point);
-    }
+  //     marker1.points.push_back(vertex_point);
+  //   }
 
-    Point raceline_point = lattice.get_raceline_vertex(i);
-    geometry_msgs::msg::Point vertex_point;
-    vertex_point.x = raceline_point.x;
-    vertex_point.y = raceline_point.y;
-    vertex_point.z = 0;
+  //   Point raceline_point = lattice.get_raceline_vertex(i);
+  //   geometry_msgs::msg::Point vertex_point;
+  //   vertex_point.x = raceline_point.x;
+  //   vertex_point.y = raceline_point.y;
+  //   vertex_point.z = 0;
 
-    marker1.points.push_back(vertex_point);
-   }
+  //   marker1.points.push_back(vertex_point);
+  //  }
   
-  marker_publisher_->publish(marker1);
+  // marker_publisher_->publish(marker1);
 
   // visualization_msgs::msg::Marker marker2;
   // marker2.header.frame_id = "map";
