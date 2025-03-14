@@ -243,7 +243,7 @@ void PurePursuit::driveTimerCallback() {
   auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
   drive_msg.header.stamp = this->get_clock()->now();
 
-  drive_msg.drive.speed = 0.1;
+  drive_msg.drive.speed = 0.2;
   drive_msg.drive.steering_angle = steering_angle;
   drive_msg.drive.steering_angle_velocity = 100;
 
@@ -254,22 +254,23 @@ void PurePursuit::driveTimerCallback() {
 
 // GOAL POINT -------------------------------------------------------------------------------------------------------------------------
 void PurePursuit::gptask_callback() {
-  while(!traj_received) { }
+  if(traj_received) {
+    RCLCPP_INFO(this->get_logger(), "VELOCITIES: v=%d", last_point);
+    target_speed = 0.25*velocities[last_point]; // meters per second
+    double ld = target_speed*2;
+    //ld = 0.3;
+    goal_point = getGoalPoint(ld, carPosition);
 
-  //target_speed = 0.18*velocities[last_point]; // meters per second
-  double ld = target_speed*2;
-  ld = 0.3;
-  goal_point = getGoalPoint(ld, carPosition);
+    double carLength = 1;
+    double dy = goal_point.second-carPosition.y;
+    double dx = goal_point.first-carPosition.x;
+    double alpha = atan2(dy, dx);
+    double diff = alpha-heading;
 
-  double carLength = 1;
-  double dy = goal_point.second-carPosition.y;
-  double dx = goal_point.first-carPosition.x;
-  double alpha = atan2(dy, dx);
-  double diff = alpha-heading;
+    double curvature = 2*sin(diff)/ld;
 
-  double curvature = 2*sin(diff)/ld;
-
-  steering_angle = atan(curvature*carLength); // radians
+    steering_angle = atan(curvature*carLength); // radians
+  }
 }
 
 double PurePursuit::pointDistance(pair<double, double> car, pair<double, double> point) {
@@ -380,7 +381,7 @@ pair<double, double> PurePursuit::getGoalPoint(double ld, geometry_msgs::msg::Po
 
       if(goalPoint.first != 0 && goalPoint.second != 0) {
         last_point = j;
-        RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f   Car Position: x=%.2f y=%.2f", goalPoint.first, goalPoint.second, waypoints[i].first, waypoints[i].second);
+        RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f   Waypoint: x=%.2f y=%.2f", goalPoint.first, goalPoint.second, waypoints[i].first, waypoints[i].second);
         return goalPoint;
       }
     }
