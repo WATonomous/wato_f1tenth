@@ -1,21 +1,4 @@
-#include "pure_pursuit.hpp"
-#include "nav_msgs/msg/odometry.hpp"
-#include "visualization_msgs/msg/marker.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
-#include "ament_index_cpp/get_package_share_directory.hpp"
-#include <cmath>
-#include <vector>
-#include <utility>
-#include <iostream>
-#include <tf2/utils.h>
-#include <algorithm>
-#include <fstream>
-#include <string>
-#include <sstream>
-
-
+#include <pure_pursuit.hpp>
 using namespace std;
 
 class PurePursuit : public rclcpp::Node {
@@ -33,9 +16,9 @@ class PurePursuit : public rclcpp::Node {
       if (pointsFile.is_open()) {
         RCLCPP_ERROR(this->get_logger(), "Successfully opened waypoints file");
       }
-      addWaypointsRaceline(pointsFile);
+      //addWaypointsRaceline(pointsFile);
       num_waypoints = static_cast<int>(waypoints.size());
-      goal_point = waypoints[0];
+      //goal_point = waypoints[0];
 
       // SUBSCRIBERS ------------------------------------------------------------------------------------------------------------------
       odom_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -44,6 +27,10 @@ class PurePursuit : public rclcpp::Node {
 
       pose_subscriber_ = this->create_subscription<visualization_msgs::msg::Marker>(
             "/f1tenth_car", 10, bind(&PurePursuit::pose_callback, this, placeholders::_1)
+      );
+
+      traj_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud>(
+            "/traj_msg", 10, bind(&PurePursuit::traj_callback, this, placeholders::_1)
       );
       // ------------------------------------------------------------------------------------------------------------------------------
 
@@ -114,6 +101,11 @@ class PurePursuit : public rclcpp::Node {
     int last_point = 0;
     double steering_angle;
     double heading;
+
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud>::SharedPtr traj_subscriber_;
+    void traj_callback(const sensor_msgs::msg::PointCloud::SharedPtr msg);
+    sensor_msgs::msg::PointCloud::SharedPtr current_traj_;
+    bool traj_received = false;
 };
 
 void PurePursuit::addWaypointsRaceline(ifstream &file) {
@@ -174,6 +166,42 @@ void PurePursuit::addWaypoints(ifstream &file) {
 }
 
 
+
+void PurePursuit::traj_callback(const sensor_msgs::msg::PointCloud::SharedPtr msg) {
+  current_traj_ = msg;
+  int num_points = static_cast<int>(current_traj_->points.size());
+  waypoints.clear();
+  velocities.clear();
+
+  const sensor_msgs::msg::ChannelFloat32* vel_channel = nullptr;
+  for (const auto& channel : current_traj_->channels) {
+      if (channel.name == "velocity") {
+          vel_channel = &channel;
+          break;
+      }
+  }
+
+  for (int i=0; i < num_points; i++) {
+    double x = current_traj_->points[i].x;
+    double y = current_traj_->points[i].y;
+    double v = static_cast<double>(vel_channel->values[i]);
+
+    waypoints.emplace_back(x, y);
+    velocities.emplace_back(v);
+    RCLCPP_INFO(this->get_logger(), "VELOCITY: v=%.2f", v);
+
+  }
+  num_waypoints = static_cast<int>(waypoints.size());
+
+  RCLCPP_INFO(this->get_logger(), "VELOCITIES: v=%d", static_cast<int>(velocities.size()));
+
+  if(num_points > 0) {
+    traj_received = true;
+  }
+}
+
+
+
 // ODOM SUBSCRIBER CALLBACKS -----------------------------------------------------------------------------------------------------------
 void PurePursuit::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
   last_odom_msg_ = msg;
@@ -215,9 +243,7 @@ void PurePursuit::driveTimerCallback() {
   auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
   drive_msg.header.stamp = this->get_clock()->now();
 
-  target_speed = 0.18*velocities[last_point]; // meters per second
-
-  drive_msg.drive.speed = target_speed;
+  drive_msg.drive.speed = 0.2;
   drive_msg.drive.steering_angle = steering_angle;
   drive_msg.drive.steering_angle_velocity = 100;
 
@@ -228,8 +254,11 @@ void PurePursuit::driveTimerCallback() {
 
 // GOAL POINT -------------------------------------------------------------------------------------------------------------------------
 void PurePursuit::gptask_callback() {
-  double ld = target_speed*2;
+  while(!traj_received) { }
 
+  //target_speed = 0.18*velocities[last_point]; // meters per second
+  double ld = target_speed*2;
+  ld = 0.3;
   goal_point = getGoalPoint(ld, carPosition);
 
   double carLength = 1;
@@ -337,7 +366,6 @@ pair<double, double> PurePursuit::getGoalPoint(double ld, geometry_msgs::msg::Po
   pair<double, double> carPoint = {carPos.x, carPos.y};
 
   for(int i=last_point; i < num_waypoints; i++) {
-
     if(ld - pointDistance(carPoint, waypoints[i]) == 0) { // found point exactly lookahead distance away (MAYBE ADD A BUFFER MARGIN)
       goalPoint = waypoints[i];
       last_point = i;
@@ -352,7 +380,7 @@ pair<double, double> PurePursuit::getGoalPoint(double ld, geometry_msgs::msg::Po
 
       if(goalPoint.first != 0 && goalPoint.second != 0) {
         last_point = j;
-        //RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f", goalPoint.first, goalPoint.second);
+        RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f", goalPoint.first, goalPoint.second);
         return goalPoint;
       }
     }
