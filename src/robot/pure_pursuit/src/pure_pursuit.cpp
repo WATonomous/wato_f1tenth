@@ -243,7 +243,7 @@ void PurePursuit::driveTimerCallback() {
   auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
   drive_msg.header.stamp = this->get_clock()->now();
 
-  drive_msg.drive.speed = 0.05;
+  drive_msg.drive.speed = 0.1;
   drive_msg.drive.steering_angle = steering_angle;
   drive_msg.drive.steering_angle_velocity = 100;
 
