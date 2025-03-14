@@ -65,11 +65,9 @@ std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_ra
 
         if(starting_idx+1 == vertice_group.size()){
             target_set = vertice_group[0];
-            if(!on_raceline) target_set.push_back(raceline_vertices.at(0));
         }
         else{
             target_set = vertice_group[starting_idx+1];
-            if(!on_raceline) target_set.push_back(raceline_vertices.at(starting_idx+1));
         }
 
         for(const auto& target : target_set){
@@ -84,7 +82,7 @@ std::vector<std::vector<Point>> Lattice::getTrajectories(Car ego_car, bool on_ra
             int end_idx = starting_idx+1 == vertice_group.size() ? 0 : starting_idx+1;
 
             for(int i = raceline_vert_idx.at(starting_idx); i < raceline_vert_idx.at(end_idx); i++){
-                points.push_back(raceline_vertices.at(i));
+                points.push_back(map.get_raceline(i));
             }
 
             traj.push_back(points);
@@ -143,8 +141,10 @@ void Lattice::generate_vertices(double DIST_PER_STEP ,int VERT_PER_STEP, double 
         local_dist = 0;
         SAMPLE_SIZE++;
 
-        raceline_vertices.push_back(map.get_associated_raceline(vertices));
-        raceline_vert_idx.push_back(i);
+        int raceline_idx;
+
+        raceline_vertices.push_back(map.get_associated_raceline(vertices, raceline_idx));
+        raceline_vert_idx.push_back(raceline_idx);
         vertice_group.push_back(vertices);
     }
 

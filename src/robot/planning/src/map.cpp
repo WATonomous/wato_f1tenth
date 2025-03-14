@@ -199,7 +199,7 @@ Midpoint Map::get_midpoint(int idx){
 
 }
 
-Point Map::get_associated_raceline(std::vector<Point> vertices){
+Point Map::get_associated_raceline(std::vector<Point> vertices, int& idx){
     /*
     Finds closest raceline point to set of vertices to allow path generation to the raceline.
     returns closest raceline point 
@@ -223,6 +223,7 @@ Point Map::get_associated_raceline(std::vector<Point> vertices){
         }
 
     }
+    idx = min_idx;
     return raceline.at(min_idx);
 }
 

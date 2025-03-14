@@ -38,7 +38,7 @@ class Map{
     Midpoint get_midpoint(int idx);
     Point get_raceline(int idx); 
 
-    Point get_associated_raceline(std::vector<Point> vertices);
+    Point get_associated_raceline(std::vector<Point> vertices, int& idx);
     Midpoint get_closest_midline(Point pose, int offset = 0);
 
 };

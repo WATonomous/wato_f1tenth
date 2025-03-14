@@ -144,9 +144,10 @@ void Planning::generate_traj(){
 
   //check if car is on raceline idx
   trajs = current_lane_idx == VERT_PER_STEP ? trajs = lattice.getTrajectories(ego_car) : lattice.getTrajectories(ego_car, false, current_lane_idx);
-  //replace with cost map
   
   if (trajs.size() > 0) {
+
+    RCLCPP_INFO(this->get_logger(), "traj size: %zu", trajs.size());
 
     std::uint8_t min_cost = 255; //max cost value
     std::vector<Point> min_traj;
@@ -156,10 +157,13 @@ void Planning::generate_traj(){
       std::uint8_t cost = i == VERT_PER_STEP ? getCost(traj, true) : getCost(traj, false);
       if(cost < min_cost){
         min_traj = traj; 
+        RCLCPP_INFO(this->get_logger(), "new min size: %zu", traj.size());
       }
+      RCLCPP_INFO(this->get_logger(), "cost map iteration: %zu", i);
     }
 
     for (auto& point : min_traj) {
+      RCLCPP_INFO(this->get_logger(), "local traj size: %zu", local_traj.size());
       local_traj.push_back(point);
     }
         
