@@ -1,0 +1,681 @@
+{
+  "configById": {
+    "NodePlayground!2z6fhq3": {
+      "selectedNodeId": "125add07-11e4-46e5-8c4e-84954294e443",
+      "autoFormatOnSave": true,
+      "foxglovePanelTitle": "Scripts"
+    },
+    "Image!3mnp456": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 45,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {
+        "/autodrive/f1tenth_1/lidar": {
+          "visible": false
+        }
+      },
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {
+        "imageTopic": "/autodrive/f1tenth_1/front_camera"
+      },
+      "foxglovePanelTitle": "Camera Feed"
+    },
+    "Plot!2o3cq5y": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.linear_acceleration.y",
+          "enabled": true,
+          "color": "#4e98e2",
+          "lineSize": 5,
+          "showLine": false,
+          "label": "Acceleration (x, y)"
+        }
+      ],
+      "minYValue": -10,
+      "maxYValue": 10,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "currentCustom",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "G-G Diagram (m/s²)",
+      "xAxisPath": {
+        "value": "/autodrive/f1tenth_1/imu.linear_acceleration.x"
+      },
+      "minXValue": -10,
+      "maxXValue": 10
+    },
+    "RawMessages!os6rgs": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/autodrive/f1tenth_1/lap_time.data",
+      "fontSize": 12
+    },
+    "RawMessages!1xpmrqn": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/autodrive/f1tenth_1/last_lap_time.data",
+      "fontSize": 12
+    },
+    "RawMessages!391tcg2": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/autodrive/f1tenth_1/best_lap_time.data",
+      "fontSize": 12
+    },
+    "RawMessages!2walsj0": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/autodrive/f1tenth_1/race_time.data",
+      "fontSize": 12
+    },
+    "RawMessages!45bncjc": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/autodrive/f1tenth_1/adjusted_race_time.data",
+      "fontSize": 12
+    },
+    "Gauge!404t1lv": {
+      "path": "/autodrive/f1tenth_1/speed.data",
+      "minValue": 0,
+      "maxValue": 7,
+      "colorMap": "red-yellow-green",
+      "colorMode": "colormap",
+      "gradient": [
+        "#0000ff",
+        "#ff00ff"
+      ],
+      "reverse": true,
+      "foxglovePanelTitle": "Speed"
+    },
+    "Gauge!2mvbrue": {
+      "path": "/autodrive/f1tenth_1/throttle.data",
+      "minValue": -1,
+      "maxValue": 1,
+      "colorMap": "red-yellow-green",
+      "colorMode": "gradient",
+      "gradient": [
+        "#0000ff",
+        "#ff0000ff"
+      ],
+      "reverse": false,
+      "foxglovePanelTitle": "Throttle"
+    },
+    "Gauge!4fcxi9p": {
+      "path": "/autodrive/f1tenth_1/steering.data",
+      "minValue": -1,
+      "maxValue": 1,
+      "colorMap": "red-yellow-green",
+      "colorMode": "gradient",
+      "gradient": [
+        "#0000ffff",
+        "#ff0000ff"
+      ],
+      "reverse": false,
+      "foxglovePanelTitle": "Steering"
+    },
+    "3D!18i6zy7": {
+      "layers": {
+        "845139cb-26bc-40b3-8161-8ab60af4baf5": {
+          "visible": true,
+          "frameLocked": true,
+          "label": "Grid",
+          "instanceId": "845139cb-26bc-40b3-8161-8ab60af4baf5",
+          "layerId": "foxglove.Grid",
+          "size": 100,
+          "divisions": 100,
+          "lineWidth": 1,
+          "color": "#248eff5c",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        }
+      },
+      "cameraState": {
+        "perspective": true,
+        "distance": 11.974738784758133,
+        "phi": 59.32202060580353,
+        "thetaOffset": 37.41329099489547,
+        "targetOffset": [
+          -2.2450946401700262,
+          -6.635788011059999,
+          -6.261110062173574e-17
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000,
+        "logDepth": false
+      },
+      "followMode": "follow-none",
+      "scene": {
+        "enableStats": false,
+        "meshUpAxis": "z_up",
+        "ignoreColladaUpAxis": false,
+        "syncCamera": false,
+        "transforms": {
+          "showLabel": true,
+          "enablePreloading": true,
+          "axisScale": 1,
+          "lineWidth": 0
+        }
+      },
+      "transforms": {},
+      "topics": {
+        "/autodrive/f1tenth_1/lidar": {
+          "flatColor": "#ff0000ff",
+          "visible": true,
+          "colorField": "range",
+          "colorMode": "gradient",
+          "colorMap": "turbo",
+          "pointShape": "square",
+          "gradient": [
+            "#ff0000ff",
+            "#fcb2b2ff"
+          ],
+          "decayTime": 10000
+        },
+        "/autodrive/f1tenth_1/front_camera": {
+          "visible": false
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "foxglovePanelTitle": "3D View",
+      "followTf": "world"
+    },
+    "StateTransitions!skq076": {
+      "paths": [
+        {
+          "value": "/autodrive/f1tenth_1/lap_count.data",
+          "timestampMethod": "receiveTime",
+          "label": "Lap Count"
+        },
+        {
+          "value": "/autodrive/f1tenth_1/collision_count.data",
+          "timestampMethod": "receiveTime",
+          "label": "Collision Count"
+        }
+      ],
+      "isSynced": true,
+      "foxglovePanelTitle": "Race Events",
+      "showPoints": false
+    },
+    "Indicator!2upo9en": {
+      "path": "/autodrive/f1tenth_1/lap_count.data",
+      "style": "background",
+      "fallbackColor": "#00ff00",
+      "fallbackLabel": "Race Lap",
+      "rules": [
+        {
+          "operator": "<",
+          "rawValue": "1",
+          "color": "#ff0000",
+          "label": "Warmup Lap"
+        },
+        {
+          "operator": ">",
+          "rawValue": "10",
+          "color": "#000fff",
+          "label": "Cooldown Lap"
+        }
+      ],
+      "foxglovePanelTitle": "Race Status",
+      "fontSize": 36
+    },
+    "Indicator!2e4orhp": {
+      "path": "/autodrive/f1tenth_1/qualification_status.data",
+      "style": "background",
+      "fallbackColor": "#ff0000",
+      "fallbackLabel": "Disqualified",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#00ff00",
+          "label": "Qualified"
+        }
+      ],
+      "foxglovePanelTitle": "Qualification Status",
+      "fontSize": 36
+    },
+    "Plot!26x9len": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/throttle.data",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "Throttle"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Throttle (norm%)"
+    },
+    "Plot!2y7amep": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/steering.data",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "Steering"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Steering (norm%)"
+    },
+    "Plot!2knkptk": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/ips.x",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "X"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/ips.y",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "Y"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/ips.z",
+          "enabled": true,
+          "color": "#f7df71",
+          "label": "Z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Position (m)"
+    },
+    "Plot!2gmyihb": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.orientation.w",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "W"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.orientation.x",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "X"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.orientation.y",
+          "enabled": true,
+          "color": "#f7df71",
+          "label": "Y"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.orientation.z",
+          "enabled": true,
+          "color": "#5cd6a9",
+          "label": "Z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Orientation (quat)"
+    },
+    "Plot!1vxgg57": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.angular_velocity.x",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "X"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.angular_velocity.y",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "Y"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.angular_velocity.z",
+          "enabled": true,
+          "color": "#f7df71",
+          "label": "Z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Angular Velocity (rad/s)"
+    },
+    "Plot!1idgrqv": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.linear_acceleration.x",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "X"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.linear_acceleration.y",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "Y"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/imu.linear_acceleration.z",
+          "enabled": true,
+          "color": "#f7df71",
+          "label": "Z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Linear Acceleration (m/s²)"
+    },
+    "Plot!42ueddx": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/speed.data",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "Speed"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Speed (m/s)"
+    },
+    "Plot!255iugf": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/left_encoder.position[:]",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "L"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/right_encoder.position[:]",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "R"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Wheel Rotation (rad)"
+    },
+    "Tab!47y3dil": {
+      "activeTabIdx": 1,
+      "tabs": [
+        {
+          "title": "Configure",
+          "layout": "NodePlayground!2z6fhq3"
+        },
+        {
+          "title": "Visualize",
+          "layout": {
+            "first": {
+              "first": "Image!3mnp456",
+              "second": {
+                "first": "Plot!2o3cq5y",
+                "second": {
+                  "first": "RawMessages!os6rgs",
+                  "second": {
+                    "first": "RawMessages!1xpmrqn",
+                    "second": {
+                      "first": "RawMessages!391tcg2",
+                      "second": {
+                        "first": "RawMessages!2walsj0",
+                        "second": "RawMessages!45bncjc",
+                        "direction": "column",
+                        "splitPercentage": 49.99999999999996
+                      },
+                      "direction": "column",
+                      "splitPercentage": 35.39823008849558
+                    },
+                    "direction": "column",
+                    "splitPercentage": 26.62337662337661
+                  },
+                  "direction": "column",
+                  "splitPercentage": 20.00000000000004
+                },
+                "direction": "column",
+                "splitPercentage": 41.08527131782945
+              },
+              "direction": "column",
+              "splitPercentage": 28.57142857142857
+            },
+            "second": {
+              "first": {
+                "first": {
+                  "first": {
+                    "first": {
+                      "first": "Gauge!404t1lv",
+                      "second": "Gauge!2mvbrue",
+                      "direction": "column",
+                      "splitPercentage": 50.29585798816568
+                    },
+                    "second": "Gauge!4fcxi9p",
+                    "direction": "column",
+                    "splitPercentage": 66.798418972332
+                  },
+                  "second": "3D!18i6zy7",
+                  "direction": "row",
+                  "splitPercentage": 25.148908007941767
+                },
+                "second": {
+                  "first": "StateTransitions!skq076",
+                  "second": {
+                    "first": {
+                      "first": "Indicator!2upo9en",
+                      "second": "Indicator!2e4orhp",
+                      "direction": "column"
+                    },
+                    "second": {
+                      "first": "Plot!26x9len",
+                      "second": "Plot!2y7amep",
+                      "direction": "column"
+                    },
+                    "direction": "row",
+                    "splitPercentage": 37.482710926694324
+                  },
+                  "direction": "column",
+                  "splitPercentage": 47.85894206549119
+                },
+                "direction": "column",
+                "splitPercentage": 56.035437430786274
+              },
+              "second": {
+                "first": "Plot!2knkptk",
+                "second": {
+                  "first": "Plot!2gmyihb",
+                  "second": {
+                    "first": "Plot!1vxgg57",
+                    "second": {
+                      "first": "Plot!1idgrqv",
+                      "second": {
+                        "first": "Plot!42ueddx",
+                        "second": "Plot!255iugf",
+                        "direction": "column",
+                        "splitPercentage": 37.788018433179715
+                      },
+                      "direction": "column",
+                      "splitPercentage": 43.0446194225722
+                    },
+                    "direction": "column",
+                    "splitPercentage": 30.091743119266056
+                  },
+                  "direction": "column",
+                  "splitPercentage": 26.251691474966172
+                },
+                "direction": "column",
+                "splitPercentage": 18.161683277962346
+              },
+              "direction": "row"
+            },
+            "direction": "row",
+            "splitPercentage": 21.83783783783784
+          }
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {
+    "cec2ab24-3fb7-4faf-b079-3ff35cf0d557": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype Output = {\n  data: boolean; // Qualification status\n};\n\n// Input topics\nexport const inputs = [\n  \"/autodrive/f1tenth_1/lap_count\",\n  \"/autodrive/f1tenth_1/collision_count\",\n];\n\n// Output topic\nexport const output = \"/autodrive/f1tenth_1/qualification_status\";\n\n// Variables\nlet lapCount = 0;\nlet collisionCount = 0;\nlet collisionsDuringWarmup = 0; // Collisions during warmup lap (0)\nlet collisionsDuringRace = 0; // Collisions during race laps (1-10)\n\n// Script\nexport default function script(\n  event:\n    | Input<\"/autodrive/f1tenth_1/lap_count\">\n    | Input<\"/autodrive/f1tenth_1/collision_count\">,\n): Output {\n  if (event.topic === \"/autodrive/f1tenth_1/lap_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/lap_count messages\n    lapCount = event.message.data;\n  } else {\n    // Read event.message fields expected for /autodrive/f1tenth_1/collision_count messages\n    collisionCount = event.message.data;\n  }\n\n  // Debugging\n  // log(event.message.data);\n\n  // Define the qualification status logic\n  let qualificationStatus = true;\n\n  if (lapCount < 1) {\n    // Ignore collisions during warmup lap (0)\n    collisionsDuringRace = 0;\n    collisionsDuringWarmup = collisionCount;\n    qualificationStatus = true;\n  } else if (lapCount >= 1 && lapCount <= 10) {\n    // Calculate collisions during race laps (1 to 10)\n    collisionsDuringRace = collisionCount - collisionsDuringWarmup;\n    qualificationStatus = collisionsDuringRace <= 10;\n  }\n\n  // Debugging\n  // log(collisionsDuringWarmup);\n  // log(collisionsDuringRace);\n  // log(qualificationStatus);\n\n  // Return the qualification status as the output\n  return {\n    data: qualificationStatus,\n  };\n}\n",
+      "name": "Qualification Status"
+    },
+    "a5eb1ac9-8dba-4b05-8e9f-a0c3ecdc3953": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype Output = {\n  data: number; // Race time (seconds)\n};\n\n// Input topics\nexport const inputs = [\n  \"/autodrive/f1tenth_1/lap_count\",\n  \"/autodrive/f1tenth_1/last_lap_time\",\n];\n\n// Output topic\nexport const output = \"/autodrive/f1tenth_1/race_time\";\n\n// Variables\nlet lapCount = 0;\nlet lastLapCount = -1; // Track the previous lap count\nlet lastLapTime = 0; // Track the previous lap time\nlet raceTime = 0; // Time elapsed during race laps (1-10)\n\n// Script\nexport default function script(\n  event:\n    | Input<\"/autodrive/f1tenth_1/lap_count\">\n    | Input<\"/autodrive/f1tenth_1/last_lap_time\">,\n): Output {\n  if (event.topic === \"/autodrive/f1tenth_1/lap_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/lap_count messages\n    lapCount = event.message.data;\n  } else {\n    // Read event.message fields expected for /autodrive/f1tenth_1/last_lap_time messages\n    lastLapTime = event.message.data;\n  }\n\n  // Debugging\n  // log(event.message.data);\n\n  // Check time only for race laps\n  if (lapCount >= 3 && lapCount <= 12) {\n    // Only add time once per lap increment\n    if (lapCount > lastLapCount) {\n      raceTime += lastLapTime;\n      lastLapCount = lapCount;\n    }\n  }\n\n  // Debugging\n  // log(lastLapTime);\n  // log(raceTime);\n\n  // Return the total race time as the output\n  return {\n    data: raceTime,\n  };\n}\n",
+      "name": "Race Time"
+    },
+    "125add07-11e4-46e5-8c4e-84954294e443": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype Output = {\n  data: number; // Adjusted race time (seconds)\n};\n\n// Input topics\nexport const inputs = [\n  \"/autodrive/f1tenth_1/lap_count\",\n  \"/autodrive/f1tenth_1/collision_count\",\n  \"/autodrive/f1tenth_1/last_lap_time\",\n];\n\n// Output topic\nexport const output = \"/autodrive/f1tenth_1/adjusted_race_time\";\n\n// Variables\nlet lapCount = 0; // Current lap count\nlet collisionCount = 0; // Current collision count\nlet collisionsDuringWarmup = 0; // Collisions during warmup lap (0)\nlet collisionsDuringRace = 0; // Collisions during race laps (1-10)\nlet lastLapCount = -1; // Track the previous lap count\nlet lastLapTime = 0; // Track the previous lap time\nlet raceTime = 0; // Time elapsed during race laps (1-10)\nlet adjustedRaceTime = 0; // Race time with penalties\n\n// Script\nexport default function script(\n  event:\n    | Input<\"/autodrive/f1tenth_1/lap_count\">\n    | Input<\"/autodrive/f1tenth_1/collision_count\">\n    | Input<\"/autodrive/f1tenth_1/last_lap_time\">,\n): Output {\n  if (event.topic === \"/autodrive/f1tenth_1/lap_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/lap_count messages\n    lapCount = event.message.data;\n  } else if (event.topic === \"/autodrive/f1tenth_1/collision_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/collision_count messages\n    collisionCount = event.message.data;\n  } else {\n    // Read event.message fields expected for /autodrive/f1tenth_1/last_lap_time messages\n    lastLapTime = event.message.data;\n  }\n\n  // Debugging\n  // log(event.message.data);\n\n  // Calculate collisions only for race laps\n  if (lapCount < 1) {\n    // Ignore collisions during warmup lap (0)\n    collisionsDuringRace = 0;\n    collisionsDuringWarmup = collisionCount;\n  } else if (lapCount >= 1 && lapCount <= 10) {\n    // Calculate collisions during race laps (1 to 10)\n    collisionsDuringRace = collisionCount - collisionsDuringWarmup;\n  }\n\n  // Check time only for race laps\n  if (lapCount >= 3 && lapCount <= 12) {\n    // Only add time once per lap increment\n    if (lapCount > lastLapCount) {\n      raceTime += lastLapTime;\n      lastLapCount = lapCount;\n    }\n  }\n\n  // Calculate adjusted race time\n  if (lapCount > 11) {\n    adjustedRaceTime = raceTime + 10 * collisionsDuringRace;\n  }\n\n  // Debugging\n  // log(collisionsDuringWarmup);\n  // log(collisionsDuringRace);\n  // log(lastLapTime);\n  // log(raceTime);\n  // log(adjustedRaceTime);\n\n  // Return the qualification status as the output\n  return {\n    data: adjustedRaceTime,\n  };\n}\n",
+      "name": "Adjusted Race Time"
+    }
+  },
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "Tab!47y3dil"
+}
