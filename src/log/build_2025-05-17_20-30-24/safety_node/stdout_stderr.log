@@ -1,0 +1,70 @@
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found rclcpp: 16.0.10 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.5 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.5 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.7 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found nav_msgs: 4.2.4 (/opt/ros/humble/share/nav_msgs/cmake)
+-- Found visualization_msgs: 4.2.4 (/opt/ros/humble/share/visualization_msgs/cmake)
+-- Found ackermann_msgs: 2.0.2 (/opt/ros/humble/share/ackermann_msgs/cmake)
+-- Found tf2_ros: 0.25.8 (/opt/ros/humble/share/tf2_ros/cmake)
+-- Found tf2_geometry_msgs: 0.25.8 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)
+-- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+-- Found Eigen3: TRUE (found version "3.4.0") 
+-- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+-- Found ament_lint_auto: 0.12.11 (/opt/ros/humble/share/ament_lint_auto/cmake)
+-- Added test 'cppcheck' to perform static code analysis on C / C++ code
+-- Configured cppcheck include dirs: /home/bolty/ament_ws/src/robot/safety_system/include
+-- Configured cppcheck exclude dirs and/or files: 
+-- Added test 'lint_cmake' to check CMake code style
+-- Added test 'uncrustify' to check C / C++ code style
+-- Configured uncrustify additional arguments: 
+-- Added test 'xmllint' to check XML markup files
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/bolty/ament_ws/src/build/safety_node
+[ 50%] [32mBuilding CXX object CMakeFiles/safety_node.dir/src/safety_system_node.cpp.o[0m
+[100%] [32m[1mLinking CXX executable safety_node[0m
+[100%] Built target safety_node
+-- Install configuration: ""
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/lib/safety_node/safety_node
+-- Set runtime path of "/home/bolty/ament_ws/src/install/safety_node/lib/safety_node/safety_node" to ""
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/ament_index/resource_index/package_run_dependencies/safety_node
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/ament_index/resource_index/parent_prefix_path/safety_node
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/ament_prefix_path.sh
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/ament_prefix_path.dsv
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/path.sh
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/path.dsv
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.bash
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.sh
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.zsh
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.dsv
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.dsv
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/ament_index/resource_index/packages/safety_node
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/cmake/safety_nodeConfig.cmake
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/cmake/safety_nodeConfig-version.cmake
+-- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.xml

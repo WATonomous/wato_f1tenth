@@ -1,0 +1,4 @@
+Invoking command in '/home/bolty/ament_ws/src/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/safety_node -- -j16 -l16
+Invoked command in '/home/bolty/ament_ws/src/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/safety_node -- -j16 -l16
+Invoking command in '/home/bolty/ament_ws/src/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/safety_node
+Invoked command in '/home/bolty/ament_ws/src/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/safety_node

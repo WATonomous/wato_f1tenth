@@ -1,0 +1,15 @@
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/ament_index/resource_index/package_run_dependencies/foxglove_msgs
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/ament_index/resource_index/parent_prefix_path/foxglove_msgs
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/environment/ament_prefix_path.sh
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/environment/ament_prefix_path.dsv
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/environment/path.sh
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/environment/path.dsv
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/local_setup.bash
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/local_setup.sh
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/local_setup.zsh
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/local_setup.dsv
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.dsv
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/ament_index/resource_index/packages/foxglove_msgs
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/cmake/foxglove_msgsConfig.cmake
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/cmake/foxglove_msgsConfig-version.cmake
+/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.xml

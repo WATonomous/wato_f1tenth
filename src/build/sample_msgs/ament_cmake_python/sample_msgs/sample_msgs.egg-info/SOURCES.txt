@@ -1,0 +1,11 @@
+setup.py
+sample_msgs/__init__.py
+sample_msgs.egg-info/PKG-INFO
+sample_msgs.egg-info/SOURCES.txt
+sample_msgs.egg-info/dependency_links.txt
+sample_msgs.egg-info/top_level.txt
+sample_msgs/msg/__init__.py
+sample_msgs/msg/_filtered.py
+sample_msgs/msg/_filtered_array.py
+sample_msgs/msg/_metadata.py
+sample_msgs/msg/_unfiltered.py

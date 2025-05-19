@@ -1,0 +1,464 @@
+[0.099s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build']
+[0.099s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=16, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=None, packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x71d2006eaef0>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x71d2006eaa40>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x71d2006eaa40>>, mixin_verb=('build',))
+[0.190s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.191s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/Gazebo.meta'
+[0.191s] INFO:colcon.colcon_metadata.package_discovery.colcon_meta:Using configuration from '/root/.colcon/metadata/default/fastrtps.meta'
+[0.191s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.191s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.191s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.191s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.191s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.191s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/bolty/ament_ws/src'
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.192s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.201s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[0.201s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extensions ['ignore', 'ignore_ament_install']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'ignore'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'ignore_ament_install'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extensions ['colcon_pkg']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'colcon_pkg'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extensions ['colcon_meta']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'colcon_meta'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extensions ['ros']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'ros'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extensions ['cmake', 'python']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'cmake'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'python'
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extensions ['python_setup_py']
+[0.202s] Level 1:colcon.colcon_core.package_identification:_identify(robot) by extension 'python_setup_py'
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extensions ['ignore', 'ignore_ament_install']
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extension 'ignore'
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extension 'ignore_ament_install'
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extensions ['colcon_pkg']
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extension 'colcon_pkg'
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extensions ['colcon_meta']
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extension 'colcon_meta'
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extensions ['ros']
+[0.203s] Level 1:colcon.colcon_core.package_identification:_identify(robot/action) by extension 'ros'
+[0.205s] DEBUG:colcon.colcon_core.package_identification:Package 'robot/action' with type 'ros.ament_python' and name 'action'
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extensions ['ignore', 'ignore_ament_install']
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extension 'ignore'
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extension 'ignore_ament_install'
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extensions ['colcon_pkg']
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extension 'colcon_pkg'
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extensions ['colcon_meta']
+[0.205s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extension 'colcon_meta'
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extensions ['ros']
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/bringup_robot) by extension 'ros'
+[0.206s] DEBUG:colcon.colcon_core.package_identification:Package 'robot/bringup_robot' with type 'ros.ament_cmake' and name 'bringup_robot'
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extensions ['ignore', 'ignore_ament_install']
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extension 'ignore'
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extension 'ignore_ament_install'
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extensions ['colcon_pkg']
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extension 'colcon_pkg'
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extensions ['colcon_meta']
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extension 'colcon_meta'
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extensions ['ros']
+[0.206s] Level 1:colcon.colcon_core.package_identification:_identify(robot/gym_vis) by extension 'ros'
+[0.207s] DEBUG:colcon.colcon_core.package_identification:Package 'robot/gym_vis' with type 'ros.ament_cmake' and name 'gym_vis'
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extensions ['ignore', 'ignore_ament_install']
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extension 'ignore'
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extension 'ignore_ament_install'
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extensions ['colcon_pkg']
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extension 'colcon_pkg'
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extensions ['colcon_meta']
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extension 'colcon_meta'
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extensions ['ros']
+[0.207s] Level 1:colcon.colcon_core.package_identification:_identify(robot/safety_system) by extension 'ros'
+[0.208s] DEBUG:colcon.colcon_core.package_identification:Package 'robot/safety_system' with type 'ros.ament_cmake' and name 'safety_node'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'ignore'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'ignore_ament_install'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extensions ['colcon_pkg']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'colcon_pkg'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extensions ['colcon_meta']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'colcon_meta'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extensions ['ros']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'ros'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extensions ['cmake', 'python']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'cmake'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'python'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extensions ['python_setup_py']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs) by extension 'python_setup_py'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extension 'ignore'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extension 'ignore_ament_install'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extensions ['colcon_pkg']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extension 'colcon_pkg'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extensions ['colcon_meta']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extension 'colcon_meta'
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extensions ['ros']
+[0.208s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/foxglove_msgs) by extension 'ros'
+[0.209s] DEBUG:colcon.colcon_core.package_identification:Package 'wato_msgs/foxglove_msgs' with type 'ros.ament_cmake' and name 'foxglove_msgs'
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extension 'ignore'
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extension 'ignore_ament_install'
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extensions ['colcon_pkg']
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extension 'colcon_pkg'
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extensions ['colcon_meta']
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extension 'colcon_meta'
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extensions ['ros']
+[0.209s] Level 1:colcon.colcon_core.package_identification:_identify(wato_msgs/sample_msgs) by extension 'ros'
+[0.209s] DEBUG:colcon.colcon_core.package_identification:Package 'wato_msgs/sample_msgs' with type 'ros.ament_cmake' and name 'sample_msgs'
+[0.209s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.210s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.210s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.210s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.210s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_args' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_target' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_clean_cache' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_clean_first' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_force_configure' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'ament_cmake_args' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'catkin_cmake_args' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.227s] DEBUG:colcon.colcon_core.verb:Building package 'action' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/bolty/ament_ws/src/build/action', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/bolty/ament_ws/src/install/action', 'merge_install': False, 'path': '/home/bolty/ament_ws/src/robot/action', 'symlink_install': False, 'test_result_base': None}
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_args' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_target' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_clean_cache' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_clean_first' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_force_configure' from command line to 'False'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'ament_cmake_args' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'catkin_cmake_args' from command line to 'None'
+[0.227s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.227s] DEBUG:colcon.colcon_core.verb:Building package 'foxglove_msgs' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/bolty/ament_ws/src/build/foxglove_msgs', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/bolty/ament_ws/src/install/foxglove_msgs', 'merge_install': False, 'path': '/home/bolty/ament_ws/src/wato_msgs/foxglove_msgs', 'symlink_install': False, 'test_result_base': None}
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_target' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_clean_cache' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_clean_first' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_force_configure' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'ament_cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'catkin_cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.228s] DEBUG:colcon.colcon_core.verb:Building package 'gym_vis' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/bolty/ament_ws/src/build/gym_vis', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/bolty/ament_ws/src/install/gym_vis', 'merge_install': False, 'path': '/home/bolty/ament_ws/src/robot/gym_vis', 'symlink_install': False, 'test_result_base': None}
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_target' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_clean_cache' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_clean_first' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_force_configure' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'ament_cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'catkin_cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.228s] DEBUG:colcon.colcon_core.verb:Building package 'safety_node' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/bolty/ament_ws/src/build/safety_node', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/bolty/ament_ws/src/install/safety_node', 'merge_install': False, 'path': '/home/bolty/ament_ws/src/robot/safety_system', 'symlink_install': False, 'test_result_base': None}
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_target' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_clean_cache' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_clean_first' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_force_configure' from command line to 'False'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'ament_cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'catkin_cmake_args' from command line to 'None'
+[0.228s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.229s] DEBUG:colcon.colcon_core.verb:Building package 'sample_msgs' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/bolty/ament_ws/src/build/sample_msgs', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/bolty/ament_ws/src/install/sample_msgs', 'merge_install': False, 'path': '/home/bolty/ament_ws/src/wato_msgs/sample_msgs', 'symlink_install': False, 'test_result_base': None}
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_args' from command line to 'None'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_target' from command line to 'None'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_clean_cache' from command line to 'False'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_clean_first' from command line to 'False'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_force_configure' from command line to 'False'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'ament_cmake_args' from command line to 'None'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'catkin_cmake_args' from command line to 'None'
+[0.229s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.229s] DEBUG:colcon.colcon_core.verb:Building package 'bringup_robot' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/bolty/ament_ws/src/build/bringup_robot', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/bolty/ament_ws/src/install/bringup_robot', 'merge_install': False, 'path': '/home/bolty/ament_ws/src/robot/bringup_robot', 'symlink_install': False, 'test_result_base': None}
+[0.229s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[0.230s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[0.230s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/bolty/ament_ws/src/robot/gym_vis' with build type 'ament_cmake'
+[0.230s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/bolty/ament_ws/src/robot/gym_vis'
+[0.233s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[0.233s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.233s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.237s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/bolty/ament_ws/src/robot/action' with build type 'ament_python'
+[0.237s] Level 1:colcon.colcon_core.shell:create_environment_hook('action', 'ament_prefix_path')
+[0.237s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/action/share/action/hook/ament_prefix_path.ps1'
+[0.238s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/action/share/action/hook/ament_prefix_path.dsv'
+[0.238s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/action/share/action/hook/ament_prefix_path.sh'
+[0.239s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.239s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.240s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/bolty/ament_ws/src/wato_msgs/foxglove_msgs' with build type 'ament_cmake'
+[0.241s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/bolty/ament_ws/src/wato_msgs/foxglove_msgs'
+[0.241s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.241s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.243s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/bolty/ament_ws/src/robot/safety_system' with build type 'ament_cmake'
+[0.243s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/bolty/ament_ws/src/robot/safety_system'
+[0.243s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.244s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.248s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/bolty/ament_ws/src/wato_msgs/sample_msgs' with build type 'ament_cmake'
+[0.248s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/bolty/ament_ws/src/wato_msgs/sample_msgs'
+[0.248s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.248s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.255s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/gym_vis -- -j16 -l16
+[0.439s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/bolty/ament_ws/src/robot/action'
+[0.439s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.440s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.449s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/foxglove_msgs -- -j16 -l16
+[0.456s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/safety_node -- -j16 -l16
+[0.462s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/sample_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/sample_msgs -- -j16 -l16
+[0.463s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/gym_vis -- -j16 -l16
+[0.491s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/gym_vis
+[0.492s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/foxglove_msgs -- -j16 -l16
+[0.502s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(gym_vis)
+[0.503s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/gym_vis
+[0.506s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis' for CMake module files
+[0.507s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis' for CMake config files
+[0.508s] Level 1:colcon.colcon_core.shell:create_environment_hook('gym_vis', 'cmake_prefix_path')
+[0.508s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.ps1'
+[0.509s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.dsv'
+[0.510s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.sh'
+[0.511s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/lib'
+[0.512s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/bin'
+[0.512s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/lib/pkgconfig/gym_vis.pc'
+[0.512s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/lib/python3.10/site-packages'
+[0.513s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/bin'
+[0.513s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.ps1'
+[0.514s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.dsv'
+[0.516s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.sh'
+[0.517s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.bash'
+[0.519s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.zsh'
+[0.528s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/gym_vis/share/colcon-core/packages/gym_vis)
+[0.546s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/foxglove_msgs
+[0.582s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(foxglove_msgs)
+[0.582s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs' for CMake module files
+[0.583s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/foxglove_msgs
+[0.584s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs' for CMake config files
+[0.584s] Level 1:colcon.colcon_core.shell:create_environment_hook('foxglove_msgs', 'cmake_prefix_path')
+[0.584s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.ps1'
+[0.585s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.dsv'
+[0.585s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.sh'
+[0.586s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/bin'
+[0.586s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/lib/pkgconfig/foxglove_msgs.pc'
+[0.586s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/lib/python3.10/site-packages'
+[0.586s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/bin'
+[0.587s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.ps1'
+[0.587s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.dsv'
+[0.587s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.sh'
+[0.588s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.bash'
+[0.588s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.zsh'
+[0.588s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/foxglove_msgs/share/colcon-core/packages/foxglove_msgs)
+[0.589s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(gym_vis)
+[0.589s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis' for CMake module files
+[0.590s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis' for CMake config files
+[0.590s] Level 1:colcon.colcon_core.shell:create_environment_hook('gym_vis', 'cmake_prefix_path')
+[0.590s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.ps1'
+[0.591s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.dsv'
+[0.591s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.sh'
+[0.591s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/lib'
+[0.592s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/bin'
+[0.592s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/lib/pkgconfig/gym_vis.pc'
+[0.592s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/lib/python3.10/site-packages'
+[0.592s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/gym_vis/bin'
+[0.592s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.ps1'
+[0.593s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.dsv'
+[0.593s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.sh'
+[0.594s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.bash'
+[0.594s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.zsh'
+[0.595s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/gym_vis/share/colcon-core/packages/gym_vis)
+[0.595s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/bolty/ament_ws/src/robot/bringup_robot' with build type 'ament_cmake'
+[0.596s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/bolty/ament_ws/src/robot/bringup_robot'
+[0.596s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.596s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.607s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/bringup_robot': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/bringup_robot -- -j16 -l16
+[0.617s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(foxglove_msgs)
+[0.617s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs' for CMake module files
+[0.618s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs' for CMake config files
+[0.618s] Level 1:colcon.colcon_core.shell:create_environment_hook('foxglove_msgs', 'cmake_prefix_path')
+[0.618s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.ps1'
+[0.619s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.dsv'
+[0.620s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.sh'
+[0.621s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/bin'
+[0.621s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/lib/pkgconfig/foxglove_msgs.pc'
+[0.621s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/lib/python3.10/site-packages'
+[0.621s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/foxglove_msgs/bin'
+[0.622s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.ps1'
+[0.622s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.dsv'
+[0.623s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.sh'
+[0.624s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.bash'
+[0.625s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/foxglove_msgs/share/foxglove_msgs/package.zsh'
+[0.625s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/foxglove_msgs/share/colcon-core/packages/foxglove_msgs)
+[0.652s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/bringup_robot' returned '0': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/bringup_robot -- -j16 -l16
+[0.673s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/bringup_robot': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/bringup_robot
+[0.682s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(bringup_robot)
+[0.682s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot' for CMake module files
+[0.683s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/bringup_robot' returned '0': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/bringup_robot
+[0.683s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot' for CMake config files
+[0.683s] Level 1:colcon.colcon_core.shell:create_environment_hook('bringup_robot', 'cmake_prefix_path')
+[0.684s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.ps1'
+[0.684s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.dsv'
+[0.685s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.sh'
+[0.686s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/bin'
+[0.686s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/lib/pkgconfig/bringup_robot.pc'
+[0.686s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/lib/python3.10/site-packages'
+[0.686s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/bin'
+[0.687s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.ps1'
+[0.687s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.dsv'
+[0.688s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.sh'
+[0.688s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.bash'
+[0.689s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.zsh'
+[0.689s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/bringup_robot/share/colcon-core/packages/bringup_robot)
+[0.710s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(bringup_robot)
+[0.710s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot' for CMake module files
+[0.711s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot' for CMake config files
+[0.711s] Level 1:colcon.colcon_core.shell:create_environment_hook('bringup_robot', 'cmake_prefix_path')
+[0.712s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.ps1'
+[0.712s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.dsv'
+[0.713s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.sh'
+[0.713s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/bin'
+[0.713s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/lib/pkgconfig/bringup_robot.pc'
+[0.713s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/lib/python3.10/site-packages'
+[0.713s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/bringup_robot/bin'
+[0.714s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.ps1'
+[0.714s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.dsv'
+[0.714s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.sh'
+[0.715s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.bash'
+[0.715s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.zsh'
+[0.715s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/bringup_robot/share/colcon-core/packages/bringup_robot)
+[0.798s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/robot/action': PYTHONPATH=/home/bolty/ament_ws/src/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/action build --build-base /home/bolty/ament_ws/src/build/action/build install --record /home/bolty/ament_ws/src/build/action/install.log --single-version-externally-managed install_data
+[0.854s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/sample_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/sample_msgs -- -j16 -l16
+[0.975s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/sample_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/sample_msgs
+[1.040s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(sample_msgs)
+[1.041s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs' for CMake module files
+[1.041s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/sample_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/sample_msgs
+[1.042s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs' for CMake config files
+[1.043s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'cmake_prefix_path')
+[1.043s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.ps1'
+[1.044s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.dsv'
+[1.045s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.sh'
+[1.046s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/lib'
+[1.046s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'ld_library_path_lib')
+[1.047s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.ps1'
+[1.048s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.dsv'
+[1.049s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.sh'
+[1.050s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/bin'
+[1.050s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/lib/pkgconfig/sample_msgs.pc'
+[1.050s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/lib/python3.10/site-packages'
+[1.051s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/bin'
+[1.051s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.ps1'
+[1.052s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.dsv'
+[1.052s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.sh'
+[1.053s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.bash'
+[1.053s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.zsh'
+[1.054s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/sample_msgs/share/colcon-core/packages/sample_msgs)
+[1.112s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action' for CMake module files
+[1.112s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/robot/action' returned '0': PYTHONPATH=/home/bolty/ament_ws/src/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/action build --build-base /home/bolty/ament_ws/src/build/action/build install --record /home/bolty/ament_ws/src/build/action/install.log --single-version-externally-managed install_data
+[1.113s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action' for CMake config files
+[1.114s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action/lib'
+[1.114s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action/bin'
+[1.114s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action/lib/pkgconfig/action.pc'
+[1.114s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages'
+[1.114s] Level 1:colcon.colcon_core.shell:create_environment_hook('action', 'pythonpath')
+[1.114s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/action/share/action/hook/pythonpath.ps1'
+[1.115s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/action/share/action/hook/pythonpath.dsv'
+[1.115s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/action/share/action/hook/pythonpath.sh'
+[1.116s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/action/bin'
+[1.116s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(action)
+[1.116s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/action/share/action/package.ps1'
+[1.117s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/action/share/action/package.dsv'
+[1.117s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/action/share/action/package.sh'
+[1.117s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/action/share/action/package.bash'
+[1.118s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/action/share/action/package.zsh'
+[1.118s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/action/share/colcon-core/packages/action)
+[1.171s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(sample_msgs)
+[1.172s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs' for CMake module files
+[1.172s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs' for CMake config files
+[1.173s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'cmake_prefix_path')
+[1.173s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.ps1'
+[1.174s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.dsv'
+[1.175s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.sh'
+[1.175s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/lib'
+[1.176s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'ld_library_path_lib')
+[1.176s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.ps1'
+[1.177s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.dsv'
+[1.177s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.sh'
+[1.178s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/bin'
+[1.178s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/lib/pkgconfig/sample_msgs.pc'
+[1.178s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/lib/python3.10/site-packages'
+[1.179s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/sample_msgs/bin'
+[1.179s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.ps1'
+[1.180s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.dsv'
+[1.181s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.sh'
+[1.182s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.bash'
+[1.183s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/sample_msgs/share/sample_msgs/package.zsh'
+[1.184s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/sample_msgs/share/colcon-core/packages/sample_msgs)
+[13.567s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/safety_node -- -j16 -l16
+[13.592s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/bolty/ament_ws/src/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/safety_node
+[13.605s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(safety_node)
+[13.605s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node' for CMake module files
+[13.605s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/bolty/ament_ws/src/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/safety_node
+[13.606s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node' for CMake config files
+[13.606s] Level 1:colcon.colcon_core.shell:create_environment_hook('safety_node', 'cmake_prefix_path')
+[13.606s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/hook/cmake_prefix_path.ps1'
+[13.607s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/hook/cmake_prefix_path.dsv'
+[13.607s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/hook/cmake_prefix_path.sh'
+[13.608s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/lib'
+[13.608s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/bin'
+[13.608s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/lib/pkgconfig/safety_node.pc'
+[13.608s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/lib/python3.10/site-packages'
+[13.609s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/bin'
+[13.609s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.ps1'
+[13.609s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.dsv'
+[13.609s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.sh'
+[13.610s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.bash'
+[13.610s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.zsh'
+[13.610s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/safety_node/share/colcon-core/packages/safety_node)
+[13.630s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(safety_node)
+[13.631s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node' for CMake module files
+[13.631s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node' for CMake config files
+[13.631s] Level 1:colcon.colcon_core.shell:create_environment_hook('safety_node', 'cmake_prefix_path')
+[13.632s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/hook/cmake_prefix_path.ps1'
+[13.632s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/hook/cmake_prefix_path.dsv'
+[13.633s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/hook/cmake_prefix_path.sh'
+[13.633s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/lib'
+[13.633s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/bin'
+[13.633s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/lib/pkgconfig/safety_node.pc'
+[13.634s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/lib/python3.10/site-packages'
+[13.634s] Level 1:colcon.colcon_core.environment:checking '/home/bolty/ament_ws/src/install/safety_node/bin'
+[13.634s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.ps1'
+[13.635s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.dsv'
+[13.635s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.sh'
+[13.636s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.bash'
+[13.636s] INFO:colcon.colcon_core.shell:Creating package script '/home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.zsh'
+[13.637s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/bolty/ament_ws/src/install/safety_node/share/colcon-core/packages/safety_node)
+[13.637s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[13.637s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[13.637s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[13.637s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[13.642s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[13.642s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[13.642s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[13.642s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[13.645s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.Spawn.ExecFailed: /usr/bin/dbus-launch terminated abnormally without any error message
+[13.645s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[13.646s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/bolty/ament_ws/src/install/local_setup.ps1'
+[13.648s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/bolty/ament_ws/src/install/_local_setup_util_ps1.py'
+[13.650s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/bolty/ament_ws/src/install/setup.ps1'
+[13.652s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/bolty/ament_ws/src/install/local_setup.sh'
+[13.653s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/bolty/ament_ws/src/install/_local_setup_util_sh.py'
+[13.654s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/bolty/ament_ws/src/install/setup.sh'
+[13.655s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/bolty/ament_ws/src/install/local_setup.bash'
+[13.656s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/bolty/ament_ws/src/install/setup.bash'
+[13.658s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/bolty/ament_ws/src/install/local_setup.zsh'
+[13.658s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/bolty/ament_ws/src/install/setup.zsh'

@@ -1,0 +1,9 @@
+{
+  "package_name": "sample_msgs",
+  "non_idl_tuples": [
+    "/home/bolty/ament_ws/src/wato_msgs/sample_msgs:msg/Filtered.msg",
+    "/home/bolty/ament_ws/src/wato_msgs/sample_msgs:msg/FilteredArray.msg",
+    "/home/bolty/ament_ws/src/wato_msgs/sample_msgs:msg/Unfiltered.msg",
+    "/home/bolty/ament_ws/src/wato_msgs/sample_msgs:msg/Metadata.msg"
+  ]
+}

@@ -1,0 +1,9 @@
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/uninstall.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/bringup_robot_uninstall.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/test.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/edit_cache.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/rebuild_cache.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/list_install_components.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/install.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/install/local.dir
+/home/bolty/ament_ws/src/build/bringup_robot/CMakeFiles/install/strip.dir

@@ -1,0 +1,22 @@
+[0.012s] Invoking command in '/home/bolty/ament_ws/src/build/bringup_robot': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/bringup_robot -- -j16 -l16
+[0.057s] Invoked command in '/home/bolty/ament_ws/src/build/bringup_robot' returned '0': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/bringup_robot -- -j16 -l16
+[0.074s] Invoking command in '/home/bolty/ament_ws/src/build/bringup_robot': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/bringup_robot
+[0.080s] -- Install configuration: ""
+[0.080s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/launch
+[0.080s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/launch/robot.launch.py
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/ament_index/resource_index/package_run_dependencies/bringup_robot
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/ament_index/resource_index/parent_prefix_path/bringup_robot
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/ament_prefix_path.sh
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/ament_prefix_path.dsv
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/path.sh
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/path.dsv
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.bash
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.sh
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.zsh
+[0.081s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.dsv
+[0.082s] -- Installing: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.dsv
+[0.082s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/ament_index/resource_index/packages/bringup_robot
+[0.082s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/cmake/bringup_robotConfig.cmake
+[0.083s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/cmake/bringup_robotConfig-version.cmake
+[0.083s] -- Up-to-date: /home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.xml
+[0.084s] Invoked command in '/home/bolty/ament_ws/src/build/bringup_robot' returned '0': CMAKE_PREFIX_PATH=/home/bolty/ament_ws/src/install/gym_vis:/home/bolty/ament_ws/src/install/sample_msgs:/home/bolty/ament_ws/src/install/safety_node:/home/bolty/ament_ws/src/install/bringup_robot:/home/bolty/ament_ws/src/install/foxglove_msgs:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/bringup_robot

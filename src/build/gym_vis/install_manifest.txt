@@ -1,0 +1,17 @@
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/assets/f1tenth_car.stl
+/home/bolty/ament_ws/src/install/gym_vis/lib/gym_vis/gym_vis_node
+/home/bolty/ament_ws/src/install/gym_vis/share/ament_index/resource_index/package_run_dependencies/gym_vis
+/home/bolty/ament_ws/src/install/gym_vis/share/ament_index/resource_index/parent_prefix_path/gym_vis
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/environment/ament_prefix_path.sh
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/environment/ament_prefix_path.dsv
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/environment/path.sh
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/environment/path.dsv
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/local_setup.bash
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/local_setup.sh
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/local_setup.zsh
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/local_setup.dsv
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.dsv
+/home/bolty/ament_ws/src/install/gym_vis/share/ament_index/resource_index/packages/gym_vis
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/cmake/gym_visConfig.cmake
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/cmake/gym_visConfig-version.cmake
+/home/bolty/ament_ws/src/install/gym_vis/share/gym_vis/package.xml

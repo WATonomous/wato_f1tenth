@@ -1,0 +1,26 @@
+[0.209s] Invoking command in '/home/bolty/ament_ws/src/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/safety_node -- -j16 -l16
+[0.248s] [35m[1mConsolidate compiler generated dependencies of target safety_node[0m
+[0.269s] [ 50%] [32mBuilding CXX object CMakeFiles/safety_node.dir/src/safety_system_node.cpp.o[0m
+[11.289s] [100%] [32m[1mLinking CXX executable safety_node[0m
+[11.969s] [100%] Built target safety_node
+[11.979s] Invoked command in '/home/bolty/ament_ws/src/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --build /home/bolty/ament_ws/src/build/safety_node -- -j16 -l16
+[12.002s] Invoking command in '/home/bolty/ament_ws/src/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/safety_node
+[12.009s] -- Install configuration: ""
+[12.009s] -- Installing: /home/bolty/ament_ws/src/install/safety_node/lib/safety_node/safety_node
+[12.017s] -- Set runtime path of "/home/bolty/ament_ws/src/install/safety_node/lib/safety_node/safety_node" to ""
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/ament_index/resource_index/package_run_dependencies/safety_node
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/ament_index/resource_index/parent_prefix_path/safety_node
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/ament_prefix_path.sh
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/ament_prefix_path.dsv
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/path.sh
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/environment/path.dsv
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.bash
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.sh
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.zsh
+[12.017s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/local_setup.dsv
+[12.017s] -- Installing: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.dsv
+[12.018s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/ament_index/resource_index/packages/safety_node
+[12.018s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/cmake/safety_nodeConfig.cmake
+[12.018s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/cmake/safety_nodeConfig-version.cmake
+[12.018s] -- Up-to-date: /home/bolty/ament_ws/src/install/safety_node/share/safety_node/package.xml
+[12.019s] Invoked command in '/home/bolty/ament_ws/src/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/bolty/ament_ws/src/install/action:/opt/ros/humble /usr/bin/cmake --install /home/bolty/ament_ws/src/build/safety_node

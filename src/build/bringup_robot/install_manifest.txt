@@ -1,0 +1,16 @@
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/launch/robot.launch.py
+/home/bolty/ament_ws/src/install/bringup_robot/share/ament_index/resource_index/package_run_dependencies/bringup_robot
+/home/bolty/ament_ws/src/install/bringup_robot/share/ament_index/resource_index/parent_prefix_path/bringup_robot
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/ament_prefix_path.sh
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/ament_prefix_path.dsv
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/path.sh
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/environment/path.dsv
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.bash
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.sh
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.zsh
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/local_setup.dsv
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.dsv
+/home/bolty/ament_ws/src/install/bringup_robot/share/ament_index/resource_index/packages/bringup_robot
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/cmake/bringup_robotConfig.cmake
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/cmake/bringup_robotConfig-version.cmake
+/home/bolty/ament_ws/src/install/bringup_robot/share/bringup_robot/package.xml

@@ -1,0 +1,21 @@
+[0.514s] Invoking command in '/home/bolty/ament_ws/src/robot/action': PYTHONPATH=/home/bolty/ament_ws/src/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/action build --build-base /home/bolty/ament_ws/src/build/action/build install --record /home/bolty/ament_ws/src/build/action/install.log --single-version-externally-managed install_data
+[0.655s] running egg_info
+[0.656s] writing ../../build/action/action.egg-info/PKG-INFO
+[0.656s] writing dependency_links to ../../build/action/action.egg-info/dependency_links.txt
+[0.656s] writing entry points to ../../build/action/action.egg-info/entry_points.txt
+[0.657s] writing requirements to ../../build/action/action.egg-info/requires.txt
+[0.657s] writing top-level names to ../../build/action/action.egg-info/top_level.txt
+[0.658s] reading manifest file '../../build/action/action.egg-info/SOURCES.txt'
+[0.658s] adding license file 'LICENSE'
+[0.658s] writing manifest file '../../build/action/action.egg-info/SOURCES.txt'
+[0.659s] running build
+[0.659s] running build_py
+[0.659s] running install
+[0.659s] running install_lib
+[0.660s] running install_data
+[0.661s] running install_egg_info
+[0.662s] removing '/home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages/action-0.0.0-py3.10.egg-info' (and everything under it)
+[0.662s] Copying ../../build/action/action.egg-info to /home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages/action-0.0.0-py3.10.egg-info
+[0.663s] running install_scripts
+[0.682s] writing list of installed files to '/home/bolty/ament_ws/src/build/action/install.log'
+[0.714s] Invoked command in '/home/bolty/ament_ws/src/robot/action' returned '0': PYTHONPATH=/home/bolty/ament_ws/src/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/bolty/ament_ws/src/install/action/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/action build --build-base /home/bolty/ament_ws/src/build/action/build install --record /home/bolty/ament_ws/src/build/action/install.log --single-version-externally-managed install_data
