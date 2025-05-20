@@ -4,15 +4,15 @@ SafetyNode::SafetyNode () : Node("SafetySystem") {
 
     //ttc brekaing and timeing parameters (tune to get best results)
     //Throtel values must add up to 1 
-    pram.TTC_stage1 = 1.24;
-    pram.TTC_stage2 = 0.64;
-    pram.TTC_stage3 = 0.32;
-    pram.TTC1_Throtel = 0.4;
-    pram.TTC2_Throtel = 0.2;
-    pram.TTC3_Throtel = 0.4;
+    pram.TTC_stage1 = 0.92;
+    pram.TTC_stage2 = 0.59;
+    pram.TTC_stage3 = 0.30;
+    pram.TTC1_Throtel = 0.25;
+    pram.TTC2_Throtel = 0.3;
+    pram.TTC3_Throtel = 0.45;
 
     //vehicle physical parameters
-    pram.WHEEL_RADIUS = 0.0381; // in meters
+    pram.WHEEL_RADIUS = 0.0590; // in meters
 
     //nose and threshold adustments
     pram.alarm_threshold = 3; // the number consecutive of alerts before ttc trigers
@@ -20,7 +20,7 @@ SafetyNode::SafetyNode () : Node("SafetySystem") {
 
     //important note all of these guys must be less than or = to 1
     pram.encoder_bias = 0.5; // bias for the encoders since one can be more reliable than ther other
-    pram.alpha = 0.65; // the sensor bias in the complementary filter
+    pram.alpha = 0.45; // the sensor bias in the complementary filter
     pram.lp_factor = 0.75; // lowe pass filter bias (higher = better response but more noise)
 
     //initalizing some starting parameters
@@ -41,9 +41,12 @@ SafetyNode::SafetyNode () : Node("SafetySystem") {
 
     right_encoder_sub = this->create_subscription<sensor_msgs::msg::JointState>(
         "/autodrive/f1tenth_1/right_encoder",10,[this](const sensor_msgs::msg::JointState::SharedPtr msg){right_encoder_data = msg;});
+    
+    throtel_monitor_sub = this->create_subscription<std_msgs::msg::Float32>(
+        "/autodrive/f1tenth_1/throttle",10,[this](const std_msgs::msg::Float32 msg){curret_throtel = msg;});
 
     //define the pub
-    vel_pub = this->create_publisher<std_msgs::msg::Float32>("/autodrive/f1tenth_1/throttle_command",10);
+    throtel_input_pub = this->create_publisher<std_msgs::msg::Float32>("/autodrive/f1tenth_1/throttle_command",10);
 
     //define the fist time instance
     last_imu_time = this->now();
@@ -76,12 +79,13 @@ void SafetyNode::imuCallBack(const sensor_msgs::msg::Imu::SharedPtr data) {
 //uses the current encoder values and last to find velocity
 void SafetyNode::findEncoderVelocity() {
     
-    //figure out the current delta (might be better to take the avrage of the 2 encoder stamps at th time)
-    rclcpp::Time current = this->now();
+    //figure out the current delta (might be better to take the avrage of the 2 encoder stamps at the time)
+    rclcpp::Time current = right_encoder_data->header.stamp;
+
     double delta = std::abs(current.seconds() - last_encoder_time.seconds());
     last_encoder_time = current;
 
-    if (delta <= 0)
+    if (delta <= 1e-5)
         return;
 
     //get get the current encoder postion
@@ -96,9 +100,10 @@ void SafetyNode::findEncoderVelocity() {
 
 }
 
+//reduces the current throtel value by a certain percentage based on the ttc
 void SafetyNode::laiderCallBack(const sensor_msgs::msg::LaserScan::SharedPtr laider_msg) {
     
-    float throtel_input = 0;
+    float  throtel_percent_reduction = 0;
     int tringer_counter = 0;
     bool sending_break = false;
     std_msgs::msg::Float32 msg;
@@ -106,10 +111,9 @@ void SafetyNode::laiderCallBack(const sensor_msgs::msg::LaserScan::SharedPtr lai
     //find the encoder velocity at the given time
     SafetyNode::findEncoderVelocity(); 
 
-    //if the encoder has a velocity of 0 then so should the imu in theory
-    if (std::abs(encoder_velocity) <= pram.velocity_threshold) {
+    if (encoder_velocity <= pram.velocity_threshold)
         imu_velocity = 0;
-    }   
+
 
     //do a complementary filter, basicaly a weighted mean, 
     //bias towards imu as wheels could making encoder less reliable slip
@@ -120,8 +124,6 @@ void SafetyNode::laiderCallBack(const sensor_msgs::msg::LaserScan::SharedPtr lai
 
     //skip if the vehicle velocity is 0, as ttc if than infinity (for now return a 0 cuase there is controls to correct it)
     if (velocity_estimte < pram.velocity_threshold) {
-        msg.data = throtel_input;
-        vel_pub->publish(msg);
         return;
     }
 
@@ -142,7 +144,7 @@ void SafetyNode::laiderCallBack(const sensor_msgs::msg::LaserScan::SharedPtr lai
 
         //calculate and long ttc
         float ttc = laider_msg->ranges[i] / -range_dt;
-        RCLCPP_INFO(this->get_logger(),"the ttc = %4f",ttc);
+        //RCLCPP_INFO(this->get_logger(),"the ttc = %4f",ttc);
 
         /*insted of a niave approch and relying on one beam, 
         its better to see if 3 ttcs are triggered below the thereshorld before 
@@ -151,20 +153,20 @@ void SafetyNode::laiderCallBack(const sensor_msgs::msg::LaserScan::SharedPtr lai
         //check if the ttc is trigered of discard it as false alarm and reset
         if (ttc < pram.TTC_stage1) {
             //RCLCPP_INFO(this->get_logger(),"stage 1 triggered");
-            throtel_input -= pram.TTC1_Throtel;
+             throtel_percent_reduction += pram.TTC1_Throtel;
             if (ttc < pram.TTC_stage2) {
                 //RCLCPP_INFO(this->get_logger(),"stage 2 triggered");
-                throtel_input -= pram.TTC2_Throtel;
+                 throtel_percent_reduction += pram.TTC2_Throtel;
                 if (ttc < pram.TTC_stage3) {
                     //RCLCPP_INFO(this->get_logger(),"stage 3 triggered");
-                    throtel_input -= pram.TTC3_Throtel;
+                     throtel_percent_reduction += pram.TTC3_Throtel;
                 }
             }
             tringer_counter++;
         } else {
             //RCLCPP_INFO(this->get_logger(),"false alarm");
             tringer_counter = 0;
-            throtel_input = 0.0;
+            throtel_percent_reduction = 0.0;
         }
 
         if (tringer_counter >= pram.alarm_threshold) {
@@ -176,16 +178,20 @@ void SafetyNode::laiderCallBack(const sensor_msgs::msg::LaserScan::SharedPtr lai
 
     if (sending_break) {
 
-        if (throtel_input > 0)
-            throtel_input = 0;
+        float throtel_input;
 
-        else if (throtel_input < -1.0)
-            throtel_input = -1.0;
+        throtel_input = curret_throtel.data - curret_throtel.data*throtel_percent_reduction;
         
-        RCLCPP_INFO(this->get_logger(),"sending throtel %f",throtel_input);
+        //RCLCPP_INFO(this->get_logger(),"sending throtel %f", throtel_input);
+
+        if ( throtel_input < 0)
+             throtel_input = 0;
+
+        else if ( throtel_input > 1.0)
+             throtel_input = 1.0;
 
         msg.data = throtel_input;
-        vel_pub->publish(msg);
+        throtel_input_pub->publish(msg);
 
     } 
 
