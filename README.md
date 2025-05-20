@@ -1,28 +1,32 @@
-# WATonomous F1Tenth
+### Welcome to Micro Autonomy!
 
-## Windows Setup for AutoDRIVE F1Tenth Simulator
+We're watonomous F1Tenth team (1/10th scale autonomous racing). We compete in F1Tenth racing competitions held at research conferences globally throughout the year.
 
-#### Development Space Setup
-1. Download Ubuntu in Microsoft Store (The one without any extension)
-2. Install Docker Destop: Settings -> Resources -> WSL Integration -> Enable Ubuntu
-3. Go into Ubuntu and setup username and password, if first time installing
-4. In your home directory (~), run: `git clone https://github.com/WATonomous/wato_f1tenth.git`
-5. Go into the repo: `cd wato_f1tenth`
-6. Start VSCode: `code .`
-7. Make sure the `watod-config.sh` file has: `ACTIVE_MODULES="vis_tools robot sim"` and `MODE_OF_OPERATION="develop"`. 
-8. Run `./watod build && ./watod up` to start the containers. Future starts can just be `./watod up` if you don't need to rebuild containers.
-9. Download the Docker extension for VSCode. 
-10. From the extension pannel, right click on the `-robot_dev-1` container and attach a VSCode.
-11. In the opened VSCode window select the `/home/bolty/ament_ws` folder. This will be where you do your development!
+# Onboarding Steps
+Apart from the general WATOnomous onboarding, there are some Micro-specific things you'll have to read & learn before contributing. Don't worry, it's a lot lighter than the onboarding assignnmet :)
 
-#### Connecting the AutoDRIVE Simulator
-1. Download the `practice` simulator from: https://autodrive-ecosystem.github.io/competitions/f1tenth-sim-racing-iros-2024/#resources
-2. Unzip the download and run `AutoDRIVE Simulator.exe` inside the folder
-3. Open the left menu on the simulator application
-4. Press on the button "Disconnected" to attempt connection to your running watod containers. The default port should already be 4567.
-5. You should see "Connected"- this means your physics simulator is connected to your watod containers and everything is setup correctly!
-6. There is built-in Keyboard Teleop in the simulator. Click on "Autonomous" to set driving mode to "Manual", you will be able to drive with WASD.
+### Background Theory
+1. Course Syllabus:  https://docs.google.com/spreadsheets/d/1PaFYG7XC_XQ3ExdQGb-S8oJzzixoMOVjh4L1RjW0gT0/edit?gid=0#gid=0o
 
-#### Note for other OS (Ubuntu and MacOS)
-This guide was only written & tested on Windows. 
-- Try the above steps and if you have any problems, ping an F1Tenth Lead on the Discord channel!
+Although not mandatory to study this in great detail, we **highly** reccommend skimming all the slides up to Module D. You can revisit this later when working on a specific component, but getting a general idea of what SLAM / Planning / Controls mean will be beneficial. 
+
+2. Competition Rules: https://iros2024-race.f1tenth.org/rules.html
+
+A lot of our software architecture choices are based on the rules.
+
+### Environment Setup
+
+Our infrastructure consists of 1) AUTODrive physics simulator connected to 2) Docker environment. As such, you'll have to go through the `infra-setup.md` and follow the steps.
+
+## Your First Mini Component
+
+To verify that the environment setup works properly to familiarize yourself with how ROS2 works, please make a PR for a rosnode that:
+
+1. Subscribes to the IMU and prints IMU data onto the console
+2. Publish a throttle command to make the car move forward
+
+References: https://autodrive-ecosystem.github.io/competitions/f1tenth-sim-racing-guide/
+
+note: This rosnode skeleton you'll most likely be building ontop of for your actual task, so getting this working well (no build errors, etc.) will save a lot of time in the future.
+
+### Good Luck! 
