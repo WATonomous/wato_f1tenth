@@ -10,15 +10,18 @@ def generate_launch_description():
     
     ld = LaunchDescription() # Begin building a launch description
 
-    #################### Costmap Node #####################
-
-    gym_vis_node = Node(
-        package='gym_vis',
-        name='gym_vis_node',
-        executable='gym_vis_node',
+    slam_node = Node(
+        package='slam_toolbox',
+        executable='sync_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen',
+        parameters=['/home/bolty/ament_ws/src/mapper_params_online_async2.yaml'],
+        remappings=[
+            ('/scan', '/autodrive/f1tenth_1/lidar')
+        ]
     )
 
-    ld.add_action(gym_vis_node)
+    ld.add_action(slam_node)
 
     # #################### Example Node #####################
 

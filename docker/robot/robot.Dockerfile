@@ -33,6 +33,7 @@ RUN sudo apt-get clean && \
 # ADD MORE DEPENDENCIES HERE
 RUN sudo apt-get install libeigen3-dev
 
+
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
 RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
