@@ -13,6 +13,7 @@ RUN sudo apt-get clean && \
 # Copy in source code
 # COPY src/robot/bringup_robot bringup_robot
 # COPY src/robot/gym_vis gym_vis
+
 COPY src/robot .
 
 # Scan for rosdeps
@@ -35,11 +36,13 @@ RUN sudo apt-get install libeigen3-dev
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
+
 RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
 
 # Copy in source code from source stage
 WORKDIR ${AMENT_WS}
 COPY --from=source ${AMENT_WS}/src src
+RUN chmod -R a+rx ${AMENT_WS}/src
 
 # Dependency Cleanup
 WORKDIR / 
