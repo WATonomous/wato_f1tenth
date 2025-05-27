@@ -54,15 +54,15 @@ class WheelOdom : public rclcpp::Node {
     void broadcastTransform();
 
     //time delta
-    const int MS = 20; // mileconds (update interval)
-    const double DT = 0.02; // seconds
+    const int MS = 10; // mileconds (update interval)
+    const double DT = 0.01; // seconds
 
     //current state
     double x,y,yaw,lin_velocity;
 
     //update state ?
     bool should_update = false;
-    bool broadcast_transform = true;
+    bool broadcast_transform = false;
 
     //constants (still need to be tweaked based on vehicle, all values from sim docs)
     const double WHEELBASE = 0.3240; //meters

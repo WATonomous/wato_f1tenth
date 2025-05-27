@@ -33,6 +33,22 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 
     od.header.frame_id = "odom";
     od.child_frame_id = "f1tenth_1";
+    od.twist.twist.linear.y = 0;
+
+    od.pose.covariance[0] = 0.05;  // x
+    od.pose.covariance[7] = 0.1;  // y
+    od.pose.covariance[14] = 99999; // z (2D robot, so no z info)
+    od.pose.covariance[21] = 99999;
+    od.pose.covariance[28] = 99999;
+    od.pose.covariance[35] = 0.2;  // yaw
+
+    od.twist.covariance[0] = 0.05;    // vx: linear x (trusted)
+    od.twist.covariance[7] = 99999;     // vy: linear y (not measured)
+    od.twist.covariance[14] = 99999;    // vz: linear z (not measured)
+
+    od.twist.covariance[21] = 99999;    // angular x (not measured)
+    od.twist.covariance[28] = 99999;    // angular y (not measured)
+    od.twist.covariance[35] = 0.2;    // angular z (trusted)  
 
     RCLCPP_INFO(this->get_logger(),"initalized constructor");
 
@@ -91,12 +107,15 @@ void WheelOdom::calculateOdom() {
         //current angular velocity
         angular_velocity = velocity / turn_radius;
 
-        //diffrence in yaw from last time step
+        //diffrence in yaw from last time step 
+        //(multplying by a small factor like 1.01 - 1.1 seems to improve accuracy i don't know why man but it works)
         double delta_yaw = angular_velocity * DT;
 
-        //update the the current state
-        x += turn_radius * (std::sin (delta_yaw + yaw) - std::sin (yaw));
-        y += -turn_radius * (std::cos (delta_yaw+ yaw) - std::cos (yaw));
+        double mid_yaw = yaw + delta_yaw/2.0;
+
+        //update the the current state (mid point method)
+        x += turn_radius * (sin(mid_yaw + delta_yaw) - sin(mid_yaw));
+        y += -turn_radius * (cos(mid_yaw + delta_yaw) - cos(mid_yaw));
         yaw += delta_yaw;
     }
 
