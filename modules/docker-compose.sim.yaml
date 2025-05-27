@@ -2,17 +2,21 @@ services:
   sim:
     build:
       context: ..
-      dockerfile: docker/sim/sim.Dockerfile
+      dockerfile: docker/sim/sim_autodrive.Dockerfile
       # cache_from:
       #   - "${GAZEBO_SERVER_IMAGE:?}:${TAG}"
       #   - "${GAZEBO_SERVER_IMAGE:?}:main"
       # args:
       #   BASE_IMAGE: ${BASE_IMAGE_OVERRIDE-}
     # image: "${GAZEBO_SERVER_IMAGE:?}:${TAG}"
-    image: f1tenth:latest
-    # ports:
-    #   - "${GAZEBO_PORT:?}:9002"
+    image: autodrive_f1tenth:latest
+    ports:
+      - "4567:4567"
+      - "7400:7400/udp"
+      - "7401:7401/udp"
+      - "7410:7410/udp"
+      - "7411:7411/udp"
     profiles: [deploy, develop]
-    command: /bin/bash -c "ros2 launch f1tenth_gym_ros gym_bridge_launch.py"
+    # command: /bin/sh -c "echosus" #"ros2 launch autodrive_f1tenth simulator_bringup_headless.launch.py"
     # tty: true
     # command: /bin/bash
