@@ -62,6 +62,7 @@ class WheelOdom : public rclcpp::Node {
 
     //update state ?
     bool should_update = false;
+    bool broadcast_transform = true;
 
     //constants (still need to be tweaked based on vehicle, all values from sim docs)
     const double WHEELBASE = 0.3240; //meters

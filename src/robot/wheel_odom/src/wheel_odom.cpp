@@ -159,7 +159,8 @@ void WheelOdom::broadcastTransform() {
     od.pose.pose.orientation.w = q.w();
 
     //broadcast the transform
-    tf_broadcaster->sendTransform(t);
+    if (broadcast_transform)
+        tf_broadcaster->sendTransform(t);
 
     //publish
     odom_pub->publish(od);
