@@ -27,7 +27,7 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
     //initalize base vals
     x = 0, y = 0, yaw = 0,left_encoder_last = 0,right_encoder_last = 0,right_encoder_curret = 0,left_encoder_current = 0;
 
-    //initalize the child and parent frame
+    //initalize the child and parent frame (change up the name of the child frame later)
     t.header.frame_id = "odom";
     t.child_frame_id = "f1tenth_1";
 
@@ -42,39 +42,26 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 //(shoulud be good enough before filtering with ekf or slam)
 void WheelOdom::calculateOdom() {
 
-    //calculate the curret steering angle
-    if (!steering_data) {
-        RCLCPP_WARN(this->get_logger(), "steering data not yet recived");
+   // do a null ptr check before going for calculaitons
+    if (!steering_data || !right_encoder_data || !left_encoder_data) {
+        RCLCPP_WARN(this->get_logger(), "incomplete data, can't update state");
         return;
     }
 
-    double current_steering = STEERING_NORMAL * steering_data->data;
-    
-    if (current_steering > STEERING_NORMAL) 
-        current_steering = STEERING_NORMAL;
-
-    if (current_steering < -STEERING_NORMAL)
-        current_steering = -STEERING_NORMAL;
-
-        
-    //check for null ptr
-    if (!right_encoder_data || !left_encoder_data) {
-        RCLCPP_WARN(this->get_logger(), "Encoder data not yet received.");
-        return;
-    }
-
-    //check data validity
+    //check if data is available 
     if (right_encoder_data->position.empty() || left_encoder_data->position.empty()) {
-        should_update = false;
         RCLCPP_INFO(this->get_logger(),"there is no valid data from encoders");
-    } else {
-        should_update = true;
-    }
-
-    if (!should_update)
         return;
+    } 
 
-    //RCLCPP_INFO(this->get_logger(),"there is valid data");
+    //get curret steering angle
+    double current_steering = steering_data->data;
+    RCLCPP_INFO(this->get_logger(),"curret steering angle in radian = %f", current_steering);
+    
+    //clap the steering angle
+    if (current_steering > STEERING_NORMAL) current_steering = STEERING_NORMAL;
+    if (current_steering < -STEERING_NORMAL) current_steering = -STEERING_NORMAL;
+
     //estimate current linear velocity
     right_encoder_curret = right_encoder_data->position[0];
     left_encoder_current = left_encoder_data->position[0];
@@ -82,44 +69,63 @@ void WheelOdom::calculateOdom() {
     double right_delta = right_encoder_curret - right_encoder_last;
     double left_delta = left_encoder_current - left_encoder_last;
 
-    right_encoder_last = right_encoder_curret;
-    left_encoder_last = left_encoder_current;
-
-    double left_distance = (2 * M_PI * WHEEL_RADIUS * left_delta)/TICKS_PER_REVELOUTION;
-    double right_distance = (2 * M_PI * WHEEL_RADIUS * right_delta)/TICKS_PER_REVELOUTION;
+    double left_distance = (2 * M_PI * WHEEL_RADIUS * left_delta)/ TICKS_PER_REVELOUTION;
+    double right_distance = (2 * M_PI * WHEEL_RADIUS * right_delta)/ TICKS_PER_REVELOUTION;
 
     double r_velocity = right_distance/DT;
     double l_velocity = left_distance/DT;
 
     double velocity = (r_velocity + l_velocity) / 2;
 
-    //compute heading change
+    double angular_velocity = 0.0;
 
-    double angular_velocity = (velocity/WHEELBASE) * std::tan(current_steering);
-    double delta_yaw = angular_velocity * DT;
-
-    RCLCPP_INFO(this->get_logger(),"curret velocity is %f",velocity);
-
-    // if (std::isnan(angular_velocity) || std::isnan(delta_yaw))
-    //     RCLCPP_INFO(this->get_logger(),"angular velocity or delta yaw is a nan");
-
-    //update current pose
-    x += velocity * std::cos (yaw) * DT;
-    y += velocity * std::sin (yaw) * DT;
-    yaw += delta_yaw; 
     
+    if (std::abs(current_steering) < 1e-4) {
+        //going straight case
+        x += velocity * std::cos(yaw) * DT;
+        y += velocity * std::sin(yaw) * DT;
+    } else {
+        //calculate current turning radius
+        double turn_radius = WHEELBASE / std::tan(current_steering);
 
-    //normalive yaw
-    if (yaw < -M_PI || yaw > M_PI)
-        yaw = std::atan2(std::sin(yaw),std::cos(yaw));
+        //current angular velocity
+        angular_velocity = velocity / turn_radius;
 
+        //diffrence in yaw from last time step
+        double delta_yaw = angular_velocity * DT;
+
+        //update the the current state
+        x += turn_radius * (std::sin (delta_yaw + yaw) - std::sin (yaw));
+        y += -turn_radius * (std::cos (delta_yaw+ yaw) - std::cos (yaw));
+        yaw += delta_yaw;
+    }
+
+    //normalize yaw
+    yaw = std::atan2(std::sin(yaw),std::cos(yaw));
+
+    //update curret linear and angular velocity
     od.twist.twist.linear.x = velocity;
+    od.twist.twist.angular.z = angular_velocity;
 
-    RCLCPP_INFO(this->get_logger(),"x = %f, y = %f, yaw = %f",x ,y, yaw);
+    //store previous encoder state
+    right_encoder_last = right_encoder_curret;
+    left_encoder_last = left_encoder_current;   
+
+    RCLCPP_INFO(this->get_logger(),"x = %f, y = %f, yaw = %f, v = %f , av = %f", x , y, yaw, velocity, angular_velocity);
 
 }
 
 void WheelOdom::broadcastTransform() {
+
+    if (!should_update) {
+        if (left_encoder_data && right_encoder_data) {
+            right_encoder_last = right_encoder_data->position[0];
+            left_encoder_last = left_encoder_data->position[0];
+            should_update = true;
+            RCLCPP_INFO(this->get_logger(),"initalized encoders");
+        }
+        return;
+    }
 
     //calculate the current odom
     WheelOdom::calculateOdom();

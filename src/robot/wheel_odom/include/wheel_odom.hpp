@@ -61,13 +61,13 @@ class WheelOdom : public rclcpp::Node {
     double x,y,yaw,lin_velocity;
 
     //update state ?
-    bool should_update = true;
+    bool should_update = false;
 
     //constants (still need to be tweaked based on vehicle, all values from sim docs)
     const double WHEELBASE = 0.3240; //meters
     const double TRACK_WIDTH = 0.236 ; //meters
     const double WHEEL_RADIUS = 0.0590; //meters
-    const int TICKS_PER_REVELOUTION = 1920;
+    const int TICKS_PER_REVELOUTION = 4 * 16;
     const double STEERING_NORMAL = 0.5236; 
 
     //sensor noise vals
