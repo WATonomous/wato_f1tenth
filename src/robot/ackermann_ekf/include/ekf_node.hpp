@@ -1,0 +1,84 @@
+#ifndef EKF_NODE_
+#define EKF_NODE_
+
+#include <chrono>
+#include <memory>
+#include <string>
+#include <thread>
+#include <string>
+#include <Eigen/Dense>
+
+#include "rclcpp/rclcpp.hpp"
+
+#include "nav_msgs/msg/odometry.hpp"
+#include "sensor_msgs/msg/imu.hpp"
+#include "std_msgs/msg/float32.hpp"
+
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2/LinearMath/Quaternion.h>
+
+using matrix7d = Eigen::Matrix<double,7,7>;
+using vec7d = Eigen::Matrix<double,7,1>;
+
+enum State {
+    X,Y,THETA,V,THETA_DOT,AX,AY
+};
+
+
+class EKF_NODE : public rclcpp::Node {
+public: 
+
+    EKF_NODE();
+
+private:
+
+    //subscribers
+
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr steering_sub;
+
+    //publishers
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ekf_odom_pub;
+
+    //functions
+
+    void odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg);
+    void imuCallBack (sensor_msgs::msg::Imu::SharedPtr msg);
+    void steeringCallBack(std_msgs::msg::Float32::SharedPtr msg);
+    void publishOdom(const nav_msgs::msg::Odometry &odom);
+
+    void ekf(const nav_msgs::msg::Odometry &odom);
+    vec7d observationCreator(nav_msgs::msg::Odometry wheel_odom, sensor_msgs::msg::Imu imu);
+    vec7d observationMapper(const vec7d &predicted_state);
+    matrix7d calculateJacobianG(const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
+    vec7d modelUpdate (const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
+
+    void initalize();
+
+    //data
+
+    vec7d mu; 
+    matrix7d sigma_t;
+    matrix7d R; // process noise
+    matrix7d Q; // sensor noise
+    matrix7d H; // observation matrix jacobian
+    matrix7d I7; //7x7 identidy atrix 
+
+    sensor_msgs::msg::Imu current_imu;
+    std_msgs::msg::Float32 current_steering;
+
+    bool intalized_time = false;
+    bool check_one = false;
+
+    double DT;
+    rclcpp::Time t_previous;
+
+    //constants
+    double L_WB = 0.3240; // the wheel base lenight
+    
+};
+
+
+#endif

@@ -14,7 +14,7 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 
     //initalize the pubs
 
-    odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("/odometry",10);
+    odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("/wheel_odom",10);
 
     //initalize the timer (50 ms is the standard update interval of for odometrey)
 
@@ -24,31 +24,36 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 
     tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
-    //initalize base vals
-    x = 0, y = 0, yaw = 0,left_encoder_last = 0,right_encoder_last = 0,right_encoder_curret = 0,left_encoder_current = 0;
+    /*
+        initalize base vals for robot's starting location, 
+        based off of how the robot is oriented at the start of 
+        the simulation relative to the world frame
+        (determined using the ips and intutions)
+    */
+    x = 0.7412, y = 3.1583, yaw = -M_PI/2,left_encoder_last = 0,right_encoder_last = 0,right_encoder_curret = 0,left_encoder_current = 0;
 
     //initalize the child and parent frame (change up the name of the child frame later)
     t.header.frame_id = "odom";
-    t.child_frame_id = "f1tenth_1";
+    t.child_frame_id = "f1_est";
 
     od.header.frame_id = "odom";
-    od.child_frame_id = "f1tenth_1";
+    od.child_frame_id = "f1_est";
     od.twist.twist.linear.y = 0;
 
-    od.pose.covariance[0] = 0.05;  // x
-    od.pose.covariance[7] = 0.1;  // y
-    od.pose.covariance[14] = 99999; // z (2D robot, so no z info)
-    od.pose.covariance[21] = 99999;
-    od.pose.covariance[28] = 99999;
-    od.pose.covariance[35] = 0.2;  // yaw
+    od.pose.covariance[0] = 0.15;  // x
+    od.pose.covariance[7] = 0.35;  // y
+    od.pose.covariance[14] = 20; // z (2D robot, so no z info)
+    od.pose.covariance[21] = 22;
+    od.pose.covariance[28] = 33;
+    od.pose.covariance[35] = 0.30;  // yaw
 
     od.twist.covariance[0] = 0.05;    // vx: linear x (trusted)
-    od.twist.covariance[7] = 99999;     // vy: linear y (not measured)
-    od.twist.covariance[14] = 99999;    // vz: linear z (not measured)
+    od.twist.covariance[7] = 55;     // vy: linear y (not measured)
+    od.twist.covariance[14] = 13;    // vz: linear z (not measured)
 
-    od.twist.covariance[21] = 99999;    // angular x (not measured)
-    od.twist.covariance[28] = 99999;    // angular y (not measured)
-    od.twist.covariance[35] = 0.2;    // angular z (trusted)  
+    od.twist.covariance[21] = 22;    // angular x (not measured)
+    od.twist.covariance[28] = 22;    // angular y (not measured)
+    od.twist.covariance[35] = 0.33;    // angular z (trusted)  
 
     RCLCPP_INFO(this->get_logger(),"initalized constructor");
 
@@ -72,7 +77,7 @@ void WheelOdom::calculateOdom() {
 
     //get curret steering angle
     double current_steering = steering_data->data;
-    RCLCPP_INFO(this->get_logger(),"curret steering angle in radian = %f", current_steering);
+    //RCLCPP_INFO(this->get_logger(),"curret steering angle in radian = %f", current_steering);
     
     //clap the steering angle
     if (current_steering > STEERING_NORMAL) current_steering = STEERING_NORMAL;
@@ -130,7 +135,7 @@ void WheelOdom::calculateOdom() {
     right_encoder_last = right_encoder_curret;
     left_encoder_last = left_encoder_current;   
 
-    RCLCPP_INFO(this->get_logger(),"x = %f, y = %f, yaw = %f, v = %f , av = %f", x , y, yaw, velocity, angular_velocity);
+    //RCLCPP_INFO(this->get_logger(),"x = %f, y = %f, yaw = %f, v = %f , av = %f", x , y, yaw, velocity, angular_velocity);
 
 }
 
@@ -156,12 +161,12 @@ void WheelOdom::broadcastTransform() {
     //set the translations
     t.transform.translation.x = x;
     t.transform.translation.y = y;
-    t.transform.translation.z = 0.0;
+    t.transform.translation.z = 0.0592;
 
     //set the odom position
     od.pose.pose.position.x = x;
     od.pose.pose.position.y = y;
-    od.pose.pose.position.z = 0.0;
+    od.pose.pose.position.z = 0.0592;
 
     //set the yaw angle
     tf2::Quaternion q;

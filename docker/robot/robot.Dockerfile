@@ -66,7 +66,7 @@ RUN rm -rf src/* build/* devel/* install/* log/*
 #add the slam toolbox, localizaiton and rviz2
 RUN sudo apt-get update
 RUN sudo apt-get install -y ros-humble-rviz2
-RUN sudo apt-get install -y ros-humble-robot-localization
+RUN sudo apt-get install -y ros-humble-navigation2
 RUN sudo apt-get install -y ros-humble-slam-toolbox
 
 # Entrypoint will run before any CMD on launch. Sources ~/opt/<ROS_DISTRO>/setup.bash and ~/ament_ws/install/setup.bash
