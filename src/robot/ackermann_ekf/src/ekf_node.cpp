@@ -88,18 +88,11 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
   ekf_msg.twist.twist.angular.z = mu(4);
 
   //RCLCPP_INFO(this->get_logger(),"predicted velocity : %f ",mu(State::V));
-  
-  if (!check_one) {
-    RCLCPP_INFO(this->get_logger(),"mu");
-    RCLCPP_INFO(this->get_logger(),"%f", mu(0));
-    RCLCPP_INFO(this->get_logger(),"%f", mu(1));
-    RCLCPP_INFO(this->get_logger(),"%f", mu(2));
-    RCLCPP_INFO(this->get_logger(),"%f", mu(3));
-    RCLCPP_INFO(this->get_logger(),"%f", mu(4));
-    RCLCPP_INFO(this->get_logger(),"%f", mu(5));
-    RCLCPP_INFO(this->get_logger(),"%f", mu(6));
 
-    check_one = true;
+  if ((mu.array() != mu.array()).any()) {
+    RCLCPP_INFO(this->get_logger(),"%d",count);
+  } {
+    count++;
   }
 
   ekf_odom_pub->publish(ekf_msg);
@@ -126,6 +119,12 @@ void EKF_NODE::ekf(const nav_msgs::msg::Odometry &odom) {
 
   //solve for kalman gain (check)
   matrix7d S = H * sigma_t_bar * H.transpose() + Q; 
+
+  if (S.determinant() < 1e-8) {
+    RCLCPP_INFO(this->get_logger(),"covariance matrix is colapsing, can't compute inverse");
+    return;
+  }
+
   S = S.inverse();
   matrix7d kalman_gain = sigma_t_bar * H.transpose() * S;
 
@@ -145,8 +144,7 @@ void EKF_NODE::ekf(const nav_msgs::msg::Odometry &odom) {
   //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(4,0), sigma_t(4,1), sigma_t(4,2), sigma_t(4,3), sigma_t(4,4),sigma_t(4,5),sigma_t(4,6));
   //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(5,0), sigma_t(5,1), sigma_t(5,2), sigma_t(5,3), sigma_t(5,4),sigma_t(5,5),sigma_t(5,6));
   //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(6,0), sigma_t(6,1), sigma_t(6,2), sigma_t(6,3), sigma_t(6,4),sigma_t(6,5),sigma_t(6,6));
-    
-  //   check_one = true;
+
   // }
 
 }
@@ -264,15 +262,15 @@ void EKF_NODE::initalize() {
     sigma_t(i,i) = R(i,i) = 0.1;
 
   //process noise
-  // R(0,0) = 0.065;
-  // R(1,1) = 0.05;
-  // R(2,2) = 0.078;
+  R(0,0) = 0.065;
+  R(1,1) = 0.05;
+  R(2,2) = 0.078;
 
   //set the sensor noise
   Q(0,0) = 0.1;
   Q(1,1) = 0.2;
-  Q(2,2) = 0.3;
-  Q(3,3) = 0.035;
+  Q(2,2) = 0.2;
+  Q(3,3) = 0.05;
   Q(4,4) = 0.075;
   Q(5,5) = 0.06;
   Q(6,6) = 0.06;

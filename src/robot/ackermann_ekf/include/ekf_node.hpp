@@ -77,6 +77,8 @@ private:
 
     //constants
     double L_WB = 0.3240; // the wheel base lenight
+
+    int count = 0;
     
 };
 
