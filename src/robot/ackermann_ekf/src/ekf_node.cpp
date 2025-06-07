@@ -56,6 +56,7 @@ void EKF_NODE::odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg) {
   DT = std::abs((t_previous.seconds() + t_previous.nanoseconds() * 1e-9) - (t_current.seconds() + t_current.nanoseconds() * 1e-9));
   t_previous = t_current;
 
+
   //update state with ekf
   EKF_NODE::ekf(*msg);
 
@@ -72,21 +73,34 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
   ekf_msg.header.frame_id = odom.header.frame_id;
   ekf_msg.header.stamp = odom.header.stamp;
 
-  ekf_msg.pose.pose.position.x = mu(State::X); 
-  ekf_msg.pose.pose.position.y = mu(State::Y);
+  ekf_msg.pose.pose.position.x = mu(0); 
+  ekf_msg.pose.pose.position.y = mu(1);
   ekf_msg.pose.pose.position.z = 0.0;
 
   tf2::Quaternion q;
-  q.setRPY(0,0,mu(State::THETA));
+  q.setRPY(0,0,mu(2));
   ekf_msg.pose.pose.orientation.x = q.x();  
   ekf_msg.pose.pose.orientation.y = q.y();
   ekf_msg.pose.pose.orientation.z = q.z();
   ekf_msg.pose.pose.orientation.w = q.w();
   
-  ekf_msg.twist.twist.linear.x = mu(State::V);
-  ekf_msg.twist.twist.angular.z = mu(State::THETA_DOT);
+  ekf_msg.twist.twist.linear.x = mu(3);
+  ekf_msg.twist.twist.angular.z = mu(4);
 
   //RCLCPP_INFO(this->get_logger(),"predicted velocity : %f ",mu(State::V));
+  
+  if (!check_one) {
+    RCLCPP_INFO(this->get_logger(),"mu");
+    RCLCPP_INFO(this->get_logger(),"%f", mu(0));
+    RCLCPP_INFO(this->get_logger(),"%f", mu(1));
+    RCLCPP_INFO(this->get_logger(),"%f", mu(2));
+    RCLCPP_INFO(this->get_logger(),"%f", mu(3));
+    RCLCPP_INFO(this->get_logger(),"%f", mu(4));
+    RCLCPP_INFO(this->get_logger(),"%f", mu(5));
+    RCLCPP_INFO(this->get_logger(),"%f", mu(6));
+
+    check_one = true;
+  }
 
   ekf_odom_pub->publish(ekf_msg);
 
@@ -96,50 +110,44 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
 void EKF_NODE::ekf(const nav_msgs::msg::Odometry &odom) {
 
   //calculate the jacobian G and observation vector Z
-  vec7d Observation_Z = EKF_NODE::observationCreator(odom,current_imu); 
-  matrix7d jacobian_G = calculateJacobianG (mu,current_steering);
+  vec7d Observation_Z = EKF_NODE::observationCreator(odom,current_imu); // check
+  matrix7d jacobian_G = calculateJacobianG (mu,current_steering); // check
 
-  if (!check_one) {
-    RCLCPP_INFO(this->get_logger(),"jacobian G");
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(0,0), jacobian_G(0,1), jacobian_G(0,2), jacobian_G(0,3), jacobian_G(0,4),jacobian_G(0,5),jacobian_G(0,6));
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(1,0), jacobian_G(1,1), jacobian_G(1,2), jacobian_G(1,3), jacobian_G(1,4),jacobian_G(1,5),jacobian_G(1,6));
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(2,0), jacobian_G(2,1), jacobian_G(2,2), jacobian_G(2,3), jacobian_G(2,4),jacobian_G(2,5),jacobian_G(2,6));
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(3,0), jacobian_G(3,1), jacobian_G(3,2), jacobian_G(3,3), jacobian_G(3,4),jacobian_G(3,5),jacobian_G(3,6));
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(4,0), jacobian_G(4,1), jacobian_G(4,2), jacobian_G(4,3), jacobian_G(4,4),jacobian_G(4,5),jacobian_G(4,6));
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(5,0), jacobian_G(5,1), jacobian_G(5,2), jacobian_G(5,3), jacobian_G(5,4),jacobian_G(5,5),jacobian_G(5,6));
-    RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , jacobian_G(6,0), jacobian_G(6,1), jacobian_G(6,2), jacobian_G(6,3), jacobian_G(6,4),jacobian_G(6,5),jacobian_G(6,6));
-    
-    RCLCPP_INFO(this->get_logger(),"observation Z");
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(0));
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(1));
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(2));
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(3));
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(4));
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(5));
-    RCLCPP_INFO(this->get_logger(),"%f", Observation_Z(6));
-
-    check_one = true;
-  }
   //!!!predict step!!!
 
   // calculate the predicted state
-  vec7d mu_bar = modelUpdate(mu,current_steering);
+  vec7d mu_bar = modelUpdate(mu,current_steering); 
 
   //calculate the sigma_t_bar matrix
-  matrix7d sigma_t_bar = jacobian_G * sigma_t * jacobian_G.transpose() + R;
+  matrix7d sigma_t_bar = jacobian_G * sigma_t * jacobian_G.transpose() + R; 
+
 
   //!!!correction step!!!
 
-  //solve for kalman gain 
-  matrix7d S = H * sigma_t_bar * H.transpose() + Q;
-  matrix7d kalman_gain = sigma_t_bar * H.transpose();
-  kalman_gain = S.llt().solve(kalman_gain); // bassicaly solving Sx = K, x = K * S^-1
+  //solve for kalman gain (check)
+  matrix7d S = H * sigma_t_bar * H.transpose() + Q; 
+  S = S.inverse();
+  matrix7d kalman_gain = sigma_t_bar * H.transpose() * S;
+
 
   //correct the state
   mu = mu_bar + kalman_gain * (Observation_Z - observationMapper(mu_bar));
 
   //calculate the covariance
   sigma_t = (I7 - kalman_gain*H) * sigma_t_bar;
+
+  // if (!check_one) {
+  //   RCLCPP_INFO(this->get_logger(),"sigma_t");
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(0,0), sigma_t(0,1), sigma_t(0,2), sigma_t(0,3), sigma_t(0,4),sigma_t(0,5),sigma_t(0,6));
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(1,0), sigma_t(1,1), sigma_t(1,2), sigma_t(1,3), sigma_t(1,4),sigma_t(1,5),sigma_t(1,6));
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(2,0), sigma_t(2,1), sigma_t(2,2), sigma_t(2,3), sigma_t(2,4),sigma_t(2,5),sigma_t(2,6));
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(3,0), sigma_t(3,1), sigma_t(3,2), sigma_t(3,3), sigma_t(3,4),sigma_t(3,5),sigma_t(3,6));
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(4,0), sigma_t(4,1), sigma_t(4,2), sigma_t(4,3), sigma_t(4,4),sigma_t(4,5),sigma_t(4,6));
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(5,0), sigma_t(5,1), sigma_t(5,2), sigma_t(5,3), sigma_t(5,4),sigma_t(5,5),sigma_t(5,6));
+  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(6,0), sigma_t(6,1), sigma_t(6,2), sigma_t(6,3), sigma_t(6,4),sigma_t(6,5),sigma_t(6,6));
+    
+  //   check_one = true;
+  // }
 
 }
 
@@ -193,8 +201,8 @@ matrix7d EKF_NODE::calculateJacobianG(const vec7d &current_state,const std_msgs:
 
   //2nd row
   jacobian(1,1) = 1.0;
-  jacobian(1,2) = -v * std::sin(theta) * DT;
-  jacobian(1,3) = std::cos(theta) * DT;
+  jacobian(1,2) = v * std::cos(theta) * DT;
+  jacobian(1,3) = std::sin(theta) * DT;
   jacobian(1,6) = 0.5 * std::pow(DT,2);
 
   //3rd row
@@ -255,14 +263,19 @@ void EKF_NODE::initalize() {
   for (int i = 0; i < 7; i++) 
     sigma_t(i,i) = R(i,i) = 0.1;
 
+  //process noise
+  // R(0,0) = 0.065;
+  // R(1,1) = 0.05;
+  // R(2,2) = 0.078;
+
   //set the sensor noise
   Q(0,0) = 0.1;
-  Q(1,1) = 0.1;
-  Q(2,2) = 0.1;
-  Q(3,3) = 0.05;
-  Q(4,4) = 0.05;
-  Q(5,5) = 0.075;
-  Q(6,6) = 0.075;
+  Q(1,1) = 0.2;
+  Q(2,2) = 0.3;
+  Q(3,3) = 0.035;
+  Q(4,4) = 0.075;
+  Q(5,5) = 0.06;
+  Q(6,6) = 0.06;
 
   //compute the jacobian of the observation model
   H(0,0) = 1.0;
