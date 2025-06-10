@@ -1,9 +1,14 @@
-ARG BASE_IMAGE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04
+#ARG BASE_IMAGE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04
+
+ARG BASE_IMAGE=osrf/ros:humble-desktop-ful
 
 ################################ Source ################################
 FROM ${BASE_IMAGE} AS source
 
 WORKDIR ${AMENT_WS}/src
+
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 # Clean up and update apt-get, then update rosdep
 RUN sudo apt-get clean && \
@@ -16,6 +21,10 @@ RUN sudo apt-get clean && \
 COPY src/robot .
 
 # Scan for rosdeps
+
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 RUN apt-get -qq update && rosdep update && \
     rosdep install --from-paths . --ignore-src -r -s \
         | grep 'apt-get install' \
@@ -26,6 +35,10 @@ RUN apt-get -qq update && rosdep update && \
 FROM ${BASE_IMAGE} AS dependencies
 
 # Clean up and update apt-get, then update rosdep
+
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
@@ -50,6 +63,10 @@ RUN apt-get -qq autoremove -y && apt-get -qq autoclean && apt-get -qq clean && \
 FROM dependencies AS build
 
 # Clean up and update apt-get, then update rosdep
+
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
@@ -68,6 +85,12 @@ RUN sudo apt-get update
 RUN sudo apt-get install -y ros-humble-rviz2
 RUN sudo apt-get install -y ros-humble-navigation2
 RUN sudo apt-get install -y ros-humble-slam-toolbox
+
+#add controler support to the container
+RUN sudo apt-get install -y ros-humble-joy 
+RUN sudo apt-get install -y jstest-gtk
+RUN mkdir -p /root/.config/jstest-gtk
+
 
 # Entrypoint will run before any CMD on launch. Sources ~/opt/<ROS_DISTRO>/setup.bash and ~/ament_ws/install/setup.bash
 COPY docker/wato_ros_entrypoint.sh ${AMENT_WS}/wato_ros_entrypoint.sh
