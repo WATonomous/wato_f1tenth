@@ -30,7 +30,7 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
         the simulation relative to the world frame
         (determined using the ips and intutions)
     */
-    x = 0.7412, y = 3.1583, yaw = -M_PI/2,left_encoder_last = 0,right_encoder_last = 0,right_encoder_curret = 0,left_encoder_current = 0;
+    x = 0.7412, y = 3.1583, yaw = -M_PI/2,left_encoder_last = 0,right_encoder_last = 0,right_encoder_current = 0,left_encoder_current = 0;
 
     //initalize the child and parent frame (change up the name of the child frame later)
     t.header.frame_id = "odom";
@@ -59,8 +59,17 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 
 }
 
-//calculate odometrey based of the bycycle model 
-//(shoulud be good enough before filtering with ekf or slam)
+/**
+ * @brief
+ * the function uses the most recent data from the wheel encoders
+ * to update the robots pose : x,y,yaw,linear x velocity and 
+ * angular velocity. the update scheme is carried out using a 'tricycle' 
+ * model. the function uses mid-point integration for a more numericaly 
+ * stable outcome
+ * 
+ * @return
+ * the robot's updated pose 
+ */
 void WheelOdom::calculateOdom() {
 
    // do a null ptr check before going for calculaitons
@@ -77,17 +86,12 @@ void WheelOdom::calculateOdom() {
 
     //get curret steering angle
     double current_steering = steering_data->data;
-    //RCLCPP_INFO(this->get_logger(),"curret steering angle in radian = %f", current_steering);
-    
-    //clap the steering angle
-    if (current_steering > STEERING_NORMAL) current_steering = STEERING_NORMAL;
-    if (current_steering < -STEERING_NORMAL) current_steering = -STEERING_NORMAL;
 
     //estimate current linear velocity
-    right_encoder_curret = right_encoder_data->position[0];
+    right_encoder_current = right_encoder_data->position[0];
     left_encoder_current = left_encoder_data->position[0];
 
-    double right_delta = right_encoder_curret - right_encoder_last;
+    double right_delta = right_encoder_current - right_encoder_last;
     double left_delta = left_encoder_current - left_encoder_last;
 
     double left_distance = (2 * M_PI * WHEEL_RADIUS * left_delta)/ TICKS_PER_REVELOUTION;
@@ -101,7 +105,7 @@ void WheelOdom::calculateOdom() {
     double angular_velocity = 0.0;
 
     
-    if (std::abs(current_steering) < 1e-4) {
+    if (std::abs(current_steering) < STEERING_THRESHOLD) {
         //going straight case
         x += velocity * std::cos(yaw) * DT;
         y += velocity * std::sin(yaw) * DT;
@@ -112,8 +116,7 @@ void WheelOdom::calculateOdom() {
         //current angular velocity
         angular_velocity = velocity / turn_radius;
 
-        //diffrence in yaw from last time step 
-        //(multplying by a small factor like 1.01 - 1.1 seems to improve accuracy i don't know why man but it works)
+        //diffrence in yaw from last time step
         double delta_yaw = angular_velocity * DT;
 
         double mid_yaw = yaw + delta_yaw/2.0;
@@ -132,13 +135,20 @@ void WheelOdom::calculateOdom() {
     od.twist.twist.angular.z = angular_velocity;
 
     //store previous encoder state
-    right_encoder_last = right_encoder_curret;
+    right_encoder_last = right_encoder_current;
     left_encoder_last = left_encoder_current;   
-
-    //RCLCPP_INFO(this->get_logger(),"x = %f, y = %f, yaw = %f, v = %f , av = %f", x , y, yaw, velocity, angular_velocity);
 
 }
 
+/**
+ * @brief 
+ * the main call back function what works on a fixed timer of 20 ms. 
+ * when the call back occures, the functions call the calculateOdom
+ * to get the most recent pose. than the function publishes that pose 
+ * 
+ * @return 
+ * pubish the odometrey.
+ */
 void WheelOdom::broadcastTransform() {
 
     if (!should_update) {
@@ -155,36 +165,22 @@ void WheelOdom::broadcastTransform() {
     WheelOdom::calculateOdom();
 
     //set the clock
-    t.header.stamp = this->get_clock()->now();
     od.header.stamp = this ->get_clock()->now();
-
-    //set the translations
-    t.transform.translation.x = x;
-    t.transform.translation.y = y;
-    t.transform.translation.z = 0.0592;
 
     //set the odom position
     od.pose.pose.position.x = x;
     od.pose.pose.position.y = y;
-    od.pose.pose.position.z = 0.0592;
+    od.pose.pose.position.z = Z_VAL;
 
     //set the yaw angle
     tf2::Quaternion q;
     q.setRPY(0,0,yaw);
-    t.transform.rotation.x = q.x();
-    t.transform.rotation.y = q.y();
-    t.transform.rotation.z = q.z();
-    t.transform.rotation.w = q.w();
 
     //set odom orientation
     od.pose.pose.orientation.x = q.x();
     od.pose.pose.orientation.y = q.y();
     od.pose.pose.orientation.z = q.z();
     od.pose.pose.orientation.w = q.w();
-
-    //broadcast the transform
-    if (broadcast_transform)
-        tf_broadcaster->sendTransform(t);
 
     //publish
     odom_pub->publish(od);

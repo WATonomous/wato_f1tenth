@@ -20,31 +20,50 @@ EKF_NODE::EKF_NODE () : Node ("ekf_node") {
 
 }
 
+/**
+ * @brief
+ * stores the most recent imu message for EKF
+ */
 void EKF_NODE::imuCallBack (sensor_msgs::msg::Imu::SharedPtr msg) {
   current_imu = *msg;
 }
 
+/**
+ * @brief
+ * stores the most recent steering message for EKF
+ */
 void EKF_NODE::steeringCallBack(std_msgs::msg::Float32::SharedPtr msg) {
   current_steering = *msg;
 }
 
+/**
+ * @brief
+ * The main callback function that triggers EKF state estimation.
+ * 
+ * Uses the first odometry message to initialize time t = t - 1,
+ * along with the state vector μ at t = t - 1.
+ * 
+ * Calculates Δt and performs NaN checks to ensure the filter does not collapse.
+ * 
+ * @param msg The odometry callback message.
+ */
 void EKF_NODE::odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg) {
 
   //initalize the first instance of time
   if (!intalized_time) {
+
     t_previous = msg->header.stamp;
     intalized_time = true;
 
     //initalize mu
-
-    mu.Zero();
-    mu(State::X) = msg->pose.pose.position.x;
-    mu(State::Y) = msg->pose.pose.position.y;
+    mu->Zero();
+    (*mu)(State::X) = msg->pose.pose.position.x;
+    (*mu)(State::Y) = msg->pose.pose.position.y;
 
     double theta = std::atan2(2.0 * (msg->pose.pose.orientation.w * msg->pose.pose.orientation.z + msg->pose.pose.orientation.x * msg->pose.pose.orientation.y),
     1.0 - 2.0 * (msg->pose.pose.orientation.y * msg->pose.pose.orientation.y + msg->pose.pose.orientation.z * msg->pose.pose.orientation.z));
 
-    mu(State::THETA) = theta;
+    (*mu)(State::THETA) = theta;
 
     //skip this instance of the filter
     return;
@@ -54,17 +73,43 @@ void EKF_NODE::odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg) {
 
   //calculate the time difference
   DT = std::abs((t_previous.seconds() + t_previous.nanoseconds() * 1e-9) - (t_current.seconds() + t_current.nanoseconds() * 1e-9));
-  t_previous = t_current;
-
 
   //update state with ekf
-  EKF_NODE::ekf(*msg);
+  vec7d new_mu;
+  matrix7d new_sigma_t;
+  new_mu = new_mu.Zero();
+  new_sigma_t = new_sigma_t.Zero();
+
+  EKF_NODE::ekf_pass(*msg, *mu, *sigma_t,new_mu,new_sigma_t);
+
+  //error checking to ensure nan don't propogate
+  if (!new_mu.allFinite() || !new_sigma_t.allFinite()) {
+    return;
+  }
+
+  *mu = new_mu;
+  *sigma_t = new_sigma_t;
+  t_previous = t_current;
+
+  //normalize the yaw
+  (*mu)(2) = std::atan2(std::sin((*mu)(2)),std::cos((*mu)(2)));
 
   //publish the new state
   EKF_NODE::publishOdom(*msg);
 
 }
 
+/**
+ * @brief
+ * Publishes the current EKF-estimated state as a `nav_msgs::msg::Odometry` message.
+ * 
+ * This function takes in a reference odometry message (for timestamp, frame info),
+ * and publishes a new odometry message with the predicted EKF state.
+ * The position and orientation are populated from the current state vector `mu`.
+ * The velocity components are also included in the twist field.
+ * 
+ * @param odom The reference odometry message used for frame ID and timestamp.
+ */
 void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
 
   nav_msgs::msg::Odometry ekf_msg;
@@ -73,83 +118,74 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
   ekf_msg.header.frame_id = odom.header.frame_id;
   ekf_msg.header.stamp = odom.header.stamp;
 
-  ekf_msg.pose.pose.position.x = mu(0); 
-  ekf_msg.pose.pose.position.y = mu(1);
+  ekf_msg.pose.pose.position.x = (*mu)(0); 
+  ekf_msg.pose.pose.position.y = (*mu)(1);
   ekf_msg.pose.pose.position.z = 0.0;
 
   tf2::Quaternion q;
-  q.setRPY(0,0,mu(2));
+  q.setRPY(0,0,(*mu)(2));
   ekf_msg.pose.pose.orientation.x = q.x();  
   ekf_msg.pose.pose.orientation.y = q.y();
   ekf_msg.pose.pose.orientation.z = q.z();
   ekf_msg.pose.pose.orientation.w = q.w();
   
-  ekf_msg.twist.twist.linear.x = mu(3);
-  ekf_msg.twist.twist.angular.z = mu(4);
+  ekf_msg.twist.twist.linear.x = (*mu)(3);
+  ekf_msg.twist.twist.angular.z = (*mu)(4);
+
 
   //RCLCPP_INFO(this->get_logger(),"predicted velocity : %f ",mu(State::V));
-
-  if ((mu.array() != mu.array()).any()) {
-    RCLCPP_INFO(this->get_logger(),"%d",count);
-  } {
-    count++;
-  }
 
   ekf_odom_pub->publish(ekf_msg);
 
 }
 
-//for the break down how how this works look at the read me in package folder
-void EKF_NODE::ekf(const nav_msgs::msg::Odometry &odom) {
+/**
+ * @brief
+ * Performs the Extended Kalman Filter (EKF) update using:
+ * the current control input, current observation, previous state mean, 
+ * and previous covariance.
+ * 
+ * @param odom The current wheel odometry message at time t.
+ * @param mu_p The predicted state (mean) at time t - 1.
+ * @param sigma_t_p The predicted covariance at time t - 1.
+ * @param new_mu The updated state (mean) at time t. (output)
+ * @param new_sigma_t The updated covariance at time t. (output)
+ * 
+ * @return 
+ * The updated mean and covariance at time t.
+ */
+void EKF_NODE::ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,const matrix7d &sigma_t_p,vec7d &new_mu, matrix7d &new_simga_t) {
 
-  //calculate the jacobian G and observation vector Z
-  vec7d Observation_Z = EKF_NODE::observationCreator(odom,current_imu); // check
-  matrix7d jacobian_G = calculateJacobianG (mu,current_steering); // check
+  //get the jacobian & observation vector
+  vec7d Z = EKF_NODE::observationCreator(odom,current_imu);
+  matrix7d G = EKF_NODE::calculateJacobianG(mu_p,current_steering);
 
-  //!!!predict step!!!
+  //predict step
+  vec7d mu_bar = modelUpdate(mu_p,current_steering);
+  matrix7d sigma_t_bar = G * sigma_t_p * G.transpose() + R;
 
-  // calculate the predicted state
-  vec7d mu_bar = modelUpdate(mu,current_steering); 
-
-  //calculate the sigma_t_bar matrix
-  matrix7d sigma_t_bar = jacobian_G * sigma_t * jacobian_G.transpose() + R; 
-
-
-  //!!!correction step!!!
-
-  //solve for kalman gain (check)
-  matrix7d S = H * sigma_t_bar * H.transpose() + Q; 
-
-  if (S.determinant() < 1e-8) {
-    RCLCPP_INFO(this->get_logger(),"covariance matrix is colapsing, can't compute inverse");
-    return;
-  }
-
+  //correction step
+  matrix7d S = H * sigma_t_bar * H.transpose() + Q;
   S = S.inverse();
-  matrix7d kalman_gain = sigma_t_bar * H.transpose() * S;
+  matrix7d K = sigma_t_bar * H.transpose() * S;
 
-
-  //correct the state
-  mu = mu_bar + kalman_gain * (Observation_Z - observationMapper(mu_bar));
-
-  //calculate the covariance
-  sigma_t = (I7 - kalman_gain*H) * sigma_t_bar;
-
-  // if (!check_one) {
-  //   RCLCPP_INFO(this->get_logger(),"sigma_t");
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(0,0), sigma_t(0,1), sigma_t(0,2), sigma_t(0,3), sigma_t(0,4),sigma_t(0,5),sigma_t(0,6));
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(1,0), sigma_t(1,1), sigma_t(1,2), sigma_t(1,3), sigma_t(1,4),sigma_t(1,5),sigma_t(1,6));
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(2,0), sigma_t(2,1), sigma_t(2,2), sigma_t(2,3), sigma_t(2,4),sigma_t(2,5),sigma_t(2,6));
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(3,0), sigma_t(3,1), sigma_t(3,2), sigma_t(3,3), sigma_t(3,4),sigma_t(3,5),sigma_t(3,6));
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(4,0), sigma_t(4,1), sigma_t(4,2), sigma_t(4,3), sigma_t(4,4),sigma_t(4,5),sigma_t(4,6));
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(5,0), sigma_t(5,1), sigma_t(5,2), sigma_t(5,3), sigma_t(5,4),sigma_t(5,5),sigma_t(5,6));
-  //   RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f" , sigma_t(6,0), sigma_t(6,1), sigma_t(6,2), sigma_t(6,3), sigma_t(6,4),sigma_t(6,5),sigma_t(6,6));
-
-  // }
+  new_mu = mu_bar + K * (Z - observationMapper(mu_bar));
+  new_simga_t = (I7 - K*H) * sigma_t_bar;
 
 }
 
-//(x,y,z,theta,theta_imu,w_imu,ax_imu,ay_imu)
+/**
+ * @brief
+ * Takes in the current wheel odometry and IMU data,
+ * and produces the corresponding observation vector.
+ * 
+ * @param wheel_odom The current wheel odometry data.
+ * @param imu The current IMU data.
+ * 
+ * @return
+ * The observation vector Z 
+ * (x, y, θ, θ_imu, ω_imu, a_x_imu, a_y_imu).
+ */
 vec7d EKF_NODE::observationCreator(const nav_msgs::msg::Odometry wheel_odom,const sensor_msgs::msg::Imu imu) {
 
   //calculate yaw from odom
@@ -176,17 +212,37 @@ vec7d EKF_NODE::observationCreator(const nav_msgs::msg::Odometry wheel_odom,cons
   return observation;
 }
 
-//maps a vector from state space into observation space
+/**
+ * @brief 
+ * Maps the state space to the observation space 
+ * as required for the state correction step.
+ * 
+ * @param predicted_state The state predicted by the motion model (g).
+ * 
+ * @return
+ * The state vector mapped to the observation space.
+ */
 vec7d EKF_NODE::observationMapper(const vec7d &predicted_state) {
   return H * predicted_state;
 }
 
-//calculate G acording to the matrix shown in the read me / docs
-matrix7d EKF_NODE::calculateJacobianG(const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle) {
+/**
+ * @brief 
+ * Calculates the 7x7 Jacobian matrix for the motion model update function (g)
+ * at time t - 1. This is part of the linearization process in the EKF.
+ * The Jacobian consists of the partial derivatives of the motion model g.
+ * 
+ * @param previous_state The state of the robot at time t - 1.
+ * @param steering_angle The current steering angle of the car.
+ * 
+ * @return
+ * The Jacobian matrix G used in the EKF.
+ */
+matrix7d EKF_NODE::calculateJacobianG(const vec7d &previous_state,const std_msgs::msg::Float32 &steering_angle) {
 
-  double theta = current_state (2), 
-    v = current_state (3), ax = current_state(5), 
-    ay = current_state(6), phi = steering_angle.data; 
+  double theta = previous_state (2), 
+    v = previous_state (3), ax = previous_state(5), 
+    ay = previous_state(6), phi = steering_angle.data; 
 
   matrix7d jacobian;
   jacobian.Zero();
@@ -226,6 +282,18 @@ matrix7d EKF_NODE::calculateJacobianG(const vec7d &current_state,const std_msgs:
 
 }
 
+/**
+ * @brief 
+ * Propagates the state forward to time t using a tricycle model.
+ * 
+ * @param current_state The state of the robot at time t-1.
+ * @param steering_angle The steering input at time t.
+ * 
+ * @return 
+ * The predicted state at time t
+ * (x,y,theta,v,theta_dot,ax,ay).
+ */
+
 vec7d EKF_NODE::modelUpdate (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle) {
 
   double x = current_state (0), y = current_state (1), theta = current_state (2), 
@@ -248,29 +316,42 @@ vec7d EKF_NODE::modelUpdate (const vec7d &current_state,const std_msgs::msg::Flo
 
 }
 
-//initalization works, all matracies have proper values
+/**
+ * @brief
+ * Initializes the following variables: 
+ * sigma_t (initial covariance), mu (initial state),
+ * R (process noise covariance), Q (observation noise covariance), 
+ * H (observation Jacobian), and I7 (a 7x7 identity matrix).
+ * 
+ * These covariances and the initial state should be 
+ * adjusted based on the scenario — either empirically 
+ * or based on intuition.
+ */
 void EKF_NODE::initalize() {
 
   //initalize starting covariance and nose
-  sigma_t.Zero();
+  sigma_t = new matrix7d ();
+  mu = new vec7d ();
+
+  sigma_t->Zero();
   R.Zero();
   Q.Zero();
   H.Zero();
   I7 = I7.Identity();
 
   for (int i = 0; i < 7; i++) 
-    sigma_t(i,i) = R(i,i) = 0.1;
+    (*sigma_t)(i,i) = R(i,i) = 0.1;
 
   //process noise
-  R(0,0) = 0.065;
-  R(1,1) = 0.05;
+  R(0,0) = 0.045;
+  R(1,1) = 0.045;
   R(2,2) = 0.078;
 
   //set the sensor noise
-  Q(0,0) = 0.1;
-  Q(1,1) = 0.2;
+  Q(0,0) = 0.203;
+  Q(1,1) = 0.203;
   Q(2,2) = 0.2;
-  Q(3,3) = 0.05;
+  Q(3,3) = 0.044;
   Q(4,4) = 0.075;
   Q(5,5) = 0.06;
   Q(6,6) = 0.06;
@@ -287,6 +368,7 @@ void EKF_NODE::initalize() {
   RCLCPP_INFO(this->get_logger(),"intalized startinc conditions ");
 
 }
+
 
 int main(int argc, char * argv[]) {
   rclcpp::init(argc, argv);

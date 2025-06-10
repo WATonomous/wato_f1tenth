@@ -49,7 +49,7 @@ private:
     void steeringCallBack(std_msgs::msg::Float32::SharedPtr msg);
     void publishOdom(const nav_msgs::msg::Odometry &odom);
 
-    void ekf(const nav_msgs::msg::Odometry &odom);
+    void ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,const matrix7d &covariance_p,vec7d &new_mu, matrix7d &new_sigma_t);
     vec7d observationCreator(nav_msgs::msg::Odometry wheel_odom, sensor_msgs::msg::Imu imu);
     vec7d observationMapper(const vec7d &predicted_state);
     matrix7d calculateJacobianG(const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
@@ -59,8 +59,8 @@ private:
 
     //data
 
-    vec7d mu; 
-    matrix7d sigma_t;
+    vec7d *mu; 
+    matrix7d *sigma_t;
     matrix7d R; // process noise
     matrix7d Q; // sensor noise
     matrix7d H; // observation matrix jacobian
@@ -72,15 +72,14 @@ private:
     bool intalized_time = false;
     bool check_one = false;
 
+    int count;
+
     double DT;
     rclcpp::Time t_previous;
 
     //constants
     double L_WB = 0.3240; // the wheel base lenight
 
-    int count = 0;
-    
 };
-
 
 #endif

@@ -34,7 +34,7 @@ class WheelOdom : public rclcpp::Node {
 
     //sub data
     sensor_msgs::msg::JointState::SharedPtr right_encoder_data;
-    double right_encoder_curret,right_encoder_last;
+    double right_encoder_current,right_encoder_last;
 
     sensor_msgs::msg::JointState::SharedPtr left_encoder_data;
     double left_encoder_current,left_encoder_last;
@@ -70,6 +70,8 @@ class WheelOdom : public rclcpp::Node {
     const double WHEEL_RADIUS = 0.0590; //meters
     const int TICKS_PER_REVELOUTION = 4 * 16;
     const double STEERING_NORMAL = 0.5236; 
+    const double STEERING_THRESHOLD = 1e-4;
+    const double Z_VAL = 0.0592;
 
     //sensor noise vals
     const int ENCODER_ERROR = 2;

@@ -16,14 +16,14 @@ def generate_launch_description():
     
     ld = LaunchDescription() # Begin building a launch description
 
-    # rviz2_node = Node (
-    #     package="rviz2",
-    #     executable="rviz2",
-    #     name="rviz2",
-    #     output="screen"
-    # )
+    rviz2_node = Node (
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen"
+    )
 
-    # ld.add_action(rviz2_node)
+    ld.add_action(rviz2_node)
     
     # static_tf_node = Node(
     #     package='tf2_ros',
