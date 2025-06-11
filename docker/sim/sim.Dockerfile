@@ -24,6 +24,9 @@ FROM ros:foxy
 
 SHELL ["/bin/bash", "-c"]
 
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 # dependencies
 RUN apt-get update --fix-missing && \
     apt-get install -y git \
