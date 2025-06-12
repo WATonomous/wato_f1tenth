@@ -21,7 +21,7 @@
 using matrix7d = Eigen::Matrix<double,7,7>;
 using vec7d = Eigen::Matrix<double,7,1>;
 
-enum State {
+enum State_space {
     X,Y,THETA,V,THETA_DOT,AX,AY
 };
 

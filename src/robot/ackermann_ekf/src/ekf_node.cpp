@@ -57,13 +57,13 @@ void EKF_NODE::odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg) {
 
     //initalize mu
     mu->Zero();
-    (*mu)(State::X) = msg->pose.pose.position.x;
-    (*mu)(State::Y) = msg->pose.pose.position.y;
+    (*mu)(State_space::X) = msg->pose.pose.position.x;
+    (*mu)(State_space::Y) = msg->pose.pose.position.y;
 
     double theta = std::atan2(2.0 * (msg->pose.pose.orientation.w * msg->pose.pose.orientation.z + msg->pose.pose.orientation.x * msg->pose.pose.orientation.y),
     1.0 - 2.0 * (msg->pose.pose.orientation.y * msg->pose.pose.orientation.y + msg->pose.pose.orientation.z * msg->pose.pose.orientation.z));
 
-    (*mu)(State::THETA) = theta;
+    (*mu)(State_space::THETA) = theta;
 
     //skip this instance of the filter
     return;
@@ -92,7 +92,7 @@ void EKF_NODE::odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg) {
   t_previous = t_current;
 
   //normalize the yaw
-  (*mu)(2) = std::atan2(std::sin((*mu)(2)),std::cos((*mu)(2)));
+  (*mu)(State_space::THETA) = std::atan2(std::sin((*mu)(2)),std::cos((*mu)(2)));
 
   //publish the new state
   EKF_NODE::publishOdom(*msg);
@@ -118,8 +118,8 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
   ekf_msg.header.frame_id = odom.header.frame_id;
   ekf_msg.header.stamp = odom.header.stamp;
 
-  ekf_msg.pose.pose.position.x = (*mu)(0); 
-  ekf_msg.pose.pose.position.y = (*mu)(1);
+  ekf_msg.pose.pose.position.x = (*mu)(State_space::X); 
+  ekf_msg.pose.pose.position.y = (*mu)(State_space::Y);
   ekf_msg.pose.pose.position.z = 0.0;
 
   tf2::Quaternion q;
@@ -129,8 +129,8 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
   ekf_msg.pose.pose.orientation.z = q.z();
   ekf_msg.pose.pose.orientation.w = q.w();
   
-  ekf_msg.twist.twist.linear.x = (*mu)(3);
-  ekf_msg.twist.twist.angular.z = (*mu)(4);
+  ekf_msg.twist.twist.linear.x = (*mu)(State_space::V);
+  ekf_msg.twist.twist.angular.z = (*mu)(State_space::THETA_DOT);
 
 
   //RCLCPP_INFO(this->get_logger(),"predicted velocity : %f ",mu(State::V));
@@ -296,9 +296,9 @@ matrix7d EKF_NODE::calculateJacobianG(const vec7d &previous_state,const std_msgs
 
 vec7d EKF_NODE::modelUpdate (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle) {
 
-  double x = current_state (0), y = current_state (1), theta = current_state (2), 
-    v = current_state (3), ax = current_state(5), 
-    ay = current_state(6), phi = steering_angle.data; 
+  double x = current_state (State_space::X), y = current_state (State_space::Y), theta = current_state (State_space::THETA), 
+    v = current_state (State_space::V), ax = current_state(State_space::AX), 
+    ay = current_state(State_space::AY), phi = steering_angle.data; 
 
   vec7d predicted_state;
 
@@ -343,18 +343,18 @@ void EKF_NODE::initalize() {
     (*sigma_t)(i,i) = R(i,i) = 0.1;
 
   //process noise
-  R(0,0) = 0.045;
-  R(1,1) = 0.045;
-  R(2,2) = 0.078;
+  R(0,0) = 0.1;
+  R(1,1) = 0.1;
+  R(2,2) = 0.05;
 
   //set the sensor noise
-  Q(0,0) = 0.203;
-  Q(1,1) = 0.203;
-  Q(2,2) = 0.2;
-  Q(3,3) = 0.044;
-  Q(4,4) = 0.075;
-  Q(5,5) = 0.06;
-  Q(6,6) = 0.06;
+  Q(0,0) = 100.0;
+  Q(1,1) = 100.0;
+  Q(2,2) = 1000.0;
+  Q(3,3) = 6.853891945200942e-06;
+  Q(4,4) = 1.0966227112321507e-06;
+  Q(5,5) = 0.0015387262937311438;
+  Q(6,6) = 0.0015387262937311438;
 
   //compute the jacobian of the observation model
   H(0,0) = 1.0;

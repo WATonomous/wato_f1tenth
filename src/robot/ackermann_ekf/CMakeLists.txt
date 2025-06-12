@@ -30,13 +30,14 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+#ekf node
 add_executable(ekf_node src/ekf_node.cpp)
 target_include_directories(ekf_node PUBLIC include)
-
 ament_target_dependencies(ekf_node rclcpp std_msgs nav_msgs sensor_msgs tf2_ros tf2_geometry_msgs)
 
+
 install(
-  TARGETS ekf_node
+  TARGETS ekf_node 
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
