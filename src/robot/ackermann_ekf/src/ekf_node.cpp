@@ -13,7 +13,11 @@ EKF_NODE::EKF_NODE () : Node ("ekf_node") {
   steering_sub = this->create_subscription<std_msgs::msg::Float32>(
     "/autodrive/f1tenth_1/steering", 10, std::bind(&EKF_NODE::steeringCallBack,this,std::placeholders::_1));
 
+  Throtel_sub = this->create_subscription<std_msgs::msg::Float32>(
+    "/autodrive/f1tenth_1/throttle",10,std::bind(&EKF_NODE::throtelCallBack,this,std::placeholders::_1));
+
   ekf_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("/ekf/odom",10);
+
 
   //initalize 
   EKF_NODE::initalize();
@@ -34,6 +38,10 @@ void EKF_NODE::imuCallBack (sensor_msgs::msg::Imu::SharedPtr msg) {
  */
 void EKF_NODE::steeringCallBack(std_msgs::msg::Float32::SharedPtr msg) {
   current_steering = *msg;
+}
+
+void EKF_NODE::throtelCallBack(std_msgs::msg::Float32::SharedPtr msg) {
+  current_throtel = *msg;
 }
 
 /**
@@ -84,6 +92,8 @@ void EKF_NODE::odomCallBack(nav_msgs::msg::Odometry::SharedPtr msg) {
 
   //error checking to ensure nan don't propogate
   if (!new_mu.allFinite() || !new_sigma_t.allFinite()) {
+    if (!new_mu.allFinite()) RCLCPP_INFO(this->get_logger(),"mu is corrupted");
+    if (!new_sigma_t.allFinite()) RCLCPP_INFO (this->get_logger(),"sigma is corupted");
     return;
   }
 
@@ -223,7 +233,19 @@ vec7d EKF_NODE::observationCreator(const nav_msgs::msg::Odometry wheel_odom,cons
  * The state vector mapped to the observation space.
  */
 vec7d EKF_NODE::observationMapper(const vec7d &predicted_state) {
-  return H * predicted_state;
+
+  vec7d observation_z;
+
+  observation_z << 
+    predicted_state(0),
+    predicted_state(1),
+    predicted_state(2),
+    predicted_state(2),
+    predicted_state(4),
+    predicted_state(5),
+    predicted_state(6);
+
+  return observation_z;
 }
 
 /**
@@ -241,7 +263,7 @@ vec7d EKF_NODE::observationMapper(const vec7d &predicted_state) {
 matrix7d EKF_NODE::calculateJacobianG(const vec7d &previous_state,const std_msgs::msg::Float32 &steering_angle) {
 
   double theta = previous_state (2), 
-    v = previous_state (3), ax = previous_state(5), 
+    v = current_throtel.data * MAX_VELOCITY, ax = previous_state(5), 
     ay = previous_state(6), phi = steering_angle.data; 
 
   matrix7d jacobian;
@@ -297,7 +319,7 @@ matrix7d EKF_NODE::calculateJacobianG(const vec7d &previous_state,const std_msgs
 vec7d EKF_NODE::modelUpdate (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle) {
 
   double x = current_state (State_space::X), y = current_state (State_space::Y), theta = current_state (State_space::THETA), 
-    v = current_state (State_space::V), ax = current_state(State_space::AX), 
+    v = current_throtel.data * MAX_VELOCITY, ax = current_state(State_space::AX), 
     ay = current_state(State_space::AY), phi = steering_angle.data; 
 
   vec7d predicted_state;
@@ -343,18 +365,18 @@ void EKF_NODE::initalize() {
     (*sigma_t)(i,i) = R(i,i) = 0.1;
 
   //process noise
-  R(0,0) = 0.1;
-  R(1,1) = 0.1;
+  R(0,0) = 0.01;
+  R(1,1) = 0.01;
   R(2,2) = 0.05;
 
   //set the sensor noise
-  Q(0,0) = 100.0;
-  Q(1,1) = 100.0;
-  Q(2,2) = 1000.0;
-  Q(3,3) = 6.853891945200942e-06;
-  Q(4,4) = 1.0966227112321507e-06;
-  Q(5,5) = 0.0015387262937311438;
-  Q(6,6) = 0.0015387262937311438;
+  Q(0,0) = 10.0;
+  Q(1,1) = 10.0;
+  Q(2,2) = 100.0;
+  Q(3,3) = 6.85e-07;
+  Q(4,4) = 1.09e-07;
+  Q(5,5) = 0.0015;
+  Q(6,6) = 0.0015;
 
   //compute the jacobian of the observation model
   H(0,0) = 1.0;

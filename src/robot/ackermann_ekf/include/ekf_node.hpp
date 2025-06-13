@@ -38,6 +38,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub;
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr steering_sub;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr Throtel_sub;
 
     //publishers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ekf_odom_pub;
@@ -48,6 +49,7 @@ private:
     void imuCallBack (sensor_msgs::msg::Imu::SharedPtr msg);
     void steeringCallBack(std_msgs::msg::Float32::SharedPtr msg);
     void publishOdom(const nav_msgs::msg::Odometry &odom);
+    void throtelCallBack(std_msgs::msg::Float32::SharedPtr msg);
 
     void ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,const matrix7d &covariance_p,vec7d &new_mu, matrix7d &new_sigma_t);
     vec7d observationCreator(nav_msgs::msg::Odometry wheel_odom, sensor_msgs::msg::Imu imu);
@@ -68,6 +70,7 @@ private:
 
     sensor_msgs::msg::Imu current_imu;
     std_msgs::msg::Float32 current_steering;
+    std_msgs::msg::Float32 current_throtel;
 
     bool intalized_time = false;
     bool check_one = false;
@@ -78,7 +81,8 @@ private:
     rclcpp::Time t_previous;
 
     //constants
-    double L_WB = 0.3240; // the wheel base lenight
+    const double L_WB = 0.3240; // the wheel base lenight
+    const double MAX_VELOCITY = 22.88; // the max speed of the car
 
 };
 

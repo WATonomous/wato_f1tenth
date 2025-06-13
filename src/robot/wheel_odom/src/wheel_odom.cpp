@@ -18,7 +18,7 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 
     //initalize the timer (50 ms is the standard update interval of for odometrey)
 
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(20),std::bind(&WheelOdom::broadcastTransform,this));
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(10),std::bind(&WheelOdom::broadcastTransform,this));
 
     //initalize the tf broadcaster
 
@@ -94,8 +94,11 @@ void WheelOdom::calculateOdom() {
     double right_delta = right_encoder_current - right_encoder_last;
     double left_delta = left_encoder_current - left_encoder_last;
 
-    double left_distance = (2 * M_PI * WHEEL_RADIUS * left_delta)/ TICKS_PER_REVELOUTION;
-    double right_distance = (2 * M_PI * WHEEL_RADIUS * right_delta)/ TICKS_PER_REVELOUTION;
+    double left_distance = right_delta * WHEEL_RADIUS;
+    double right_distance = left_delta * WHEEL_RADIUS;
+
+    // double left_distance = (left_delta/360) * (M_PI * WHEEL_RADIUS * 2);
+    // double right_distance = (right_delta/360) * (M_PI * WHEEL_RADIUS * 2);
 
     double r_velocity = right_distance/DT;
     double l_velocity = left_distance/DT;
