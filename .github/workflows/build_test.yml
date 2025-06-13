@@ -1,0 +1,78 @@
+name: Micro Autonomy Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  setup-environment:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+
+    outputs:
+      docker_matrix: ${{ steps.docker-environment.outputs.docker_matrix }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Generate Docker Environment
+        id: docker-environment
+        run: |
+          # Create static matrix for F1TENTH services (single line JSON)
+          matrix='{"include":[{"service":"robot","dockerfile":"docker/robot/robot.Dockerfile","compose_file":"modules/docker-compose.robot.yaml"},{"service":"sim","dockerfile":"docker/sim/sim.Dockerfile","compose_file":"modules/docker-compose.sim.yaml"},{"service":"vis_tools","dockerfile":"docker/vis_tools/foxglove.Dockerfile","compose_file":"modules/docker-compose.vis_tools.yaml"},{"service":"samples","dockerfile":"docker/samples/py_producer.Dockerfile","compose_file":"modules/docker-compose.samples.yaml"}]}'
+          echo "docker_matrix=$matrix" >> $GITHUB_OUTPUT
+
+  build-and-unittest:
+    name: Build/Test
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    env:
+      SAMPLES_PRODUCER_IMAGE: "samples-producer:latest"
+      SAMPLES_TRANSFORMER_IMAGE: "samples-transformer:latest" 
+      SAMPLES_AGGREGATOR_IMAGE: "samples-aggregator:latest"
+      ROBOT_IMAGE: "robot:latest"
+      INFRASTRUCTURE_FOXGLOVE_IMAGE: "infrastructure-foxglove:latest"
+      FOXGLOVE_BRIDGE_PORT: "9090"
+      SIM_IMAGE: "sim:latest"
+      SIM_AUTODRIVE_IMAGE: "sim-autodrive:latest"
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup-environment.outputs.docker_matrix) }}
+
+    concurrency:
+      group: ${{ matrix.service }}-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: buildx
+
+      - name: Build Image from Source
+        run: |
+          # Build using Docker Compose with all env vars available
+          docker compose -f ${{ matrix.compose_file }} build
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          BUILDKIT_INLINE_CACHE: 1
+
+  confirm-build-and-unittest-complete:
+    name: Check Build/Test Completion
+    needs: build-and-unittest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ending
+        run: |
+          echo "all builds and unit tests completed."
