@@ -171,7 +171,7 @@ void EKF_NODE::ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,c
   matrix7d G = EKF_NODE::calculateJacobianG(mu_p,current_steering);
 
   //predict step
-  vec7d mu_bar = modelUpdate(mu_p,current_steering);
+  vec7d mu_bar = EKF_NODE::modelUpdate2(mu_p,current_steering);
   matrix7d sigma_t_bar = G * sigma_t_p * G.transpose() + R;
 
   //correction step
@@ -179,7 +179,7 @@ void EKF_NODE::ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,c
   S = S.inverse();
   matrix7d K = sigma_t_bar * H.transpose() * S;
 
-  new_mu = mu_bar + K * (Z - observationMapper(mu_bar));
+  new_mu = mu_bar + K * (Z - EKF_NODE::observationMapper(mu_bar));
   new_simga_t = (I7 - K*H) * sigma_t_bar;
 
 }
@@ -329,6 +329,32 @@ vec7d EKF_NODE::modelUpdate (const vec7d &current_state,const std_msgs::msg::Flo
     y + v * std::sin(theta) * DT + 0.5 * ay * std::pow(DT,2),
     theta + (v/L_WB) * std::tan(phi) * DT,
     v + ax * std::cos(theta) * DT + ay * std::sin(theta) * DT,
+    (v/L_WB) * std::tan(phi),
+    ax,
+    ay
+  ;
+
+  return predicted_state;
+
+}
+
+vec7d EKF_NODE::modelUpdate2 (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle) {
+
+  double x = current_state (State_space::X), y = current_state (State_space::Y), theta = current_state (State_space::THETA), 
+    v = current_throtel.data * MAX_VELOCITY, ax = current_state(State_space::AX), 
+    ay = current_state(State_space::AY), phi = steering_angle.data; 
+
+  double odom_ax = ax * cos(theta) - ay * sin(theta);
+  double odom_ay = ax * sin(theta) + ay * cos(theta);
+  double theta_mid = theta + 0.5 * (v / L_WB) * tan(phi) * DT;
+
+  vec7d predicted_state;
+
+  predicted_state << 
+    x + v * std::cos(theta_mid) * DT + 0.5 * odom_ax * std::pow(DT,2),
+    y + v * std::sin(theta_mid) * DT + 0.5 * odom_ay * std::pow(DT,2),
+    theta + (v/L_WB) * std::tan(phi) * DT,
+    v + ax * std::cos(theta_mid) * DT + ay * std::sin(theta_mid) * DT,
     (v/L_WB) * std::tan(phi),
     ax,
     ay
