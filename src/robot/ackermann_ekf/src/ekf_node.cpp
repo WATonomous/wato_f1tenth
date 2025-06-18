@@ -167,8 +167,8 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
 void EKF_NODE::ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,const matrix7d &sigma_t_p,vec7d &new_mu, matrix7d &new_simga_t) {
 
   //get the jacobian & observation vector
-  vec7d Z = EKF_NODE::observationCreator(odom,current_imu);
-  matrix7d G = EKF_NODE::calculateJacobianG(mu_p,current_steering);
+  vec7d Z = EKF_NODE::observationCreator2(odom,current_imu);
+  matrix7d G = EKF_NODE::calculateJacobianG2(mu_p,current_steering);
 
   //predict step
   vec7d mu_bar = EKF_NODE::modelUpdate2(mu_p,current_steering);
@@ -217,6 +217,34 @@ vec7d EKF_NODE::observationCreator(const nav_msgs::msg::Odometry wheel_odom,cons
     imu.angular_velocity.z,
     imu.linear_acceleration.x,
     imu.linear_acceleration.y 
+  ;
+    
+  return observation;
+}
+
+vec7d EKF_NODE::observationCreator2(const nav_msgs::msg::Odometry wheel_odom,const sensor_msgs::msg::Imu imu) {
+  //calculate yaw from odom
+  double theta = std::atan2(2.0 * (wheel_odom.pose.pose.orientation.w * wheel_odom.pose.pose.orientation.z + wheel_odom.pose.pose.orientation.x * wheel_odom.pose.pose.orientation.y),
+    1.0 - 2.0 * (wheel_odom.pose.pose.orientation.y * wheel_odom.pose.pose.orientation.y + wheel_odom.pose.pose.orientation.z * wheel_odom.pose.pose.orientation.z));
+  
+  //calculate yaw from imu
+  double theta_imu = std::atan2(2.0 * (imu.orientation.w * imu.orientation.z + imu.orientation.x * imu.orientation.y),
+    1.0 - 2.0 * (imu.orientation.y * imu.orientation.y + imu.orientation.z * imu.orientation.z));
+
+  filter_ax = imu.linear_acceleration.x * filter_x_gain + filter_ax * (1 - filter_x_gain);
+  filter_ay = imu.linear_acceleration.y * filter_y_gain + filter_ay * (1 - filter_y_gain);
+
+  //create and populate the observation vector
+  vec7d observation; 
+
+  observation << 
+    wheel_odom.pose.pose.position.x,    
+    wheel_odom.pose.pose.position.y,
+    theta,
+    theta_imu,
+    imu.angular_velocity.z,
+    filter_ax,
+    filter_ay 
   ;
     
   return observation;
@@ -287,6 +315,53 @@ matrix7d EKF_NODE::calculateJacobianG(const vec7d &previous_state,const std_msgs
 
   //4th row
   jacobian(3,2) = ay * std::cos(theta) * DT - ax * std::sin(theta) * DT;
+  jacobian(3,3) = 1.0;
+  jacobian(3,5) = std::cos(theta) * DT;
+  jacobian(3,6) = std::sin(theta) * DT;
+
+  //5th row
+  jacobian(4,3) = std::tan(phi) / L_WB;
+
+  //6th row
+  jacobian(5,5) = 1.0;
+
+  //7th row
+  jacobian(6,6) = 1.0; 
+
+  return jacobian;
+
+}
+
+matrix7d EKF_NODE::calculateJacobianG2(const vec7d &previous_state,const std_msgs::msg::Float32 &steering_angle) {
+
+  double theta = previous_state (2), 
+    v = current_throtel.data * MAX_VELOCITY, ax = previous_state(5), 
+    ay = previous_state(6), phi = steering_angle.data; 
+
+  double odom_ax = ax * cos(theta) - ay * sin(theta);
+  double odom_ay = ax * sin(theta) + ay * cos(theta);
+
+  matrix7d jacobian;
+  jacobian.Zero();
+
+  //1st row
+  jacobian(0,0) = 1.0;
+  jacobian(0,2) = -v * std::sin(theta) * DT;
+  jacobian(0,3) = std::cos(theta) * DT;
+  jacobian(0,5) = 0.5 * std::pow(DT,2);
+
+  //2nd row
+  jacobian(1,1) = 1.0;
+  jacobian(1,2) = v * std::cos(theta) * DT;
+  jacobian(1,3) = std::sin(theta) * DT;
+  jacobian(1,6) = 0.5 * std::pow(DT,2);
+
+  //3rd row
+  jacobian(2,2) = 1.0;
+  jacobian(2,3) = (std::tan(phi) * DT) / L_WB;
+
+  //4th row
+  jacobian(3,2) = odom_ay * std::cos(theta) * DT - odom_ax * std::sin(theta) * DT;
   jacobian(3,3) = 1.0;
   jacobian(3,5) = std::cos(theta) * DT;
   jacobian(3,6) = std::sin(theta) * DT;
@@ -396,9 +471,9 @@ void EKF_NODE::initalize() {
   R(2,2) = 0.05;
 
   //set the sensor noise
-  Q(0,0) = 10.0;
-  Q(1,1) = 10.0;
-  Q(2,2) = 100.0;
+  Q(0,0) = 17.0;
+  Q(1,1) = 17.0;
+  Q(2,2) = 170.0;
   Q(3,3) = 6.85e-07;
   Q(4,4) = 1.09e-07;
   Q(5,5) = 0.0015;

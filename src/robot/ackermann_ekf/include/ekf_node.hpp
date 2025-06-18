@@ -57,6 +57,8 @@ private:
     matrix7d calculateJacobianG(const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
     vec7d modelUpdate (const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
     vec7d modelUpdate2 (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle);
+    matrix7d calculateJacobianG2(const vec7d &previous_state,const std_msgs::msg::Float32 &steering_angle);
+    vec7d observationCreator2(const nav_msgs::msg::Odometry wheel_odom,const sensor_msgs::msg::Imu imu);
 
     void initalize();
 
@@ -84,6 +86,10 @@ private:
     //constants
     const double L_WB = 0.3240; // the wheel base lenight
     const double MAX_VELOCITY = 22.88; // the max speed of the car
+
+    //filter vars
+    double filter_ax = 0, filter_ay = 0;
+    double filter_x_gain = 0.98, filter_y_gain = 0.98;
 
 };
 
