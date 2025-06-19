@@ -167,11 +167,11 @@ void EKF_NODE::publishOdom(const nav_msgs::msg::Odometry &odom) {
 void EKF_NODE::ekf_pass(const nav_msgs::msg::Odometry &odom, const vec7d &mu_p,const matrix7d &sigma_t_p,vec7d &new_mu, matrix7d &new_simga_t) {
 
   //get the jacobian & observation vector
-  vec7d Z = EKF_NODE::observationCreator2(odom,current_imu);
-  matrix7d G = EKF_NODE::calculateJacobianG2(mu_p,current_steering);
+  vec7d Z = EKF_NODE::observationCreator(odom,current_imu);
+  matrix7d G = EKF_NODE::calculateJacobianG(mu_p,current_steering);
 
   //predict step
-  vec7d mu_bar = EKF_NODE::modelUpdate2(mu_p,current_steering);
+  vec7d mu_bar = EKF_NODE::modelUpdate(mu_p,current_steering);
   matrix7d sigma_t_bar = G * sigma_t_p * G.transpose() + R;
 
   //correction step
@@ -217,34 +217,6 @@ vec7d EKF_NODE::observationCreator(const nav_msgs::msg::Odometry wheel_odom,cons
     imu.angular_velocity.z,
     imu.linear_acceleration.x,
     imu.linear_acceleration.y 
-  ;
-    
-  return observation;
-}
-
-vec7d EKF_NODE::observationCreator2(const nav_msgs::msg::Odometry wheel_odom,const sensor_msgs::msg::Imu imu) {
-  //calculate yaw from odom
-  double theta = std::atan2(2.0 * (wheel_odom.pose.pose.orientation.w * wheel_odom.pose.pose.orientation.z + wheel_odom.pose.pose.orientation.x * wheel_odom.pose.pose.orientation.y),
-    1.0 - 2.0 * (wheel_odom.pose.pose.orientation.y * wheel_odom.pose.pose.orientation.y + wheel_odom.pose.pose.orientation.z * wheel_odom.pose.pose.orientation.z));
-  
-  //calculate yaw from imu
-  double theta_imu = std::atan2(2.0 * (imu.orientation.w * imu.orientation.z + imu.orientation.x * imu.orientation.y),
-    1.0 - 2.0 * (imu.orientation.y * imu.orientation.y + imu.orientation.z * imu.orientation.z));
-
-  filter_ax = imu.linear_acceleration.x * filter_x_gain + filter_ax * (1 - filter_x_gain);
-  filter_ay = imu.linear_acceleration.y * filter_y_gain + filter_ay * (1 - filter_y_gain);
-
-  //create and populate the observation vector
-  vec7d observation; 
-
-  observation << 
-    wheel_odom.pose.pose.position.x,    
-    wheel_odom.pose.pose.position.y,
-    theta,
-    theta_imu,
-    imu.angular_velocity.z,
-    filter_ax,
-    filter_ay 
   ;
     
   return observation;
@@ -332,53 +304,6 @@ matrix7d EKF_NODE::calculateJacobianG(const vec7d &previous_state,const std_msgs
 
 }
 
-matrix7d EKF_NODE::calculateJacobianG2(const vec7d &previous_state,const std_msgs::msg::Float32 &steering_angle) {
-
-  double theta = previous_state (2), 
-    v = current_throtel.data * MAX_VELOCITY, ax = previous_state(5), 
-    ay = previous_state(6), phi = steering_angle.data; 
-
-  double odom_ax = ax * cos(theta) - ay * sin(theta);
-  double odom_ay = ax * sin(theta) + ay * cos(theta);
-
-  matrix7d jacobian;
-  jacobian.Zero();
-
-  //1st row
-  jacobian(0,0) = 1.0;
-  jacobian(0,2) = -v * std::sin(theta) * DT;
-  jacobian(0,3) = std::cos(theta) * DT;
-  jacobian(0,5) = 0.5 * std::pow(DT,2);
-
-  //2nd row
-  jacobian(1,1) = 1.0;
-  jacobian(1,2) = v * std::cos(theta) * DT;
-  jacobian(1,3) = std::sin(theta) * DT;
-  jacobian(1,6) = 0.5 * std::pow(DT,2);
-
-  //3rd row
-  jacobian(2,2) = 1.0;
-  jacobian(2,3) = (std::tan(phi) * DT) / L_WB;
-
-  //4th row
-  jacobian(3,2) = odom_ay * std::cos(theta) * DT - odom_ax * std::sin(theta) * DT;
-  jacobian(3,3) = 1.0;
-  jacobian(3,5) = std::cos(theta) * DT;
-  jacobian(3,6) = std::sin(theta) * DT;
-
-  //5th row
-  jacobian(4,3) = std::tan(phi) / L_WB;
-
-  //6th row
-  jacobian(5,5) = 1.0;
-
-  //7th row
-  jacobian(6,6) = 1.0; 
-
-  return jacobian;
-
-}
-
 /**
  * @brief 
  * Propagates the state forward to time t using a tricycle model.
@@ -404,32 +329,6 @@ vec7d EKF_NODE::modelUpdate (const vec7d &current_state,const std_msgs::msg::Flo
     y + v * std::sin(theta) * DT + 0.5 * ay * std::pow(DT,2),
     theta + (v/L_WB) * std::tan(phi) * DT,
     v + ax * std::cos(theta) * DT + ay * std::sin(theta) * DT,
-    (v/L_WB) * std::tan(phi),
-    ax,
-    ay
-  ;
-
-  return predicted_state;
-
-}
-
-vec7d EKF_NODE::modelUpdate2 (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle) {
-
-  double x = current_state (State_space::X), y = current_state (State_space::Y), theta = current_state (State_space::THETA), 
-    v = current_throtel.data * MAX_VELOCITY, ax = current_state(State_space::AX), 
-    ay = current_state(State_space::AY), phi = steering_angle.data; 
-
-  double odom_ax = ax * cos(theta) - ay * sin(theta);
-  double odom_ay = ax * sin(theta) + ay * cos(theta);
-  double theta_mid = theta + 0.5 * (v / L_WB) * tan(phi) * DT;
-
-  vec7d predicted_state;
-
-  predicted_state << 
-    x + v * std::cos(theta_mid) * DT + 0.5 * odom_ax * std::pow(DT,2),
-    y + v * std::sin(theta_mid) * DT + 0.5 * odom_ay * std::pow(DT,2),
-    theta + (v/L_WB) * std::tan(phi) * DT,
-    v + ax * std::cos(theta_mid) * DT + ay * std::sin(theta_mid) * DT,
     (v/L_WB) * std::tan(phi),
     ax,
     ay

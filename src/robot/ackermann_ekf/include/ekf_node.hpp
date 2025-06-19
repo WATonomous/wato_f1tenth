@@ -56,9 +56,6 @@ private:
     vec7d observationMapper(const vec7d &predicted_state);
     matrix7d calculateJacobianG(const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
     vec7d modelUpdate (const vec7d &current_state,const std_msgs::msg::Float32 &current_steering);
-    vec7d modelUpdate2 (const vec7d &current_state,const std_msgs::msg::Float32 &steering_angle);
-    matrix7d calculateJacobianG2(const vec7d &previous_state,const std_msgs::msg::Float32 &steering_angle);
-    vec7d observationCreator2(const nav_msgs::msg::Odometry wheel_odom,const sensor_msgs::msg::Imu imu);
 
     void initalize();
 
