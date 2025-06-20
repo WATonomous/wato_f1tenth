@@ -8,6 +8,7 @@ def generate_launch_description():
     config = os.path.join(get_package_share_directory('bringup_robot'), 'config/simulator', 'perception.yaml')
     map_name = yaml.safe_load(open(config, 'r'))['map_server']['ros__parameters']['map']
 
+
     world_to_map_tf = Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -49,12 +50,12 @@ def generate_launch_description():
                     {'node_names': ['map_server']}]
     )
 
-    # particle_filter_node = Node(
-    #     package='particle_filter',
-    #     executable='particle_filter',
-    #     name='particle_filter',
-    #     parameters=[config]
-    # )
+    particle_filter_node = Node(
+        package='particle_filter',
+        executable='particle_filter',
+        name='particle_filter',
+        parameters=[config]
+    )
 
     rviz_node = Node(
         package='rviz2',
@@ -66,7 +67,7 @@ def generate_launch_description():
     ld = LaunchDescription()
     ld.add_action(world_to_map_tf)
     ld.add_action(world_to_odom_tf)
-    # ld.add_action(particle_filter_node)
+    ld.add_action(particle_filter_node)
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
     ld.add_action(rviz_node)

@@ -34,10 +34,10 @@ WheelOdom::WheelOdom () : Node ("Wheel_Odom_Node") {
 
     //initalize the child and parent frame (change up the name of the child frame later)
     t.header.frame_id = "odom";
-    t.child_frame_id = "f1_est";
+    t.child_frame_id = "base_link";
 
     od.header.frame_id = "odom";
-    od.child_frame_id = "f1_est";
+    od.child_frame_id = "base_link";
     od.twist.twist.linear.y = 0;
 
     od.pose.covariance[0] = 0.15;  // x

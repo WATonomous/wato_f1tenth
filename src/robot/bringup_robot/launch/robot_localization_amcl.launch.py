@@ -27,6 +27,15 @@ def generate_launch_description():
                          '4.71', '0.03', '0.00', # (Yaw, Pitch, Roll) body-fixed axis rotation
                          'world', 'odom']
     )
+
+    # laider_to_f1est = Node(
+    #         package='tf2_ros',
+    #         executable='static_transform_publisher',
+    #         name='laider_to_f1est',
+    #         arguments = ['0.2733', '0.0', '0.096', # (X, Y, Z) translation
+    #                      '0.000', '0.000', '0.000', # (Yaw, Pitch, Roll) body-fixed axis rotation
+    #                      'f1_est', 'lidar']
+    # )
     
     map_server_node = Node(
         package='nav2_map_server',
@@ -45,9 +54,11 @@ def generate_launch_description():
         executable='amcl',
         name='nav2_amcl_node',
         output='screen',
-        parameters=[{'use_sim_time' : True,
-                    'base_frame_id': 'f1teenth',
-                    'scan_topic' : '/autodrive/f1tenth_1/lidar'}]
+        parameters=[{'use_sim_time' : True},
+                    {'base_frame_id': 'f1_est'},
+                    {'scan_topic' : '/autodrive/f1tenth_1/lidar'},
+                    {'odom_frame_id' :'odom'},
+                    {'Pose2D':'{x: 0.7412, y: 3.1583, z: 0.0, yaw:-1.570796327 }'}]
     )
     
     nav_lifecycle_node = Node(
@@ -62,7 +73,6 @@ def generate_launch_description():
     )
     
     
-    #add the rviz node 
     rviz2_node = Node (
         package="rviz2",
         executable="rviz2",
@@ -71,15 +81,39 @@ def generate_launch_description():
         arguments=['-d', os.path.join(get_package_share_directory('bringup_robot'), 'config/rviz', 'localize.rviz')]
     )
 
+    # wheel_odom_node = Node (
+    #     package="wheel_odom",
+    #     executable="wheel_odom_node",
+    #     name ="wheel_odom",
+    #     output="screen"
+    # )
+    
+    # ekf_node = Node (
+    #     package="ackermann_ekf",
+    #     executable="ekf_node",
+    #     name="ekf_node",
+    #     output="screen"
+    # )
+    
+    # transfrom_publisher = Node (
+    #     package="transform_broadcast",
+    #     executable="transform_broadcast_node",
+    #     name="transform_broadcast_node",
+    #     output="screen"
+    # )
+    
+
 
     
     ld.add_action(world_to_map_tf)
     ld.add_action(world_to_odom_tf)
     ld.add_action(map_server_node)
+    # ld.add_action(laider_to_f1est)
     ld.add_action(nav_amcl_node)
+    # ld.add_action(wheel_odom_node)
     ld.add_action(nav_lifecycle_node)
-    ld.add_action(rviz2_node)
-     
-    
+    # ld.add_action(ekf_node)
+    # ld.add_action(transfrom_publisher)
+    ld.add_action(rviz2_node)  
 
     return ld

@@ -35,32 +35,52 @@ def generate_launch_description():
     # ld.add_action(static_tf_node)
     
     # Additional static transforms from f1_est to *_est
-    static_transforms = [
-        (0.0, 0.118, 0.0, 0.0, 0.0, 0.0, 'left_encoder_est'),
-        (0.0, -0.118, 0.0, 0.0, 0.0, 0.0, 'right_encoder_est'),
-        (0.08, 0.0, 0.055, 0.0, 0.0, 0.0, 'ips_est'),
-        (0.08, 0.0, 0.055, 0.0, 0.0, 0.0, 'imu_est'),
-        (0.2733, 0.0, 0.096, 0.0, 0.0, 0.0, 'lidar_est'),
-        (-0.015, 0.0, 0.15, 0.0, 10.0, 0.0, 'front_camera_est'),
-        (0.33, 0.118, 0.0, 0.0, 0.0, 0.0, 'front_left_wheel_est'),
-        (0.33, -0.118, 0.0, 0.0, 0.0, 0.0, 'front_right_wheel_est'),
-        (0.0, 0.118, 0.0, 0.0, 0.0, 0.0, 'rear_left_wheel_est'),
-        (0.0, -0.118, 0.0, 0.0, 0.0, 0.0, 'rear_right_wheel_est'),
-    ]
+    # static_transforms = [
+    #     (0.0, 0.118, 0.0, 0.0, 0.0, 0.0, 'left_encoder_est'),
+    #     (0.0, -0.118, 0.0, 0.0, 0.0, 0.0, 'right_encoder_est'),
+    #     (0.08, 0.0, 0.055, 0.0, 0.0, 0.0, 'ips_est'),
+    #     (0.08, 0.0, 0.055, 0.0, 0.0, 0.0, 'imu_est'),
+    #     (0.2733, 0.0, 0.096, 0.0, 0.0, 0.0, 'lidar_est'),
+    #     (-0.015, 0.0, 0.15, 0.0, 10.0, 0.0, 'front_camera_est'),
+    #     (0.33, 0.118, 0.0, 0.0, 0.0, 0.0, 'front_left_wheel_est'),
+    #     (0.33, -0.118, 0.0, 0.0, 0.0, 0.0, 'front_right_wheel_est'),
+    #     (0.0, 0.118, 0.0, 0.0, 0.0, 0.0, 'rear_left_wheel_est'),
+    #     (0.0, -0.118, 0.0, 0.0, 0.0, 0.0, 'rear_right_wheel_est'),
+    # ]
 
-    for x, y, z, roll, pitch, yaw, child in static_transforms:
-        ld.add_action(
-            Node(
-                package='tf2_ros',
-                executable='static_transform_publisher',
-                name=f'static_tf_{child}',
-                arguments=[
-                    str(x), str(y), str(z),
-                    str(roll), str(pitch), str(yaw),
-                    'f1_est', child
-                ]
-            )
-        )
+    # for x, y, z, roll, pitch, yaw, child in static_transforms:
+    #     ld.add_action(
+    #         Node(
+    #             package='tf2_ros',
+    #             executable='static_transform_publisher',
+    #             name=f'static_tf_{child}',
+    #             arguments=[
+    #                 str(x), str(y), str(z),
+    #                 str(roll), str(pitch), str(yaw),
+    #                 'f1_est', child
+    #             ]
+    #         )
+    #     )
+
+    scan_remap = Node (
+        package="scan_remap",
+        executable="scan_remap_node",
+        name ="scan_remap_node",
+        output="screen"
+    )
+
+    ld.add_action(scan_remap)
+
+    laider_tranform = Node (
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_link_to_laser_scaner_tf',
+        arguments = ['0.2733', '0.000', '0.096', # (X, Y, Z) translation
+                     '0.000', '0.000', '0.000', # (Yaw, Pitch, Roll) body-fixed axis rotation
+                     'base_link', 'laser_scaner']
+    )
+
+    ld.add_action(laider_tranform)
 
     wheel_odom_node = Node (
         package="wheel_odom",
@@ -88,7 +108,6 @@ def generate_launch_description():
     )
     
     ld.add_action(transfrom_publisher)
-
 
     #################### Costmap Node #####################
 

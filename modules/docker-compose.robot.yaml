@@ -25,7 +25,7 @@ services:
       - /dev/input:/dev/input
     environment:
       - DISPLAY=${DISPLAY}
-    # devices:
-    # - "/dev/input/js0"
+      - NVIDIA_VISIBLE_DEVICES=all
+    runtime: nvidia
     device_cgroup_rules:
       - 'c 13:* rmw' 
