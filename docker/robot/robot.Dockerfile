@@ -91,6 +91,17 @@ RUN sudo apt-get install -y ros-humble-joy
 RUN sudo apt-get install -y jstest-gtk
 RUN mkdir -p /root/.config/jstest-gtk
 
+#add the nesscary depends for particle filter
+RUN sudo apt-get install -y pip
+RUN sudo pip3 install cython
+
+RUN mkdir -p /tmp/build && \
+    cd /tmp/build && \
+    git clone https://github.com/f1tenth/range_libc.git && \
+    cd range_libc/pywrapper && \
+    python3 setup.py install && \
+    cd / && rm -rf /tmp/build
+
 
 # Entrypoint will run before any CMD on launch. Sources ~/opt/<ROS_DISTRO>/setup.bash and ~/ament_ws/install/setup.bash
 COPY docker/wato_ros_entrypoint.sh ${AMENT_WS}/wato_ros_entrypoint.sh
