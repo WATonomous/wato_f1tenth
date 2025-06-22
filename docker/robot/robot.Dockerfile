@@ -1,6 +1,4 @@
-#ARG BASE_IMAGE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04
-
-ARG BASE_IMAGE=osrf/ros:humble-desktop-ful
+ARG BASE_IMAGE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04
 
 ################################ Source ################################
 FROM ${BASE_IMAGE} AS source
@@ -48,6 +46,7 @@ RUN sudo apt-get install libeigen3-dev
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
+RUN apt-get update
 RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
 
 # Copy in source code from source stage
