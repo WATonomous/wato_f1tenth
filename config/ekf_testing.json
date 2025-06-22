@@ -1,0 +1,115 @@
+{
+  "configById": {
+    "RawMessages!1fqah6": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/ekf/odom",
+      "fontSize": 12
+    },
+    "Plot!18f3n3x": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/ips.x",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "Ground Truth X"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/wheel_odom.pose.pose.position.x",
+          "enabled": true,
+          "color": "#f5774d"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/ekf/odom.pose.pose.position.x",
+          "enabled": true,
+          "color": "#80f772"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "RawMessages!13gpg4b": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/autodrive/f1tenth_1/ips",
+      "fontSize": 12
+    },
+    "Plot!2qhv9dy": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/autodrive/f1tenth_1/ips.y",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "Ground truth Y"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/wheel_odom.pose.pose.position.y",
+          "enabled": true,
+          "color": "#f5774d"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/ekf/odom.pose.pose.position.y",
+          "enabled": true,
+          "color": "#80f772"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {
+    "cec2ab24-3fb7-4faf-b079-3ff35cf0d557": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype Output = {\n  data: boolean; // Qualification status\n};\n\n// Input topics\nexport const inputs = [\n  \"/autodrive/f1tenth_1/lap_count\",\n  \"/autodrive/f1tenth_1/collision_count\",\n];\n\n// Output topic\nexport const output = \"/autodrive/f1tenth_1/qualification_status\";\n\n// Variables\nlet lapCount = 0;\nlet collisionCount = 0;\nlet collisionsDuringWarmup = 0; // Collisions during warmup lap (0)\nlet collisionsDuringRace = 0; // Collisions during race laps (1-10)\n\n// Script\nexport default function script(\n  event:\n    | Input<\"/autodrive/f1tenth_1/lap_count\">\n    | Input<\"/autodrive/f1tenth_1/collision_count\">,\n): Output {\n  if (event.topic === \"/autodrive/f1tenth_1/lap_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/lap_count messages\n    lapCount = event.message.data;\n  } else {\n    // Read event.message fields expected for /autodrive/f1tenth_1/collision_count messages\n    collisionCount = event.message.data;\n  }\n\n  // Debugging\n  // log(event.message.data);\n\n  // Define the qualification status logic\n  let qualificationStatus = true;\n\n  if (lapCount < 1) {\n    // Ignore collisions during warmup lap (0)\n    collisionsDuringRace = 0;\n    collisionsDuringWarmup = collisionCount;\n    qualificationStatus = true;\n  } else if (lapCount >= 1 && lapCount <= 10) {\n    // Calculate collisions during race laps (1 to 10)\n    collisionsDuringRace = collisionCount - collisionsDuringWarmup;\n    qualificationStatus = collisionsDuringRace <= 10;\n  }\n\n  // Debugging\n  // log(collisionsDuringWarmup);\n  // log(collisionsDuringRace);\n  // log(qualificationStatus);\n\n  // Return the qualification status as the output\n  return {\n    data: qualificationStatus,\n  };\n}\n",
+      "name": "Qualification Status"
+    },
+    "a5eb1ac9-8dba-4b05-8e9f-a0c3ecdc3953": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype Output = {\n  data: number; // Race time (seconds)\n};\n\n// Input topics\nexport const inputs = [\n  \"/autodrive/f1tenth_1/lap_count\",\n  \"/autodrive/f1tenth_1/last_lap_time\",\n];\n\n// Output topic\nexport const output = \"/autodrive/f1tenth_1/race_time\";\n\n// Variables\nlet lapCount = 0;\nlet lastLapCount = -1; // Track the previous lap count\nlet lastLapTime = 0; // Track the previous lap time\nlet raceTime = 0; // Time elapsed during race laps (1-10)\n\n// Script\nexport default function script(\n  event:\n    | Input<\"/autodrive/f1tenth_1/lap_count\">\n    | Input<\"/autodrive/f1tenth_1/last_lap_time\">,\n): Output {\n  if (event.topic === \"/autodrive/f1tenth_1/lap_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/lap_count messages\n    lapCount = event.message.data;\n  } else {\n    // Read event.message fields expected for /autodrive/f1tenth_1/last_lap_time messages\n    lastLapTime = event.message.data;\n  }\n\n  // Debugging\n  // log(event.message.data);\n\n  // Check time only for race laps\n  if (lapCount >= 3 && lapCount <= 12) {\n    // Only add time once per lap increment\n    if (lapCount > lastLapCount) {\n      raceTime += lastLapTime;\n      lastLapCount = lapCount;\n    }\n  }\n\n  // Debugging\n  // log(lastLapTime);\n  // log(raceTime);\n\n  // Return the total race time as the output\n  return {\n    data: raceTime,\n  };\n}\n",
+      "name": "Race Time"
+    },
+    "125add07-11e4-46e5-8c4e-84954294e443": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype Output = {\n  data: number; // Adjusted race time (seconds)\n};\n\n// Input topics\nexport const inputs = [\n  \"/autodrive/f1tenth_1/lap_count\",\n  \"/autodrive/f1tenth_1/collision_count\",\n  \"/autodrive/f1tenth_1/last_lap_time\",\n];\n\n// Output topic\nexport const output = \"/autodrive/f1tenth_1/adjusted_race_time\";\n\n// Variables\nlet lapCount = 0; // Current lap count\nlet collisionCount = 0; // Current collision count\nlet collisionsDuringWarmup = 0; // Collisions during warmup lap (0)\nlet collisionsDuringRace = 0; // Collisions during race laps (1-10)\nlet lastLapCount = -1; // Track the previous lap count\nlet lastLapTime = 0; // Track the previous lap time\nlet raceTime = 0; // Time elapsed during race laps (1-10)\nlet adjustedRaceTime = 0; // Race time with penalties\n\n// Script\nexport default function script(\n  event:\n    | Input<\"/autodrive/f1tenth_1/lap_count\">\n    | Input<\"/autodrive/f1tenth_1/collision_count\">\n    | Input<\"/autodrive/f1tenth_1/last_lap_time\">,\n): Output {\n  if (event.topic === \"/autodrive/f1tenth_1/lap_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/lap_count messages\n    lapCount = event.message.data;\n  } else if (event.topic === \"/autodrive/f1tenth_1/collision_count\") {\n    // Read event.message fields expected for /autodrive/f1tenth_1/collision_count messages\n    collisionCount = event.message.data;\n  } else {\n    // Read event.message fields expected for /autodrive/f1tenth_1/last_lap_time messages\n    lastLapTime = event.message.data;\n  }\n\n  // Debugging\n  // log(event.message.data);\n\n  // Calculate collisions only for race laps\n  if (lapCount < 1) {\n    // Ignore collisions during warmup lap (0)\n    collisionsDuringRace = 0;\n    collisionsDuringWarmup = collisionCount;\n  } else if (lapCount >= 1 && lapCount <= 10) {\n    // Calculate collisions during race laps (1 to 10)\n    collisionsDuringRace = collisionCount - collisionsDuringWarmup;\n  }\n\n  // Check time only for race laps\n  if (lapCount >= 3 && lapCount <= 12) {\n    // Only add time once per lap increment\n    if (lapCount > lastLapCount) {\n      raceTime += lastLapTime;\n      lastLapCount = lapCount;\n    }\n  }\n\n  // Calculate adjusted race time\n  if (lapCount > 11) {\n    adjustedRaceTime = raceTime + 10 * collisionsDuringRace;\n  }\n\n  // Debugging\n  // log(collisionsDuringWarmup);\n  // log(collisionsDuringRace);\n  // log(lastLapTime);\n  // log(raceTime);\n  // log(adjustedRaceTime);\n\n  // Return the qualification status as the output\n  return {\n    data: adjustedRaceTime,\n  };\n}\n",
+      "name": "Adjusted Race Time"
+    }
+  },
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": {
+      "first": "RawMessages!1fqah6",
+      "second": "Plot!18f3n3x",
+      "direction": "column",
+      "splitPercentage": 40.728476821192054
+    },
+    "second": {
+      "first": "RawMessages!13gpg4b",
+      "second": "Plot!2qhv9dy",
+      "direction": "column",
+      "splitPercentage": 40.728476821192054
+    },
+    "direction": "row"
+  }
+}

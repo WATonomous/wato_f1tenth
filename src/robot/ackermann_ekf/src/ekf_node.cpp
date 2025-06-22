@@ -18,7 +18,6 @@ EKF_NODE::EKF_NODE () : Node ("ekf_node") {
 
   ekf_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("/ekf/odom",10);
 
-
   //initalize 
   EKF_NODE::initalize();
 
