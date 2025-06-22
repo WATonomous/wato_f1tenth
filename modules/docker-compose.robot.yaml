@@ -21,3 +21,11 @@ services:
       - develop
     volumes:
       - ${MONO_DIR}/src:/home/bolty/ament_ws/src
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/input:/dev/input
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_VISIBLE_DEVICES=all
+    runtime: nvidia
+    device_cgroup_rules:
+      - 'c 13:* rmw' 

@@ -10,6 +10,10 @@ COPY src/samples/cpp/aggregator aggregator
 COPY src/wato_msgs/sample_msgs sample_msgs
 
 # Scan for rosdeps
+
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 RUN apt-get -qq update && rosdep update && \
     rosdep install --from-paths . --ignore-src -r -s \
         | grep 'apt-get install' \

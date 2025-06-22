@@ -3,7 +3,8 @@ project(bringup_robot)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY launch
+install(
+  DIRECTORY launch maps config
   DESTINATION share/${PROJECT_NAME})
 
 ament_package()

@@ -1,5 +1,6 @@
 ARG BASE_IMAGE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04
 
+
 ################################ Source ################################
 FROM ${BASE_IMAGE} AS source
 
@@ -8,6 +9,9 @@ WORKDIR ${AMENT_WS}/src
 # Copy in source code 
 COPY src/samples/python/producer producer
 COPY src/wato_msgs/sample_msgs sample_msgs
+
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 # Scan for rosdeps
 RUN apt-get -qq update && rosdep update && \
