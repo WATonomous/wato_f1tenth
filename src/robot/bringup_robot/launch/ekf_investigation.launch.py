@@ -12,7 +12,7 @@ def generate_launch_description():
     pkg_ekf = get_package_share_directory('bringup_robot')
 
     # Path to the bag directory inside the package (2 files options : 1.ekf_testdata_steady_lap 2.ekf_testdata_fast_lap )
-    bag_path = os.path.join(pkg_ekf, 'bags', 'ekf_testdata_fast_lap')
+    bag_path = os.path.join(pkg_ekf, 'bags', 'ekf_testdata_steady_lap')
 
     # Play the bag file
     bag_play = ExecuteProcess(
