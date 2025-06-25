@@ -81,7 +81,7 @@ to check that everything is working properly, lauch up the container using ```./
 2. Go into the repo: `cd wato_f1tenth`
 3. Start VSCode: `code .`
 4. Make sure the `watod-config.sh` file has: `ACTIVE_MODULES="vis_tools robot sim"` and `MODE_OF_OPERATION="develop"`. 
-5. Run `./watod build && ./watod up` to start the containers. Future starts can just be `./watod up` if you don't need to rebuild containers. (if you would like to run gui apps in the container, run `xhost + local:root` before starting the container)
+5. Run `./watod build && ./watod up` to start the containers. Future starts can just be `./watod up` if you don't need to rebuild containers. **(if you would like to run gui apps in the container, run `xhost + local:root` before starting the container)**
 6. Download the Docker extension for VSCode. 
 7. From the extension pannel, right click on the `-robot_dev-1` container and attach a VSCode.
 8. In the opened VSCode window select the `/home/bolty/ament_ws` folder. This will be where you do your development!
