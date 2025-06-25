@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
-# setup ROS2 environment
 source /opt/watonomous/setup.bash
-exec "$@"
+source /opt/ros/humble/setup.bash
+
+cd /home/bolty/ament_ws
+colcon build --merge-install --symlink-install
+source install/setup.bash
+
+exec ros2 run imu_throttle imu_throttle

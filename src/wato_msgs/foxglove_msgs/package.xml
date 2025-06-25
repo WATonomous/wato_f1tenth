@@ -9,7 +9,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>std_msgs</depend>
-  <depend>ackermann_msgs</depend>
+  <depend>ros-humble-ackermann-msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
