@@ -16,6 +16,7 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -32,7 +33,7 @@ endif()
 add_executable(wheel_odom_node src/wheel_odom.cpp)
 target_include_directories(wheel_odom_node PUBLIC include)
 
-ament_target_dependencies(wheel_odom_node rclcpp std_msgs nav_msgs sensor_msgs tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(wheel_odom_node message_filters rclcpp std_msgs nav_msgs sensor_msgs tf2_ros tf2_geometry_msgs)
 
 
 install(TARGETS
