@@ -17,6 +17,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <tf2/LinearMath/Quaternion.h>
 
 class ODOM : public rclcpp::Node {
 public:
@@ -41,16 +42,18 @@ private:
 
     //data
     std_msgs::msg::Float32 steering_data;
-    double x,y,theta,velocity;
+    double x,y,theta,velocity,angular_velocity;
     sensor_msgs::msg::JointState left_prev,right_prev;
+    bool intalize_prev = false;
 
     //functions
     void steering_callback (std_msgs::msg::Float32::SharedPtr msg);
     void odom_callback (const sensor_msgs::msg::JointState::ConstSharedPtr &left,
         const sensor_msgs::msg::JointState::ConstSharedPtr &right);
+    void publish_odom ();
 
     //parameters
-    std::string right_topic,left_topic,odom_topic,steering_topic;
+    std::string right_topic,left_topic,odom_topic,steering_topic,header_frame,child_frame;
     double wheel_radius,wheel_base;
 
 };

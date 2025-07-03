@@ -32,12 +32,33 @@ endif()
 
 add_executable(wheel_odom_node src/wheel_odom.cpp)
 target_include_directories(wheel_odom_node PUBLIC include)
+ament_target_dependencies(wheel_odom_node 
+message_filters 
+rclcpp 
+std_msgs 
+nav_msgs 
+sensor_msgs 
+tf2_ros 
+tf2_geometry_msgs
+)
 
-ament_target_dependencies(wheel_odom_node message_filters rclcpp std_msgs nav_msgs sensor_msgs tf2_ros tf2_geometry_msgs)
+add_executable(odom src/odom_v2.cpp)
+target_include_directories(odom PUBLIC include)
+ament_target_dependencies(odom 
+message_filters 
+rclcpp 
+std_msgs 
+nav_msgs 
+sensor_msgs 
+tf2_ros 
+tf2_geometry_msgs
+)
+
 
 
 install(TARGETS
-  wheel_odom_node
+  wheel_odom_node 
+  odom
   DESTINATION lib/${PROJECT_NAME}
 )
 
