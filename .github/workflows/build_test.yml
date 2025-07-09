@@ -138,7 +138,7 @@ jobs:
             ${{ steps.construct-registry-url.outputs.url }}:build_${{ env.SOURCE_BRANCH }}
             ${{ steps.construct-registry-url.outputs.url }}:build_${{ env.TARGET_BRANCH }}
           builder: ${{ steps.buildx.outputs.name }}
-          target: deploy
+          target: build
 
       - name: Run testing suite
         uses: "./.github/templates/test"
