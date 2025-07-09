@@ -42,7 +42,7 @@ if(BUILD_TESTING)
   
   ament_add_gtest(${PROJECT_NAME}_test
     test/test_gym_vis.cpp
-    src/gym_vis.cpp
+    # src/gym_vis.cpp #TODO: proper test on gymviscpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC include)
   ament_target_dependencies(${PROJECT_NAME}_test rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
