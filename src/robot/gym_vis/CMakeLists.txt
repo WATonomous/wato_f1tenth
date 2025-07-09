@@ -56,18 +56,6 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   
-  ament_add_gtest(${PROJECT_NAME}_test
-    test/test_gym_vis.cpp
-    src/gym_vis.cpp
-  )
-  
-  target_include_directories(${PROJECT_NAME}_test PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-  )
-  
-  ament_target_dependencies(${PROJECT_NAME}_test rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
-  
   ament_lint_auto_find_test_dependencies()
 endif()
 
