@@ -50,10 +50,15 @@ install(TARGETS
 
 # add testing dependencies
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
+  
+  set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_cpplint_FOUND TRUE)
   
   ament_add_gtest(${PROJECT_NAME}_test
     test/test_gym_vis.cpp
+    src/gym_vis.cpp
   )
   
   target_include_directories(${PROJECT_NAME}_test PUBLIC
@@ -61,9 +66,7 @@ if(BUILD_TESTING)
     $<INSTALL_INTERFACE:include>
   )
   
-  target_link_libraries(${PROJECT_NAME}_test
-    ${PROJECT_NAME}
-  )
+  ament_target_dependencies(${PROJECT_NAME}_test rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
   
   ament_lint_auto_find_test_dependencies()
 endif()
