@@ -17,10 +17,4 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-class GymVis : public rclcpp::Node {
-public:
-    GymVis() : Node("gym_vis") {}
-};
-
-
 #endif
