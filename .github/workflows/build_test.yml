@@ -16,17 +16,28 @@ jobs:
 
     outputs:
       docker_matrix: ${{ steps.docker-environment.outputs.docker_matrix }}
+      source_branch: ${{ steps.github-environment.outputs.source_branch }}
+      target_branch: ${{ steps.github-environment.outputs.target_branch }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Watod Environment
+        run: |
+          MODULES_DIR="$GITHUB_WORKSPACE/modules"
+          . ./watod_scripts/watod-setup-env.sh
+        shell: bash
+
       - name: Generate Docker Environment
         id: docker-environment
         run: |
-          # Create static matrix for F1TENTH services (single line JSON)
           matrix='{"include":[{"service":"robot","dockerfile":"docker/robot/robot.Dockerfile","compose_file":"modules/docker-compose.robot.yaml"},{"service":"sim","dockerfile":"docker/sim/sim.Dockerfile","compose_file":"modules/docker-compose.sim.yaml"},{"service":"vis_tools","dockerfile":"docker/vis_tools/foxglove.Dockerfile","compose_file":"modules/docker-compose.vis_tools.yaml"},{"service":"samples","dockerfile":"docker/samples/py_producer.Dockerfile","compose_file":"modules/docker-compose.samples.yaml"}]}'
           echo "docker_matrix=$matrix" >> $GITHUB_OUTPUT
+
+      - name: Generate GitHub Environment
+        id: github-environment
+        uses: "./.github/templates/github_context"
 
   build-and-unittest:
     name: Build/Test
@@ -34,6 +45,9 @@ jobs:
     needs: setup-environment
 
     env:
+      SOURCE_BRANCH: ${{ needs.setup-environment.outputs.source_branch }}
+      TARGET_BRANCH: ${{ needs.setup-environment.outputs.target_branch }}
+
       SAMPLES_PRODUCER_IMAGE: "samples-producer:latest"
       SAMPLES_TRANSFORMER_IMAGE: "samples-transformer:latest" 
       SAMPLES_AGGREGATOR_IMAGE: "samples-aggregator:latest"
@@ -61,18 +75,27 @@ jobs:
 
       - name: Build Image from Source
         run: |
-          # Build using Docker Compose with all env vars available
           docker compose -f ${{ matrix.compose_file }} build
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
           BUILDKIT_INLINE_CACHE: 1
 
+      - name: Run testing suite
+        uses: "./.github/templates/test"
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          BUILDKIT_INLINE_CACHE: 1
+        with:
+          image: ${{ matrix.service }}
+          tag: "latest"
+
   confirm-build-and-unittest-complete:
-    name: Check Build/Test Completion
+    name: Confirm Build and Unit Tests Completed
     needs: build-and-unittest
     runs-on: ubuntu-latest
     steps:
       - name: Ending
         run: |
-          echo "all builds and unit tests completed."
+          echo "::notice:: All builds and unit tests completed!"

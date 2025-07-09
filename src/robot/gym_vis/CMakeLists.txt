@@ -48,5 +48,25 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# add testing dependencies
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  
+  ament_add_gtest(${PROJECT_NAME}_test
+    test/test_gym_vis.cpp
+  )
+  
+  target_include_directories(${PROJECT_NAME}_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  
+  target_link_libraries(${PROJECT_NAME}_test
+    ${PROJECT_NAME}
+  )
+  
+  ament_lint_auto_find_test_dependencies()
+endif()
+
 
 ament_package()
