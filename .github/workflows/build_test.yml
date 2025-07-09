@@ -32,7 +32,7 @@ jobs:
       - name: Generate Docker Environment
         id: docker-environment
         run: |
-          matrix='{"include":[{"service":"robot","dockerfile":"docker/robot/robot.Dockerfile","compose_file":"modules/docker-compose.robot.yaml"},{"service":"sim","dockerfile":"docker/sim/sim.Dockerfile","compose_file":"modules/docker-compose.sim.yaml"},{"service":"vis_tools","dockerfile":"docker/vis_tools/foxglove.Dockerfile","compose_file":"modules/docker-compose.vis_tools.yaml"},{"service":"samples","dockerfile":"docker/samples/py_producer.Dockerfile","compose_file":"modules/docker-compose.samples.yaml"}]}'
+          matrix='{"include":[{"service":"robot","image":"robot","tag":"latest","dockerfile":"docker/robot/robot.Dockerfile","compose_file":"modules/docker-compose.robot.yaml"}]}'
           echo "docker_matrix=$matrix" >> $GITHUB_OUTPUT
 
       - name: Generate GitHub Environment
