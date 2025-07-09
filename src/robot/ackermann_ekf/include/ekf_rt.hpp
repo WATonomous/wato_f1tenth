@@ -53,6 +53,7 @@ private:
 
     //helper functions
     double calculate_delta_t(rclcpp::Time t_prev, rclcpp::Time t_now);
+    void initalize_params ();
 
     //callback function
     void control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,std_msgs::msg::Float32::SharedPtr steering);
@@ -76,6 +77,12 @@ private:
     vector7d mu;
     matrix7d sigma_t;
     rclcpp::Time prev_update_time;
+
+    bool init_time = false;
+
+    //parameters
+    std::string odom_topic, ekf_topic, imu_topic, throtel_topic, steering_topic, child_frame, header_frame;
+    double wheel_base;
 };
 
 
