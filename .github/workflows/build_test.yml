@@ -43,7 +43,7 @@ jobs:
       - name: Generate Docker Environment
         id: docker-environment
         run: |
-          matrix='{"include":[{"service":"robot","module":"robot","dockerfile":"docker/robot/robot.Dockerfile"}]}'
+          matrix='{"include":[{"service":"robot","module":"","dockerfile":"docker/robot/robot.Dockerfile"}]}'
           echo "docker_matrix=$matrix" >> $GITHUB_OUTPUT
           echo "registry=ghcr.io" >> $GITHUB_OUTPUT
           echo "repository=watonomous/wato_f1tenth" >> $GITHUB_OUTPUT
