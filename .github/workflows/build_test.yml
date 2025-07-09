@@ -35,11 +35,19 @@ jobs:
           . ./watod_scripts/watod-setup-docker-env.sh
         shell: bash
 
+      # - name: Generate Docker Environment (from monorepo)
+      #   id: docker-environment
+      #   uses: "./.github/templates/docker_context"
+      #   with:
+      #     modified_modules: ${{ steps.get-module-changes.outputs.modified_modules }}
       - name: Generate Docker Environment
         id: docker-environment
-        uses: "./.github/templates/docker_context"
-        with:
-          modified_modules: ${{ steps.get-module-changes.outputs.modified_modules }}
+        run: |
+          matrix='{"include":[{"service":"robot","module":"robot","dockerfile":"docker/robot/robot.Dockerfile"}]}'
+          echo "docker_matrix=$matrix" >> $GITHUB_OUTPUT
+          echo "registry=ghcr.io" >> $GITHUB_OUTPUT
+          echo "repository=watonomous/wato_f1tenth" >> $GITHUB_OUTPUT
+
       
       - name: Generate GitHub Environment
         id: github-environment
