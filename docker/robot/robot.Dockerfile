@@ -76,7 +76,7 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
         --cmake-args -DCMAKE_BUILD_TYPE=Release --install-base ${WATONOMOUS_INSTALL}
 
 # Source and Build Artifact Cleanup 
-# RUN rm -rf src/* build/* devel/* install/* log/*
+RUN rm -rf src/* build/* devel/* install/* log/*
 
 #add the slam toolbox, localizaiton and rviz2
 RUN sudo apt-get update
@@ -95,7 +95,7 @@ COPY docker/wato_ros_entrypoint.sh ${AMENT_WS}/wato_ros_entrypoint.sh
 ENTRYPOINT ["./wato_ros_entrypoint.sh"]
 
 ################################ Deploy ################################
-FROM build AS deploy
+# FROM build AS deploy
 
-#move clean up later
-RUN rm -rf src/* build/* devel/* log/*
+# #move clean up later
+# RUN rm -rf src/* build/* devel/* log/*
