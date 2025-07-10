@@ -6,9 +6,10 @@ from launch_ros.actions import Node
 
 import os
 
+
 def generate_launch_description():
-    
-    ld = LaunchDescription() # Begin building a launch description
+
+    ld = LaunchDescription()  # Begin building a launch description
 
     #################### Costmap Node #####################
 
@@ -34,7 +35,7 @@ def generate_launch_description():
     # costmap_pkg_prefix = get_package_share_directory('costmap')
     # costmap_param_file = os.path.join(
     #     costmap_pkg_prefix, 'config', 'params.yaml')
-    
+
     # costmap_param = DeclareLaunchArgument(
     #     'costmap_param_file',
     #     default_value=costmap_param_file,
@@ -53,7 +54,7 @@ def generate_launch_description():
     # map_memory_pkg_prefix = get_package_share_directory('map_memory')
     # map_memory_param_file = os.path.join(
     #     map_memory_pkg_prefix, 'config', 'params.yaml')
-    
+
     # map_memory_param = DeclareLaunchArgument(
     #     'map_memory_param_file',
     #     default_value=map_memory_param_file,
@@ -67,6 +68,5 @@ def generate_launch_description():
     # )
     # ld.add_action(map_memory_param)
     # ld.add_action(map_memory_node)
-    
 
     return ld
