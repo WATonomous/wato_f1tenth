@@ -19,11 +19,15 @@ EKF_RT::EKF_RT () : Node ("ekf_rt") {
 void EKF_RT::control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,std_msgs::msg::Float32::SharedPtr steering) {
 
     if (!init_time) {
-        prev_update_time = this->now();
-        init_time = true;
+        EKF_RT::is_time_init();
+        return;
     }
 
-    //prediction step
+    //model update 
+    double dt = EKF_RT::calculate_delta_t();
+    vector7d mu_predicted = EKF_RT::model_update(mu,steering->data, throtel->data,dt);
+    matrix7d G = EKF_RT::jacobian_g_update(mu,steering->data,throtel->data,dt);
+
 
     //store the previous control inputs
 
@@ -34,9 +38,10 @@ void EKF_RT::control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,st
 void EKF_RT::imu_callback (sensor_msgs::msg::Imu::SharedPtr msg) {
     
     if (!init_time) {
-        prev_update_time = this->now();
-        init_time = true;
+        EKF_RT::is_time_init();
+        return;
     }
+    
 
     //prediction step
 
@@ -48,8 +53,8 @@ void EKF_RT::imu_callback (sensor_msgs::msg::Imu::SharedPtr msg) {
 void EKF_RT::odom_callback (nav_msgs::msg::Odometry::SharedPtr msg) {
     
     if (!init_time) {
-        prev_update_time = this->now();
-        init_time = true;
+        EKF_RT::is_time_init();
+        return;
     }
 
     //prediction step
@@ -59,7 +64,35 @@ void EKF_RT::odom_callback (nav_msgs::msg::Odometry::SharedPtr msg) {
     //publish data
 }
 
+void EKF_RT::is_time_init () {
+    prev_update_time = this->now();
+    init_time = true;
+}
 
+
+double EKF_RT::calculate_delta_t() {
+
+    rclcpp::Time current_time = this->now();
+    double dt = (current_time.seconds() + current_time.nanoseconds() * 1e-9) +  
+                    (prev_update_time.seconds() + prev_update_time.nanoseconds() * 1e-9);
+
+    prev_update_time = current_time;
+
+    return dt;
+
+}
+
+vector7d EKF_RT::model_update(const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt) {
+
+}
+
+matrix7d EKF_RT::jacobian_g_update (const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt) {
+
+}
+
+matrix7d EKF_RT::predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g) {
+
+}
 void EKF_RT::initalize_params () {
 
     //topic decliration

@@ -52,8 +52,9 @@ private:
 
 
     //helper functions
-    double calculate_delta_t(rclcpp::Time t_prev, rclcpp::Time t_now);
+    double calculate_delta_t();
     void initalize_params ();
+    void is_time_init ();
 
     //callback function
     void control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,std_msgs::msg::Float32::SharedPtr steering);
@@ -66,8 +67,9 @@ private:
     //prediction step
     vector7d model_update(const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt); 
     matrix7d jacobian_g_update (const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt);
-    void prediction_step(const vector7d &mu_prev, const matrix7d &sigma_t_prev, const double steering_input, 
-                    const double throtel_input, vector7d &predicted_mu, matrix7d &predicted_sigma_t);
+    matrix7d predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g);
+    
+
 
     //correction step
     
