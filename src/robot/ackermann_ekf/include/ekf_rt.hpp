@@ -24,6 +24,16 @@
 using vector7d = Eigen::Matrix<double,7,1>;
 using matrix7d = Eigen::Matrix<double,7,7>;
 
+enum state {
+    x = 0, 
+    y = 1, 
+    theta = 2, 
+    v = 3, 
+    theta_dot = 4,
+    ax = 5,
+    ay = 6
+};
+
 class EKF_RT : public rclcpp::Node {
 public:
 
@@ -52,7 +62,7 @@ private:
 
 
     //helper functions
-    double calculate_delta_t();
+    double calculate_delta_t(rclcpp::Time current, rclcpp::Time prev);
     void initalize_params ();
     void is_time_init ();
 
@@ -82,9 +92,12 @@ private:
 
     bool init_time = false;
 
+    matrix7d R;
+    matrix7d Q;
+
     //parameters
     std::string odom_topic, ekf_topic, imu_topic, throtel_topic, steering_topic, child_frame, header_frame;
-    double wheel_base;
+    double wheel_base, max_speed;
 };
 
 
