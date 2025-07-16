@@ -23,6 +23,10 @@
 //use of use
 using vector7d = Eigen::Matrix<double,7,1>;
 using matrix7d = Eigen::Matrix<double,7,7>;
+using matrix5d = Eigen::Matrix<double,5,5>;
+using matrix4d = Eigen::Matrix<double,4,4>;
+using matrix5x7d = Eigen::Matrix<double,5,7>;
+using matrix4x7d = Eigen::Matrix<double,4,7>;
 
 enum state {
     x = 0, 
@@ -77,11 +81,11 @@ private:
     //prediction step
     vector7d model_update(const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt); 
     matrix7d jacobian_g_update (const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt);
-    matrix7d predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g);
-    
+    matrix7d predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g); 
 
 
     //correction step
+
     
 
     //data
@@ -92,8 +96,19 @@ private:
 
     bool init_time = false;
 
+    //process noise {x , y , theta, v, theta_dot, ax , ay}
     matrix7d R;
-    matrix7d Q;
+
+    //sensor noise odom {x, y , theta , v, thata_dot}
+    matrix5d Q_odom;
+
+    //sensor noise imu {theta , theta_dot, ax, ay}
+    matrix4d Q_imu;
+
+    //H matrix for sensor model 
+    matrix4x7d H_imu; // 4 x 7 matrix 
+    matrix5x7d H_odom; // 5 / 7 matrix 
+
 
     //parameters
     std::string odom_topic, ekf_topic, imu_topic, throtel_topic, steering_topic, child_frame, header_frame;

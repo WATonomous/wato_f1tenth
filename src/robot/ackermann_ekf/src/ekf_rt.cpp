@@ -23,7 +23,7 @@ void EKF_RT::control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,st
         return;
     }
 
-    // model update
+    //  predition step
     rclcpp::Time current_time = this->now();
     double dt = EKF_RT::calculate_delta_t(current_time, prev_update_time);
     vector7d mu_predicted = EKF_RT::model_update(mu, steering->data, throtel->data, dt);
@@ -282,7 +282,8 @@ void EKF_RT::initalize_params () {
     sigma_t(6,6) = this->get_parameter("ay_cov").as_double();
 
     //initalize the sensor noice 
-    Q.Zero();
+    Q_imu.Zero();
+    Q_odom.Zero();
     
 
     //initalize the process noise
@@ -294,5 +295,18 @@ void EKF_RT::initalize_params () {
     R(4,4) = this->get_parameter("R_theta_dot").as_double();
     R(5,5) = this->get_parameter("R_ax").as_double();
     R(6,6) = this->get_parameter("R_ay").as_double();
+
+    //initalize the H jacobian matrix for the sensor models 
+    H_imu.Zero();
+    H_odom.Zero();
+
+    H_imu(0,2) = 1.0;
+    H_imu(1,4) = 1.0;
+    H_imu(2,5) = 1.0;
+    H_imu(3,6) = 1.0;
+
+    for (int i = 0; i < 5; i ++) {
+        H_odom(i,i) = 1.0;
+    }
 
 }
