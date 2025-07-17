@@ -21,6 +21,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 
 //use of use
+using vector4d = Eigen::Matrix<double,4,1>;
+using vector5d = Eigen::Matrix<double,5,1>;
 using vector7d = Eigen::Matrix<double,7,1>;
 using matrix7d = Eigen::Matrix<double,7,7>;
 using matrix5d = Eigen::Matrix<double,5,5>;
@@ -85,8 +87,8 @@ private:
 
 
     //correction step
-
-    
+    vector4d imu_state_mapper(const vector7d &mu_predicted);
+    vector5d odom_state_mapper(const vector7d &mu_predicted);
 
     //data
     std_msgs::msg::Float32 prev_steering, prev_throtel;

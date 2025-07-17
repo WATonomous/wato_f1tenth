@@ -62,10 +62,17 @@ void EKF_RT::imu_callback (sensor_msgs::msg::Imu::SharedPtr msg) {
         return;
     }
     
-
     //prediction step
+    rclcpp::Time current_time = this->now();
+    double dt = EKF_RT::calculate_delta_t(current_time, prev_update_time);
+    vector7d mu_predicted = EKF_RT::model_update(mu, prev_steering.data, prev_throtel.data, dt);
+    matrix7d G = EKF_RT::jacobian_g_update(mu, prev_steering.data, prev_throtel.data, dt);
+    matrix7d sigma_predicted = EKF_RT::predict_sigma(sigma_t, G);
 
     //correction step with imu data
+    
+    
+
 
     //publish data
 }
@@ -165,6 +172,37 @@ matrix7d EKF_RT::predict_sigma (const matrix7d &sigma_prev, const matrix7d &jaco
     return sigma_predicted;
 }
 
+vector4d EKF_RT::imu_state_mapper(const vector7d &mu_predicted) {
+
+    vector4d observation;
+    observation.Zero();
+
+    observation(0) = mu_predicted(state::theta);
+    observation(1) = mu_predicted(state::theta_dot);
+    observation(2) = mu_predicted(state::ax);
+    observation(3) = mu_predicted(state::ay);
+
+    return observation;
+
+}
+
+vector5d EKF_RT::odom_state_mapper(const vector7d &mu_predicted) {
+
+    vector5d observation;
+    observation.Zero();
+
+    observation(0) = mu_predicted(state::x);
+    observation(1) = mu_predicted(state::y);
+    observation(2) = mu_predicted(state::theta);
+    observation(3) = mu_predicted(state::v);
+    observation(4) = mu_predicted(state::theta_dot);
+
+    return observation;
+
+}
+
+
+
 void EKF_RT::publish_state() {
 
     nav_msgs::msg::Odometry ekf_msg;
@@ -236,14 +274,16 @@ void EKF_RT::initalize_params () {
     this->declare_parameter<double>("R_ay",0.1);
 
     //declare the sensor noise matrix
-    this->declare_parameter<double>("Q_x",0.1);
-    this->declare_parameter<double>("Q_y",0.1);
-    this->declare_parameter<double>("Q_theta",0.1);
-    this->declare_parameter<double>("Q_v",0.1);
-    this->declare_parameter<double>("Q_theta_dot",0.1);
-    this->declare_parameter<double>("Q_ax",0.1);
-    this->declare_parameter<double>("Q_ay",0.1);
+    this->declare_parameter<double>("Q_odom_x",0.1);
+    this->declare_parameter<double>("Q_odom_y",0.1);
+    this->declare_parameter<double>("Q_odom_theta",0.1);
+    this->declare_parameter<double>("Q_odom_v",0.1);
+    this->declare_parameter<double>("Q_odom_theta_dot",0.1);
 
+    this->declare_parameter<double>("Q_imu_theta",0.1);
+    this->declare_parameter<double>("Q_imu_theta_dot",0.1);
+    this->declare_parameter<double>("Q_imu_ax",0.1);
+    this->declare_parameter<double>("Q_imu_ay",0.1);
 
     //topic retrival
     odom_topic = this->get_parameter("odom_topic").as_string();
@@ -284,7 +324,17 @@ void EKF_RT::initalize_params () {
     //initalize the sensor noice 
     Q_imu.Zero();
     Q_odom.Zero();
-    
+
+    Q_odom(0,0) = this->get_parameter("Q_odom_x").as_double();
+    Q_odom(1,1) = this->get_parameter("Q_odom_y").as_double();
+    Q_odom(2,2) = this->get_parameter("Q_odom_theta").as_double();
+    Q_odom(3,3) = this->get_parameter("Q_odom_v").as_double();
+    Q_odom(4,4) = this->get_parameter("Q_odom_theta_dot").as_double();
+
+    Q_imu(0,0) = this->get_parameter("Q_imu_theta").as_double();
+    Q_imu(1,1) = this->get_parameter("Q_imu_theta_dot").as_double();
+    Q_imu(2,2) = this->get_parameter("Q_imu_ax").as_double();
+    Q_imu(3,3) = this->get_parameter("Q_imu_ay").as_double();
 
     //initalize the process noise
     R.Zero();
