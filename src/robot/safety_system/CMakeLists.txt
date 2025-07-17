@@ -37,8 +37,14 @@ target_include_directories(safety_node PUBLIC include)
 
 ament_target_dependencies(safety_node rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
 
+add_executable(ebreak src/ebreak.cpp)
+target_include_directories(ebreak PUBLIC include)
+
+ament_target_dependencies(ebreak rclcpp std_msgs nav_msgs visualization_msgs sensor_msgs ackermann_msgs tf2_ros tf2_geometry_msgs)
+
 
 install(TARGETS
+  ebreak
   safety_node
   DESTINATION lib/${PROJECT_NAME}
 )
