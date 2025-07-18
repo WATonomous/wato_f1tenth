@@ -29,6 +29,8 @@ using matrix5d = Eigen::Matrix<double,5,5>;
 using matrix4d = Eigen::Matrix<double,4,4>;
 using matrix5x7d = Eigen::Matrix<double,5,7>;
 using matrix4x7d = Eigen::Matrix<double,4,7>;
+using matrix7x5d = Eigen::Matrix<double,7,5>;
+using matrix7x4d = Eigen::Matrix<double,7,4>;
 
 enum state {
     x = 0, 
@@ -38,6 +40,12 @@ enum state {
     theta_dot = 4,
     ax = 5,
     ay = 6
+};
+
+struct mu_and_sigma {
+    vector7d new_state;
+    matrix7d new_covariance;
+    rclcpp::Time current;
 };
 
 class EKF_RT : public rclcpp::Node {
@@ -84,11 +92,14 @@ private:
     vector7d model_update(const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt); 
     matrix7d jacobian_g_update (const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt);
     matrix7d predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g); 
-
+    mu_and_sigma prediction_step(const vector7d &mu_prev, const matrix7d &sigma_prev, 
+        const std_msgs::msg::Float32 &steering_input, const std_msgs::msg::Float32 &throtel_input);
 
     //correction step
     vector4d imu_state_mapper(const vector7d &mu_predicted);
     vector5d odom_state_mapper(const vector7d &mu_predicted);
+    vector4d imu_observation_maker(const sensor_msgs::msg::Imu &observation);
+    vector5d odom_observation_maker(const nav_msgs::msg::Odometry &observation);
 
     //data
     std_msgs::msg::Float32 prev_steering, prev_throtel;
@@ -111,6 +122,8 @@ private:
     matrix4x7d H_imu; // 4 x 7 matrix 
     matrix5x7d H_odom; // 5 / 7 matrix 
 
+    //Identity matrix 
+    matrix7d I7; 
 
     //parameters
     std::string odom_topic, ekf_topic, imu_topic, throtel_topic, steering_topic, child_frame, header_frame;

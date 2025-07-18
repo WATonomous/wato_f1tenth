@@ -24,16 +24,12 @@ void EKF_RT::control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,st
     }
 
     //  predition step
-    rclcpp::Time current_time = this->now();
-    double dt = EKF_RT::calculate_delta_t(current_time, prev_update_time);
-    vector7d mu_predicted = EKF_RT::model_update(mu, steering->data, throtel->data, dt);
-    matrix7d G = EKF_RT::jacobian_g_update(mu, steering->data, throtel->data, dt);
-    matrix7d sigma_predicted = EKF_RT::predict_sigma(sigma_t, G);
+    mu_and_sigma result = EKF_RT::prediction_step(mu,sigma_t, *steering, *throtel);
 
     bool store_prev_state = true;
 
     // check the valicity of the answer
-    if (!mu_predicted.allFinite() || !sigma_predicted.allFinite()) {
+    if (!result.new_state.allFinite() || !result.new_covariance.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "mu or sigma has corrupted after calculations");
         store_prev_state = false;
     }
@@ -46,9 +42,9 @@ void EKF_RT::control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,st
         return;
     }
 
-    mu = mu_predicted;
-    sigma_t = sigma_predicted;
-    prev_update_time = current_time;
+    mu = result.new_state;
+    sigma_t = result.new_covariance;
+    prev_update_time = result.current;
 
     // publish state
     EKF_RT::publish_state();
@@ -63,18 +59,29 @@ void EKF_RT::imu_callback (sensor_msgs::msg::Imu::SharedPtr msg) {
     }
     
     //prediction step
-    rclcpp::Time current_time = this->now();
-    double dt = EKF_RT::calculate_delta_t(current_time, prev_update_time);
-    vector7d mu_predicted = EKF_RT::model_update(mu, prev_steering.data, prev_throtel.data, dt);
-    matrix7d G = EKF_RT::jacobian_g_update(mu, prev_steering.data, prev_throtel.data, dt);
-    matrix7d sigma_predicted = EKF_RT::predict_sigma(sigma_t, G);
+    mu_and_sigma result = prediction_step(mu, sigma_t, prev_steering, prev_throtel);
 
     //correction step with imu data
-    
-    
+    matrix4d S = H_imu * result.new_covariance * H_imu.transpose () + Q_imu;
+    S = S.inverse();
+    matrix7x4d K = result.new_covariance * H_imu.transpose() * S;
 
+    vector7d new_mu = result.new_state + K * (imu_observation_maker(*msg) - imu_state_mapper(result.new_state)); 
+    matrix7d new_sigma = (I7 - K * H_imu) * result.new_covariance;
+
+    //check data valicty
+    if (!new_mu.allFinite() || !new_sigma.allFinite()) { 
+        RCLCPP_INFO(this->get_logger(), "data is not valid after calcuation");
+        return;
+    }
+
+    mu = new_mu;
+    sigma_t = new_sigma;
+    prev_update_time = result.current;
 
     //publish data
+    EKF_RT::publish_state();
+    
 }
 
 void EKF_RT::odom_callback (nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -85,10 +92,29 @@ void EKF_RT::odom_callback (nav_msgs::msg::Odometry::SharedPtr msg) {
     }
 
     //prediction step
+    mu_and_sigma result = prediction_step(mu, sigma_t, prev_steering, prev_throtel);
 
     //correction step with odom data
+    matrix5d S = H_odom * result.new_covariance * H_odom.transpose() + Q_odom;
+    S = S.inverse();
+    matrix5x7d K = result.new_covariance * H_odom.transpose() * S;
+
+    vector7d new_mu = result.new_state + K * (odom_observation_maker(*msg) - odom_state_mapper (result.new_state)); 
+    matrix7d new_sigma = (I7 - K * H_odom) * result.new_covariance;
+
+    //check data valicty
+    if (!new_mu.allFinite() || !new_sigma.allFinite()) { 
+        RCLCPP_INFO(this->get_logger(), "data is not valid after calcuation");
+        return;
+    }
+
+    mu = new_mu;
+    sigma_t = new_sigma;
+    prev_update_time = result.current;
 
     //publish data
+    EKF_RT::publish_state();
+
 }
 
 void EKF_RT::is_time_init () {
@@ -172,6 +198,25 @@ matrix7d EKF_RT::predict_sigma (const matrix7d &sigma_prev, const matrix7d &jaco
     return sigma_predicted;
 }
 
+
+mu_and_sigma EKF_RT::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_prev, 
+    const std_msgs::msg::Float32 &steering_input , const std_msgs::msg::Float32 &throtel_input) {
+    
+    rclcpp::Time current_time = this->now();
+    double dt = EKF_RT::calculate_delta_t(current_time, prev_update_time);
+    vector7d mu_predicted = EKF_RT::model_update(mu_prev, steering_input.data, throtel_input.data, dt);
+    matrix7d G = EKF_RT::jacobian_g_update(mu, prev_steering.data, prev_throtel.data, dt);
+    matrix7d sigma_predicted = EKF_RT::predict_sigma(sigma_prev, G);
+
+    mu_and_sigma result;
+    result.new_state = mu_predicted;
+    result.new_covariance = sigma_predicted;
+    result.current = current_time;
+
+    return result;
+
+}
+
 vector4d EKF_RT::imu_state_mapper(const vector7d &mu_predicted) {
 
     vector4d observation;
@@ -201,7 +246,41 @@ vector5d EKF_RT::odom_state_mapper(const vector7d &mu_predicted) {
 
 }
 
+vector4d EKF_RT::imu_observation_maker(const sensor_msgs::msg::Imu &observation) {
 
+    vector4d z;
+    z.Zero();
+
+    z(0) = std::atan2(2.0 * (observation.orientation.w * observation.orientation.z +
+        observation.orientation.x * observation.orientation.y),
+        1.0 - 2.0 * (observation.orientation.y * observation.orientation.y +
+        observation.orientation.z * observation.orientation.z));
+
+    z(1) = observation.angular_velocity.z;
+    z(2) = observation.linear_acceleration.x;
+    z(3) = observation.linear_acceleration.y;
+
+    return z;
+}
+
+vector5d EKF_RT::odom_observation_maker(const nav_msgs::msg::Odometry &observation) {
+
+    vector5d z;
+    z.Zero();
+
+    z(0) = observation.pose.pose.position.x;
+    z(1) = observation.pose.pose.position.y;
+    z(2) = std::atan2(2.0 * (observation.pose.pose.orientation.w * observation.pose.pose.orientation.z + 
+        observation.pose.pose.orientation.x * observation.pose.pose.orientation.y),
+        1.0 - 2.0 * (observation.pose.pose.orientation.y * observation.pose.pose.orientation.y +
+        observation.pose.pose.orientation.z * observation.pose.pose.orientation.z));
+    
+    z(3) = observation.twist.twist.linear.x;
+    z(4) = observation.twist.twist.angular.z;
+
+    return z;
+
+}
 
 void EKF_RT::publish_state() {
 
@@ -358,5 +437,7 @@ void EKF_RT::initalize_params () {
     for (int i = 0; i < 5; i ++) {
         H_odom(i,i) = 1.0;
     }
+
+    I7.Identity();
 
 }
