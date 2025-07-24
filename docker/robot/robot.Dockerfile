@@ -44,9 +44,21 @@ RUN sudo apt-get clean && \
 # ADD MORE DEPENDENCIES HERE
 RUN sudo apt-get install libeigen3-dev
 
+#add the slam toolbox, localizaiton and rviz2
+RUN sudo apt-get update
+#RUN sudo apt-get install -y ros-humble-rviz2
+#RUN sudo apt-get install -y ros-humble-navigation2
+#RUN sudo apt-get install -y ros-humble-slam-toolbox
+
+#add controler support to the container
+#RUN sudo apt-get install -y ros-humble-joy 
+RUN sudo apt-get install -y jstest-gtk
+RUN mkdir -p /root/.config/jstest-gtk
+
+
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
-RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
+RUN cat /tmp/colcon_install_list | xargs -n1 -I{} bash -c 'apt-fast install -qq -y --no-install-recommends {} || echo "Failed to install {}"'
 
 # Copy in source code from source stage
 WORKDIR ${AMENT_WS}
@@ -61,34 +73,19 @@ RUN apt-get -qq autoremove -y && apt-get -qq autoclean && apt-get -qq clean && \
 FROM dependencies AS build
 
 # Clean up and update apt-get, then update rosdep
-
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
 
 # Build ROS2 packages
 WORKDIR ${AMENT_WS}
+RUN rosdep install --from-paths src/extra-packages
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     colcon build \
         --cmake-args -DCMAKE_BUILD_TYPE=Release --install-base ${WATONOMOUS_INSTALL}
 
 # Source and Build Artifact Cleanup 
 RUN rm -rf src/* build/* devel/* install/* log/*
-
-#add the slam toolbox, localizaiton and rviz2
-RUN sudo apt-get update
-RUN sudo apt-get install -y ros-humble-rviz2
-RUN sudo apt-get install -y ros-humble-navigation2
-RUN sudo apt-get install -y ros-humble-slam-toolbox
-
-#add controler support to the container
-RUN sudo apt-get install -y ros-humble-joy 
-RUN sudo apt-get install -y jstest-gtk
-RUN mkdir -p /root/.config/jstest-gtk
-
 
 # Entrypoint will run before any CMD on launch. Sources ~/opt/<ROS_DISTRO>/setup.bash and ~/ament_ws/install/setup.bash
 COPY docker/wato_ros_entrypoint.sh ${AMENT_WS}/wato_ros_entrypoint.sh
