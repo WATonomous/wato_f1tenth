@@ -16,7 +16,7 @@ RUN sudo apt-get clean && \
 # Copy in source code
 # COPY src/robot/bringup_robot bringup_robot
 # COPY src/robot/gym_vis gym_vis
-COPY src/robot .
+COPY src/ .
 
 # Scan for rosdeps
 
@@ -72,14 +72,15 @@ RUN apt-get -qq autoremove -y && apt-get -qq autoclean && apt-get -qq clean && \
 ################################ Build ################################
 FROM dependencies AS build
 
-# Clean up and update apt-get, then update rosdep
-RUN sudo apt-get clean && \
-    sudo apt-get update && \
-    sudo rosdep update
+
+## Clean up and update apt-get, then update rosdep
+#RUN sudo apt-get clean && \
+    #sudo apt-get update && \
+    #sudo rosdep update
 
 # Build ROS2 packages
 WORKDIR ${AMENT_WS}
-RUN rosdep install --from-paths src/extra-packages
+#RUN rosdep install --from-paths src/extra-packages
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     colcon build \
         --cmake-args -DCMAKE_BUILD_TYPE=Release --install-base ${WATONOMOUS_INSTALL}
