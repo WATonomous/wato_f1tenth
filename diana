@@ -1,0 +1,115 @@
+#!/bin/bash
+set -e
+
+# env variables
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CURRENT_TAG="jetson" #changes based on what git branch
+CONTAINER_WS="/home/ros_user/ros_ws"
+ROBOT_IMAGE="robot"
+FOXGLOVE_IMAGE="foxglove"
+FOXGLOVE_PORT="2000"
+
+#env file
+ENV_FILE="$CURRENT_DIR/moduels/.env"
+
+#build factors
+should_build_image="false"
+
+declare -A current_env=(
+    [ROBOT_IMAGE]="$ROBOT_IMAGE"
+    [FOXGLOVE_IMAGE]="$FOXGLOVE_IMAGE"
+    [TAG]="$CURRENT_TAG"
+    [FOXGLOVE_PORT]="$FOXGLOVE_PORT"
+    [CURRENT_DIR]="$CURRENT_DIR"
+    [CONTAINER_WS]="$CONTAINER_WS"
+)
+
+generate_env () {
+    
+    > "$ENV_FILE"  # Create the file
+    
+    for key in "${!current_env[@]}"; do
+        echo "$key=${current_env[$key]}" >> "$ENV_FILE"
+    done
+    
+    should_build_image="true"
+}
+
+validate_env () {
+    declare -A env_file_vars
+
+    should_regen_env="false"
+    
+    while IFS='=' read -r key value; do
+        if [[ -z "$key" || "$key" == \#* ]] ; then
+            continue
+        fi
+        env_file_vars["$key"]="$value"
+    done  < "$ENV_FILE"
+    
+    for key in "${!env_file_vars[@]}" ; do
+        if [[ "${env_file_vars[$key]}" != "${current_env[$key]}" ]] ; then 
+            echo "there is a change in the env"
+            should_regen_env="true"
+            break
+        fi
+    done
+
+    if [ "$should_regen_env" == "true" ] ; then 
+        rm "$ENV_FILE"
+        generate_env
+    fi
+}
+
+# Generate .env if it doesn't exist
+if [ ! -f "$ENV_FILE" ]; then
+    generate_env
+fi
+
+#check and see if the current env file is valid 
+#if not, then regen it 
+validate_env
+
+# source all the script files
+
+SCRIPT_PATH="$CURRENT_DIR"/scripts/*.sh
+
+for files in $SCRIPT_PATH ; do 
+    if [[ -f  "$files" ]] ; then 
+        source "$files"
+    fi 
+done
+
+#menu functions 
+usage () {
+    cat scripts/title.txt
+    echo " "
+    echo "Examples : "
+    echo "./diana build                                         (building the docker containers)"
+    echo "./diana up                                            (starting the docker containers)"
+    echo "./diana attach                              (attaching to a specific docker container)"
+    echo "./diana git-copy      (for copying src files from one git branch to a temp in current)"
+    echo "./diana clean-temp                                           (clean up the temp files)"
+}
+
+DOCKER_COMPOSE_FILE="$CURRENT_DIR"/moduels/docker-compose.yaml
+
+if [ "$1" == "build" ] ; then 
+    docker compose -f "$DOCKER_COMPOSE_FILE" build
+elif [ "$1" == "up" ] ; then
+    if [ "$should_build_image" == "true" ] ; then
+        docker compose -f "$DOCKER_COMPOSE_FILE" up --build
+    else 
+        docker compose -f "$DOCKER_COMPOSE_FILE" up
+    fi
+elif [ "$1" == "attach" ] ; then
+    docker-attach
+elif [ "$1" == "git-copy" ] ; then 
+    git-copy
+elif [ "$1" == "clean-temp" ] ; then 
+    clean-temp
+else 
+    usage
+fi
+
+
