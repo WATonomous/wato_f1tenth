@@ -108,8 +108,10 @@ elif [ "$1" == "git-copy" ] ; then
     git-copy
 elif [ "$1" == "clean-temp" ] ; then 
     clean-temp
+elif [ "$1" == "--help" ] ; then
+    usage 
 else 
-    usage
+    echo "use ./diana --help to find how to use diana"
 fi
 
 
