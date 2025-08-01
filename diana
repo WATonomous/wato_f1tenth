@@ -3,7 +3,7 @@ set -e
 
 # env variables
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CURRENT_TAG="jetson" #changes based on what git branch
+CURRENT_TAG="$(git rev-parse --abbrev-ref HEAD)" #changes based on what git branch
 CONTAINER_WS="/home/ros_user/ros_ws"
 ROBOT_IMAGE="robot"
 FOXGLOVE_IMAGE="foxglove"
