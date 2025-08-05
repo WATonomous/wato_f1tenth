@@ -23,14 +23,3 @@ services:
       - 'c 166:* rmw'
       - 'c 10:229 rmw'  # /dev/uhid for Bluetooth HID emulation
 
-  foxglove:
-    build: 
-      context: ..
-      dockerfile: dockerfiles/foxglove.Dockerfile
-      args: 
-        BASE_IMAGE: "docker.io/arm64v8/ubuntu:22.04"
-    image: "${FOXGLOVE_IMAGE}:${TAG}"
-    container_name: "${FOXGLOVE_IMAGE}_${TAG}_container"
-    ports:
-      - "${FOXGLOVE_PORT}:${FOXGLOVE_PORT}"
-    command: ["ros2", "launch", "foxglove_bridge", "foxglove_bridge_launch.xml", "port:=${FOXGLOVE_PORT}"]

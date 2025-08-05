@@ -92,15 +92,16 @@ usage () {
     echo "./diana clean-temp                                           (clean up the temp files)"
 }
 
-DOCKER_COMPOSE_FILE="$CURRENT_DIR"/moduels/docker-compose.yaml
+DOCKER_COMPOSE_ROBOT="$CURRENT_DIR"/modules/docker-compose.robot.yaml
+DOCKER_COMPOSE_FOXGLOVE="$CURRENT_DIR"/modules/docker-compose.foxglove.yaml
 
 if [ "$1" == "build" ] ; then 
-    docker compose -f "$DOCKER_COMPOSE_FILE" build
+    docker compose -f "$DOCKER_COMPOSE_ROBOT" -f "$DOCKER_COMPOSE_FOXGLOVE" build
 elif [ "$1" == "up" ] ; then
     if [ "$should_build_image" == "true" ] ; then
-        docker compose -f "$DOCKER_COMPOSE_FILE" up --build
+        docker compose -f "$DOCKER_COMPOSE_ROBOT" -f "$DOCKER_COMPOSE_FOXGLOVE" up --build
     else 
-        docker compose -f "$DOCKER_COMPOSE_FILE" up
+        docker compose -f "$DOCKER_COMPOSE_ROBOT" -f "$DOCKER_COMPOSE_FOXGLOVE" up
     fi
 elif [ "$1" == "attach" ] ; then
     docker-attach
