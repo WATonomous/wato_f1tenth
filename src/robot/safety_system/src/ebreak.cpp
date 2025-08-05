@@ -9,6 +9,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<std::string>("laser_topic","/autodrive/f1tenth_1/lidar");
     this->declare_parameter<std::string>("throtel_command_topic","/autodrive/f1tenth_1/throttle_command");
     this->declare_parameter<std::string>("throtel_topic","/autodrive/f1tenth_1/throttle");
+    this->declare_parameter<std::string>("ackermann_topic","/ackerman_mux");
 
     //ttc parameters
     this->declare_parameter<double>("ttc1", 0.97);
@@ -19,6 +20,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<double>("ttc_throtel_3", 0.4);
     this->declare_parameter<double>("speed_threshold",0.01);
     this->declare_parameter<int>("alarm_threshold",3);
+    this->declare_parameter<double>("MAX_SPEED",22.84);
 
     ttc1 = this->get_parameter("ttc1").as_double();
     ttc2 = this->get_parameter("ttc2").as_double();
@@ -30,14 +32,17 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
 
     speed_threshold = this->get_parameter("speed_threshold").as_double();
     alarm_threshold = this->get_parameter("alarm_threshold").as_int();
+    MAX_SPEED = this->get_parameter("MAX_SPEED").as_double();
  
     throtel_command_topic = this->get_parameter("throtel_command_topic").as_string();
     throtel_topic = this->get_parameter("throtel_topic").as_string();
     odom_topic = this->get_parameter("odom_topic").as_string();
     laser_topic = this->get_parameter("laser_topic").as_string();
+    ackerman_topic = this->get_parameter("ackermann_topic").as_string();
 
     //pubs and subs
     throtel_pub = this->create_publisher<std_msgs::msg::Float32>(throtel_command_topic,10);
+    ackermann_pub = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(ackerman_topic, 10);
 
     throtel_mom_sub = this->create_subscription<std_msgs::msg::Float32>(throtel_topic,10,
         [this] (std_msgs::msg::Float32::SharedPtr msg) {current_throtel = msg->data;});
@@ -113,8 +118,16 @@ void EBREAK_NODE::laser_callback(sensor_msgs::msg::LaserScan::SharedPtr msg) {
     if (sending_break) {
 
         float throtel_input;
+        ackermann_msgs::msg::AckermannDriveStamped drive_msg;
+        ackermann_msgs::msg::AckermannDrive drive;
 
-        throtel_input = current_throtel - current_throtel * throtel_percent_reduction;
+        throtel_input = current_throtel - (current_throtel * throtel_percent_reduction);
+
+        //temp fix, not tested
+        drive_msg.header.stamp = msg->header.stamp;
+        drive_msg.header.frame_id = "base_link";
+        drive.speed = current_speed * throtel_percent_reduction;
+        drive.steering_angle = 0;
 
         if (throtel_input < 0)
             throtel_input = 0;
@@ -122,8 +135,13 @@ void EBREAK_NODE::laser_callback(sensor_msgs::msg::LaserScan::SharedPtr msg) {
         else if (throtel_input > 1.0)
             throtel_input = 1.0;
 
+        if (drive.speed < 0)
+            drive.speed = 0;
+
         throtel_msg.data = throtel_input;
+        drive_msg.drive = drive;
         throtel_pub->publish(throtel_msg);
+        ackermann_pub->publish(drive_msg);
     }
 }
 
