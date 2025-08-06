@@ -63,6 +63,25 @@ def generate_launch_description():
 
     ld = LaunchDescription([vesc_la, sensors_la, joy_la])
 
+    deadzone = DeclareLaunchArgument (
+        'deadzone',
+        default_value='0.080',
+        description='the deadzone sensitivity of the joystick'
+    )
+
+    ld.add_action(deadzone)
+    
+    sticky_button_toggle = DeclareLaunchArgument (
+        'sticky_button',
+        default_value='True',
+        description='wheather the button are toggles'
+    )
+    
+    ld.add_action(sticky_button_toggle)
+
+    deadzone_value = LaunchConfiguration('deadzone')
+    sticky_button_value = LaunchConfiguration('sticky_button')
+    
     ackermann_to_vesc_node = Node(
         package='vesc_ackermann',
         executable='ackermann_to_vesc_node',
@@ -105,6 +124,23 @@ def generate_launch_description():
         arguments=['0.27', '0.0', '0.11', '0.0', '0.0', '0.0', 'base_link', 'laser']
     )
 
+    joy = Node (
+        package='joy',
+        executable='joy_node',
+        name='joy_node',
+        output='screen',
+        parameters=[
+            {'deadzone': deadzone_value},
+            {'sticky_buttons': sticky_button_value}
+        ]
+    )
+    
+    gamepad = Node (
+        package='gamepad',
+        executable='joypad_node',
+        name='joypad_node',
+        output='screen'
+    )
     # finalize
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -112,5 +148,7 @@ def generate_launch_description():
     # ld.add_action(throttle_interpolator_node)
     ld.add_action(urg_node)
     ld.add_action(static_tf_node)
+    ld.add_action(joy)
+    ld.add_action(gamepad)
 
     return ld

@@ -61,7 +61,23 @@ def generate_launch_description():
         default_value=joy_teleop_config,
         description='Descriptions for joy and joy_teleop configs')
 
-    ld = LaunchDescription([vesc_la, sensors_la, joy_la])
+    localize_config = os.path.join(
+        get_package_share_directory('bringup_robot'),
+        'config/simulator',
+        'localize.yaml'
+    )
+
+    localize_config_dict = yaml.safe_load(open(localize_config, 'r'))
+
+    map_name = localize_config_dict['map_server']['ros__parameters']['map']
+    
+    localize_la = DeclareLaunchArgument(
+        'localize_config',
+        default_value=localize_config,
+        description='Localization configs'
+    )
+
+    ld = LaunchDescription([vesc_la, sensors_la, joy_la, localize_la])
 
     deadzone = DeclareLaunchArgument (
         'deadzone',
@@ -102,14 +118,6 @@ def generate_launch_description():
         name='vesc_driver_node',
         parameters=[LaunchConfiguration('vesc_config')]
     )
-    
-    throttle_interpolator_node = Node(
-        package='f1tenth_stack',
-        executable='throttle_interpolator',
-        name='throttle_interpolator',
-        parameters=[LaunchConfiguration('vesc_config')]
-    )
-    
     urg_node = Node(
         package='urg_node',
         executable='urg_node_driver',
@@ -123,8 +131,7 @@ def generate_launch_description():
         name='static_baselink_to_laser',
         arguments=['0.27', '0.0', '0.11', '0.0', '0.0', '0.0', 'base_link', 'laser']
     )
-    
-    #add the teleop stuff 
+
     joy = Node (
         package='joy',
         executable='joy_node',
@@ -143,41 +150,48 @@ def generate_launch_description():
         output='screen'
     )
     
-    #add the rviz node 
-    rviz2_node = Node (
-        package="rviz2",
-        executable="rviz2",
-        name="rviz2",
-        output="screen",
-        arguments=['-d', os.path.join(get_package_share_directory('bringup_robot'), 'config/rviz', 'mapping.rviz')]
+    #particle filter minimum suff
+    pf_node = Node(
+        package='particle_filter',
+        executable='particle_filter',
+        name='particle_filter',
+        parameters=[LaunchConfiguration('localize_config')]
     )
 
-    slam_node = Node(
-        package='slam_toolbox',
-        executable='async_slam_toolbox_node',
-        name='slam_toolbox',
+    map_server_node = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        parameters=[{'yaml_filename': os.path.join(get_package_share_directory('bringup_robot'), 'maps', map_name + '.yaml')},
+                    {'topic': 'map'},
+                    {'frame_id': 'map'},
+                    {'output': 'screen'},
+                    {'use_sim_time': True}]
+    )
+
+    nav_lifecycle_node = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_localization',
         output='screen',
-        parameters=[{
-            'scan_topic': '/scan',
-            'use_odometry': True,
-            'map_frame': 'map',
-            'odom_frame': 'odom',
-            'base_frame': 'base_link',
-            'use_sim_time' : False,
-        }]
+        parameters=[{'use_sim_time': True},
+                    {'autostart': True},
+                    {'node_names': ['map_server']}]
     )
-    
 
-    # finalize
+    # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
     ld.add_action(vesc_driver_node)
-    # ld.add_action(throttle_interpolator_node)
     ld.add_action(urg_node)
     ld.add_action(static_tf_node)
+    # this space for ekf
+    #teleop stuff
     ld.add_action(joy)
     ld.add_action(gamepad)
-    ld.add_action(slam_node)
-    ld.add_action(rviz2_node)
-
+    #pf suff
+    ld.add_action(pf_node)
+    ld.add_action(map_server_node)
+    ld.add_action(nav_lifecycle_node)
+    
     return ld

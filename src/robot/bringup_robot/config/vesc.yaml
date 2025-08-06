@@ -35,7 +35,7 @@ vesc_to_odom_node:
     publish_tf: true
     use_servo_cmd_to_calc_angular_velocity: true
     # car wheelbase is about 25cm
-    wheelbase: .25
+    wheelbase: 0.3302
 
 # No longer needed, all parameters are shared
 # vesc_driver:
