@@ -28,6 +28,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
+import yaml
 import os
 
 def generate_launch_description():
@@ -178,6 +179,15 @@ def generate_launch_description():
                     {'autostart': True},
                     {'node_names': ['map_server']}]
     )
+    
+    #riv for vis
+    rviz2_node = Node (
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen",
+        arguments=['-d', os.path.join(get_package_share_directory('bringup_robot'), 'config/rviz', 'mylocalize.rviz')]
+    )
 
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
@@ -186,6 +196,7 @@ def generate_launch_description():
     ld.add_action(urg_node)
     ld.add_action(static_tf_node)
     # this space for ekf
+    ld.add_action(rviz2_node)
     #teleop stuff
     ld.add_action(joy)
     ld.add_action(gamepad)
