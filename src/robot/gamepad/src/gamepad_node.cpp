@@ -11,6 +11,7 @@ GamePad::GamePad() : Node ("gamepad_node") {
     
     steering_pub = this->create_publisher<std_msgs::msg::Float32>(
         "/autodrive/f1tenth_1/steering_command",10);
+
 }
 
 void GamePad::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {

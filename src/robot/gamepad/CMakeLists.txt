@@ -13,6 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -29,10 +30,16 @@ endif()
 add_executable(gamepad_node src/gamepad_node.cpp)
 target_include_directories(gamepad_node PUBLIC include)
 
-ament_target_dependencies(gamepad_node rclcpp std_msgs sensor_msgs)
+ament_target_dependencies(gamepad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
+
+add_executable(joypad_node src/joypad_teleop.cpp)
+target_include_directories(joypad_node PUBLIC include)
+
+ament_target_dependencies(joypad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
 
 install(TARGETS
   gamepad_node
+  joypad_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
