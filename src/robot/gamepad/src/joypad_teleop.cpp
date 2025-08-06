@@ -55,7 +55,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
 
     //reversing
     if (msg->buttons.at(2)) {
-        drive.speed = -0.25;
+        drive.speed = -0.75;
         drive.steering_angle = current_steering;
         drive_msg.drive = drive;
         ackerman_pub->publish(drive_msg);

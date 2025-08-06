@@ -10,7 +10,7 @@ FOXGLOVE_IMAGE="foxglove"
 FOXGLOVE_PORT="2000"
 
 #env file
-ENV_FILE="$CURRENT_DIR/moduels/.env"
+ENV_FILE="$CURRENT_DIR/modules/.env"
 
 #build factors
 should_build_image="false"
