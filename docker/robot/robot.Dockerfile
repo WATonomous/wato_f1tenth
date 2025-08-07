@@ -44,6 +44,11 @@ RUN sudo apt-get clean && \
 # ADD MORE DEPENDENCIES HERE
 RUN sudo apt-get install libeigen3-dev
 
+#add controler support to the container
+RUN sudo apt-get install -y ros-humble-joy 
+RUN sudo apt-get install -y jstest-gtk
+RUN mkdir -p /root/.config/jstest-gtk 
+
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
 RUN apt-get update
