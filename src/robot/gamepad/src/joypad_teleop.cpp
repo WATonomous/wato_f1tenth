@@ -1,9 +1,15 @@
 #include "joypad_teleop.hpp"
 
+/*
+future todo 
+give it gears for fun and a button to turn off the gear
+gears as in ability to shift though gears like a gt car
+*/
+
 JOYPAD::JOYPAD () : Node ("joypad_node") {
 
     //parameters
-    this->declare_parameter<std::string>("gamepad_topic","/ackerman_mux");
+    this->declare_parameter<std::string>("gamepad_topic","/drive/joystick");
     this->declare_parameter<std::string>("joy_topic","/joy");
     this->declare_parameter<std::string>("my_frame_id","base_link");
 
@@ -41,6 +47,8 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     drive_msg.header.frame_id = my_frame_id;
     drive_msg.header.stamp = msg->header.stamp;
 
+    bool pit_speed_limit = false;
+
     //emergancy / deadman switch
     if (!msg->buttons.at(0)) {
         drive_msg.drive = emergancy_drive_msg;
@@ -55,12 +63,15 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
 
     //reversing
     if (msg->buttons.at(1)) {
-        drive.speed = -0.25;
-        drive.steering_angle = current_steering;
-        drive_msg.drive = drive;
-        ackerman_pub->publish(drive_msg);
-        //RCLCPP_INFO(this->get_logger(),"reverse is active");
-        return;
+        reversing = true;
+        direction = -1 ;
+    } else {
+        reversing = false;
+        direction = 1;
+    }
+
+    if (msg->buttons.at(2)) {
+        pit_speed_limit = true;
     }
 
     //throtel logic
@@ -68,9 +79,19 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if (total_throtel < 0.0 ) {
         total_throtel = 0.0;
     }
-    
-    drive.speed = total_throtel * max_speed;
+   
+
+    drive.speed = total_throtel * max_speed * direction;
     drive.steering_angle = current_steering;
+    drive.steering_angle_velocity = max_steering_rate;
+
+    if (pit_speed_limit && drive.speed > 1.0 && !reversing) {
+        drive.speed = 1.0;
+    }
+
+    if (reversing && drive.speed < -1.5) {
+        drive.speed = -1.5;
+    }
 
     //publish the message
     drive_msg.drive = drive;

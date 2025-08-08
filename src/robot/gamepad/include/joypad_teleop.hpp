@@ -34,6 +34,10 @@ private:
     float max_speed, max_steering_rate,steering_gain;
     ackermann_msgs::msg::AckermannDrive emergancy_drive_msg;
 
+    //data
+    float direction = 1;
+    bool reversing = false;
+
 };
 
 #endif
