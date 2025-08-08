@@ -43,7 +43,7 @@ private:
     std::string ackermann_output_topic, ackermann_mon_topic, laser_topic, odom_topic, steering_topic;
     double ttc1, ttc2, ttc3;
     double ttc_throtel_1, ttc_throtel_2, ttc_throtel_3;
-    double speed_threshold;
+    double speed_threshold, look_ofset;
     double MAX_SPEED;
     int alarm_threshold; 
 

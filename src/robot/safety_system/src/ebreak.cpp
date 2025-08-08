@@ -18,18 +18,19 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<std::string>("ackermann_steering_topic","/drive/joystick");
 
     //ttc time stages (lower the time, the more breaking need to be applied)
-    this->declare_parameter<double>("ttc1", 0.15);
-    this->declare_parameter<double>("ttc2", 0.09);
-    this->declare_parameter<double>("ttc3", 0.04);
+    this->declare_parameter<double>("ttc1", 0.19);
+    this->declare_parameter<double>("ttc2", 0.1473);
+    this->declare_parameter<double>("ttc3", 0.091);
 
     //ttc reduction factor stage 1 = 40% reduction, stage 2 = 70% reduction, stage 3 = 100% reduction
     //must me tweaked and adjusted
-    this->declare_parameter<double>("ttc_rf_1",0.40);
-    this->declare_parameter<double>("ttc_rf_2", 0.70);
+    this->declare_parameter<double>("ttc_rf_1",0.70);
+    this->declare_parameter<double>("ttc_rf_2", 0.90);
     this->declare_parameter<double>("ttc_rf_3", 1.0);
     
     // at what speed the emergancy break won't activate, to save compute
-    this->declare_parameter<double>("speed_threshold",0.01); 
+    this->declare_parameter<double>("speed_threshold",0.03); 
+    this->declare_parameter<double>("look_ofset", 0.2618); // pi/3
 
     //how many ttc warning need to go off before we activate the emergancy break
     this->declare_parameter<int>("alarm_threshold",3);
@@ -44,6 +45,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
 
     speed_threshold = this->get_parameter("speed_threshold").as_double();
     alarm_threshold = this->get_parameter("alarm_threshold").as_int();
+    look_ofset = this->get_parameter("look_ofset").as_double();
 
     //odom_topic = this->get_parameter("odom_topic").as_string();
     laser_topic = this->get_parameter("laser_topic").as_string();
@@ -87,7 +89,7 @@ void EBREAK_NODE::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
 
     int trigger_counter = 0;
 
-    for (size_t i = 0; i < msg->ranges.size(); i++) {
+    for (size_t i = 0; i < msg->ranges.size() ; i++) {
 
         if (msg->ranges[i] > msg->range_max || msg->ranges[i] < msg->range_min) {
             continue;
@@ -101,7 +103,7 @@ void EBREAK_NODE::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
         }
 
         float ttc = msg->ranges[i] / -range_dt;
-        RCLCPP_INFO(this->get_logger(), "current ttc is %f", ttc);
+
         if (ttc < ttc1) {
             stage_1 = true;
             if (ttc < ttc2) {
@@ -131,13 +133,13 @@ void EBREAK_NODE::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
         ackermann_msgs::msg::AckermannDrive drive;
 
         if (stage_3) {
-            drive.speed = current_ackermann_msg.drive.speed * (1 - ttc_throtel_3);
+            drive.speed = current_speed * (1 - ttc_throtel_3);
             RCLCPP_INFO(this->get_logger(),"triggered stage 3");
         } else if (stage_2) {
-            drive.speed = current_ackermann_msg.drive.speed * (1 - ttc_throtel_2);
+            drive.speed = current_speed * (1 - ttc_throtel_2);
             RCLCPP_INFO(this->get_logger(),"triggered stage 2");
         } else if (stage_1) {
-            drive.speed = current_ackermann_msg.drive.speed * (1 - ttc_throtel_1);
+            drive.speed = current_speed * (1 - ttc_throtel_1);
             RCLCPP_INFO(this->get_logger(),"triggered stage 1");
         }
 

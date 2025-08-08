@@ -63,12 +63,11 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
 
     //reversing
     if (msg->buttons.at(1)) {
-        drive.speed = -0.25;
-        drive.steering_angle = current_steering;
-        drive_msg.drive = drive;
-        ackerman_pub->publish(drive_msg);
-        //RCLCPP_INFO(this->get_logger(),"reverse is active");
-        return;
+        reversing = true;
+        direction = -1 ;
+    } else {
+        reversing = false;
+        direction = 1;
     }
 
     if (msg->buttons.at(2)) {
@@ -82,12 +81,16 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     }
    
 
-    drive.speed = total_throtel * max_speed;
+    drive.speed = total_throtel * max_speed * direction;
     drive.steering_angle = current_steering;
     drive.steering_angle_velocity = max_steering_rate;
 
-    if (pit_speed_limit && drive.speed > 1.0) {
+    if (pit_speed_limit && drive.speed > 1.0 && !reversing) {
         drive.speed = 1.0;
+    }
+
+    if (reversing && drive.speed < -1.5) {
+        drive.speed = -1.5;
     }
 
     //publish the message
