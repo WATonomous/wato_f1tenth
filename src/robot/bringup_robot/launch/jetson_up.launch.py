@@ -46,7 +46,12 @@ def generate_launch_description():
        'config',
        'joy_teleop.yaml'
     )
-
+    mux_config = os.path.join(
+        get_package_share_directory('bringup_robot'),
+        'config',
+        'mux.yaml'
+    )
+    
     vesc_la = DeclareLaunchArgument(
         'vesc_config',
         default_value=vesc_config,
@@ -61,7 +66,12 @@ def generate_launch_description():
         default_value=joy_teleop_config,
         description='Descriptions for joy and joy_teleop configs')
 
-    ld = LaunchDescription([vesc_la, sensors_la, joy_la])
+    mux_la = DeclareLaunchArgument(
+        'mux_config',
+        default_value=mux_config,
+        description='Descriptions for ackermann mux configs')
+    
+    ld = LaunchDescription([vesc_la, sensors_la, joy_la,mux_la])
 
     deadzone = DeclareLaunchArgument (
         'deadzone',
@@ -141,6 +151,22 @@ def generate_launch_description():
         name='joypad_node',
         output='screen'
     )
+    
+    ackermann_mux_node = Node(
+        package='ackermann_mux',
+        executable='ackermann_mux',
+        name='ackermann_mux',
+        parameters=[LaunchConfiguration('mux_config')],
+        #remappings=[('ackermann_cmd_out', 'ackermann_drive')]
+    )    
+    
+    ebreak = Node (
+        package='safety_node',
+        executable='ebreak',
+        name='ebreak',
+        output='screen',
+    )
+        
     # finalize
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -150,5 +176,7 @@ def generate_launch_description():
     ld.add_action(static_tf_node)
     ld.add_action(joy)
     ld.add_action(gamepad)
+    ld.add_action(ackermann_mux_node)
+    ld.add_action(ebreak)
 
     return ld
