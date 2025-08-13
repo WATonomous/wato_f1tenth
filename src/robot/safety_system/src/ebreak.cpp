@@ -18,9 +18,9 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<std::string>("ackermann_steering_topic","/drive/joystick");
 
     //ttc time stages (lower the time, the more breaking need to be applied)
-    this->declare_parameter<double>("ttc1", 0.03);
-    this->declare_parameter<double>("ttc2", 0.019);
-    this->declare_parameter<double>("ttc3", 0.0013);
+    this->declare_parameter<double>("ttc1", 0.045);
+    this->declare_parameter<double>("ttc2", 0.021);
+    this->declare_parameter<double>("ttc3", 0.0011);
 
     //ttc reduction factor stage 1 = 40% reduction, stage 2 = 70% reduction, stage 3 = 100% reduction
     //must me tweaked and adjusted
