@@ -9,7 +9,7 @@ gears as in ability to shift though gears like a gt car
 JOYPAD::JOYPAD () : Node ("joypad_node") {
 
     //parameters
-    this->declare_parameter<std::string>("gamepad_topic","/drive/joystick");
+    this->declare_parameter<std::string>("gamepad_topic","/ackermann_cmd");
     this->declare_parameter<std::string>("joy_topic","/joy");
     this->declare_parameter<std::string>("my_frame_id","base_link");
 

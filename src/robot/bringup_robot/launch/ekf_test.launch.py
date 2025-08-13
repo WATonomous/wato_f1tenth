@@ -62,5 +62,15 @@ def generate_launch_description():
     )
     
     ld.add_action(ackermann_converter)
+    
+    wheel_odom_node = Node (
+        package="wheel_odom",
+        executable="odom",
+        name ="wheel_odom",
+        output="screen"
+    )
+
+    ld.add_action(wheel_odom_node)
+    
 
     return ld
