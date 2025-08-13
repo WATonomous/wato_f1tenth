@@ -19,13 +19,13 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
 
     //ttc time stages (lower the time, the more breaking need to be applied)
     this->declare_parameter<double>("ttc1", 0.19);
-    this->declare_parameter<double>("ttc2", 0.1473);
-    this->declare_parameter<double>("ttc3", 0.091);
+    this->declare_parameter<double>("ttc2", 0.11);
+    this->declare_parameter<double>("ttc3", 0.05);
 
     //ttc reduction factor stage 1 = 40% reduction, stage 2 = 70% reduction, stage 3 = 100% reduction
     //must me tweaked and adjusted
-    this->declare_parameter<double>("ttc_rf_1",0.70);
-    this->declare_parameter<double>("ttc_rf_2", 0.90);
+    this->declare_parameter<double>("ttc_rf_1",0.9);
+    this->declare_parameter<double>("ttc_rf_2", 1.0);
     this->declare_parameter<double>("ttc_rf_3", 1.0);
     
     // at what speed the emergancy break won't activate, to save compute
@@ -33,7 +33,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<double>("look_ofset", 0.2618); // pi/3
 
     //how many ttc warning need to go off before we activate the emergancy break
-    this->declare_parameter<int>("alarm_threshold",3);
+    this->declare_parameter<int>("alarm_threshold",2);
 
     ttc1 = this->get_parameter("ttc1").as_double();
     ttc2 = this->get_parameter("ttc2").as_double();
@@ -81,50 +81,75 @@ void EBREAK_NODE::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
     }
 
     //RCLCPP_INFO(this->get_logger(), "current speed %f", current_speed);
-    //ttc flags 
-    bool stage_1 = false;
-    bool stage_2 = false;
-    bool stage_3 = false;
-    bool is_breaking = false;
+    //ttc flags
 
-    int trigger_counter = 0;
+    if (!is_breaking)
+    {
 
-    for (size_t i = 0; i < msg->ranges.size() ; i++) {
+        bool stage_1 = false;
+        bool stage_2 = false;
+        bool stage_3 = false;
+        int trigger_counter = 0;
+        size_t min_index = (-(M_PI / 4) - msg->angle_min) / msg->angle_increment;
+        size_t max_index = ((M_PI / 4) - msg->angle_min) / msg->angle_increment;
 
-        if (msg->ranges[i] > msg->range_max || msg->ranges[i] < msg->range_min) {
-            continue;
-        }
+        for (size_t i = min_index; i < max_index; i++)
+        {
 
-        float angle = msg->angle_min + i * msg->angle_increment;
-        float range_dt = current_speed * std::cos(angle);
-
-        if (range_dt >= 0 ) {
-            continue;
-        }
-
-        float ttc = msg->ranges[i] / -range_dt;
-
-        if (ttc < ttc1) {
-            stage_1 = true;
-            if (ttc < ttc2) {
-                stage_2 = true;
-                if (ttc < ttc3) {
-                    stage_3 = true;
-                }
+            if (msg->ranges[i] > msg->range_max || msg->ranges[i] < msg->range_min)
+            {
+                continue;
             }
-            trigger_counter++;
-        } else {
-            trigger_counter = 0;
-            stage_1 = false;
-            stage_2 = false;
-            stage_3 = false;
-        }
 
-        if (trigger_counter >= alarm_threshold) {
-            is_breaking = true;
-            break;
-        }
+            float angle = msg->angle_min + i * msg->angle_increment;
+            float range_dt = current_speed * std::cos(angle);
+            float ttc = msg->ranges[i] / range_dt;
 
+            if (ttc < ttc3)
+            {
+                trigger_counter++;
+                stage_3 = true;
+            }
+            else if (ttc < ttc2)
+            {
+                stage_2 = true;
+                trigger_counter++;
+            }
+            else if (ttc < ttc1)
+            {
+                stage_1 = true;
+                trigger_counter++;
+            }
+            else
+            {
+                trigger_counter = 0;
+                stage_1 = false;
+                stage_2 = false;
+                stage_3 = false;
+            }
+
+            if (trigger_counter >= alarm_threshold)
+            {
+                is_breaking = true;
+                prock_counter = 5;
+                if (stage_3)
+                {
+                    desired_speed = current_speed * (1 - ttc_throtel_3);
+                    RCLCPP_INFO(this->get_logger(), "triggered stage 3");
+                }
+                else if (stage_2)
+                {
+                    desired_speed = current_speed * (1 - ttc_throtel_2);
+                    RCLCPP_INFO(this->get_logger(), "triggered stage 2");
+                }
+                else if (stage_1)
+                {
+                    desired_speed = current_speed * (1 - ttc_throtel_1);
+                    RCLCPP_INFO(this->get_logger(), "triggered stage 1");
+                }
+                break;
+            }
+        }
     }
 
     if (is_breaking) {
@@ -132,25 +157,20 @@ void EBREAK_NODE::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr ms
         ackermann_msgs::msg::AckermannDriveStamped drive_msg;
         ackermann_msgs::msg::AckermannDrive drive;
 
-        if (stage_3) {
-            drive.speed = current_speed * (1 - ttc_throtel_3);
-            RCLCPP_INFO(this->get_logger(),"triggered stage 3");
-        } else if (stage_2) {
-            drive.speed = current_speed * (1 - ttc_throtel_2);
-            RCLCPP_INFO(this->get_logger(),"triggered stage 2");
-        } else if (stage_1) {
-            drive.speed = current_speed * (1 - ttc_throtel_1);
-            RCLCPP_INFO(this->get_logger(),"triggered stage 1");
-        }
-
         drive.steering_angle = current_steering.drive.steering_angle;
         drive.steering_angle_velocity = current_steering.drive.steering_angle_velocity;
+        drive.speed = desired_speed;
 
         drive_msg.drive = drive;
         drive_msg.header.stamp = msg->header.stamp;
         drive_msg.header.frame_id = "base_link";
 
         ackermann_pub->publish(drive_msg);
+        prock_counter--;
+
+        if (prock_counter <= 0) {
+            is_breaking = false;
+        }
 
     }
 

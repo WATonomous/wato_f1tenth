@@ -34,10 +34,14 @@ private:
 
     //functions
     void laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+    void laser_callbackv2(const sensor_msgs::msg::LaserScan::SharedPtr scan);
 
     //data
     double current_speed;
     ackermann_msgs::msg::AckermannDriveStamped current_ackermann_msg, current_steering;
+    bool is_breaking = false;
+    int prock_counter = 0;
+    float desired_speed;
 
     //parameters
     std::string ackermann_output_topic, ackermann_mon_topic, laser_topic, odom_topic, steering_topic;
