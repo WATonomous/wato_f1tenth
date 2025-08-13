@@ -27,10 +27,10 @@ private:
     rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_mon;
     rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_steering_mon;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_sub;
-    //rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
 
     //debug (can't have this active during race or actual testing)
-    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr speed_sub;
+    //rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr speed_sub;
 
     //functions
     void laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);

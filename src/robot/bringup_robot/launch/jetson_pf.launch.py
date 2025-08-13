@@ -48,6 +48,12 @@ def generate_launch_description():
        'joy_teleop.yaml'
     )
 
+    mux_config = os.path.join(
+        get_package_share_directory('bringup_robot'),
+        'config',
+        'mux.yaml'
+    )
+    
     vesc_la = DeclareLaunchArgument(
         'vesc_config',
         default_value=vesc_config,
@@ -68,6 +74,11 @@ def generate_launch_description():
         'localize.yaml'
     )
 
+    mux_la = DeclareLaunchArgument(
+        'mux_config',
+        default_value=mux_config,
+        description='Descriptions for ackermann mux configs')
+    
     localize_config_dict = yaml.safe_load(open(localize_config, 'r'))
 
     map_name = localize_config_dict['map_server']['ros__parameters']['map']
@@ -78,7 +89,7 @@ def generate_launch_description():
         description='Localization configs'
     )
 
-    ld = LaunchDescription([vesc_la, sensors_la, joy_la, localize_la])
+    ld = LaunchDescription([vesc_la, sensors_la, joy_la, localize_la, mux_la])
 
     deadzone = DeclareLaunchArgument (
         'deadzone',
@@ -189,6 +200,21 @@ def generate_launch_description():
         arguments=['-d', os.path.join(get_package_share_directory('bringup_robot'), 'config/rviz', 'mylocalize.rviz')]
     )
 
+    ackermann_mux_node = Node(
+        package='ackermann_mux',
+        executable='ackermann_mux',
+        name='ackermann_mux',
+        parameters=[LaunchConfiguration('mux_config')],
+        #remappings=[('ackermann_cmd_out', 'ackermann_drive')]
+    )    
+    
+    ebreak = Node (
+        package='safety_node',
+        executable='ebreak',
+        name='ebreak',
+        output='screen',
+    )
+    
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -200,6 +226,8 @@ def generate_launch_description():
     #teleop stuff
     ld.add_action(joy)
     ld.add_action(gamepad)
+    ld.add_action(ackermann_mux_node)
+    ld.add_action(ebreak)
     #pf suff
     ld.add_action(pf_node)
     ld.add_action(map_server_node)

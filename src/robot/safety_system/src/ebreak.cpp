@@ -10,21 +10,21 @@ shrink the view cone and play with the ttc timings more, too lose rn tigher
 EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
 
     //topics
-    //this->declare_parameter<std::string>("odom_topic","ekf/odom");
-    this->declare_parameter<std::string>("speed_topic","/autodrive/f1tenth_1/speed");
-    this->declare_parameter<std::string>("laser_topic","/autodrive/f1tenth_1/lidar");
+    this->declare_parameter<std::string>("odom_topic","/odom");
+    //this->declare_parameter<std::string>("speed_topic","/autodrive/f1tenth_1/speed");
+    this->declare_parameter<std::string>("laser_topic","/scan");
     this->declare_parameter<std::string>("ackermann_output_topic","/drive/ebreak");
     this->declare_parameter<std::string>("ackermann_mon_topic","ackermann_cmd");
     this->declare_parameter<std::string>("ackermann_steering_topic","/drive/joystick");
 
     //ttc time stages (lower the time, the more breaking need to be applied)
-    this->declare_parameter<double>("ttc1", 0.19);
-    this->declare_parameter<double>("ttc2", 0.1473);
-    this->declare_parameter<double>("ttc3", 0.091);
+    this->declare_parameter<double>("ttc1", 0.03);
+    this->declare_parameter<double>("ttc2", 0.019);
+    this->declare_parameter<double>("ttc3", 0.0013);
 
     //ttc reduction factor stage 1 = 40% reduction, stage 2 = 70% reduction, stage 3 = 100% reduction
     //must me tweaked and adjusted
-    this->declare_parameter<double>("ttc_rf_1",0.70);
+    this->declare_parameter<double>("ttc_rf_1",0.60);
     this->declare_parameter<double>("ttc_rf_2", 0.90);
     this->declare_parameter<double>("ttc_rf_3", 1.0);
     
@@ -33,7 +33,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<double>("look_ofset", 0.2618); // pi/3
 
     //how many ttc warning need to go off before we activate the emergancy break
-    this->declare_parameter<int>("alarm_threshold",3);
+    this->declare_parameter<int>("alarm_threshold",5);
 
     ttc1 = this->get_parameter("ttc1").as_double();
     ttc2 = this->get_parameter("ttc2").as_double();
@@ -47,7 +47,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     alarm_threshold = this->get_parameter("alarm_threshold").as_int();
     look_ofset = this->get_parameter("look_ofset").as_double();
 
-    //odom_topic = this->get_parameter("odom_topic").as_string();
+    odom_topic = this->get_parameter("odom_topic").as_string();
     laser_topic = this->get_parameter("laser_topic").as_string();
     ackermann_output_topic = this->get_parameter("ackermann_output_topic").as_string();
     ackermann_mon_topic = this->get_parameter("ackermann_mon_topic").as_string();
@@ -56,20 +56,22 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     //pubs and subs
     ackermann_pub = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(ackermann_output_topic, 10);
     
-    //odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(odom_topic,10,
-        //[this] (nav_msgs::msg::Odometry::SharedPtr msg) {current_speed = msg->twist.twist.linear.x;});
+    odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(odom_topic,10,
+        [this] (nav_msgs::msg::Odometry::SharedPtr msg) {current_speed = msg->twist.twist.linear.x;});
     
     laser_sub = this->create_subscription<sensor_msgs::msg::LaserScan>(laser_topic, 10 , 
         std::bind(&EBREAK_NODE::laser_callback, this, std::placeholders::_1));
     
-    speed_sub = this->create_subscription<std_msgs::msg::Float32>("/autodrive/f1tenth_1/speed",10,
-        [this](std_msgs::msg::Float32::SharedPtr msg) {current_speed = msg->data;});
+    //speed_sub = this->create_subscription<std_msgs::msg::Float32>("/autodrive/f1tenth_1/speed",10,
+        //[this](std_msgs::msg::Float32::SharedPtr msg) {current_speed = msg->data;});
 
     ackermann_mon = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(ackermann_mon_topic, 10,
         [this] (ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg) {current_ackermann_msg = *msg;});
 
     ackermann_steering_mon = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(steering_topic, 10,
         [this] (ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg) {current_steering = *msg;});
+
+    RCLCPP_INFO(this->get_logger(),"initalized ebreak");
 
 }
 

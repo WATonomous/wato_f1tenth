@@ -13,7 +13,7 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     this->declare_parameter<std::string>("joy_topic","/joy");
     this->declare_parameter<std::string>("my_frame_id","base_link");
 
-    this->declare_parameter<float>("max_speed",22.88);
+    this->declare_parameter<float>("max_speed",5.00);
     this->declare_parameter<float>("steering_gain",0.5236);
     this->declare_parameter<float>("max_steering_rate",3.2);
 
@@ -50,7 +50,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     bool pit_speed_limit = false;
 
     //emergancy / deadman switch
-    if (!msg->buttons.at(0)) {
+    if (!msg->buttons.at(1)) {
         drive_msg.drive = emergancy_drive_msg;
         ackerman_pub->publish(drive_msg);
         //RCLCPP_INFO(this->get_logger(),"press x to activate drive");
@@ -58,11 +58,11 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     }
 
     float current_steering = JOYPAD::steering_mapper(msg->axes.at(0));
-    float current_throtel = JOYPAD::trigger_maper(msg->axes.at(5));
-    float current_break = JOYPAD::trigger_maper(msg->axes.at(2));
+    float current_throtel = JOYPAD::trigger_maper(msg->axes.at(4));
+    float current_break = JOYPAD::trigger_maper(msg->axes.at(3));
 
     //reversing
-    if (msg->buttons.at(1)) {
+    if (msg->buttons.at(2)) {
         reversing = true;
         direction = -1 ;
     } else {
@@ -70,7 +70,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
         direction = 1;
     }
 
-    if (msg->buttons.at(2)) {
+    if (msg->buttons.at(3)) {
         pit_speed_limit = true;
     }
 
