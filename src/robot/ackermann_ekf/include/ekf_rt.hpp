@@ -12,13 +12,9 @@
 
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
-#include "std_msgs/msg/float32.hpp"
-
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
 
 #include <tf2/LinearMath/Quaternion.h>
+#include "std_msgs/msg/float32.hpp"
 
 //use of use
 using vector4d = Eigen::Matrix<double,4,1>;
@@ -66,14 +62,6 @@ private:
 
     //synced messages for throtel and steering input
     
-    message_filters::Subscriber<std_msgs::msg::Float32> steering_sub;
-    message_filters::Subscriber<std_msgs::msg::Float32> throtel_sub;
-
-    using SyncPolicy = message_filters::sync_policies::ApproximateTime<
-                    std_msgs::msg::Float32,std_msgs::msg::Float32>;
-
-    std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
-
 
     //helper functions
     double calculate_delta_t(rclcpp::Time current, rclcpp::Time prev);
@@ -81,7 +69,6 @@ private:
     void is_time_init ();
 
     //callback function
-    void control_input_callback(std_msgs::msg::Float32::SharedPtr throtel,std_msgs::msg::Float32::SharedPtr steering);
     void imu_callback(sensor_msgs::msg::Imu::SharedPtr imu_msg);
     void odom_callback(nav_msgs::msg::Odometry::SharedPtr odom_msg);
 
