@@ -67,8 +67,8 @@ private:
 
     //helper functions
     void control_callback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr input);
-    void imu_callback (const sensor_msgs::msg::Imu imu_msg);
-    void odom_callback (const nav_msgs::msg::Odometry odom_msg);
+    void imu_callback (const sensor_msgs::msg::Imu::SharedPtr imu_msg);
+    void odom_callback (const nav_msgs::msg::Odometry::SharedPtr odom_msg);
 
     vector7d model_update (const vector7d &mu_prev,const ackermann_msgs::msg::AckermannDriveStamped &control_input, double dt_);
     matrix7d predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g); 

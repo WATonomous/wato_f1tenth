@@ -43,7 +43,7 @@ void EKF::control_callback(const ackermann_msgs::msg::AckermannDriveStamped::Sha
     
 }
 
-void EKF::imu_callback(const sensor_msgs::msg::Imu imu_msg) {
+void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
 
     if (!init_time) {
         EKF::init_time();
@@ -57,11 +57,27 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu imu_msg) {
         return;
     }
 
-    EKF::publish_odom();
+    //imu correction step
+    matrix4d S = H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu;
+    S = S.inverse();
+    matrix7x4d K = current_predition.sigma_t * H_imu.transpose() * S;
+
+    vector7d new_mu = current_predition.mu + K * (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu));
+    matrix7d new_sigma = (I7 - K * H_imu.transpose()) * current_predition.sigma_t;
+
+    if (!new_mu.allFinite() || !new_sigma.allFinite()) {
+        RCLCPP_INFO(this->get_logger(), "imu_correction corrupt");
+        return;
+    }
+
     prev_update_time = current_predition.calc_time;
+    mu = new_mu;
+    sigma_t = new_sigma;
+
+    EKF::publish_odom();
 }
 
-void EKF::odom_callback(const nav_msgs::msg::Odometry odom_msg) {
+void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
 
     if (!init_time) {
         EKF::init_time();
@@ -75,12 +91,26 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry odom_msg) {
         return;
     }
 
-    EKF::publish_odom();
     prev_update_time = current_predition.calc_time;
+    EKF::publish_odom();
 }
 
 vector7d EKF::model_update(const vector7d &mu_prev, const ackermann_msgs::msg::AckermannDriveStamped &control_input, double dt_) {
 
+    vector7d predicted_state;
+    double v = control_input.drive.speed;
+
+    predicted_state << 
+        mu_prev(state_index::x) + v * std::cos(mu_prev(state_index::theta)) * dt_ + 0.5 * mu_prev(state_index::ax) * std::pow(dt_, 2),
+        mu_prev(state_index::y) + v * std::sin(mu_prev(state_index::theta)) * dt_ + 0.5 * mu_prev(state_index::ay) * std::pow(dt_, 2),
+        theta + (v / wheel_base) * std::tan(control_input.drive.steering_angle) * dt_,
+        v + mu_prev(state_index::ax) * std::cos(mu_prev(state_index::theta)) * dt_ + mu_prev(state_index::ay) * std::sin(mu_prev(state_index::theta)) * dt_,
+        (v / wheel_base) * std::tan(control_input.drive.steering_angle),
+        mu_prev(state_index::ax),
+        mu_prev(state_index::ay)
+    ;
+
+    return predicted_state;
 }
 
 matrix7d EKF::predict_sigma(const matrix7d &sigma_prev, const matrix7d &jacobian_g) {
@@ -149,6 +179,74 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
 
     return current_prediction;
 
+}
+
+vector4d EKF::imu_state_mapper(const vector7d &mu_predicted) {
+
+    vector4d observation;
+    observation.Zero();
+
+    observation(0) = mu_predicted(state_index::theta);
+    observation(1) = mu_predicted(state_index::theta_dot);
+    observation(2) = mu_predicted(state_index::ax);
+    observation(3) = mu_predicted(state_index::ay);
+
+    return observation;
+
+}
+
+vector5d EKF::odom_state_mapper(const vector7d &mu_predicted) {
+
+    vector5d observation;
+    observation.Zero();
+
+    observation(0) = mu_predicted(state_index::x);
+    observation(1) = mu_predicted(state_index::y);
+    observation(2) = mu_predicted(state_index::theta);
+    observation(3) = mu_predicted(state_index::v);
+    observation(4) = mu_predicted(state_index::theta_dot);
+
+    return observation;
+
+}
+
+vector4d EKF::imu_observation_maker(const sensor_msgs::msg::Imu &observation) {
+
+    vector4d z;
+    z.Zero();
+
+    z(0) = std::atan2(2.0 * (observation.orientation.w * observation.orientation.z +
+        observation.orientation.x * observation.orientation.y),
+        1.0 - 2.0 * (observation.orientation.y * observation.orientation.y +
+        observation.orientation.z * observation.orientation.z));
+
+    z(1) = observation.angular_velocity.z;
+    z(2) = observation.linear_acceleration.x;
+    z(3) = observation.linear_acceleration.y;
+
+    return z;
+}
+
+vector5d EKF::odom_observation_maker(const nav_msgs::msg::Odometry &observation) {
+
+    vector5d z;
+    z.Zero();
+
+    z(0) = observation.pose.pose.position.x;
+    z(1) = observation.pose.pose.position.y;
+    z(2) = std::atan2(2.0 * (observation.pose.pose.orientation.w * observation.pose.pose.orientation.z + 
+        observation.pose.pose.orientation.x * observation.pose.pose.orientation.y),
+        1.0 - 2.0 * (observation.pose.pose.orientation.y * observation.pose.pose.orientation.y +
+        observation.pose.pose.orientation.z * observation.pose.pose.orientation.z));
+    
+    z(3) = observation.twist.twist.linear.x;
+    z(4) = observation.twist.twist.angular.z;
+
+    return z;
+
+}
+double EKF::calc_dt(rclcpp::Time &current, rclcpp::Time &prev) {
+    return static_cast<double>((current.seconds() + current.nanoseconds() * 1e-9) + (prev.seconds() + prev.nanoseconds() * 1e-9));
 }
 
 void EKF::init_time() {
