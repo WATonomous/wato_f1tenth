@@ -73,6 +73,14 @@ def generate_launch_description():
     ld.add_action(wheel_odom_node)
     
     # ekf 
+    ekf = Node (
+        package="ackermann_ekf",
+        executable="ekf",
+        name ="ekf",
+        output="screen"
+    )
+    
+    ld.add_action(ekf)
     
 
     return ld

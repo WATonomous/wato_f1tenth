@@ -16,6 +16,7 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -35,9 +36,13 @@ add_executable(ekf_node src/ekf_node.cpp)
 target_include_directories(ekf_node PUBLIC include)
 ament_target_dependencies(ekf_node rclcpp std_msgs nav_msgs sensor_msgs tf2_ros tf2_geometry_msgs)
 
+#ekf node
+add_executable(ekf src/ekf.cpp)
+target_include_directories(ekf PUBLIC include)
+ament_target_dependencies(ekf rclcpp nav_msgs sensor_msgs tf2_ros tf2_geometry_msgs ackermann_msgs)
 
 install(
-  TARGETS ekf_node 
+  TARGETS ekf_node ekf 
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
