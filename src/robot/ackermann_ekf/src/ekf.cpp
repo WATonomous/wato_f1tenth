@@ -67,12 +67,12 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
     }
 
     //imu correction step
-    matrix4d S = H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu;
+    matrix4d S = (H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu).eval();
     S = S.inverse().eval();
-    matrix7x4d K = current_predition.sigma_t * H_imu.transpose() * S;
+    matrix7x4d K = (current_predition.sigma_t * H_imu.transpose() * S).eval();
 
-    vector7d new_mu = current_predition.mu + K * (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu));
-    matrix7d new_sigma = (I7 - K * H_imu) * current_predition.sigma_t;
+    vector7d new_mu = (current_predition.mu + K * (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu))).eval();
+    matrix7d new_sigma = ((I7 - K * H_imu) * current_predition.sigma_t).eval();
 
     if (!new_mu.allFinite() || !new_sigma.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "imu_correction corrupt");
@@ -80,8 +80,8 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
     }
 
     prev_update_time = current_predition.calc_time;
-    mu = new_mu;
-    sigma_t = new_sigma;
+    mu = new_mu.eval();
+    sigma_t = new_sigma.eval();
 
     EKF::publish_state();
 }
@@ -100,12 +100,12 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
     }
 
     //odom correction step
-    matrix5d S = H_odom * current_predition.sigma_t * H_odom.transpose() + Q_odom;
+    matrix5d S = (H_odom * current_predition.sigma_t * H_odom.transpose() + Q_odom).eval();
     S = S.inverse().eval();
-    matrix7x5d K = current_predition.sigma_t * H_odom.transpose() * S;
+    matrix7x5d K = (current_predition.sigma_t * H_odom.transpose() * S).eval();
 
-    vector7d new_mu = current_predition.mu + K * (odom_observation_maker(*odom_msg) - odom_state_mapper (current_predition.mu));
-    matrix7d new_sigma = (I7 - K * H_odom) * current_predition.sigma_t;
+    vector7d new_mu = (current_predition.mu + K * (odom_observation_maker(*odom_msg) - odom_state_mapper (current_predition.mu))).eval();
+    matrix7d new_sigma = ((I7 - K * H_odom) * current_predition.sigma_t).eval();
 
     if (!new_mu.allFinite() || !new_sigma.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "odom correcton corrupt");
@@ -113,8 +113,8 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
     }
 
     prev_update_time = current_predition.calc_time;
-    mu = new_mu;
-    sigma_t = new_sigma;
+    mu = new_mu.eval();
+    sigma_t = new_sigma.eval();
     EKF::publish_state();
 }
 
@@ -133,35 +133,31 @@ vector7d EKF::model_update(const vector7d &mu_prev, const ackermann_msgs::msg::A
         mu_prev(state_index::ay)
     ;
 
-    return predicted_state;
+    return predicted_state.eval();
 }
 
 matrix7d EKF::predict_sigma(const matrix7d &sigma_prev, const matrix7d &jacobian_g) {
     matrix7d jacobian_g_transpose = jacobian_g.transpose().eval();
-    matrix7d sigma_predicted = jacobian_g * sigma_prev * jacobian_g_transpose + R;
+    matrix7d sigma_predicted = (((jacobian_g * sigma_prev).eval() * jacobian_g_transpose).eval() + R).eval();
 
-    if (!sigma_predicted.allFinite() && error_counter <= 4) {
+    if (!sigma_predicted.eval().allFinite()) {
         RCLCPP_INFO(this->get_logger(), "sigma_predicted in EKF::predict_sigma corupted");
     }
 
-    if (!jacobian_g.allFinite() && error_counter <= 4) {
+    if (!jacobian_g.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "jacobain G in EKF::predict_sigma corupted the sigma");
-        error_counter++;
     }
 
-    if (!jacobian_g_transpose.allFinite() && error_counter <= 4) {
+    if (!jacobian_g_transpose.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "jacobain G transpose in EKF::predict_sigma corupted the sigma");
-        error_counter++;
     }
 
-    if (!sigma_prev.allFinite() && error_counter <= 4) {
+    if (!sigma_prev.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "sigma_prev in EKF::predict_sigma corupted the sigma");
-        error_counter++;
     }
 
-    if (!R.allFinite() && error_counter <= 4) {
+    if (!R.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "sigma_prev in EKF::predict_sigma corupted the sigma");
-        error_counter++;
     }
 
     return sigma_predicted;
@@ -207,7 +203,7 @@ matrix7d EKF::calc_jacobian_g(const vector7d &mu_prev, double dt_) {
         //RCLCPP_INFO(this->get_logger(), "EKF::calc_jacobian_g has corupted the sigma");
     //}
 
-    return jacobian;
+    return jacobian.eval();
 }
 
 prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_prev, const ackermann_msgs::msg::AckermannDriveStamped &control_input){
@@ -217,9 +213,9 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     rclcpp::Time current_time = this->now();
     double dt = EKF::calc_dt(current_time,prev_update_time);
 
-    vector7d mu_bar = EKF::model_update(mu_prev,control_input,dt);
-    matrix7d jacobian_G = EKF::calc_jacobian_g(mu_prev,dt);
-    matrix7d sigma_bar = EKF::predict_sigma(sigma_prev,jacobian_G);
+    vector7d mu_bar = EKF::model_update(mu_prev,control_input,dt).eval();
+    matrix7d jacobian_G = EKF::calc_jacobian_g(mu_prev,dt).eval();
+    matrix7d sigma_bar = EKF::predict_sigma(sigma_prev,jacobian_G).eval();
 
     if (!mu_bar.allFinite() || !sigma_bar.allFinite()) {
         current_prediction.did_error = true;
@@ -232,8 +228,8 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
         }
     } else {
         current_prediction.did_error = false;
-        current_prediction.mu = mu_bar;
-        current_prediction.sigma_t = sigma_bar;
+        current_prediction.mu = mu_bar.eval();
+        current_prediction.sigma_t = sigma_bar.eval();
         current_prediction.calc_time = current_time;
     }
 
@@ -251,7 +247,7 @@ vector4d EKF::imu_state_mapper(const vector7d &mu_predicted) {
     observation(2) = mu_predicted(state_index::ax);
     observation(3) = mu_predicted(state_index::ay);
 
-    return observation;
+    return observation.eval();
 
 }
 
@@ -266,7 +262,7 @@ vector5d EKF::odom_state_mapper(const vector7d &mu_predicted) {
     observation(3) = mu_predicted(state_index::v);
     observation(4) = mu_predicted(state_index::theta_dot);
 
-    return observation;
+    return observation.eval();
 
 }
 
@@ -284,7 +280,7 @@ vector4d EKF::imu_observation_maker(const sensor_msgs::msg::Imu &observation) {
     z(2) = observation.linear_acceleration.x;
     z(3) = observation.linear_acceleration.y;
 
-    return z;
+    return z.eval();
 }
 
 vector5d EKF::odom_observation_maker(const nav_msgs::msg::Odometry &observation) {
@@ -302,7 +298,7 @@ vector5d EKF::odom_observation_maker(const nav_msgs::msg::Odometry &observation)
     z(3) = observation.twist.twist.linear.x;
     z(4) = observation.twist.twist.angular.z;
 
-    return z;
+    return z.eval();
 
 }
 double EKF::calc_dt(rclcpp::Time &current, rclcpp::Time &prev) {
