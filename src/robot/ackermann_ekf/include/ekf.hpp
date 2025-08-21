@@ -121,10 +121,14 @@ private:
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
 
     //initalization
-    bool time_init;
+    bool time_init = false;
+    bool state_init = false;
 
     //debug
     int error_counter = 0;
+    int sucess_counter = 0;
+    int sucess_counter_imu = 0;
+    int sucess_counter_odom = 0;
 };
 
 #include <tf2/LinearMath/Quaternion.h>

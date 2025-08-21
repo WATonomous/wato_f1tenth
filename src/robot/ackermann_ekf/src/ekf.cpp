@@ -30,10 +30,14 @@ void EKF::control_callback(const ackermann_msgs::msg::AckermannDriveStamped::Sha
 
     //only calling the init_time() in this one because, we need the prev_input to drive any calculation forwared
     //otherwise, the jacobian calculation corupts and becomes null
-    if (!time_init) {
+    if (!time_init && input != nullptr) {
         EKF::init_time();
         prev_input = *input;
         RCLCPP_INFO(this->get_logger(), "initalized time and prev control input");
+        return;
+    }
+
+    if (input == nullptr) {
         return;
     }
 
@@ -55,28 +59,33 @@ void EKF::control_callback(const ackermann_msgs::msg::AckermannDriveStamped::Sha
 
 void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
 
-    if (!time_init) {
+    if (!time_init || imu_msg == nullptr) {
         return;
     }
 
     prediction current_predition = EKF::prediction_step(mu, sigma_t, prev_input);
-    
-    if (current_predition.did_error) {
-        //RCLCPP_INFO(this->get_logger(), "imu_prediction corrupt");
-        return;
-    }
 
     //imu correction step
-    matrix4d S = (H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu).eval();
-    S = S.inverse().eval();
-    matrix7x4d K = (current_predition.sigma_t * H_imu.transpose() * S).eval();
+    Eigen::LLT<Eigen::MatrixXd> llt(current_predition.sigma_t);
+    if (llt.info () != Eigen::Success) {
+       current_predition.sigma_t.diagonal().array() += 1e-7;
+       Eigen::LDLT<Eigen::MatrixXd> ldlt(current_predition.sigma_t);
+       if (ldlt.info() != Eigen::Success) { 
+        RCLCPP_INFO(this->get_logger(), "can't compute the K");
+        return;
+       } else {
 
-    vector7d new_mu = (current_predition.mu + K * (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu))).eval();
-    matrix7d new_sigma = ((I7 - K * H_imu) * current_predition.sigma_t).eval();
+       }
+    } else {
 
-    if (!new_mu.allFinite() || !new_sigma.allFinite()) {
+    }
+
+    if (!new_mu.eval().allFinite() || !new_sigma.eval().allFinite()) {
         RCLCPP_INFO(this->get_logger(), "imu_correction corrupt");
         return;
+    } else {
+        sucess_counter_imu++;
+        RCLCPP_INFO(this->get_logger(), "imu_correction sucess : %d", sucess_counter_imu);
     }
 
     prev_update_time = current_predition.calc_time;
@@ -88,7 +97,7 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
 
 void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
 
-    if (!time_init) {
+    if (!time_init || odom_msg == nullptr) {
         return;
     }
 
@@ -104,12 +113,15 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
     S = S.inverse().eval();
     matrix7x5d K = (current_predition.sigma_t * H_odom.transpose() * S).eval();
 
-    vector7d new_mu = (current_predition.mu + K * (odom_observation_maker(*odom_msg) - odom_state_mapper (current_predition.mu))).eval();
-    matrix7d new_sigma = ((I7 - K * H_odom) * current_predition.sigma_t).eval();
+    vector7d new_mu = (current_predition.mu + (K * (odom_observation_maker(*odom_msg) - odom_state_mapper (current_predition.mu))).eval()).eval();
+    matrix7d new_sigma = ((I7 - (K * H_odom).eval()) * current_predition.sigma_t).eval();
 
     if (!new_mu.allFinite() || !new_sigma.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "odom correcton corrupt");
         return;
+    } else {
+        sucess_counter_odom++;
+        RCLCPP_INFO(this->get_logger(), "odom correcton sucess counter : %d", sucess_counter_odom);
     }
 
     prev_update_time = current_predition.calc_time;
@@ -138,11 +150,9 @@ vector7d EKF::model_update(const vector7d &mu_prev, const ackermann_msgs::msg::A
 
 matrix7d EKF::predict_sigma(const matrix7d &sigma_prev, const matrix7d &jacobian_g) {
     matrix7d jacobian_g_transpose = jacobian_g.transpose().eval();
-    matrix7d sigma_predicted = (((jacobian_g * sigma_prev).eval() * jacobian_g_transpose).eval() + R).eval();
-
-    if (!sigma_predicted.eval().allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "sigma_predicted in EKF::predict_sigma corupted");
-    }
+    matrix7d sigma_predicted = (jacobian_g * sigma_prev).eval();
+    sigma_predicted = (sigma_predicted * jacobian_g_transpose).eval();
+    sigma_predicted.noalias() += R;
 
     if (!jacobian_g.allFinite()) {
         RCLCPP_INFO(this->get_logger(), "jacobain G in EKF::predict_sigma corupted the sigma");
@@ -160,7 +170,14 @@ matrix7d EKF::predict_sigma(const matrix7d &sigma_prev, const matrix7d &jacobian
         RCLCPP_INFO(this->get_logger(), "sigma_prev in EKF::predict_sigma corupted the sigma");
     }
 
-    return sigma_predicted;
+    if (!sigma_predicted.eval().allFinite()) {
+        RCLCPP_INFO(this->get_logger(), "sigma_predicted in EKF::predict_sigma corupted");
+    } else {
+        sucess_counter++;
+        RCLCPP_INFO(this->get_logger(), "sucess counter = %d", sucess_counter);
+    }
+
+    return sigma_predicted.eval();
 }
 
 matrix7d EKF::calc_jacobian_g(const vector7d &mu_prev, double dt_) {
@@ -212,6 +229,12 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     
     rclcpp::Time current_time = this->now();
     double dt = EKF::calc_dt(current_time,prev_update_time);
+
+    if (dt <= 1e-6) {
+        current_prediction.did_error = true;
+        RCLCPP_INFO(this->get_logger(), "dt is too small");
+        return current_prediction;
+    }
 
     vector7d mu_bar = EKF::model_update(mu_prev,control_input,dt).eval();
     matrix7d jacobian_G = EKF::calc_jacobian_g(mu_prev,dt).eval();
@@ -394,34 +417,34 @@ void EKF::init_params () {
     this->declare_parameter<double>("inital_ay", 0.0);
 
     //inital covariance matrix declaration
-    this->declare_parameter<double>("x_cov",0.1);
-    this->declare_parameter<double>("y_cov",0.1);
-    this->declare_parameter<double>("theta_cov",0.1);
-    this->declare_parameter<double>("velocity_cov", 0.1);
-    this->declare_parameter<double>("theta_dot_cov", 0.1);
-    this->declare_parameter<double>("ax_cov", 0.1);
-    this->declare_parameter<double>("ay_cov", 0.1);
+    this->declare_parameter<double>("x_cov",10.0);
+    this->declare_parameter<double>("y_cov",10.0);
+    this->declare_parameter<double>("theta_cov",10.0);
+    this->declare_parameter<double>("velocity_cov", 10.1);
+    this->declare_parameter<double>("theta_dot_cov", 10.0);
+    this->declare_parameter<double>("ax_cov", 10.0);
+    this->declare_parameter<double>("ay_cov", 10.0);
 
     //declare the process noise matrix 
-    this->declare_parameter<double>("R_x",0.1);
-    this->declare_parameter<double>("R_y",0.1);
-    this->declare_parameter<double>("R_theta",0.1);
-    this->declare_parameter<double>("R_v",0.1);
-    this->declare_parameter<double>("R_theta_dot",0.1);
-    this->declare_parameter<double>("R_ax",0.1);
-    this->declare_parameter<double>("R_ay",0.1);
+    this->declare_parameter<double>("R_x",1.0);
+    this->declare_parameter<double>("R_y",1.0);
+    this->declare_parameter<double>("R_theta",5.0);
+    this->declare_parameter<double>("R_v",1.0);
+    this->declare_parameter<double>("R_theta_dot",5.0);
+    this->declare_parameter<double>("R_ax",3.50);
+    this->declare_parameter<double>("R_ay",3.50);
 
     //declare the sensor noise matrix
-    this->declare_parameter<double>("Q_odom_x",0.1);
-    this->declare_parameter<double>("Q_odom_y",0.1);
-    this->declare_parameter<double>("Q_odom_theta",0.1);
-    this->declare_parameter<double>("Q_odom_v",0.1);
-    this->declare_parameter<double>("Q_odom_theta_dot",0.1);
+    this->declare_parameter<double>("Q_odom_x",0.75);
+    this->declare_parameter<double>("Q_odom_y",1.5);
+    this->declare_parameter<double>("Q_odom_theta",7.0);
+    this->declare_parameter<double>("Q_odom_v",0.75);
+    this->declare_parameter<double>("Q_odom_theta_dot",5.0);
 
-    this->declare_parameter<double>("Q_imu_theta",0.1);
-    this->declare_parameter<double>("Q_imu_theta_dot",0.1);
-    this->declare_parameter<double>("Q_imu_ax",0.1);
-    this->declare_parameter<double>("Q_imu_ay",0.1);
+    this->declare_parameter<double>("Q_imu_theta",0.5);
+    this->declare_parameter<double>("Q_imu_theta_dot",0.5);
+    this->declare_parameter<double>("Q_imu_ax",0.65);
+    this->declare_parameter<double>("Q_imu_ay",0.65);
 
     //topic retrival
     odom_topic = this->get_parameter("odom_topic").as_string();
