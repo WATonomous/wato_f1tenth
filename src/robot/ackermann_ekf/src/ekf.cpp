@@ -65,33 +65,76 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
 
     prediction current_predition = EKF::prediction_step(mu, sigma_t, prev_input);
 
-    //imu correction step
-    Eigen::LLT<Eigen::MatrixXd> llt(current_predition.sigma_t);
-    if (llt.info () != Eigen::Success) {
-       current_predition.sigma_t.diagonal().array() += 1e-7;
-       Eigen::LDLT<Eigen::MatrixXd> ldlt(current_predition.sigma_t);
-       if (ldlt.info() != Eigen::Success) { 
-        RCLCPP_INFO(this->get_logger(), "can't compute the K");
-        return;
-       } else {
+    //calculate kalman gain
+    matrix4d S = (H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu).eval(); //inovation covariance
+    S = (0.5 * (S + S.transpose())).eval(); //correct the matrix scew 
 
-       }
+    //note to future self, generalize the kalman gain calculation with a template function and kalman gain class
+
+    //use the llt to try and solve
+    Eigen::LLT<matrix4d> llt (S);
+    matrix7x4d K;
+
+    if (llt.info() != Eigen::Success) {
+
+        //given llt fails, matrix is not positive definite, add jitter to fix
+        // try using ldlt
+        S.diagonal().array() += 1e-8;
+        S = (0.5 * (S + S.transpose())).eval();
+
+        Eigen::LDLT<matrix4d> ldlt (S);
+        RCLCPP_INFO(this->get_logger(), "using ldlt to solve inversion in imu");
+
+
+        if (ldlt.info() != Eigen::Success) {
+
+            RCLCPP_INFO(this->get_logger(), "faild to safely invert S, discarding this iteration of imu correction");
+            return;
+
+        } else {
+            K = (current_predition.sigma_t * H_imu.transpose() * ldlt.solve(matrix4d::Identity())).eval();
+        }
+
     } else {
+        K = (current_predition.sigma_t * H_imu.transpose() * llt.solve(matrix4d::Identity())).eval();
+    }
+
+    vector7d new_mu = (current_predition.mu + K * (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu))).eval();
+
+    //josephs formula for new covariance (sigma_t)
+    matrix7d A = (matrix7d::Identity() - K * H_imu).eval();
+    matrix7d new_sigma_t = (A * current_predition.sigma_t * A.transpose() + K * Q_imu * K.transpose()).eval();
+
+    //final safety check
+    if (new_sigma_t.diagonal().minCoeff() <= 0) {
+
+        new_sigma_t.diagonal().array() += 1e-8;
+        new_sigma_t = (0.5 * (new_sigma_t + new_sigma_t.transpose())).eval();
+        RCLCPP_INFO(this->get_logger(), "atempting to settle the covariance matrix in imu call back");
 
     }
 
-    if (!new_mu.eval().allFinite() || !new_sigma.eval().allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "imu_correction corrupt");
+    if (!new_mu.allFinite() || !new_sigma_t.allFinite()) {
+
+        if (!new_mu.allFinite())
+            RCLCPP_INFO(this->get_logger(), "mu corrupted during imu correction step, discarding results");
+
+        if (!new_sigma_t.allFinite())
+            RCLCPP_INFO(this->get_logger(), "simga_t corrupted during imu correction step, discarding results");
+
         return;
-    } else {
-        sucess_counter_imu++;
-        RCLCPP_INFO(this->get_logger(), "imu_correction sucess : %d", sucess_counter_imu);
+
     }
 
+    //normalize the yaw
+    new_mu(state_index::theta) = std::atan2(std::sin(new_mu(state_index::theta)), std::cos(new_mu(state_index::theta)));
+
+    //save the results
+    mu = new_mu;
+    sigma_t = new_sigma_t;
     prev_update_time = current_predition.calc_time;
-    mu = new_mu.eval();
-    sigma_t = new_sigma.eval();
 
+    //publish the results
     EKF::publish_state();
 }
 
@@ -103,30 +146,73 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
 
     prediction current_predition = EKF::prediction_step(mu, sigma_t, prev_input);
     
-    if (current_predition.did_error) {
-        //RCLCPP_INFO(this->get_logger(), "odom predition corrupt");
-        return;
-    }
+    //calculate kalman gain
+    matrix5d S = (H_odom * current_predition.sigma_t * H_odom.transpose() + Q_odom).eval(); //inovation covariance
+    S = (0.5 * (S + S.transpose())).eval(); //correct the matrix scew 
 
-    //odom correction step
-    matrix5d S = (H_odom * current_predition.sigma_t * H_odom.transpose() + Q_odom).eval();
-    S = S.inverse().eval();
-    matrix7x5d K = (current_predition.sigma_t * H_odom.transpose() * S).eval();
+    //use the llt to try and solve
+    Eigen::LLT<matrix5d> llt (S);
+    matrix7x5d K;
 
-    vector7d new_mu = (current_predition.mu + (K * (odom_observation_maker(*odom_msg) - odom_state_mapper (current_predition.mu))).eval()).eval();
-    matrix7d new_sigma = ((I7 - (K * H_odom).eval()) * current_predition.sigma_t).eval();
+    if (llt.info() != Eigen::Success) {
 
-    if (!new_mu.allFinite() || !new_sigma.allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "odom correcton corrupt");
-        return;
+        //given llt fails, matrix is not positive definite, add jitter to fix
+        // try using ldlt
+        S.diagonal().array() += 1e-8;
+        S = (0.5 * (S + S.transpose())).eval();
+
+        Eigen::LDLT<matrix5d> ldlt (S);
+        RCLCPP_INFO(this->get_logger(), "using ldlt to solve inversion in odom");
+
+        if (ldlt.info() != Eigen::Success) {
+
+            RCLCPP_INFO(this->get_logger(), "faild to safely invert S, discarding this iteration of odom correction");
+            return;
+
+        } else {
+            K = (current_predition.sigma_t * H_odom.transpose() * ldlt.solve(matrix5d::Identity())).eval();
+        }
+
     } else {
-        sucess_counter_odom++;
-        RCLCPP_INFO(this->get_logger(), "odom correcton sucess counter : %d", sucess_counter_odom);
+        K = (current_predition.sigma_t * H_odom.transpose() * llt.solve(matrix5d::Identity())).eval();
     }
 
+    vector7d new_mu = (current_predition.mu + K * (odom_observation_maker(*odom_msg) - odom_state_mapper(current_predition.mu))).eval();
+
+    //josephs formula for new covariance (sigma_t)
+    matrix7d A = (matrix7d::Identity() - K * H_odom).eval();
+    matrix7d new_sigma_t = (A * current_predition.sigma_t * A.transpose() + K * Q_odom * K.transpose()).eval();
+
+    //final safety check
+    if (new_sigma_t.diagonal().minCoeff() <= 0) {
+
+        new_sigma_t.diagonal().array() += 1e-8;
+        new_sigma_t = (0.5 * (new_sigma_t + new_sigma_t.transpose())).eval();
+        RCLCPP_INFO(this->get_logger(), "atempting to settle the covariance matrix in odom call back");
+
+    }
+
+    if (!new_mu.allFinite() || !new_sigma_t.allFinite()) {
+
+        if (!new_mu.allFinite())
+            RCLCPP_INFO(this->get_logger(), "mu corrupted during odom correction step, discarding results");
+
+        if (!new_sigma_t.allFinite())
+            RCLCPP_INFO(this->get_logger(), "simga_t corrupted during odom correction step, discarding results");
+
+        return;
+
+    }
+
+    //normalize the yaw
+    new_mu(state_index::theta) = std::atan2(std::sin(new_mu(state_index::theta)), std::cos(new_mu(state_index::theta)));
+
+    //save the results
+    mu = new_mu;
+    sigma_t = new_sigma_t;
     prev_update_time = current_predition.calc_time;
-    mu = new_mu.eval();
-    sigma_t = new_sigma.eval();
+
+    //publish the results
     EKF::publish_state();
 }
 
@@ -150,32 +236,22 @@ vector7d EKF::model_update(const vector7d &mu_prev, const ackermann_msgs::msg::A
 
 matrix7d EKF::predict_sigma(const matrix7d &sigma_prev, const matrix7d &jacobian_g) {
     matrix7d jacobian_g_transpose = jacobian_g.transpose().eval();
-    matrix7d sigma_predicted = (jacobian_g * sigma_prev).eval();
-    sigma_predicted = (sigma_predicted * jacobian_g_transpose).eval();
-    sigma_predicted.noalias() += R;
+    matrix7d sigma_predicted = (jacobian_g * sigma_prev * jacobian_g_transpose + R).eval();
 
-    if (!jacobian_g.allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "jacobain G in EKF::predict_sigma corupted the sigma");
-    }
+    float max_coeff = sigma_prev.diagonal().maxCoeff();
+    float min_coeff = sigma_prev.diagonal().minCoeff();
+    RCLCPP_INFO(this->get_logger()," pre predicton current max coef is %f and min coeff is %f", max_coeff , min_coeff);
+    RCLCPP_INFO(this->get_logger(),"the largest G coeff is %f", jacobian_g.maxCoeff());
 
-    if (!jacobian_g_transpose.allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "jacobain G transpose in EKF::predict_sigma corupted the sigma");
-    }
+    max_coeff = sigma_predicted.diagonal().maxCoeff();
+    min_coeff = sigma_predicted.diagonal().minCoeff();
+    RCLCPP_INFO(this->get_logger()," post predicton current max coef is %f and min coeff is %f", max_coeff , min_coeff);
 
-    if (!sigma_prev.allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "sigma_prev in EKF::predict_sigma corupted the sigma");
+    for (int i = 0; i < 7; i++)
+    {
+        RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f", jacobian_g(i, 0), jacobian_g(i, 1), jacobian_g(i, 2), jacobian_g(i, 3), jacobian_g(i, 4), jacobian_g(i, 5), jacobian_g(i, 6));
     }
-
-    if (!R.allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "sigma_prev in EKF::predict_sigma corupted the sigma");
-    }
-
-    if (!sigma_predicted.eval().allFinite()) {
-        RCLCPP_INFO(this->get_logger(), "sigma_predicted in EKF::predict_sigma corupted");
-    } else {
-        sucess_counter++;
-        RCLCPP_INFO(this->get_logger(), "sucess counter = %d", sucess_counter);
-    }
+    error_counter++;
 
     return sigma_predicted.eval();
 }
@@ -185,40 +261,39 @@ matrix7d EKF::calc_jacobian_g(const vector7d &mu_prev, double dt_) {
     matrix7d jacobian;
     jacobian.Zero();
 
+    float DT = dt_, v = mu_prev(state_index::v), theta = mu_prev(state_index::theta), phi = prev_input.drive.steering_angle;
+    float L_WB = wheel_base, ax = mu_prev(state_index::ax), ay = mu_prev(state_index::ay);
+    
     // 1st row
     jacobian(0, 0) = 1.0;
-    jacobian(0, 2) = -prev_input.drive.speed * std::sin(mu_prev(state_index::theta)) * dt_;
-    jacobian(0, 3) = std::cos(mu_prev(state_index::theta)) * dt_;
-    jacobian(0, 5) = 0.5 * std::pow(dt_, 2);
+    jacobian(0, 2) = -v * std::sin(theta) * DT;
+    jacobian(0, 3) = std::cos(theta) * DT;
+    jacobian(0, 5) = 0.5 * std::pow(DT, 2);
 
     // 2nd row
     jacobian(1, 1) = 1.0;
-    jacobian(1, 2) = prev_input.drive.speed * std::cos(mu_prev(state_index::theta)) * dt_;
-    jacobian(1, 3) = std::sin(mu_prev(state_index::theta)) * dt_;
-    jacobian(1, 6) = 0.5 * std::pow(dt_, 2);
+    jacobian(1, 2) = v * std::cos(theta) * DT;
+    jacobian(1, 3) = std::sin(theta) * DT;
+    jacobian(1, 6) = 0.5 * std::pow(DT, 2);
 
     // 3rd row
     jacobian(2, 2) = 1.0;
-    jacobian(2, 3) = (std::tan(prev_input.drive.steering_angle) * dt_) / wheel_base;
+    jacobian(2, 3) = (std::tan(phi) * DT) / L_WB;
 
     // 4th row
-    jacobian(3, 2) = mu_prev(state_index::ay) * std::cos(mu_prev(state_index::theta)) * dt_ - mu_prev(state_index::ax) * std::sin(mu_prev(state_index::theta)) * dt_;
+    jacobian(3, 2) = ay * std::cos(theta) * DT - ax * std::sin(theta) * DT;
     jacobian(3, 3) = 1.0;
-    jacobian(3, 5) = std::cos(mu_prev(state_index::theta)) * dt_;
-    jacobian(3, 6) = std::sin(mu_prev(state_index::theta)) * dt_;
+    jacobian(3, 5) = std::cos(theta) * DT;
+    jacobian(3, 6) = std::sin(theta) * DT;
 
     // 5th row
-    jacobian(4, 3) = std::tan(prev_input.drive.steering_angle) / wheel_base;
+    jacobian(4, 3) = std::tan(phi) / L_WB;
 
     // 6th row
     jacobian(5, 5) = 1.0;
 
     // 7th row
     jacobian(6, 6) = 1.0;
-
-    //if (!jacobian.allFinite()) {
-        //RCLCPP_INFO(this->get_logger(), "EKF::calc_jacobian_g has corupted the sigma");
-    //}
 
     return jacobian.eval();
 }
@@ -229,6 +304,10 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     
     rclcpp::Time current_time = this->now();
     double dt = EKF::calc_dt(current_time,prev_update_time);
+    
+    if (error_counter == 0) {
+        RCLCPP_INFO(this->get_logger(), "first dt is %f", dt);
+    }
 
     if (dt <= 1e-6) {
         current_prediction.did_error = true;
@@ -239,6 +318,9 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     vector7d mu_bar = EKF::model_update(mu_prev,control_input,dt).eval();
     matrix7d jacobian_G = EKF::calc_jacobian_g(mu_prev,dt).eval();
     matrix7d sigma_bar = EKF::predict_sigma(sigma_prev,jacobian_G).eval();
+
+    //normalize the yaw
+    mu_bar(state_index::theta) = std::atan2(std::sin(mu_bar(state_index::theta)), std::cos(mu_bar(state_index::theta)));
 
     if (!mu_bar.allFinite() || !sigma_bar.allFinite()) {
         current_prediction.did_error = true;
@@ -325,7 +407,7 @@ vector5d EKF::odom_observation_maker(const nav_msgs::msg::Odometry &observation)
 
 }
 double EKF::calc_dt(rclcpp::Time &current, rclcpp::Time &prev) {
-    return static_cast<double>((current.seconds() + current.nanoseconds() * 1e-9) + (prev.seconds() + prev.nanoseconds() * 1e-9));
+    return static_cast<double>((current.seconds() + current.nanoseconds() * 1e-9) - (prev.seconds() + prev.nanoseconds() * 1e-9));
 }
 
 void EKF::init_time() {
