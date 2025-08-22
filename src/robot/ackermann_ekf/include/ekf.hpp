@@ -83,6 +83,8 @@ private:
     vector4d imu_observation_maker(const sensor_msgs::msg::Imu &observation);
     vector5d odom_observation_maker(const nav_msgs::msg::Odometry &observation);
 
+    double velocity_lowPass(double current_speed);
+
     void init_time ();
     void init_params();
     double calc_dt (rclcpp::Time &current_time,rclcpp::Time &prev_time);
@@ -95,6 +97,7 @@ private:
     matrix7d sigma_t;
     rclcpp::Time prev_update_time;
     ackermann_msgs::msg::AckermannDriveStamped prev_input;
+    double prev_speed;
 
     //process noise {x , y , theta, v, theta_dot, ax , ay}
     matrix7d R;
@@ -116,6 +119,7 @@ private:
     std::string odom_topic, ekf_topic, imu_topic, ackermann_topic, child_frame, header_frame;
     double wheel_base;
     bool should_pub_tf;
+    double alpha;
 
     //tf2 broadcaster
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
@@ -129,6 +133,7 @@ private:
     int sucess_counter = 0;
     int sucess_counter_imu = 0;
     int sucess_counter_odom = 0;
+    bool debug_mode;
 };
 
 #include <tf2/LinearMath/Quaternion.h>

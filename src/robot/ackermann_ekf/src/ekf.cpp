@@ -33,6 +33,7 @@ void EKF::control_callback(const ackermann_msgs::msg::AckermannDriveStamped::Sha
     if (!time_init && input != nullptr) {
         EKF::init_time();
         prev_input = *input;
+        prev_speed = input->drive.speed;
         RCLCPP_INFO(this->get_logger(), "initalized time and prev control input");
         return;
     }
@@ -99,7 +100,8 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg) {
         K = (current_predition.sigma_t * H_imu.transpose() * llt.solve(matrix4d::Identity())).eval();
     }
 
-    vector7d new_mu = (current_predition.mu + K * (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu))).eval();
+    vector4d imu_diff = (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu)).eval();
+    vector7d new_mu = (current_predition.mu + K * imu_diff ).eval();
 
     //josephs formula for new covariance (sigma_t)
     matrix7d A = (matrix7d::Identity() - K * H_imu).eval();
@@ -177,7 +179,8 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
         K = (current_predition.sigma_t * H_odom.transpose() * llt.solve(matrix5d::Identity())).eval();
     }
 
-    vector7d new_mu = (current_predition.mu + K * (odom_observation_maker(*odom_msg) - odom_state_mapper(current_predition.mu))).eval();
+    vector5d odom_diff = (odom_observation_maker(*odom_msg) - odom_state_mapper(current_predition.mu)).eval();
+    vector7d new_mu = (current_predition.mu + K * odom_diff).eval();
 
     //josephs formula for new covariance (sigma_t)
     matrix7d A = (matrix7d::Identity() - K * H_odom).eval();
@@ -224,7 +227,7 @@ vector7d EKF::model_update(const vector7d &mu_prev, const ackermann_msgs::msg::A
     predicted_state << 
         mu_prev(state_index::x) + v * std::cos(mu_prev(state_index::theta)) * dt_ + 0.5 * mu_prev(state_index::ax) * std::pow(dt_, 2),
         mu_prev(state_index::y) + v * std::sin(mu_prev(state_index::theta)) * dt_ + 0.5 * mu_prev(state_index::ay) * std::pow(dt_, 2),
-        theta + (v / wheel_base) * std::tan(control_input.drive.steering_angle) * dt_,
+        mu_prev(state_index::theta) + (v / wheel_base) * std::tan(control_input.drive.steering_angle) * dt_,
         v + mu_prev(state_index::ax) * std::cos(mu_prev(state_index::theta)) * dt_ + mu_prev(state_index::ay) * std::sin(mu_prev(state_index::theta)) * dt_,
         (v / wheel_base) * std::tan(control_input.drive.steering_angle),
         mu_prev(state_index::ax),
@@ -238,20 +241,22 @@ matrix7d EKF::predict_sigma(const matrix7d &sigma_prev, const matrix7d &jacobian
     matrix7d jacobian_g_transpose = jacobian_g.transpose().eval();
     matrix7d sigma_predicted = (jacobian_g * sigma_prev * jacobian_g_transpose + R).eval();
 
-    float max_coeff = sigma_prev.diagonal().maxCoeff();
-    float min_coeff = sigma_prev.diagonal().minCoeff();
-    RCLCPP_INFO(this->get_logger()," pre predicton current max coef is %f and min coeff is %f", max_coeff , min_coeff);
-    RCLCPP_INFO(this->get_logger(),"the largest G coeff is %f", jacobian_g.maxCoeff());
+    if (debug_mode) {
 
-    max_coeff = sigma_predicted.diagonal().maxCoeff();
-    min_coeff = sigma_predicted.diagonal().minCoeff();
-    RCLCPP_INFO(this->get_logger()," post predicton current max coef is %f and min coeff is %f", max_coeff , min_coeff);
+        float max_coeff = sigma_prev.diagonal().maxCoeff();
+        float min_coeff = sigma_prev.diagonal().minCoeff();
+        RCLCPP_INFO(this->get_logger(), " pre predicton current max coef is %f and min coeff is %f", max_coeff, min_coeff);
+        RCLCPP_INFO(this->get_logger(), "the largest G coeff is %f", jacobian_g.maxCoeff());
 
-    for (int i = 0; i < 7; i++)
-    {
-        RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f", jacobian_g(i, 0), jacobian_g(i, 1), jacobian_g(i, 2), jacobian_g(i, 3), jacobian_g(i, 4), jacobian_g(i, 5), jacobian_g(i, 6));
+        max_coeff = sigma_predicted.diagonal().maxCoeff();
+        min_coeff = sigma_predicted.diagonal().minCoeff();
+        RCLCPP_INFO(this->get_logger(), " post predicton current max coef is %f and min coeff is %f", max_coeff, min_coeff);
+
+        RCLCPP_INFO(this->get_logger(), "jacobian G");
+        for (int i = 0; i < 7; i++) {
+            RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f", jacobian_g(i, 0), jacobian_g(i, 1), jacobian_g(i, 2), jacobian_g(i, 3), jacobian_g(i, 4), jacobian_g(i, 5), jacobian_g(i, 6));
+        }
     }
-    error_counter++;
 
     return sigma_predicted.eval();
 }
@@ -261,9 +266,13 @@ matrix7d EKF::calc_jacobian_g(const vector7d &mu_prev, double dt_) {
     matrix7d jacobian;
     jacobian.Zero();
 
-    float DT = dt_, v = mu_prev(state_index::v), theta = mu_prev(state_index::theta), phi = prev_input.drive.steering_angle;
-    float L_WB = wheel_base, ax = mu_prev(state_index::ax), ay = mu_prev(state_index::ay);
-    
+    double DT = dt_, v = mu_prev(state_index::v), theta = mu_prev(state_index::theta), phi = prev_input.drive.steering_angle;
+    double L_WB = wheel_base, ax = mu_prev(state_index::ax), ay = mu_prev(state_index::ay);
+   
+    if (debug_mode) {
+        RCLCPP_INFO(this->get_logger(), "dt is %f, v is %f, theta is %f, phi is %f, wheel_base is %f, ax is %f, ay is %f", DT, theta, phi, L_WB, ax, ay);
+    }
+
     // 1st row
     jacobian(0, 0) = 1.0;
     jacobian(0, 2) = -v * std::sin(theta) * DT;
@@ -304,9 +313,13 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     
     rclcpp::Time current_time = this->now();
     double dt = EKF::calc_dt(current_time,prev_update_time);
-    
+   
+    //don't remove this, if you do, the filter stops working. 
+    //I honestly don't know why
+    //some wierd timing bug, that gets syncrobized when this 
+    //print statement is here
     if (error_counter == 0) {
-        RCLCPP_INFO(this->get_logger(), "first dt is %f", dt);
+        RCLCPP_INFO(this->get_logger(), "current dt is %f", dt);
     }
 
     if (dt <= 1e-6) {
@@ -428,6 +441,10 @@ void EKF::publish_odom() {
 
     nav_msgs::msg::Odometry ekf_msg;
 
+    //lowpass filtering
+    double lowpass_speed = EKF::velocity_lowPass(mu(state_index::v));
+    mu(state_index::v) = lowpass_speed;
+
     ekf_msg.child_frame_id = child_frame;
     ekf_msg.header.frame_id = header_frame;
     ekf_msg.header.stamp = prev_update_time;
@@ -445,6 +462,23 @@ void EKF::publish_odom() {
 
     ekf_msg.twist.twist.linear.x = mu(state_index::v);
     ekf_msg.twist.twist.angular.z = mu(state_index::theta_dot);
+
+    if (debug_mode) {
+        RCLCPP_INFO(this->get_logger(), "covariance matrix sigma t");
+        for (int i = 0; i < 7; i++) {
+            RCLCPP_INFO(this->get_logger(), " %f %f %f %f %f %f %f", sigma_t(i, 0), sigma_t(i, 1), sigma_t(i, 2), sigma_t(i, 3), sigma_t(i, 4), sigma_t(i, 5), sigma_t(i, 6));
+        }
+    }
+
+    //bundle in the covariance with the mesurments
+
+    //pose covariance 
+    ekf_msg.pose.covariance.at(0) = sigma_t(0,0); // x
+    ekf_msg.pose.covariance.at(7) = sigma_t(1,1); // y
+    ekf_msg.pose.covariance.at(35) = sigma_t(2,2); // yaw
+
+    ekf_msg.twist.covariance.at(0) = sigma_t(3,3); // v
+    ekf_msg.twist.covariance.at(35) = sigma_t(4,4); // thata_dot or angular velocity about z axis
 
     ekf_pub->publish(ekf_msg);
 }
@@ -473,6 +507,15 @@ void EKF::publish_tf () {
     tf_broadcaster->sendTransform(t);
 }
 
+double EKF::velocity_lowPass(double current_speed) {
+
+    double lowpass_speed = current_speed * alpha + (1 - alpha) * prev_speed;
+    prev_speed = lowpass_speed;
+
+    return lowpass_speed;
+
+}
+
 void EKF::init_params () {
 
     //topic decliration
@@ -488,6 +531,12 @@ void EKF::init_params () {
 
     //physicl quantity declaration
     this->declare_parameter<double>("wheel_base",0.3240);
+
+    //low pass filter
+    this->declare_parameter<double>("alpha", 0.59);
+
+    //debug mode
+    this->declare_parameter<bool>("debug_mode", false);
 
     //mu inital declaration
     this->declare_parameter<double>("inital_x",0.7412);
@@ -517,13 +566,13 @@ void EKF::init_params () {
     this->declare_parameter<double>("R_ay",3.50);
 
     //declare the sensor noise matrix
-    this->declare_parameter<double>("Q_odom_x",0.75);
+    this->declare_parameter<double>("Q_odom_x",1.5);
     this->declare_parameter<double>("Q_odom_y",1.5);
-    this->declare_parameter<double>("Q_odom_theta",7.0);
+    this->declare_parameter<double>("Q_odom_theta",3.0);
     this->declare_parameter<double>("Q_odom_v",0.75);
-    this->declare_parameter<double>("Q_odom_theta_dot",5.0);
+    this->declare_parameter<double>("Q_odom_theta_dot",3.0);
 
-    this->declare_parameter<double>("Q_imu_theta",0.5);
+    this->declare_parameter<double>("Q_imu_theta",0.45);
     this->declare_parameter<double>("Q_imu_theta_dot",0.5);
     this->declare_parameter<double>("Q_imu_ax",0.65);
     this->declare_parameter<double>("Q_imu_ay",0.65);
@@ -541,6 +590,12 @@ void EKF::init_params () {
 
     //pysical quantity retrival
     wheel_base = this->get_parameter("wheel_base").as_double();
+
+    //low pass filter
+    alpha = this->get_parameter("alpha").as_double();
+
+    //debug mode 
+    debug_mode = this->get_parameter("debug_mode").as_bool();
 
     //initalize mu (starting state vector)
     mu << 
