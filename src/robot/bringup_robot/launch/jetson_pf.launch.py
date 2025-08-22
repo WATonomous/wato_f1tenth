@@ -215,6 +215,12 @@ def generate_launch_description():
         output='screen',
     )
     
+    ekf = Node (
+        package="ackermann_ekf",
+        executable="ekf",
+        name ="ekf",
+        output="screen"
+    )    
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -232,5 +238,6 @@ def generate_launch_description():
     ld.add_action(pf_node)
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
+    ld.add_action(ekf)
     
     return ld

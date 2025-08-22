@@ -166,7 +166,14 @@ def generate_launch_description():
         name='ebreak',
         output='screen',
     )
-        
+    
+    ekf = Node (
+        package="ackermann_ekf",
+        executable="ekf",
+        name ="ekf",
+        output="screen"
+    )    
+     
     # finalize
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -178,5 +185,6 @@ def generate_launch_description():
     ld.add_action(gamepad)
     ld.add_action(ackermann_mux_node)
     ld.add_action(ebreak)
+    ld.add_action(ekf)
 
     return ld

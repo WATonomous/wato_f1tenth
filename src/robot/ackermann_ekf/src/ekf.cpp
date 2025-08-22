@@ -521,7 +521,7 @@ void EKF::init_params () {
     //topic decliration
     this->declare_parameter<std::string>("ekf_topic","/ekf/odom");
     this->declare_parameter<std::string>("odom_topic","/odom");
-    this->declare_parameter<std::string>("imu_topic","/autodrive/f1tenth_1/imu");
+    this->declare_parameter<std::string>("imu_topic","/sensors/imu");
     this->declare_parameter<std::string>("ackermann_topic","/ackermann_cmd");
 
     //frames declaration
@@ -530,18 +530,18 @@ void EKF::init_params () {
     this->declare_parameter<bool>("publish_tf",true);
 
     //physicl quantity declaration
-    this->declare_parameter<double>("wheel_base",0.3240);
+    this->declare_parameter<double>("wheel_base",0.3302);
 
     //low pass filter
-    this->declare_parameter<double>("alpha", 0.59);
+    this->declare_parameter<double>("alpha", 0.55);
 
     //debug mode
     this->declare_parameter<bool>("debug_mode", false);
 
     //mu inital declaration
-    this->declare_parameter<double>("inital_x",0.7412);
-    this->declare_parameter<double>("inital_y",3.1583);
-    this->declare_parameter<double>("inital_theta",-M_PI/1);
+    this->declare_parameter<double>("inital_x",0.0);
+    this->declare_parameter<double>("inital_y",0.0);
+    this->declare_parameter<double>("inital_theta",0.0);
     this->declare_parameter<double>("inital_velocity", 0.0);
     this->declare_parameter<double>("inital_theta_dot", 0.0);
     this->declare_parameter<double>("inital_ax", 0.0);

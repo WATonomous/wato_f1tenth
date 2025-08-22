@@ -169,6 +169,13 @@ def generate_launch_description():
         output='screen',
     )
     
+    ekf = Node (
+        package="ackermann_ekf",
+        executable="ekf",
+        name ="ekf",
+        output="screen"
+    )    
+    
     #add the rviz node 
     rviz2_node = Node (
         package="rviz2",
@@ -207,5 +214,6 @@ def generate_launch_description():
     ld.add_action(ebreak)
     ld.add_action(slam_node)
     ld.add_action(rviz2_node)
+    ld.add_action(ekf)
 
     return ld
