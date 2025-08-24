@@ -313,14 +313,6 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     
     rclcpp::Time current_time = this->now();
     double dt = EKF::calc_dt(current_time,prev_update_time);
-   
-    //don't remove this, if you do, the filter stops working. 
-    //I honestly don't know why
-    //some wierd timing bug, that gets syncrobized when this 
-    //print statement is here
-    if (error_counter == 0) {
-        RCLCPP_INFO(this->get_logger(), "current dt is %f", dt);
-    }
 
     if (dt <= 1e-6) {
         current_prediction.did_error = true;
@@ -533,7 +525,7 @@ void EKF::init_params () {
     this->declare_parameter<double>("wheel_base",0.3240);
 
     //low pass filter
-    this->declare_parameter<double>("alpha", 0.59);
+    this->declare_parameter<double>("alpha", 0.40);
 
     //debug mode
     this->declare_parameter<bool>("debug_mode", false);
