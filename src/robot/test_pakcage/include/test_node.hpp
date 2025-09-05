@@ -9,31 +9,29 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "nav_msgs/msg/odometry.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.h"
 #include "std_msgs/msg/float32.hpp"
-#include "sensor_msgs/msg/imu.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "tf2_msgs/msg/tf_message.hpp"
 
 class Test_Node : public rclcpp::Node {
 public : 
     Test_Node();
 private:
-    //pubs and subs
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr speed_pub;
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr acc_pub_x;
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr acc_pub_y;
-    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr throtel_sub;
-    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr real_theta_pub;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr sim_theta_pub;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+    rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub;
 
+    // the theta values
+    std_msgs::msg::Float32 real_theta, ekf_theta;
 
-    //functions
-    void throtelCallback(const std_msgs::msg::Float32::SharedPtr msg);
-    void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
-
-    //data
-    sensor_msgs::msg::Imu prev_imu;
-    double speed;
-    bool imu_initalized = false;
+    //function
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    void tf_listener(const tf2_msgs::msg::TFMessage::SharedPtr msg);
 
 };
 
