@@ -3,6 +3,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch.actions import TimerAction
 
 import os
 
@@ -73,14 +74,34 @@ def generate_launch_description():
     ld.add_action(wheel_odom_node)
     
     # ekf 
-    ekf = Node (
-        package="ackermann_ekf",
-        executable="ekf",
-        name ="ekf",
-        output="screen"
+    
+    ekf = TimerAction(
+        period=3.0,  # delay in seconds
+        actions=[
+            Node(
+                package="ackermann_ekf",
+                executable="ekf",
+                name="ekf",
+                output="screen"
+            )
+        ]
     )
+    #ekf = Node (
+        #package="ackermann_ekf",
+        #executable="ekf",
+        #name ="ekf",
+        ##output="screen"
+    #)
     
     ld.add_action(ekf)
     
+    test_data = Node (
+        package="test_pakcage",
+        executable="test_node",
+        name ="test_node",
+        output="screen"
+    )
+    
+    ld.add_action(test_data)
 
     return ld

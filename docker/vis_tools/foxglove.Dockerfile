@@ -1,6 +1,5 @@
 ARG BASE_IMAGE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04
 
-
 ################################ Source ################################
 FROM ${BASE_IMAGE} AS source
 
@@ -8,9 +7,6 @@ WORKDIR ${AMENT_WS}/src
 
 # Copy in source code 
 COPY src/wato_msgs wato_msgs
-
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 # Scan for rosdeps
 RUN apt-get -qq update && rosdep update && \
@@ -21,9 +17,6 @@ RUN apt-get -qq update && rosdep update && \
 
 ################################# Dependencies ################################
 FROM ${BASE_IMAGE} AS dependencies
-
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 # Install Foxglove Deps
 RUN apt-get update && apt-get install -y curl ros-humble-ros2bag ros-humble-rosbag2* ros-humble-foxglove-msgs&& \

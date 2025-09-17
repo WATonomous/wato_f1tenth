@@ -314,6 +314,11 @@ prediction EKF::prediction_step(const vector7d &mu_prev, const matrix7d &sigma_p
     rclcpp::Time current_time = this->now();
     double dt = EKF::calc_dt(current_time,prev_update_time);
 
+    // don't touch this, if you remove this, the filter stops working
+    if (error_counter == 0) {
+        RCLCPP_INFO(this->get_logger(), "current dt is %f", dt);
+    }
+
     if (dt <= 1e-6) {
         current_prediction.did_error = true;
         RCLCPP_INFO(this->get_logger(), "dt is too small");

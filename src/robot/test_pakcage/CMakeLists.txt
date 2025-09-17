@@ -14,6 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -30,7 +31,7 @@ endif()
 add_executable(test_node src/test_node.cpp)
 target_include_directories(test_node PUBLIC include)
 
-ament_target_dependencies(test_node rclcpp std_msgs nav_msgs sensor_msgs)
+ament_target_dependencies(test_node rclcpp tf2_msgs std_msgs nav_msgs sensor_msgs)
 
 install(TARGETS
   test_node

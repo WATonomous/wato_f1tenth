@@ -5,13 +5,13 @@ FROM ${BASE_IMAGE} AS source
 
 WORKDIR ${AMENT_WS}/src
 
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-
 # Clean up and update apt-get, then update rosdep
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
+
+RUN sudo apt install -y python3
+RUN sudo apt install -y python3-pip
 
 # Copy in source code
 # COPY src/robot/bringup_robot bringup_robot
@@ -19,9 +19,6 @@ RUN sudo apt-get clean && \
 COPY src/robot .
 
 # Scan for rosdeps
-
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 RUN apt-get -qq update && rosdep update && \
     rosdep install --from-paths . --ignore-src -r -s \
@@ -34,15 +31,34 @@ FROM ${BASE_IMAGE} AS dependencies
 
 # Clean up and update apt-get, then update rosdep
 
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
 
 # ADD MORE DEPENDENCIES HERE
 RUN sudo apt-get install libeigen3-dev
+
+#add the slam toolbox, localizaiton and rviz2
+RUN sudo apt-get update
+RUN sudo apt-get install -y ros-humble-rviz2
+RUN sudo apt-get install -y ros-humble-navigation2
+RUN sudo apt-get install -y ros-humble-slam-toolbox
+
+#add controler support to the container
+RUN sudo apt-get install -y ros-humble-joy 
+RUN sudo apt-get install -y jstest-gtk
+RUN mkdir -p /root/.config/jstest-gtk
+
+#add the nesscary depends for particle filter
+RUN sudo apt-get install -y pip
+RUN sudo pip install cython
+
+RUN mkdir -p /tmp/build && \
+    cd /tmp/build && \
+    git clone https://github.com/f1tenth/range_libc.git && \
+    cd range_libc/pywrapper && \
+    python3 setup.py install && \
+    cd / && rm -rf /tmp/build
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
@@ -63,9 +79,6 @@ FROM dependencies AS build
 
 # Clean up and update apt-get, then update rosdep
 
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
@@ -78,29 +91,6 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
 
 # Source and Build Artifact Cleanup 
 RUN rm -rf src/* build/* devel/* install/* log/*
-
-#add the slam toolbox, localizaiton and rviz2
-RUN sudo apt-get update
-RUN sudo apt-get install -y ros-humble-rviz2
-RUN sudo apt-get install -y ros-humble-navigation2
-RUN sudo apt-get install -y ros-humble-slam-toolbox
-
-#add controler support to the container
-RUN sudo apt-get install -y ros-humble-joy 
-RUN sudo apt-get install -y jstest-gtk
-RUN mkdir -p /root/.config/jstest-gtk
-
-#add the nesscary depends for particle filter
-RUN sudo apt-get install -y pip
-RUN sudo pip3 install cython
-
-RUN mkdir -p /tmp/build && \
-    cd /tmp/build && \
-    git clone https://github.com/f1tenth/range_libc.git && \
-    cd range_libc/pywrapper && \
-    python3 setup.py install && \
-    cd / && rm -rf /tmp/build
-
 
 # Entrypoint will run before any CMD on launch. Sources ~/opt/<ROS_DISTRO>/setup.bash and ~/ament_ws/install/setup.bash
 COPY docker/wato_ros_entrypoint.sh ${AMENT_WS}/wato_ros_entrypoint.sh
