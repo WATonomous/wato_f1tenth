@@ -92,29 +92,7 @@ void Planning::publisher_timer_callback(){
   // Publish the marker
 }
 
-void Planning::generate_traj(){
-
-  std::vector<std::vector<Point>> trajs;
-  Point pose = Point(ego_car.get_x(), ego_car.get_y(), ego_car.get_theta(), 0.0);
-
-  //startup init
-  if(current_lane_idx == -1){
-    int idx = lattice.find_closest_vertices_idx(ego_car);
-    lattice.generateCurve(pose, lattice.get_raceline_vertex(idx), 25, local_traj);
-    current_lane_idx = vertices_per_step;
-  }
-
-  trajs = current_lane_idx == vertices_per_step ? trajs = lattice.getTrajectories(ego_car) : lattice.getTrajectories(ego_car, false, current_lane_idx);
-
-  //replace with cost map
-  if (vertices_per_step < trajs.size()) {
-    for (auto& point : trajs[vertices_per_step]) {
-        local_traj.push_back(point);
-    }
-  }
-  current_lane_idx = vertices_per_step;
-
-}
+// TBA
 
 //visulization
 void Planning::publish_markers()

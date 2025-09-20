@@ -5,7 +5,7 @@ Car::Car() : x(0), y(0), z(0), theta(0), q(0, 0, 0, 1),
              lateral_vector(0, 1, 0), 
              vertical_vector(0, 0, 1) {}
 
-             
+
 void Car::update_values(const geometry_msgs::msg::Pose car_pose){
     x = car_pose.position.x;
     y = car_pose.position.y;
@@ -26,13 +26,4 @@ void Car::update_unit_vectors(const tf2::Quaternion& q){
 }
 
 
-void Car::update_theta() {
-    tf2::Vector3 x_unit(1, 0, 0);  // Reference X-axis vector
-
-    if (forward_vector.length() > 0) {
-        forward_vector.normalize();
-    }
-    double angle = std::atan2(forward_vector.y(), forward_vector.x());
-
-    theta = angle;
-}
+// add car change

@@ -190,44 +190,8 @@ Eigen::Matrix4d Lattice::computeJacobian(const Point& start, const Point& target
     return J;
 }
 
-// Iteratively refine curve using Newton's method
-void Lattice::generateCurve(Point start, Point target, int steps, std::vector<Point>& points) {
-    double p1 = (start.kappa + target.kappa)/2;
-    double p2 = p1;
-    double s = euc_dist(start.x, target.x, start.y, target.y);
+// Iteratively refine curve using Newton's method _> TBA
 
-    Eigen::Vector3d params(p1, p2, s);
-    
-    const int maxIterations = 20;
-    const double tolerance = 0.25; //cm
-    double norm;
-
-    for (int iter = 0; iter < maxIterations; ++iter) {
-        points.clear();
-
-        double a, b, c, d;
-        calculateSpiralCoeffs(start.kappa, params[0], params[1], target.kappa, params[2], a, b, c, d);
-        Point final_state = generateSpiral(start, a, b, c, d, params[2], steps, points);
-
-        Eigen::Vector4d error = computeError(final_state, target);
-        norm = error.norm();
-
-        std::cout << "Iteration " << iter << " | Error norm: " << norm << std::endl;
-
-        if (norm < tolerance) break;
-
-        Eigen::Matrix4d J = computeJacobian(start, target, params, steps);
-        Eigen::Vector3d delta = J.topLeftCorner(3, 3).inverse() * error.head(3);
-
-        params -= delta;
-    }
-    
-    if (norm > tolerance){ 
-        //if the paths are not converging, try repeat the process with Damping Factor (Levenberg–Marquardt Style)
-        std::cerr << "Newton's method did not converge after 20 iterations. Final error: " << norm << "\n";
-    }
-
-}
 
 // int main() {
 //     Point start = {0.0, 0.0, 0.0, 0.0};
