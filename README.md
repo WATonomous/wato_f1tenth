@@ -16,7 +16,7 @@ A lot of our software architecture choices are based on the rules.
 
 ### Environment Setup
 
-Our infrastructure consists of 1) AUTODrive physics simulator connected to 2) Docker environment. As such, you'll have to go through the `infra-setup.md` and follow the steps.
+Our infrastructure consists of 1) AUTODrive physics simulator connected to 2) Docker environment. As such, you'll have to go through the `setup-windows.md` and `setup-linux.md` and follow the steps.
 
 ## Your First Mini Component
 
