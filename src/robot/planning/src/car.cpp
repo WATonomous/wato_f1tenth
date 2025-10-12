@@ -5,6 +5,7 @@ Car::Car() : x(0), y(0), z(0), theta(0), q(0, 0, 0, 1),
              lateral_vector(0, 1, 0), 
              vertical_vector(0, 0, 1) {}
 
+             
 void Car::update_values(const geometry_msgs::msg::Pose car_pose){
     x = car_pose.position.x;
     y = car_pose.position.y;
