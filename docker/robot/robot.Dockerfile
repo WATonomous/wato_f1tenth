@@ -46,6 +46,7 @@ RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_li
 # Copy in source code from source stage
 WORKDIR ${AMENT_WS}
 COPY --from=source ${AMENT_WS}/src src
+COPY config/sample_settings/*.json .vscode/
 
 #add support for controller
 RUN sudo apt-get install -y ros-humble-joy 
