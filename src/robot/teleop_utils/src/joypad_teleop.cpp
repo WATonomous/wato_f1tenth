@@ -107,8 +107,7 @@ float JOYPAD::steering_mapper(const float ls) {
     return ls * steering_gain;
 }
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<JOYPAD>());
   rclcpp::shutdown();
