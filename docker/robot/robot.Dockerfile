@@ -10,12 +10,16 @@ RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
 
+RUN sudo apt install -y python3
+RUN sudo apt install -y python3-pip
+
 # Copy in source code
 # COPY src/robot/bringup_robot bringup_robot
 # COPY src/robot/gym_vis gym_vis
 COPY src/robot .
 
 # Scan for rosdeps
+
 RUN apt-get -qq update && rosdep update && \
     rosdep install --from-paths . --ignore-src -r -s \
         | grep 'apt-get install' \
@@ -26,14 +30,17 @@ RUN apt-get -qq update && rosdep update && \
 FROM ${BASE_IMAGE} AS dependencies
 
 # Clean up and update apt-get, then update rosdep
+
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
 
 # ADD MORE DEPENDENCIES HERE
+RUN sudo apt-get install libeigen3-dev
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
+RUN apt-get update
 RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
 
 # Copy in source code from source stage
@@ -49,6 +56,7 @@ RUN apt-get -qq autoremove -y && apt-get -qq autoclean && apt-get -qq clean && \
 FROM dependencies AS build
 
 # Clean up and update apt-get, then update rosdep
+
 RUN sudo apt-get clean && \
     sudo apt-get update && \
     sudo rosdep update
