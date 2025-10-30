@@ -9,13 +9,20 @@ gears as in ability to shift though gears like a gt car
 JOYPAD::JOYPAD () : Node ("joypad_node") {
 
     //parameters
-    this->declare_parameter<std::string>("gamepad_topic","/ackermann_cmd");
+    this->declare_parameter<std::string>("gamepad_topic","/drive/joystick");
     this->declare_parameter<std::string>("joy_topic","/joy");
     this->declare_parameter<std::string>("my_frame_id","base_link");
 
     this->declare_parameter<float>("max_speed",22.88);
     this->declare_parameter<float>("steering_gain",0.5236);
     this->declare_parameter<float>("max_steering_rate",3.2);
+
+    this->declare_parameter<int>("steering_axis",0);
+    this->declare_parameter<int>("throttel_axis",5);
+    this->declare_parameter<int>("break_axis",2);
+    this->declare_parameter<int>("safety_button",0);
+    this->declare_parameter<int>("reverse_button",4);
+    this->declare_parameter<int>("pit_limit_button",5);
 
     gamepad_topic = this->get_parameter("gamepad_topic").as_string();
     joy_topic = this->get_parameter("joy_topic").as_string();
@@ -24,6 +31,15 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     max_speed = this->get_parameter("max_speed").as_double();
     max_steering_rate = this->get_parameter("max_steering_rate").as_double();
     steering_gain = this->get_parameter("steering_gain").as_double();
+
+    // button 
+    ba.steering_axis = this->get_parameter("steering_axis").as_int();
+    ba.throttle_axis = this->get_parameter("throttel_axis").as_int();
+    ba.break_axis = this->get_parameter("break_axis").as_int();
+
+    ba.safety_button = this->get_parameter("safety_button").as_int();
+    ba.reverse_button = this->get_parameter("reverse_button").as_int();
+    ba.pitLimit_button = this->get_parameter("pit_limit_button").as_int();
 
 
     //pubs and sub
@@ -50,19 +66,19 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     bool pit_speed_limit = false;
 
     //emergancy / deadman switch
-    if (!msg->buttons.at(0)) {
+    if (!msg->buttons.at(ba.safety_button)) {
         drive_msg.drive = emergancy_drive_msg;
         ackerman_pub->publish(drive_msg);
         //RCLCPP_INFO(this->get_logger(),"press x to activate drive");
         return;
     }
 
-    float current_steering = JOYPAD::steering_mapper(msg->axes.at(0));
-    float current_throtel = JOYPAD::trigger_maper(msg->axes.at(5));
-    float current_break = JOYPAD::trigger_maper(msg->axes.at(2));
+    float current_steering = JOYPAD::steering_mapper(msg->axes.at(ba.steering_axis));
+    float current_throtel = JOYPAD::trigger_maper(msg->axes.at(ba.throttle_axis));
+    float current_break = JOYPAD::trigger_maper(msg->axes.at(ba.break_axis));
 
     //reversing
-    if (msg->buttons.at(1)) {
+    if (msg->buttons.at(ba.reverse_button)) {
         reversing = true;
         direction = -1 ;
     } else {
@@ -70,7 +86,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
         direction = 1;
     }
 
-    if (msg->buttons.at(2)) {
+    if (msg->buttons.at(ba.pitLimit_button)) {
         pit_speed_limit = true;
     }
 

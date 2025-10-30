@@ -13,6 +13,15 @@
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 
+struct button_and_axis {
+    int throttle_axis,
+        steering_axis, 
+        break_axis, 
+        safety_button,
+        reverse_button,
+        pitLimit_button;
+};
+
 class JOYPAD : public rclcpp::Node {
 public:
 
@@ -37,6 +46,9 @@ private:
     //data
     float direction = 1;
     bool reversing = false;
+
+    //buttons
+    button_and_axis ba;
 
 };
 
