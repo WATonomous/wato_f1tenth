@@ -26,7 +26,7 @@ private:
     //functions
     void laser_callback(sensor_msgs::msg::LaserScan::SharedPtr msg) {
         sensor_msgs::msg::LaserScan new_scan = *msg;
-        new_scan.header.set__frame_id("laser_scaner");
+        new_scan.header.set__frame_id("laser");
         scan_pub->publish(new_scan);
     }
 

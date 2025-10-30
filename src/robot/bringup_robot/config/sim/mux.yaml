@@ -1,0 +1,19 @@
+ackermann_mux:
+  ros__parameters:
+    topics:
+      emergency:
+        topic   : /drive/ebreak
+        timeout : 0.2
+        priority: 50
+      joystick:
+        topic   : /drive/joystick
+        timeout : 0.2
+        priority: 25
+      keyboard:
+        topic: /drive/keyboard
+        timeout: 0.2
+        priority: 25
+      autonomy:
+        topic: /drive/autonomy
+        timeout: 0.2
+        priority: 15
