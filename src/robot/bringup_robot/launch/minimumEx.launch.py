@@ -104,5 +104,15 @@ def generate_launch_description():
     )     
     
     ld.add_action(ackermann_mux_node)
+    
+    #keyboard teleop node (you can coment this node out, if you are using controller)
+    # to use this, bring up the teleop pannel in foxgolove
+    keyboard_converter = Node (
+        package='teleop_utils',
+        executable='keyboard_converter',
+        name='keyboard_converter',
+    )
+    
+    ld.add_action(keyboard_converter)
      
     return ld

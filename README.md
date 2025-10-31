@@ -29,4 +29,6 @@ References: https://autodrive-ecosystem.github.io/competitions/f1tenth-sim-racin
 
 note: This rosnode skeleton you'll most likely be building ontop of for your actual task, so getting this working well (no build errors, etc.) will save a lot of time in the future.
 
+you can use the minimuxEx launch file in bringup robot to base your own launch files. its is filled with comments to help you understand how our stack functions.
+
 ### Good Luck! 
