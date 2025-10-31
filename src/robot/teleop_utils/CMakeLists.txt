@@ -14,6 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -31,8 +32,13 @@ add_executable(joypad_node src/joypad_teleop.cpp)
 target_include_directories(joypad_node PUBLIC include)
 ament_target_dependencies(joypad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
 
+add_executable(keyboard_converter src/keyboard_converter.cpp)
+target_include_directories(keyboard_converter PUBLIC include)
+ament_target_dependencies(keyboard_converter rclcpp ackermann_msgs geometry_msgs)
+
 install(TARGETS
   joypad_node
+  keyboard_converter
   DESTINATION lib/${PROJECT_NAME}
 )
 
