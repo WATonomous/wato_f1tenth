@@ -190,7 +190,69 @@ Eigen::Matrix4d Lattice::computeJacobian(const Point& start, const Point& target
     return J;
 }
 
-// Iteratively refine curve using Newton's method _> TBA
+// Iteratively refine curve using Newton's method 
+void Lattice::generateCurve(Point start, Point target, int steps, std::vector<Point>& points) {
+    double p1 = (start.kappa + target.kappa)/2;
+    double p2 = p1;
+    double s = euc_dist(start.x, target.x, start.y, target.y);
+
+    Eigen::Vector3d params(p1, p2, s);
+    
+    const int maxIterations = 20;
+    const double tolerance = 0.25; //cm
+    double norm;
+
+    for (int iter = 0; iter < maxIterations; ++iter) {
+        points.clear();
+
+        double a, b, c, d;
+        calculateSpiralCoeffs(start.kappa, params[0], params[1], target.kappa, params[2], a, b, c, d);
+        Point final_state = generateSpiral(start, a, b, c, d, params[2], steps, points);
+
+        Eigen::Vector4d error = computeError(final_state, target);
+        norm = error.norm();
+
+        std::cout << "Iteration " << iter << " | Error norm: " << norm << std::endl;
+
+        if (norm < tolerance) break;
+
+        Eigen::Matrix4d J = computeJacobian(start, target, params, steps);
+        Eigen::Vector3d delta = J.topLeftCorner(3, 3).inverse() * error.head(3);
+
+        params -= delta;
+    }
+    
+    if (norm > tolerance){ 
+        //if the paths are not converging, try repeat the process with Damping Factor (Levenberg–Marquardt Style)
+        std::cerr << "Newton's method did not converge after 20 iterations. Final error: " << norm << "\n";
+    }
+
+}
+
+
+void Planning::generate_traj(){
+
+  std::vector<std::vector<Point>> trajs;
+  Point pose = Point(ego_car.get_x(), ego_car.get_y(), ego_car.get_theta(), 0.0);
+
+  //startup init
+  if(current_lane_idx == -1){
+    int idx = lattice.find_closest_vertices_idx(ego_car);
+    lattice.generateCurve(pose, lattice.get_raceline_vertex(idx), 25, local_traj);
+    current_lane_idx = vertices_per_step;
+  }
+
+  trajs = current_lane_idx == vertices_per_step ? trajs = lattice.getTrajectories(ego_car) : lattice.getTrajectories(ego_car, false, current_lane_idx);
+
+  //replace with cost map
+  if (vertices_per_step < trajs.size()) {
+    for (auto& point : trajs[vertices_per_step]) {
+        local_traj.push_back(point);
+    }
+  }
+  current_lane_idx = vertices_per_step;
+
+}
 
 
 // int main() {

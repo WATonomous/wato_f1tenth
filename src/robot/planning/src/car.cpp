@@ -26,4 +26,14 @@ void Car::update_unit_vectors(const tf2::Quaternion& q){
 }
 
 
-// add car change
+void Car::update_theta() {
+    tf2::Vector3 x_unit(1, 0, 0);  // Reference X-axis vector
+
+    if (forward_vector.length() > 0) {
+        forward_vector.normalize();
+    }
+    double angle = std::atan2(forward_vector.y(), forward_vector.x());
+
+    theta = angle;
+}
+
