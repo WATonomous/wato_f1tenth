@@ -16,7 +16,7 @@
 11. In the opened VSCode window select the `/home/bolty/ament_ws` folder. This will be where you do your development!
 
 #### Connecting the AutoDRIVE Simulator
-1. Download the `practice` simulator from: https://autodrive-ecosystem.github.io/competitions/f1tenth-sim-racing-iros-2024/#resources
+1. Download the `practice` simulator from: https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-F1TENTH-Sim-Racing/releases/tag/2024-cdc 
 2. Unzip the download and run `AutoDRIVE Simulator.exe` inside the folder
 3. Open the left menu on the simulator application
 4. Press on the button "Disconnected" to attempt connection to your running watod containers. The default port should already be 4567.
