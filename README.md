@@ -16,7 +16,7 @@ A lot of our software architecture choices are based on the rules.
 
 ### Environment Setup
 
-Our infrastructure consists of 1) AUTODrive physics simulator connected to 2) Docker environment. As such, you'll have to go through the `setup-windows.md` and `setup-linux.md` and follow the steps.
+Our infrastructure consists of 1) AUTODrive physics simulator connected to 2) Docker environment. As such, you'll have to go through the `setup-windows.md` or `setup-linux.md` and follow the steps.
 
 ## Your First Mini Component
 
@@ -29,6 +29,8 @@ References: https://autodrive-ecosystem.github.io/competitions/f1tenth-sim-racin
 
 note: This rosnode skeleton you'll most likely be building ontop of for your actual task, so getting this working well (no build errors, etc.) will save a lot of time in the future.
 
-you can use the minimuxEx launch file in bringup robot to base your own launch files. its is filled with comments to help you understand how our stack functions.
+## Whats next ? 
+
+go read the `infra-structure.md` located in `/src/robot/bringup_robot`
 
 ### Good Luck! 
