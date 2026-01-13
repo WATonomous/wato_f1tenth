@@ -8,13 +8,6 @@ to get setup and start developing on the AutoDRIVE sim, you will need to followi
 3. setup the wato_f1teenth workspace
 4. Download the Autodrive sim 
 
-Additionally, I can only guarantee that this works on on the following linux distros, as these are only ones tested : 
-1. Ubuntu 24.04 (LTS)
-2. Ubuntu 22.04 (LTS)
-3. Fedora 42 
-
-you can try to install or follow the guide if you are on other distros, but support can't be guarantee
-
 ## Installing Docker
 
 Installing Docker is pretty intuitive, However it is not recomended that you install it using your package manager such as apt or dnf. its is recomended that your go the docker website and follow the instruction for your own distro 
@@ -31,8 +24,28 @@ before you install the Nvidia Container toolkit, ensure that your Nvidia drivers
 nvidia-smi
 ```
 if the drivers are installed properly, you should see an output simmilar to this with your gpu: 
-![alt text](config/images/image.png)
+```
+Tue Jan 13 17:55:31 2026
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 590.48.01              Driver Version: 591.59         CUDA Version: 13.1     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 5070 ...    On  |   00000000:02:00.0 Off |                  N/A |
+| N/A   35C    P2             12W /   60W |       0MiB /   8151MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
 
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+```
 if you don't see something like this, that means that your drivers are not installed properly, and you need to go install them. 
 
 you can use the following docs provided by Nvidia or any yt tutorial of your choice to get the job done. [link to driver install](https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/index.html) 

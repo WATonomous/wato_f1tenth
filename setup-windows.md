@@ -15,6 +15,10 @@
 10. From the extension pannel, right click on the `-robot_dev-1` container and attach a VSCode.
 11. In the opened VSCode window select the `/home/bolty/ament_ws` folder. This will be where you do your development!
 
+**OPTIONAL**
+if you have a nvidia-gpu, you can install the nvidia-container-toolkit inside of wsl to give you docker
+container access to your gpu. important for running some of the algos we use, but you most likely won't need it
+
 #### Connecting the AutoDRIVE Simulator
 1. Download the `practice` simulator from: https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-F1TENTH-Sim-Racing/releases/tag/2024-cdc 
 2. Unzip the download and run `AutoDRIVE Simulator.exe` inside the folder
