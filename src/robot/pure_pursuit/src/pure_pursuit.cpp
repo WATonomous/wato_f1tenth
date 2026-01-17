@@ -1,315 +1,425 @@
-#include "rclcpp/rclcpp.hpp"
+#include "pure_pursuit.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "visualization_msgs/msg/marker.hpp"
 #include "geometry_msgs/msg/point.hpp"
-#include "std_msgs/msg/float32.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
-#include <chrono>
-
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <string>
 #include <cmath>
+#include <vector>
+#include <utility>
+#include <iostream>
+#include <tf2/utils.h>
 #include <algorithm>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <stdexcept>
+
 
 using namespace std;
 
 class PurePursuit : public rclcpp::Node {
-public:
-    PurePursuit()
-    : Node("pure_pursuit"),
-      received_pose_(false),
-      last_point_(0),
-      steering_angle_(0.0),
-      throttle_cmd_(0.0),
-      current_speed_(0.0),
-      have_prev_pos_(false)
-    {
-        // Load waypoints
-        string package_path = ament_index_cpp::get_package_share_directory("pure_pursuit");
-        string file_path = package_path + "/assets/autoDriveRaceline_with_vel.csv";
 
-        if (!loadWaypoints(file_path)) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to load waypoints");
-        }
+  public:
+    PurePursuit(): Node("pure_pursuit") {
 
-        // ---- Subscribers ----
-        ips_sub_ = this->create_subscription<geometry_msgs::msg::Point>(
-            "/autodrive/f1tenth_1/ips", 10,
-            std::bind(&PurePursuit::ipsCallback, this, std::placeholders::_1));
+      waypoints = {};
+      velocities = {};
+  
+      string package_path = ament_index_cpp::get_package_share_directory("pure_pursuit");
+      string file_path = package_path + "/assets/autoDriveRaceline_with_vel.csv";
 
-        speed_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-            "/autodrive/f1tenth_1/speed", 10,
-            std::bind(&PurePursuit::speedCallback, this, std::placeholders::_1));
+      pointsFile.open(file_path);
+      if (pointsFile.is_open()) {
+        RCLCPP_INFO(this->get_logger(), "Successfully opened waypoints file: %s", file_path.c_str());
+      } else {
+        RCLCPP_ERROR(this->get_logger(), "Failed to open waypoints file: %s", file_path.c_str());
+      }
+            
+      addWaypointsRaceline(pointsFile);
+      num_waypoints = static_cast<int>(waypoints.size());
 
-        // ---- Publishers ----
-        throttle_pub_ = this->create_publisher<std_msgs::msg::Float32>(
-            "/autodrive/f1tenth_1/throttle_command", 10);
+      if (num_waypoints == 0) {
+        RCLCPP_FATAL(this->get_logger(), "No waypoints loaded for pure_pursuit — shutting down node");
+        throw std::runtime_error("No waypoints loaded");
+      }
 
-        steering_pub_ = this->create_publisher<std_msgs::msg::Float32>(
-            "/autodrive/f1tenth_1/steering_command", 10);
+      goal_point = waypoints[0];
 
-        // ---- Control loop ----
-        control_timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(50),
-            std::bind(&PurePursuit::controlLoop, this));
+      // SUBSCRIBERS ------------------------------------------------------------------------------------------------------------------
+      odom_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            "/odom", 10, bind(&PurePursuit::odomCallback, this, placeholders::_1)
+      );
+
+      // pose_subscriber_ = this->create_subscription<visualization_msgs::msg::Marker>(
+      //       "/f1tenth_car", 10, bind(&PurePursuit::pose_callback, this, placeholders::_1)
+      // );
+      // ------------------------------------------------------------------------------------------------------------------------------
+
+      // TIMERS -----------------------------------------------------------------------------------------------------------------------
+      odom_timer_ = this->create_wall_timer(
+        chrono::seconds(2), 
+        bind(&PurePursuit::odomTimerCallback, this));
+
+      drive_timer_ = this->create_wall_timer(
+        chrono::milliseconds(100), 
+        bind(&PurePursuit::driveTimerCallback, this));
+
+      // pose_timer_ = this->create_wall_timer(
+      //   chrono::seconds(2), 
+      //   bind(&PurePursuit::poseTimerCallback, this));
+      
+      goal_point_task = this->create_wall_timer(
+        std::chrono::milliseconds(10),
+        std::bind(&PurePursuit::gptask_callback, this)
+      );
+      // ------------------------------------------------------------------------------------------------------------------------------
+
+      // PUBLISHERS -------------------------------------------------------------------------------------------------------------------
+      drive_publisher_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>("/drive", 10);
+      // ------------------------------------------------------------------------------------------------------------------------------    
     }
 
-private:
-    // ---------------- Waypoints ----------------
-    vector<pair<double,double>> waypoints_;
-    vector<double> velocities_;
-    size_t last_point_;
+  private:
 
-    // ---------------- ROS ----------------
-    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr ips_sub_;
-    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr speed_sub_;
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr throttle_pub_;
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr steering_pub_;
-    rclcpp::TimerBase::SharedPtr control_timer_;
+    vector<pair<double, double>> waypoints;
+    vector<double> velocities;
+    ifstream pointsFile;
+    void addWaypoints(ifstream &file);
+    void addWaypointsRaceline(ifstream &file);
+    int num_waypoints;
 
-    // ---------------- Vehicle State ----------------
-    double current_x_, current_y_, heading_;
-    double prev_x_, prev_y_;
-    bool received_pose_;
-    bool have_prev_pos_;
-    double current_speed_;
-    double steering_angle_;
-    double throttle_cmd_;
-    double target_speed_;
+    // Odom Data
+    rclcpp::TimerBase::SharedPtr odom_timer_;
+    nav_msgs::msg::Odometry::SharedPtr last_odom_msg_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscriber_;
+    void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    void odomTimerCallback();
 
-    // ---------------- Callbacks ----------------
-    void ipsCallback(const geometry_msgs::msg::Point::SharedPtr msg) {
-        current_x_ = msg->x;
-        current_y_ = msg->y;
+    // Drive
+    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr drive_publisher_;
+    rclcpp::TimerBase::SharedPtr drive_timer_;
+    double target_speed;
+    void driveTimerCallback();
 
-        if (have_prev_pos_) {
-            double dx = current_x_ - prev_x_;
-            double dy = current_y_ - prev_y_;
-            if (hypot(dx, dy) > 1e-4) {
-                heading_ = atan2(dy, dx);
-            }
-        }
+    // // Car Pose
+    // void pose_callback(const visualization_msgs::msg::Marker::SharedPtr msg);
+    // void poseTimerCallback();
+    // rclcpp::TimerBase::SharedPtr pose_timer_;
+    // visualization_msgs::msg::Marker::SharedPtr current_pose_;
+    geometry_msgs::msg::Point carPosition;
+    // rclcpp::Subscription<visualization_msgs::msg::Marker>::SharedPtr pose_subscriber_;
 
-        prev_x_ = current_x_;
-        prev_y_ = current_y_;
-        have_prev_pos_ = true;
-        received_pose_ = true;
-    }
-
-    void speedCallback(const std_msgs::msg::Float32::SharedPtr msg) {
-        current_speed_ = msg->data;
-    }
-
-    // ---------------- Control Loop ----------------
-    void controlLoop() {
-        if (!received_pose_) {
-            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-                                 "No pose received yet; skipping control loop.");
-            return;
-        }
-
-        if (waypoints_.empty()) {
-            RCLCPP_WARN(this->get_logger(), "Waypoints are empty; skipping control loop.");
-            return;
-        }
-
-        double base_speed = velocities_.empty() 
-            ? 0.2 
-            : velocities_[std::min(last_point_, velocities_.size()-1)];
-
-        double ld = std::clamp(2.0 + 0.3 * base_speed, 1.5, 4.0);
-        
-        // Compute steering first (curvature computed inside)
-        computeSteering(ld);
-
-        // Use curvature / steering_angle_ to limit speed for sharp turns
-        double max_lateral_accel = 2.0; // m/s^2, adjust to your robot
-        
-        // safe_speed = sqrt(a_max / |curvature|), approximate with steering_angle_
-        double safe_speed = std::sqrt(max_lateral_accel / std::max(fabs(steering_angle_), 0.0001));
-
-        // Clamp target speed between waypoint speed and safe speed
-        double min_speed = 0.2;
-        double max_speed = 2.0;
-
-        target_speed_ = std::clamp(base_speed, min_speed, safe_speed);
-
-        computeThrottle();
-        publishCommands();
-
-        RCLCPP_INFO(this->get_logger(),
-            "Current speed: %.2f | Target speed: %.2f | Throttle: %.2f | Steering angle: %.2f rad",
-            current_speed_, target_speed_, throttle_cmd_, steering_angle_);
-    }
-
-    // ---------------- Pure Pursuit ----------------
-    void computeSteering(double ld) {
-        auto goal = getGoalPoint(ld);
-
-        double dx = goal.first  - current_x_;
-        double dy = goal.second - current_y_;
-
-        // Transform to vehicle frame
-        double x_r =  cos(heading_) * dx + sin(heading_) * dy;
-        double y_r = -sin(heading_) * dx + cos(heading_) * dy;
-
-        double curvature = (2.0 * y_r) / (ld * ld);
-        double wheelbase = 1.0;
-
-        double desired_steering = atan(curvature * wheelbase);
-
-        // Clamp to car limits
-        desired_steering = std::clamp(desired_steering, -0.418, 0.418);
-
-        // Smooth with low-pass filter
-        double alpha = 0.2;
-        steering_angle_ = alpha * desired_steering + (1.0 - alpha) * steering_angle_;
-    }
-
-    void computeThrottle() {
-        double kp = 0.6;
-        throttle_cmd_ = std::clamp(kp * (target_speed_ - current_speed_), 0.0, 1.0);
-    }
-
-    void publishCommands() {
-        std_msgs::msg::Float32 t, s;
-        t.data = throttle_cmd_;
-        s.data = steering_angle_;
-        throttle_pub_->publish(t);
-        steering_pub_->publish(s);
-    }
-
-    // ---------------- Helpers ----------------
-    double distance(pair<double,double> a, pair<double,double> b) {
-        return hypot(a.first - b.first, a.second - b.second);
-    }
-
-    pair<double,double> getGoalPoint(double ld) {
-        pair<double,double> car = {current_x_, current_y_};
-        for (size_t i = last_point_; i < waypoints_.size(); i++) {
-            if (distance(car, waypoints_[i]) >= ld) {
-                last_point_ = i;
-                return waypoints_[i];
-            }
-        }
-        return waypoints_.back();
-    }
-
-    bool loadWaypoints(const string &file) {
-        ifstream infile(file);
-        if (!infile.is_open()) return false;
-
-        string line;
-        getline(infile, line);
-        while (getline(infile, line)) {
-            stringstream ss(line);
-            string s, x, y, psi, kappa, vx, ax;
-            if (!getline(ss, s, ',') || !getline(ss, x, ',') ||
-                !getline(ss, y, ',') || !getline(ss, psi, ',') ||
-                !getline(ss, kappa, ',') || !getline(ss, vx, ',') ||
-                !getline(ss, ax, ',')) continue;
-
-            waypoints_.emplace_back(stod(x), stod(y));
-            velocities_.emplace_back(stod(vx));
-        }
-        return true;
-    }
+    // Goal Point
+    pair<double, double> getGoalPoint(double ld, geometry_msgs::msg::Point carPos);
+    double pointDistance(pair<double, double> car, pair<double, double> point);
+    pair<double, double> interpolatedPoint(double ld, pair<double, double> p1, pair<double, double> p2, pair<double, double> car);
+    double sgn(double num);
+    bool checkSolution(double maxX, double minX, double maxY, double minY, pair<double, double> sol);
+    double f(double x);
+    pair<double, double> goal_point;
+    rclcpp::TimerBase::SharedPtr goal_point_task;
+    void gptask_callback();
+    int last_point = 0;
+    double steering_angle;
+    double heading;
 };
 
-int main(int argc, char **argv) {
-    rclcpp::init(argc, argv);
-    rclcpp::spin(make_shared<PurePursuit>());
-    rclcpp::shutdown();
-    return 0;
+void PurePursuit::addWaypointsRaceline(ifstream &file) {
+    string line;
+    char delim = ',';
+
+    // Skip header
+    getline(file, line);
+
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+
+        stringstream ss(line);
+        string s_m_str, x_str, y_str, psi_str, kappa_str, vx_str, ax_str;
+
+        if (!getline(ss, s_m_str, delim) || 
+            !getline(ss, x_str, delim) || 
+            !getline(ss, y_str, delim) || 
+            !getline(ss, psi_str, delim) || 
+            !getline(ss, kappa_str, delim) || 
+            !getline(ss, vx_str, delim) || 
+            !getline(ss, ax_str, delim)) {
+            RCLCPP_WARN(this->get_logger(), "Failed to parse line: %s", line.c_str());
+            continue;
+        }
+
+        try {
+            double x = stod(x_str);
+            double y = stod(y_str);
+            double v = stod(vx_str);
+            waypoints.emplace_back(x, y);
+            velocities.emplace_back(v);
+        } catch (const std::exception &e) {
+            RCLCPP_WARN(this->get_logger(), "Invalid numeric value in line: %s", line.c_str());
+            continue;
+        }
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Loaded %zu waypoints and %zu velocities", waypoints.size(), velocities.size());
 }
 
 
+// void PurePursuit::addWaypoints(ifstream &file) {
+//   string line;
+//   bool first_line = true;  
 
-    // ---------------- Goal Point Search ----------------
-    // pair<double,double> getGoalPoint(double ld, const geometry_msgs::msg::Point &carPos) {
-    //     pair<double,double> car_point = {carPos.x, carPos.y};
-    //     pair<double,double> best_point = waypoints_.back();  // fallback
+//   while (getline(file, line)) {  
+//     if (first_line) {
+//       first_line = false;
+//       continue; 
+//     }
 
-    //     for(size_t i = last_point_; i < waypoints_.size(); i++) {
-    //         double dist = pointDistance(car_point, waypoints_[i]);
+//     stringstream ss(line);
+//     string x_str, y_str;
+    
+//     if (!getline(ss, x_str, ',') || !getline(ss, y_str, ',')) {
+//       continue;  
+//     }
 
-    //         // First waypoint past the lookahead distance
-    //         if (dist >= ld) {
-    //             last_point_ = i;
-    //             return waypoints_[i];
-    //         }
-    //         // If we just crossed the ld threshold between i-1 and i
-    //         if (i > 0 && pointDistance(car_point, waypoints_[i-1]) < ld && dist > ld) {
-    //             auto sol = interpolatedPoint(ld, waypoints_[i], waypoints_[i-1], car_point);
-    //             if (sol.first != -1.0) {
-    //                 last_point_ = i;
-    //                 return sol;
-    //             }
-    //         }
-    //     }
-
-    //     return best_point;
-    // }
+//     double x = stod(x_str);
+//     double y = stod(y_str);
+//     waypoints.emplace_back(x, y);
+//   }
+// }
 
 
-    // // ---------------- Lookahead Interpolation ----------------
-    // pair<double,double> interpolatedPoint(double ld,
-    //                                     pair<double,double> p1,
-    //                                     pair<double,double> p2,
-    //                                     pair<double,double> car) 
-    // {
-    //     // Convert to car-centered frame for intersection
-    //     double x1 = p1.first  - car.first;
-    //     double y1 = p1.second - car.second;
-    //     double x2 = p2.first  - car.first;
-    //     double y2 = p2.second - car.second;
+// ODOM SUBSCRIBER CALLBACKS -----------------------------------------------------------------------------------------------------------
+void PurePursuit::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg){
+  last_odom_msg_ = msg;
 
-    //     double dx = x2 - x1;
-    //     double dy = y2 - y1;
+  carPosition = msg->pose.pose.position;
+  heading = tf2::getYaw(msg->pose.pose.orientation);
+  RCLCPP_INFO_THROTTLE(
+    this->get_logger(),
+    *this->get_clock(),
+    1000,
+    "[ODOM] x=%.2f y=%.2f yaw=%.2f",
+    carPosition.x,
+    carPosition.y,
+    heading
+  );
+}
 
-    //     double dr2 = dx*dx + dy*dy;
-    //     double D = x1*y2 - x2*y1;
+void PurePursuit::odomTimerCallback() {
+  // if (last_odom_msg_ != nullptr) {
+  //   RCLCPP_INFO(this->get_logger(), "Odom Data: x=%.2f, y=%.2f", last_odom_msg_->pose.pose.position.x, last_odom_msg_->pose.pose.position.y);
+  // } 
+  
+  // else {
+  //   RCLCPP_WARN(this->get_logger(), "No odometry data received yet.");
+  // }
+}
+// ------------------------------------------------------------------------------------------------------------------------------------
 
-    //     double discriminant = ld*ld * dr2 - D*D;
-    //     if (discriminant < 0.0) {
-    //         return {-1.0, -1.0};
-    //     }
+// POSE SUBSCRIBER CALLBACKS -----------------------------------------------------------------------------------------------------------
+// void PurePursuit::pose_callback(const visualization_msgs::msg::Marker::SharedPtr msg) {
+//   current_pose_ = msg;
+// }
 
-    //     double sqrtD = sqrt(discriminant);
-    //     double sgn_dy = (dy >= 0.0) ? 1.0 : -1.0;
+// void PurePursuit::poseTimerCallback() {
+//   if (current_pose_ != nullptr) {
+//     //RCLCPP_INFO(this->get_logger(), "Pose Data: x=%.2f, y=%.2f", current_pose_->pose.position.x, current_pose_->pose.position.y);
+//     carPosition = current_pose_->pose.position;
+//     //getGoalPoint(.4, carPosition);
+//   } 
+  
+//   else {
+//     RCLCPP_WARN(this->get_logger(), "No pose data received yet.");
+//   }
+// }
+// ------------------------------------------------------------------------------------------------------------------------------------
 
-    //     // Circle-line intersection solutions (in car frame)
-    //     double ix1 = (D * dy + sgn_dy * dx * sqrtD) / dr2;
-    //     double iy1 = (-D * dx + fabs(dy) * sqrtD) / dr2;
 
-    //     double ix2 = (D * dy - sgn_dy * dx * sqrtD) / dr2;
-    //     double iy2 = (-D * dx - fabs(dy) * sqrtD) / dr2;
+// DRIVE PUBLISHER --------------------------------------------------------------------------------------------------------------------
+void PurePursuit::driveTimerCallback() {
+  auto drive_msg = ackermann_msgs::msg::AckermannDriveStamped();
+  drive_msg.header.stamp = this->get_clock()->now();
 
-    //     // Convert back to world frame
-    //     pair<double,double> sol1 = {ix1 + car.first, iy1 + car.second};
-    //     pair<double,double> sol2 = {ix2 + car.first, iy2 + car.second};
+  if (velocities.empty() || last_point < 0 || last_point >= static_cast<int>(velocities.size())) {
+    target_speed = 0.0;
+  } else {
+    target_speed = 0.18*velocities[last_point]; // meters per second
+  }
 
-    //     // Choose the one that lies between p1 and p2
-    //     if (checkSegment(sol1, p1, p2)) return sol1;
-    //     if (checkSegment(sol2, p1, p2)) return sol2;
+  
 
-    //     return {-1.0, -1.0};
-    // }
 
-    // ---------------- Utilities ----------------
-    // double pointDistance(pair<double,double> a, pair<double,double> b) {
-    //     return sqrt(pow(a.first - b.first, 2) + pow(a.second - b.second, 2));
-    // }
+  drive_msg.drive.speed = target_speed;
+  drive_msg.drive.steering_angle = steering_angle;
+  drive_msg.drive.steering_angle_velocity = 100;
 
-    // bool checkSegment(pair<double,double> p,
-    //                 pair<double,double> a,
-    //                 pair<double,double> b)
-    // {
-    //     double minX = min(a.first,  b.first);
-    //     double maxX = max(a.first,  b.first);
-    //     double minY = min(a.second, b.second);
-    //     double maxY = max(a.second, b.second);
+  RCLCPP_INFO(this->get_logger(), "[DRIVE] speed=%.2f steering_angle=%.2f", target_speed, steering_angle);
+  // Publish the drive command
+  drive_publisher_->publish(drive_msg);
+}
+// ------------------------------------------------------------------------------------------------------------------------------------
 
-    //     return (p.first >= minX && p.first <= maxX &&
-    //             p.second >= minY && p.second <= maxY);
-    // }
+// GOAL POINT -------------------------------------------------------------------------------------------------------------------------
+void PurePursuit::gptask_callback() {
+  // double ld = target_speed*2;
+  double ld = std::max(0.5, target_speed * 2.0);
+
+  goal_point = getGoalPoint(ld, carPosition);
+
+  double carLength = 1;
+  double dy = goal_point.second-carPosition.y;
+  double dx = goal_point.first-carPosition.x;
+  double alpha = atan2(dy, dx);
+  double diff = alpha-heading;
+
+  double curvature = 2*sin(diff)/ld;
+
+  steering_angle = atan(curvature*carLength); // radians
+  
+  RCLCPP_INFO_THROTTLE(
+    this->get_logger(),
+    *this->get_clock(),
+    500,
+    "[GOAL] car=(%.2f, %.2f) goal=(%.2f, %.2f) ld=%.2f idx=%d",
+    carPosition.x,
+    carPosition.y,
+    goal_point.first,
+    goal_point.second,
+    ld,
+    last_point
+  );
+}
+
+double PurePursuit::pointDistance(pair<double, double> car, pair<double, double> point) {
+  double distance = pow((pow((car.first-point.first), 2)+pow((car.second-point.second), 2)), 0.5);
+  return distance;
+}
+
+double PurePursuit::sgn(double num) {
+  if(num >= 0) {
+    return 1;
+  }
+
+  else {
+    return -1;
+  }
+}
+
+bool PurePursuit::checkSolution(double maxX, double minX, double maxY, double minY, pair<double, double> sol) {
+  if(sol.first >= minX && sol.first <= maxX && sol.second >= minY && sol.second <= maxY) {
+    return true;
+  }
+
+  else {
+    return false;
+  }
+}
+
+pair<double, double> PurePursuit::interpolatedPoint(double ld, pair<double, double> p1, pair<double, double> p2, pair<double, double> car) {
+
+  // Offset the Circle to the origin
+  double x1 = p1.first - car.first;
+  double x2 = p2.first - car.first;
+  double y1 = p1.second - car.second;
+  double y2 = p2.second - car.second;
+
+  double dX = x2 - x1; // delta x
+  double dY = y2 - y1; // delta y
+  double d = pow((pow(dX, 2) + pow(dY, 2)), 0.5); // distance between points
+  double D = (x1*y2) - (x2*y1); // Determinant for matrix
+  double discriminant = (pow(ld, 2)*pow(d, 2) - pow(D, 2));
+
+
+  if(discriminant >= 0) { // We will only care about real solutions
+
+    double sol1_x = ((D*dY + sgn(dY)*dX*pow(discriminant, 0.5)))/pow(d, 2);
+    double sol1_y = ((-1*D*dX + abs(dY)*pow(discriminant, 0.5)))/pow(d, 2);
+
+    double sol2_x = ((D*dY - sgn(dY)*dX*pow(discriminant, 0.5)))/pow(d, 2);
+    double sol2_y = ((-1*D*dX - abs(dY)*pow(discriminant, 0.5)))/pow(d, 2);
+
+    // Translate back to original position
+    pair<double, double> sol1 = {sol1_x + car.first, sol1_y + car.second};
+    pair<double, double> sol2 = {sol2_x + car.first, sol2_y + car.second};
+
+    // Check if POIs are within line segment
+    double minX = min(p1.first, p2.first);
+    double maxX = max(p1.first, p2.first);
+    double minY = min(p1.second, p2.second);
+    double maxY = max(p1.second, p2.second);
+
+    bool sol1_validity = checkSolution(maxX, minX, maxY, minY, sol1);
+    bool sol2_validity = checkSolution(maxX, minX, maxY, minY, sol2);
+
+    if(sol1_validity && sol2_validity) {
+      // Find which POI is closer to the second point
+      double dP2_sol1 = pow((pow(p2.first-sol1.first, 2) + pow(p2.second-sol1.second, 2)), 0.5);
+      double dP2_sol2 = pow((pow(p2.first-sol2.first, 2) + pow(p2.second-sol2.second, 2)), 0.5);
+
+      if(dP2_sol1 < dP2_sol2) {
+        return sol1;
+      }
+
+      else {
+        return sol2;
+      }
+    }
+
+    else if (sol1_validity) {
+      return sol1;
+    }
+
+    else if (sol2_validity) {
+      return sol2;
+    }
+  } 
+
+  return {0,0}; // No valid interpolated points were found
+
+}
+
+pair<double, double> PurePursuit::getGoalPoint(double ld, geometry_msgs::msg::Point carPos) {
+
+  pair<double, double> goalPoint = goal_point;
+  pair<double, double> carPoint = {carPos.x, carPos.y};
+
+  for(int i=last_point; i < num_waypoints; i++) {
+
+    if(ld - pointDistance(carPoint, waypoints[i]) == 0) { // found point exactly lookahead distance away (MAYBE ADD A BUFFER MARGIN)
+      goalPoint = waypoints[i];
+      last_point = i;
+      //RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f", goalPoint.first, goalPoint.second);
+      return goalPoint;
+    }
+
+    else if(ld - pointDistance(carPoint, waypoints[i]) < 0) { // first point beyond lookahead distance
+      int j = i-1;
+      while(ld - pointDistance(carPoint, waypoints[j]) < 0 && j > 0) { j--; } // find last point within lookahead distance
+      goalPoint = interpolatedPoint(ld, waypoints[i], waypoints[j], carPoint);
+
+      if(goalPoint.first != 0 && goalPoint.second != 0) {
+        last_point = j;
+        //RCLCPP_INFO(this->get_logger(), "Goal Point: x=%.2f y=%.2f", goalPoint.first, goalPoint.second);
+        return goalPoint;
+      }
+    }
+  }
+  
+  return goalPoint;
+}
+
+double PurePursuit::f(double x) {
+  return -.25*sin(x);
+  //return -.3*atan(x);
+}
+// ------------------------------------------------------------------------------------------------------------------------------------
+
+
+int main(int argc, char * argv[]) {
+  rclcpp::init(argc, argv);
+  rclcpp::spin(make_shared<PurePursuit>());
+  rclcpp::shutdown();
+  return 0;
+}

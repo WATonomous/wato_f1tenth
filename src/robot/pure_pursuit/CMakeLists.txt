@@ -45,6 +45,11 @@ install(DIRECTORY assets/
   DESTINATION share/${PROJECT_NAME}/assets
 )
 
+# Install launch files so `ros2 launch pure_pursuit <file>` can find them
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
 install(TARGETS
   pure_pursuit_node
   DESTINATION lib/${PROJECT_NAME}
