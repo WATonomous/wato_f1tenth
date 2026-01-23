@@ -115,12 +115,19 @@ def generate_launch_description():
     
     ld.add_action(keyboard_converter)
 
-    # pure_pursuit node - follows raceline and publishes /drive
+    # pure pursuit node - follows raceline and publishes /drive/autonomy
     pure_pursuit_node = Node(
         package='pure_pursuit',
         executable='pure_pursuit_node',
         name='pure_pursuit',
         output='screen',
+        parameters=[{
+            'waypoints': os.path.join(
+                get_package_share_directory('pure_pursuit'),
+                'assets',
+                'autoDriveRaceline_with_vel.csv')
+        }],
+        remappings=[('/drive', '/cmd_vel')] # simulator is not subscribed to /drive
     )
     ld.add_action(pure_pursuit_node)
      
