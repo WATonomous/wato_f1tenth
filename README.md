@@ -10,7 +10,7 @@ Apart from the general WATOnomous onboarding, there are some Micro-specific thin
 
 Although not mandatory to study this in great detail, we **highly** reccommend skimming all the slides up to Module D. You can revisit this later when working on a specific component, but getting a general idea of what SLAM / Planning / Controls mean will be beneficial. 
 
-2. Competition Rules: https://iros2024-race.f1tenth.org/rules.html
+2. Competition Rules: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-racing-rules-2025/
 
 A lot of our software architecture choices are based on the rules.
 
@@ -25,7 +25,7 @@ To verify that the environment setup works properly to familiarize yourself with
 1. Subscribes to the IMU and prints IMU data onto the console
 2. Publish a throttle command to make the car move forward
 
-References: https://autodrive-ecosystem.github.io/competitions/f1tenth-sim-racing-guide/
+References: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-racing-guide-2025/
 
 note: This rosnode skeleton you'll most likely be building ontop of for your actual task, so getting this working well (no build errors, etc.) will save a lot of time in the future.
 
