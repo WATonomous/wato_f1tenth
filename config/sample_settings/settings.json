@@ -1,0 +1,15 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/bolty/ament_ws/install/sample_msgs/local/lib/python3.10/dist-packages",
+        "/home/bolty/ament_ws/install/action/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/bolty/ament_ws/install/sample_msgs/local/lib/python3.10/dist-packages",
+        "/home/bolty/ament_ws/install/action/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "cmake.ignoreCMakeListsMissing": true
+}
