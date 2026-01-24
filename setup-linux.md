@@ -101,7 +101,7 @@ to check that everything is working properly, lauch up the container using ```./
 
 ## Download the Autodrive sim 
 
-1. Download the `practice` simulator under Local Resources from: https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-F1TENTH-Sim-Racing/releases/tag/2024-cdc 
+1. Download the `practice` simulator under Local Resources from: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-racing-cdc-tf-2025/#resources
 2. Unzip the download and move the `autodrive_simulator` to the ros_ws
 3. then `cd autodrive_simulator` and rename the file `AutoDRIVE Simulator.x86_64` to `sim.x86_64`
 4. run `chmod + sim.x86_64` to make it excutable then run `./sim.x86_64` to open the sim

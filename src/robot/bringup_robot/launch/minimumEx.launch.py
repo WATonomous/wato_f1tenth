@@ -34,7 +34,7 @@ def generate_launch_description():
     
     # NOTE : 
     # this odometry is perfect, that is not the case on 
-    # the real car. so don't expect to get the scame performance 
+    # the real car. so don't expect to get the same performance 
     # on real car, as the real odom drifts over time
    
     # provides position, orientation and linear speed 
@@ -79,7 +79,7 @@ def generate_launch_description():
     
     ld.add_action(map_to_odom)
     
-    #the job the conterter is to provide 
+    # the job the conterter is to provide 
     # a way to convert velocity and steering comands
     # that are compatible with the real car to 
     # steering and throtel comands that work with 
@@ -106,7 +106,8 @@ def generate_launch_description():
     ld.add_action(ackermann_mux_node)
     
     #keyboard teleop node (you can coment this node out, if you are using controller)
-    # to use this, bring up the teleop pannel in foxgolove
+    # to use this, bring up the teleop pannel in foxgolove (this does not work too well)
+    # could be something someone works on if you want
     keyboard_converter = Node (
         package='teleop_utils',
         executable='keyboard_converter',
