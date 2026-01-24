@@ -3,7 +3,7 @@
 We're watonomous F1Tenth team (1/10th scale autonomous racing). We compete in F1Tenth racing competitions held at research conferences globally throughout the year.
 
 # Onboarding Steps
-Apart from the general WATOnomous onboarding, there are some Micro-specific things you'll have to read & learn before contributing. Don't worry, it's a lot lighter than the onboarding assignnmet :)
+Apart from the general WATOnomous onboarding, there are some Micro-specific things you'll have to read & learn before contributing. Don't worry, it's a lot lighter than the onboarding assignnmet 
 
 ### Background Theory
 1. Course Syllabus:  https://docs.google.com/spreadsheets/d/1PaFYG7XC_XQ3ExdQGb-S8oJzzixoMOVjh4L1RjW0gT0/edit?gid=0#gid=0o
@@ -16,7 +16,11 @@ A lot of our software architecture choices are based on the rules.
 
 ### Environment Setup
 
-Our infrastructure consists of 1) AUTODrive physics simulator connected to 2) Docker environment. As such, you'll have to go through the `setup-windows.md` or `setup-linux.md` and follow the steps.
+Our infrastructure consists of :
+1. AUTODrive physics simulator 
+2. Docker environment  
+  
+As such, you'll have to go through the `setup-windows.md` or `setup-linux.md` and follow the steps.
 
 ## Your First Mini Component
 
