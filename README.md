@@ -35,6 +35,6 @@ note: This rosnode skeleton you'll most likely be building ontop of for your act
 
 ## Whats next ? 
 
-**go read the system-architecture.md** to better understand how this repo works and why it is layed out that way
+**Go read the system-architecture.md** to better understand how this repo works and why it is layed out that way
 
 ### Good Luck! 
