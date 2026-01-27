@@ -16,10 +16,10 @@ PurePursuitNode::PurePursuitNode(): Node("pure_pursuit"), x_(0.0), y_(0.0), yaw_
   //declare parameters with default values (declare_parameter is a ROS2 method that allows you to declare a ROS parameter)
   //DOUBLE CHECK
   RCLCPP_INFO(this->get_logger(), "Declaring lookahead_distance parameter");
-  this->declare_parameter<double>("lookahead_distance", 1.5); 
+  this->declare_parameter<double>("lookahead_distance", 10); 
   this->declare_parameter<double>("wheelbase", 0.33);
-  this->declare_parameter<double>("max_steering_angle", 0.4189); //24 degrees in radians
-  this->declare_parameter<double>("speed", 2.0);
+  this->declare_parameter<double>("max_steering_angle", 0.1745); //24 degrees in radians
+  this->declare_parameter<double>("speed", 0.1);
   this->declare_parameter<std::string>("waypoints", "/assets/autoDriveRaceline_with_vel.csv");
 
   //get parameters and store them in member variables
@@ -216,7 +216,7 @@ int PurePursuitNode::findClosestWaypoint() const
 
 // Finds a waypoint ahead of the vehicle at least lookahead_distance_ away.
 geometry_msgs::msg::Point
-PurePursuitNode::findLookaheadPoint(int start_index) const
+geometry_msgs::msg::Point PurePursuitNode::findLookaheadPoint(int start_index) const
 {
     // Current vehicle position.
     geometry_msgs::msg::Point current;
@@ -232,9 +232,9 @@ PurePursuitNode::findLookaheadPoint(int start_index) const
         }
     }
 
-    // If no waypoint was found (end of path),
-    // wrap around to the beginning (closed-loop track).
-    return waypoints_.front();
+    // If no waypoint is far enough (end of path):
+    // Return the last waypoint instead of wrapping around.
+    return waypoints_.back();
 }
 
 // Computes curvature required to reach the lookahead point.

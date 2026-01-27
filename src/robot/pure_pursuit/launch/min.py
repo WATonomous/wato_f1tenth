@@ -127,7 +127,7 @@ def generate_launch_description():
                 'assets',
                 'autoDriveRaceline_with_vel.csv')
         }],
-        remappings=[('/drive', '/cmd_vel')] # simulator is not subscribed to /drive
+        remappings=[('/drive', '/drive/autonomy')] # simulator is not subscribed to /drive
     )
     ld.add_action(pure_pursuit_node)
      
