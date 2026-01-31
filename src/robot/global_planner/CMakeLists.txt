@@ -13,7 +13,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(visualization_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+#find_package(visualization_msgs REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -30,7 +32,7 @@ endif()
 
 add_executable(global_planner_node src/global_planner.cpp)
 target_include_directories(global_planner_node PUBLIC include)
-ament_target_dependencies(global_planner_node rclcpp std_msgs nav_msgs visualization_msgs)
+ament_target_dependencies(global_planner_node rclcpp std_msgs nav_msgs geometry_msgs ament_index_cpp)
 
 install(DIRECTORY assets/
   DESTINATION share/${PROJECT_NAME}/assets
