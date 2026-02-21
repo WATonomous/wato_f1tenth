@@ -4,12 +4,12 @@
 #include "state_manager_code.hpp"
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <geometry_msgs/msg/point_stamped.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <local_planning/action/plan_path.hpp>
 
 #include <memory>
 #include <vector>
@@ -23,9 +23,11 @@ public:
     ~StateManagerNode() = default;
 
 private:
+    using PlanPath = local_planning::action::PlanPath;
+    using GoalHandle = rclcpp_action::ClientGoalHandle<PlanPath>;
+
     void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-    void pathCallback(const nav_msgs::msg::Path::SharedPtr msg);
 
     void stateTimerCallback();
     void planningTimerCallback();
@@ -33,39 +35,42 @@ private:
     //utility
     void loadRacingLine();
     void publishState();
-    void publishGoal();
+    void sendPlanGoal(const local_planning::Point& goal_position);
 
     //mainly for visualization in foxglove
-    void publishRacingLineLattices(); 
+    void publishRacingLineLattices();
+
+    // action result callback
+    void planResultCallback(const GoalHandle::WrappedResult& result);
 
     // conversions
     local_planning::Odometry rosToOdometry(const nav_msgs::msg::Odometry::SharedPtr& msg);
     local_planning::OccupancyGrid rosToOccupancyGrid(const nav_msgs::msg::OccupancyGrid::SharedPtr& msg);
     std::vector<local_planning::Point> loadRacingLineFromFile(const std::string& filename);
-    geometry_msgs::msg::PointStamped pointToRosPointStamped(const local_planning::Point& point);
 
     // subs
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
 
     // pubs
     rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_pub_;
-    rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr goal_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr lattice_viz_pub_;
+
+    // action client
+    rclcpp_action::Client<PlanPath>::SharedPtr plan_action_client_;
 
     // timers
     rclcpp::TimerBase::SharedPtr state_timer_;
     rclcpp::TimerBase::SharedPtr planning_timer_;
 
-    // state machine 
+    // state machine
     std::unique_ptr<RacingStateMachine> state_machine_;
 
     // cached messages
     nav_msgs::msg::Odometry::SharedPtr current_odom_;
     nav_msgs::msg::OccupancyGrid::SharedPtr current_occupancy_grid_;
 
-    // racing line 
+    // racing line
     std::vector<local_planning::Point> racing_line_;
 
     // parameters
@@ -79,7 +84,10 @@ private:
     double lattice_spacing_;
 
     // state tracking
-    RacingState last_published_state_;
+    RacingState last_published_state_{RacingState::STEADY_STATE};
+
+    // track in-flight action goal so we can cancel before sending a new one
+    GoalHandle::SharedPtr current_goal_handle_;
 };
 
 } // namespace local_planning
