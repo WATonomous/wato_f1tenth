@@ -122,8 +122,10 @@ private:
 
     // core A* search, returns final waypoint path
     // goal_position needed to compute goal-targeted heading at each expansion
+    // start_heading_slope = tan(ego_heading - racing_line_heading) at start node
     std::vector<Point> runAStar(
         const LatticeNode& start_node,
+        double start_heading_slope,
         double s_goal,
         const Point& goal_position,
         const OccupancyGrid& grid

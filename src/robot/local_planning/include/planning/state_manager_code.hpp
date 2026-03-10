@@ -36,7 +36,7 @@ public:
     //returns true when state updated
     bool update(
         const Odometry& ego_odom,
-        const OccupancyGrid& occupancy_grid,
+        const OccupancyGrid& occupancy_grid
         //const std::vector<Point>& racing_line //can add back if line gets updated live
     );
 
