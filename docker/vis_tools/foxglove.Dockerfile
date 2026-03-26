@@ -34,13 +34,20 @@ RUN apt-get update && apt-get install -y curl ros-humble-ros2bag ros-humble-rosb
 RUN apt-get update && apt-get install -y lsb-release software-properties-common apt-transport-https && \
     apt-add-repository universe
 
+RUN apt-get install -y git
+
 # Install Dependencies
-RUN apt-get update && \
-    apt-get install -y \ 
-    ros-$ROS_DISTRO-foxglove-bridge \
-    ros-$ROS_DISTRO-rosbridge-server \
-    ros-$ROS_DISTRO-topic-tools \
-    ros-$ROS_DISTRO-vision-msgs
+RUN apt-cache search foxglove
+RUN apt-get update 
+RUN apt-get install -y ros-$ROS_DISTRO-rosbridge-server
+RUN apt-get install -y ros-$ROS_DISTRO-topic-tools
+RUN apt-get install -y ros-$ROS_DISTRO-vision-msgs
+
+WORKDIR ${AMENT_WS}/src
+RUN git clone https://github.com/foxglove/ros-foxglove-bridge.git && \
+    cd .. && \
+    . /opt/ros/$ROS_DISTRO/setup.sh && \
+    colcon build --packages-select foxglove_bridge
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
