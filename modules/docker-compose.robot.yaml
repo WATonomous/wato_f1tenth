@@ -17,13 +17,19 @@ services:
     build: *robot_build
     image: "${ROBOT_IMAGE:?}:dev_${TAG}"
     command: tail -F anything
+    privileged: true
     profiles:
       - develop
     volumes:
       - ${MONO_DIR}/src:/home/bolty/ament_ws/src
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - /dev/input:/dev/input
+      - /dev:/dev
     environment:
       - DISPLAY=${DISPLAY}
+      - NVIDIA_VISIBLE_DEVICES=all
     device_cgroup_rules:
       - 'c 13:* rmw' 
+      - 'c 188:0 rmw'
+      - 'c 166:* rmw'
+      - 'c 10:229 rmw'  # /dev/uhid for Bluetooth HID emulation
+
