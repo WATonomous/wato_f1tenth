@@ -33,6 +33,7 @@ private:
     std::string joy_topic, gamepad_topic, my_frame_id;
     float max_speed, max_steering_rate,steering_gain;
     ackermann_msgs::msg::AckermannDrive emergancy_drive_msg;
+    int steering_axis, throtle_axis, break_axis, dead_man_button, reverse_button, pit_limit_button;
 
     //data
     float direction = 1;

@@ -17,6 +17,14 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     this->declare_parameter<float>("steering_gain",0.5236);
     this->declare_parameter<float>("max_steering_rate",3.2);
 
+    //button inputs
+    this->declare_parameter<int>("steering_axis",3.2);
+    this->declare_parameter<int>("throtel_axis",3.2);
+    this->declare_parameter<int>("break_axis",3.2);
+    this->declare_parameter<int>("dead_man_button",3.2);
+    this->declare_parameter<int>("reverse_button",3.2);
+    this->declare_parameter<int>("pit_limit_button",3.2);
+
     gamepad_topic = this->get_parameter("gamepad_topic").as_string();
     joy_topic = this->get_parameter("joy_topic").as_string();
     my_frame_id = this->get_parameter("my_frame_id").as_string();
@@ -25,6 +33,12 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     max_steering_rate = this->get_parameter("max_steering_rate").as_double();
     steering_gain = this->get_parameter("steering_gain").as_double();
 
+    steering_axis = this->get_parameter("steering_axis").as_int(); 
+    throtle_axis= this->get_parameter("throtle_axis").as_int();
+    break_axis = this->get_parameter("break_axis").as_int();
+    dead_man_button = this->get_parameter("dead_man_button").as_int();
+    reverse_button = this->get_parameter("reverse_button").as_int();
+    pit_limit_button = this->get_parameter("pit_limit_button").as_int();
 
     //pubs and sub
     ackerman_pub = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
