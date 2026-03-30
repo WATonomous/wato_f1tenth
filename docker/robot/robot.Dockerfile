@@ -110,7 +110,9 @@ RUN mkdir -p /tmp/build && \
 
 #use ros dep to solve the remaning dependencies 
 RUN cd /home/ros_user/ros_ws
-RUN rosdep install -r --from-paths src --ignore-src --rosdistro humble -y
+#RUN rosdep install -r --from-paths src --ignore-src --rosdistro humble -y
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    rosdep install -r --from-paths src --ignore-src --rosdistro humble -y"
 
 #build the ros 2 project 
 RUN . /opt/ros/humble/setup.sh && \
