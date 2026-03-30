@@ -42,7 +42,7 @@ RUN apt-get update && \
     ros-$ROS_DISTRO-vision-msgs
 
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
-    apt-get install -y ros-humble-foxglove-bridge"
+    apt-get install -y ros-$ROS_DISTRO-foxglove-bridge"
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
