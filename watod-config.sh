@@ -15,11 +15,7 @@
 ##   - robot            :   starts up robot nodes
 ##   - samples          :   starts up sample nodes for reference
 
-<<<<<<< HEAD
-ACTIVE_MODULES="vis_tools robot "
-=======
 ACTIVE_MODULES="robot vis_tools"
->>>>>>> 1fa106d (rebased the with main, and updated the foxglove docker file to hopefuly work not NOT TESTED)
 
 ################################# MODE OF OPERATION #################################
 ## Possible modes of operation when running watod.
