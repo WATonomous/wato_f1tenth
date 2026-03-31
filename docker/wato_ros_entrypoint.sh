@@ -2,5 +2,5 @@
 set -e
 
 # setup ROS2 environment
-source /opt/watonomous/setup.bash
+source /opt/ros/humble/setup.bash
 exec "$@"

@@ -122,5 +122,6 @@ RUN . /opt/ros/humble/setup.sh && \
 RUN rm -rf src/* build/* devel/* install/* log/*
 
 #entry point
-COPY docker/wato_ros_entrypoint.sh ${AMENT_WS}/wato_ros_entrypoint.sh
-ENTRYPOINT [ "./wato_ros_entrypoint.sh" ]
+COPY docker/wato_ros_entrypoint.sh /home/ros_user/ros_ws/wato_ros_entrypoint.sh
+RUN chmod +x /home/ros_user/ros_ws/wato_ros_entrypoint.sh
+ENTRYPOINT ["/home/ros_user/ros_ws/wato_ros_entrypoint.sh"]

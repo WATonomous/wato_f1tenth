@@ -79,5 +79,7 @@ RUN rm -rf src/* build/* devel/* install/* log/*
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
     echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> ~/.bashrc
 
+#entry point
 COPY docker/wato_ros_entrypoint.sh /home/ros_user/ros_ws/wato_ros_entrypoint.sh
-ENTRYPOINT ["./wato_ros_entrypoint.sh"]
+RUN chmod +x /home/ros_user/ros_ws/wato_ros_entrypoint.sh
+ENTRYPOINT ["/home/ros_user/ros_ws/wato_ros_entrypoint.sh"]
