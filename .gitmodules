@@ -1,0 +1,3 @@
+[submodule "Raceline-Optimization"]
+	path = Raceline-Optimization
+	url = https://github.com/CL2-UWaterloo/Raceline-Optimization.git
