@@ -1,0 +1,21 @@
+occupancy_grid_generator:
+  ros__parameters:
+    # Grid dimensions and resolution
+    grid_width: 20.0        # meters
+    grid_height: 20.0       # meters
+    resolution: 0.1         # meters per cell
+
+    # Update rate (Hz)
+    publish_rate: 10.0
+
+    # Frame IDs
+    robot_frame: "base_link"
+
+    # Topic names
+    scan_topic: "/scan"
+    output_topic: "/costmap"
+
+    # Obstacle marking
+    obstacle_value: 100     # value for occupied cells (0-100)
+    free_value: 0           # value for free cells (0-100)
+    unknown_value: -1       # value for unknown cells
