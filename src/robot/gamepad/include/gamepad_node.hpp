@@ -1,5 +1,5 @@
-#ifndef JOYPAD_NODE
-#define JOYPAD_NODE
+#ifndef GAMEPAD_NODE
+#define GAMEPAD_NODE
 
 #include <chrono>
 #include <memory>
@@ -9,34 +9,31 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "std_msgs/msg/float32.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 
-class JOYPAD : public rclcpp::Node {
+class GamePad : public rclcpp::Node {
 public:
 
-    JOYPAD();
+    GamePad();
 
 private:
 
     //pubs and subs
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr gamepad_sub;
-    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackerman_pub;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr throtel_pub;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr steering_pub;
+    rclcpp::Publisher<ackermann_msgs::msg::AckermannDrive>::SharedPtr ackerman_pub;
+
 
     //functions
     void gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg);
     float trigger_maper(const float r2);
-    float steering_mapper(const float ls);
 
-    //parameters
-    std::string joy_topic, gamepad_topic, my_frame_id;
-    float max_speed, max_steering_rate,steering_gain;
-    ackermann_msgs::msg::AckermannDrive emergancy_drive_msg;
-
-    //data
-    float direction = 1;
-    bool reversing = false;
+    //constants 
+    float MAX_SPEED = 22.88;
 
 };
 

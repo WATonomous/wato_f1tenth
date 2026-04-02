@@ -27,12 +27,18 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+add_executable(gamepad_node src/gamepad_node.cpp)
+target_include_directories(gamepad_node PUBLIC include)
+
+ament_target_dependencies(gamepad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
+
 add_executable(joypad_node src/joypad_teleop.cpp)
 target_include_directories(joypad_node PUBLIC include)
 
 ament_target_dependencies(joypad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
 
 install(TARGETS
+  gamepad_node
   joypad_node
   DESTINATION lib/${PROJECT_NAME}
 )
