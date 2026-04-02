@@ -19,7 +19,7 @@ FakeOdom::FakeOdom() : Node ("fake_odom") {
         "/tf", 10, std::bind(&FakeOdom::tf_listener, this, std::placeholders::_1));
 
     speed_sub = this->create_subscription<std_msgs::msg::Float32>(
-        "/autodrive/f1tenth_1/speed", 10,
+        "/autodrive/roboracer_1/speed", 10,
         [this](const std_msgs::msg::Float32::SharedPtr msg){
             current_speed = *msg;
     });
@@ -34,7 +34,7 @@ FakeOdom::FakeOdom() : Node ("fake_odom") {
 void FakeOdom::tf_listener(const tf2_msgs::msg::TFMessage::SharedPtr tf_msg) {
 
     for (const auto &t : tf_msg->transforms) {
-        if (t.child_frame_id == "f1tenth_1" && t.header.frame_id == "world") {
+        if (t.child_frame_id == "roboracer_1" && t.header.frame_id == "world") {
 
             nav_msgs::msg::Odometry tf_odom;
 

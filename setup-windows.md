@@ -20,7 +20,7 @@ if you have a nvidia-gpu, you can install the nvidia-container-toolkit inside of
 container access to your gpu. important for running some of the algos we use, but you most likely won't need it
 
 #### Connecting the AutoDRIVE Simulator
-1. Download the `practice` simulator from: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-racing-cdc-tf-2025/#resources 
+1. Download the `practice` simulator from: https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-RoboRacer-Sim-Racing/releases/tag/2026-icra 
 2. Unzip the download and run `AutoDRIVE Simulator.exe` inside the folder
 3. Open the left menu on the simulator application
 4. Press on the button "Disconnected" to attempt connection to your running watod containers. The default port should already be 4567.

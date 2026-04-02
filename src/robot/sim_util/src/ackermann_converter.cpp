@@ -4,8 +4,8 @@ AckermannConverter::AckermannConverter() : Node ("ackerman_conterter") {
 
     //parameters
 
-    this->declare_parameter("throtel_topic","/autodrive/f1tenth_1/throttle_command");
-    this->declare_parameter("steering_topic","/autodrive/f1tenth_1/steering_command");
+    this->declare_parameter("throtel_topic","/autodrive/roboracer_1/throttle_command");
+    this->declare_parameter("steering_topic","/autodrive/roboracer_1/steering_command");
     this->declare_parameter("input_topic","/ackermann_cmd");
 
     this->declare_parameter("max_speed",22.88);

@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM autodriveecosystem/autodrive_f1tenth_api:2024-cdc-practice
+FROM autodriveecosystem/autodrive_roboracer_api:2026-icra-practice
 
 SHELL ["/bin/bash", "-c"]
 

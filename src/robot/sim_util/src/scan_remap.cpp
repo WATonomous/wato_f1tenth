@@ -15,7 +15,7 @@ public:
         scan_pub = this->create_publisher<sensor_msgs::msg::LaserScan>("/scan",10);
 
         scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan>(
-            "/autodrive/f1tenth_1/lidar",10,std::bind(&SCAN_REMAP::laser_callback,this,std::placeholders::_1));
+            "/autodrive/roboracer_1/lidar",10,std::bind(&SCAN_REMAP::laser_callback,this,std::placeholders::_1));
 
     }
 private:
