@@ -50,6 +50,7 @@ COPY config/sample_settings/*.json .vscode/
 
 #add support for controller
 RUN sudo apt-get install -y ros-humble-joy 
+#RUN sudo apt install -y ros-$ROS_DISTRO-slam-toolbox
 #RUN sudo apt-get install -y jstest-gtk
 #RUN mkdir -p /root/.config/jstest-gtk
 
