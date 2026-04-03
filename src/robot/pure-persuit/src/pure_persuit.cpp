@@ -6,7 +6,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
     Pure_Persuit_Node::init_parameters();
 
     //publisher
-    controls_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
+    controls_pub_ = this->create_publisher<ackermann_ds>(
         ackermann_control_topic, 10);
 
     //subscriptions
@@ -14,7 +14,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
 
     dead_man_sub_ = this->create_subscription<std_msgs::msg::Bool>( dead_man_active_topic, latched_qos, 
-        [this](const std_msgs::msg::Bool::SharedPtr msg) {dead_man_active = &msg;}
+        [this](const std_msgs::msg::Bool::SharedPtr msg) {dead_man_active = *msg;}
     );
 
     global_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
@@ -27,7 +27,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
 
         overtake_sub_ = this->create_subscription<std_msgs::msg::Bool>(
             overtake_ready_topic, latched_qos,
-            [this](const std_msgs::msg::Bool::SharedPtr msg) { overtake_active = &msg; }
+            [this](const std_msgs::msg::Bool::SharedPtr msg) { overtake_active = *msg; }
         );
 
         local_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
@@ -40,6 +40,62 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
         std::chrono::milliseconds(20),
         [this](){Pure_Persuit_Node::control_timer_callback();}
     );
+}
+
+//the guy that appies the control law
+void Pure_Persuit_Node::control_timer_callback() {
+
+    state_manage();
+
+    //don't apply any control if the controler is not active, stop everything
+    if (controller_state == state_::INACTIVE) {
+        Pure_Persuit_Node::dead_stop();
+        return;
+    } 
+
+    double v = 0;
+    geometry_msgs::msg::Point p;
+
+    if (controller_state == state_::GLOBAL_FOLLOW)
+        Pure_Persuit_Node::get_global_waypoint_velocity(p,v);
+    else if (controller_state == state_::LOCAL_FOLLOW)
+        Pure_Persuit_Node::get_local_waypoint_velocity(p,v);
+
+    //apply the control law
+    ackermann_ds control_command = Pure_Persuit_Node::calculate_control(p,v);
+
+    //publish control inputs
+    controls_pub_->publish(control_command);
+
+}
+
+ackermann_ds Pure_Persuit_Node::calculate_control(
+    const geometry_msgs::msg::Point &target_point, 
+    const double &velocity) {
+
+}
+void Pure_Persuit_Node::state_manage () {
+
+    if (dead_man_active.data && !current_global_path.poses.empty()) {
+       controller_state = state_::GLOBAL_FOLLOW; 
+    } else {
+        controller_state = state_::INACTIVE;
+        RCLCPP_WARN(this->get_logger(), "DeadMan switch is off OR global path is empty");
+    }
+
+    if (overtaking_enable) {
+       if (current_local_path.poses.empty()) {
+            RCLCPP_WARN(this->get_logger(), "could not transition to overtake mode, local path empty");
+            return;
+       }
+
+        if (overtake_active.data && controller_state == state_::GLOBAL_FOLLOW) {
+            controller_state = state_::LOCAL_FOLLOW;
+        } else if (!overtake_active.data && controller_state == state_::LOCAL_FOLLOW) {
+            controller_state = state_::GLOBAL_FOLLOW;
+        }
+    }
+
 }
 
 void Pure_Persuit_Node::init_parameters () {
@@ -57,6 +113,9 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<bool>("overtake_enable",false);
     this->declare_parameter<double>("look_ahead_distance",0.3);
 
+    this->declare_parameter<bool>("speed_limit_active", true);
+    this->declare_parameter<double>("speed_limit", 0.25);
+
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id = this->get_parameter("local_frame_id").as_string();
@@ -70,6 +129,15 @@ void Pure_Persuit_Node::init_parameters () {
     overtaking_enable = this->get_parameter("overtake_enable").as_bool();
     look_ahead_distance = this->get_parameter("look_ahead_distance").as_double();
 
-    dead_man_active = false;
-    overtake_active = false;
+    speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
+    speed_limit = this->get_parameter("speed_limit").as_double();
+
+    //initalize state and internal variables
+    dead_man_active.data = false;
+    overtake_active.data = false;
+
+    controller_state = state_::INACTIVE;
+
+    current_global_path = nav_msgs::msg::Path();
+    current_local_path = nav_msgs::msg::Path();
 }
