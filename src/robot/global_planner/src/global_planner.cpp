@@ -3,7 +3,7 @@
 GlobalPlanner::GlobalPlanner () : Node ("global_planner_node") {
 
     //parameters
-    this->declare_parameter<std::string>("file_directory", "/assets/autoDriveRaceline_with_vel.csv");
+    this->declare_parameter<std::string>("file_directory", "/assets/optmial_clean_map.csv");
     this->declare_parameter<std::string>("vis_topic", "/global_planner/vis");
     this->declare_parameter<std::string>("path_topic", "/global_planner/path");
     this->declare_parameter<std::string>("waypoint_frame_id","map");
@@ -63,11 +63,8 @@ void GlobalPlanner::retrieve_data(std::ifstream &file) {
        std::string temp;
 
        //break string stream into parts
-       std::getline(ss, temp, ',');
        std::getline(ss, x_str, ',');
        std::getline(ss, y_str, ',');
-       std::getline(ss, temp, ',');
-       std::getline(ss, temp, ',');
        std::getline(ss, vel_str, ',');
 
        //convert to double
@@ -88,7 +85,7 @@ void GlobalPlanner::retrieve_data(std::ifstream &file) {
 
        //might have to play with these to fix the wierd ofset
        current_waypoint.pose.position.x = x;
-       current_waypoint.pose.position.y = y + 15.5;
+       current_waypoint.pose.position.y = y;
 
        //contains the velocity
        current_waypoint.pose.position.z = vel;
