@@ -5,9 +5,6 @@ occupancy_grid_generator:
     grid_height: 20.0       # meters
     resolution: 0.1         # meters per cell
 
-    # Update rate (Hz)
-    publish_rate: 10.0
-
     # Frame IDs
     robot_frame: "base_link"
 
