@@ -6,10 +6,10 @@ occupancy_grid_generator:
     resolution: 0.1         # meters per cell
 
     # Frame IDs
-    robot_frame: "base_link"
+    robot_frame: "roboracer_1"
 
     # Topic names
-    scan_topic: "/scan"
+    scan_topic: "/autodrive/roboracer_1/lidar"
     output_topic: "/costmap"
 
     # Obstacle marking
