@@ -20,6 +20,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/point.hpp"
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
@@ -29,8 +30,6 @@
 
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
-
-using ackermann_ds = ackermann_msgs::msg::AckermannDriveStamped;
 
 enum state_ {
     INACTIVE,
@@ -44,7 +43,7 @@ public:
 private:
 
     //publishers
-    rclcpp::Publisher<ackermann_ds>::SharedPtr controls_pub_;
+    rclcpp::Publisher< ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
 
     //subscription
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr overtake_sub_;
@@ -60,14 +59,20 @@ private:
 
     //callback functions
     void control_timer_callback ();
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     //helpers
     void init_parameters();
-    void state_manage();
-    void get_local_waypoint_velocity(geometry_msgs::msg::Point &current_point, double &current_velocity);
-    void get_global_waypoint_velocity(geometry_msgs::msg::Point &current_point, double &current_velocity);
-    ackermann_ds calculate_control(const geometry_msgs::msg::Point &target_point, const double &velocity);
-    void dead_stop();
+
+    void update_controller_state();
+    void get_local_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity);
+    void get_global_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity);
+
+    ackermann_msgs::msg::AckermannDriveStamped calculate_control(const geometry_msgs::msg::Point &target_point, const double &velocity);
+    ackermann_msgs::msg::AckermannDriveStamped dead_stop();
+
+    double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
+    double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
     //parameters
     std::string global_frame_id, local_frame_id;
@@ -75,7 +80,7 @@ private:
     std::string overtake_ready_topic, dead_man_active_topic;
     std::string ackermann_control_topic, odom_topic;
     bool overtaking_enable, speed_limit_enable;
-    double look_ahead_distance, speed_limit;
+    double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
 
     //internal state and variabels
     state_ controller_state ;
