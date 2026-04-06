@@ -72,6 +72,8 @@ private:
     ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
     double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
+    int find_current_position_index();
+    geometry_msgs::msg::Point convert_to_local_frame();
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
     //parameters
@@ -81,6 +83,7 @@ private:
     std::string ackermann_control_topic, odom_topic;
     bool overtaking_enable, speed_limit_enable;
     double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
+    double pose_margine;
 
     //internal state and variabels
     state_ controller_state ;

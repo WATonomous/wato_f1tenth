@@ -73,45 +73,6 @@ void Pure_Persuit_Node::odom_callback(const nav_msgs::msg::Odometry::SharedPtr m
 }
 */
 
-/*
-assumption for this one  : 
-- the local planner always gives all the cordinates in base_link frame
-- the start of the local planning array will always be 0,0 so you just need to traverse up 
-  to find the look ahead distance point
-*/
-void Pure_Persuit_Node::get_local_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity) {
-
-    geometry_msgs::msg::Point target_point;
-    double target_velocity;
-
-    for (const auto point : current_local_path.poses) {
-
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, point.pose);
-
-        if (distance >= look_ahead_distance) {
-            target_point = point.pose.position;
-            target_velocity = point.pose.position.z;
-            break;
-        }
-    }
-}
-
-double Pure_Persuit_Node::find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination) {
-    return std::sqrt(std::pow(destination.position.x - current_location.position.x, 2) + 
-        std::pow(destination.position.y - current_location.position.y, 2));
-}
-
-double Pure_Persuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
-  return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 1.0 - 2.0 * (std::pow(quat.y,2) + std::pow(quat.z,2)));
-}
-/*
-assumption for this one  : 
-- the global planner always gives all the cordinates in map frame, thus requiring a cordinate
-  requiring a cordinate conversion before being able to apply the control law to it
-*/
-void Pure_Persuit_Node::get_global_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity) {
-
-}
 
 //the guy that appies the control law
 void Pure_Persuit_Node::control_timer_callback() {
@@ -147,6 +108,10 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
 
     //this formula derivation should be a in muhtasim note's co-op 1 notes and should be a picture on the github
     double steering_angle = std::atan2(wheel_base * 2 * target_point.y, std::pow(look_ahead_distance, 2));
+
+    //steven gong's method
+    //double kp = 0.25; // this should be a ros parameter
+    //double steering_angle = kp * (2 * y / std::pow(look_ahead_distance, 2));
 
     if (steering_angle > max_steering_angle) {
         steering_angle = max_steering_angle;
@@ -198,6 +163,140 @@ void Pure_Persuit_Node::update_controller_state () {
 
 }
 
+/*
+assumption for this one  : 
+- the local planner always gives all the cordinates in base_link frame
+- the start of the local planning array will always be 0,0 so you just need to traverse up 
+  to find the look ahead distance point
+- the z value of the point encodes the velocity at the desired point
+*/
+void Pure_Persuit_Node::get_local_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity) {
+
+    geometry_msgs::msg::Point target_point;
+    double target_velocity;
+
+    geometry_msgs::msg::Pose origin;
+    origin.position.x = 0.0;
+    origin.position.y = 0.0;
+    origin.position.z = 0.0;
+
+    for (const auto point : current_local_path.poses) {
+
+        double distance = Pure_Persuit_Node::find_distance(origin, point.pose);
+
+        if (distance >= look_ahead_distance) {
+            current_point = point.pose.position;
+            current_velocity = point.pose.position.z;
+            return;
+        }
+    }
+
+    // Fallback: path shorter than lookahead — use last point
+    current_point    = current_local_path.poses.back().pose.position;
+    current_velocity = current_local_path.poses.back().pose.position.z;
+
+}
+
+/*
+assumption for this one  : 
+- the global planner always gives all the cordinates in map frame, thus requiring a cordinate
+  requiring a cordinate conversion before being able to apply the control law to it
+*/
+void Pure_Persuit_Node::get_global_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity) {
+
+    //find the current index corosponding to current location of vehicle
+    int current_pose_index = Pure_Persuit_Node::find_current_position_index();
+
+    //find the look_ahead point
+    bool found_look_ahead_point = false;
+    geometry_msgs::msg::Pose global_target_point;
+
+
+    for (int i = current_pose_index + 1 ; i < current_global_path.poses.size(); i ++) {
+        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+
+        if (distance >= look_ahead_distance) {
+            found_look_ahead_point = true;
+            global_target_point = current_global_path.poses[i].pose;
+            break;
+        }
+
+    }
+
+    if (!found_look_ahead_point) {
+        for (int i = 0; i < current_pose_index; i++) {
+
+            double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+
+            if (distance >= look_ahead_distance) {
+                found_look_ahead_point = true;
+                global_target_point = current_global_path.poses[i].pose;
+                break;
+            }
+
+        }
+    }
+
+    //convert the point to the local frame
+
+
+}
+
+int Pure_Persuit_Node::find_current_position_index() {
+
+    static int prev_index_cache = 0;
+    bool found_local_minimum = false;
+
+    //use the prev_index_cache to find current distance prev_distance from point
+    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[prev_index_cache].pose);
+    int prev_index = prev_index_cache;
+
+    for (int i = prev_index_cache + 1; i < current_global_path.poses.size(); i++) {
+
+        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        if (current_distance <= prev_distance) {
+            prev_index = i;
+            prev_distance = current_distance;
+        }
+
+        if (current_distance > prev_distance) {
+            found_local_minimum = true;
+            break;
+        }
+
+    }
+
+    if (!found_local_minimum) {
+
+        for (int i = 0; i < prev_index_cache; i++) {
+
+            double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+            if (current_distance <= prev_distance) {
+                prev_index = i;
+                prev_distance = current_distance;
+            }
+
+            if (current_distance > prev_distance) {
+                found_local_minimum = true;
+                break;
+            }
+
+        }
+
+    }
+
+    if (!found_local_minimum) {
+        RCLCPP_INFO(
+            this->get_logger(),
+            "could not find the index of local minimum distance, returning last closest point"
+        );
+    }
+
+    prev_index_cache = prev_index;
+    return prev_index_cache;
+    
+}
+
 ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::dead_stop() {
 
     ackermann_msgs::msg::AckermannDrive drive;
@@ -211,6 +310,15 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::dead_stop() {
 
     return stamp;
 
+}
+
+double Pure_Persuit_Node::find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination) {
+    return std::sqrt(std::pow(destination.position.x - current_location.position.x, 2) + 
+        std::pow(destination.position.y - current_location.position.y, 2));
+}
+
+double Pure_Persuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
+  return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 1.0 - 2.0 * (std::pow(quat.y,2) + std::pow(quat.z,2)));
 }
 
 void Pure_Persuit_Node::init_parameters () {
@@ -233,6 +341,7 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<double>("speed_limit", 0.25);
     this->declare_parameter<double>("wheel_base",0.31);
     this->declare_parameter<double>("max_steering_angle",0.52);
+    this->declare_parameter<double>("pose_margine", 0.05);
 
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
@@ -252,6 +361,7 @@ void Pure_Persuit_Node::init_parameters () {
     speed_limit = this->get_parameter("speed_limit").as_double();
     wheel_base = this->get_parameter("wheel_base").as_double();
     max_steering_angle = this->get_parameter("max_steering_angle").as_double();
+    pose_margine = this->get_parameter("pose_margine").as_double();
 
     //initalize state and internal variables
     dead_man_active.data = false;
