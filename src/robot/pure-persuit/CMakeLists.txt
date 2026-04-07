@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(pure-persuit)
+project(pure_persuit)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -13,7 +13,8 @@ find_package(std_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -27,9 +28,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(pure_persuit_node src/pure_persuit_node.cpp)
+add_executable(pure_persuit_node src/pure_persuit.cpp)
 target_include_directories(pure_persuit_node PUBLIC include)
-ament_target_dependencies(pure_persuit_node rclcpp std_msgs nav_msgs ackermann_msgs)
+ament_target_dependencies(pure_persuit_node rclcpp std_msgs nav_msgs geometry_msgs tf2 tf2_ros ackermann_msgs)
 
 install(TARGETS
   pure_persuit_node
