@@ -1,5 +1,11 @@
 #include "pure_persuit.hpp"
 
+/*
+currently state transitions are allowd no mater what, 
+but if the way points are empty then car is just halted
+might consider changing that in the future
+*/
+
 Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
 
     //parameters
@@ -41,40 +47,21 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
         );
     }
 
+    control_loop_timer = this->create_wall_timer (
+        std::chrono::milliseconds(50), 
+        [this](){control_timer_callback();}
+    );
+
+    //tf2
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
 }
+
 /*
-void Pure_Persuit_Node::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
-    //save the current pose
-    current_pose = *msg;
-
-    //updated controller state
-    Pure_Persuit_Node::update_controller_state();
-
-    //don't apply any control if the controler is not active, stop everything
-    if (controller_state == state_::INACTIVE) {
-        controls_pub_->publish(Pure_Persuit_Node::dead_stop());
-        return;
-    } 
-
-    double v = 0;
-    geometry_msgs::msg::Point p;
-
-    if (controller_state == state_::GLOBAL_FOLLOW)
-        Pure_Persuit_Node::get_global_waypoint(p,v);
-    else if (controller_state == state_::LOCAL_FOLLOW)
-        Pure_Persuit_Node::get_local_waypoint(p,v);
-
-    //apply the control law
-    ackermann_msgs::msg::AckermannDriveStamped control_command = Pure_Persuit_Node::calculate_control(p,v);
-
-    //publish control inputs
-    controls_pub_->publish(control_command);
-
-}
+key assumption : the z value of the point holdes the velocity and always will
+todo : come back and add dynamic look ahead distance
 */
-
-
-//the guy that appies the control law
 void Pure_Persuit_Node::control_timer_callback() {
 
     //updated controller state
@@ -82,20 +69,26 @@ void Pure_Persuit_Node::control_timer_callback() {
 
     //don't apply any control if the controler is not active, stop everything
     if (controller_state == state_::INACTIVE) {
+        RCLCPP_WARN(this->get_logger(), "Dead Man switch is off");
         controls_pub_->publish(Pure_Persuit_Node::dead_stop());
         return;
     } 
 
-    double v = 0;
-    geometry_msgs::msg::Point p;
+    std::optional<geometry_msgs::msg::Point> p;
 
     if (controller_state == state_::GLOBAL_FOLLOW)
-        Pure_Persuit_Node::get_global_waypoint(p,v);
+        p = Pure_Persuit_Node::get_global_waypoint();
     else if (controller_state == state_::LOCAL_FOLLOW)
-        Pure_Persuit_Node::get_local_waypoint(p,v);
+        p = Pure_Persuit_Node::get_local_waypoint();
+
+    if (!p.has_value()) {
+        RCLCPP_ERROR(this->get_logger(), "no look ahead point returned, stopping car");
+        controls_pub_->publish(Pure_Persuit_Node::dead_stop());
+        return;
+    }
 
     //apply the control law
-    ackermann_msgs::msg::AckermannDriveStamped control_command = Pure_Persuit_Node::calculate_control(p,v);
+    ackermann_msgs::msg::AckermannDriveStamped control_command = Pure_Persuit_Node::calculate_control(p.value());
 
     //publish control inputs
     controls_pub_->publish(control_command);
@@ -103,8 +96,7 @@ void Pure_Persuit_Node::control_timer_callback() {
 }
 
 ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
-    const geometry_msgs::msg::Point &target_point, 
-    const double &velocity) {
+    const geometry_msgs::msg::Point &target_point) {
 
     //this formula derivation should be a in muhtasim note's co-op 1 notes and should be a picture on the github
     double steering_angle = std::atan2(wheel_base * 2 * target_point.y, std::pow(look_ahead_distance, 2));
@@ -127,7 +119,7 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     if (speed_limit_enable) {
         drive.speed = speed_limit;
     } else { 
-        drive.speed = velocity;
+        drive.speed = target_point.z;
     }
 
     ackermann_msgs::msg::AckermannDriveStamped stamp;
@@ -141,24 +133,28 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
 
 void Pure_Persuit_Node::update_controller_state () {
 
-    if (dead_man_active.data && !current_global_path.poses.empty()) {
+    if (dead_man_active.data) {
+
        controller_state = state_::GLOBAL_FOLLOW; 
+
     } else {
+
         controller_state = state_::INACTIVE;
-        RCLCPP_WARN(this->get_logger(), "DeadMan switch is off OR global path is empty");
+
     }
 
     if (overtaking_enable) {
-       if (current_local_path.poses.empty()) {
-            RCLCPP_WARN(this->get_logger(), "could not transition to overtake mode, local path empty");
-            return;
-       }
 
         if (overtake_active.data && controller_state == state_::GLOBAL_FOLLOW) {
+
             controller_state = state_::LOCAL_FOLLOW;
+
         } else if (!overtake_active.data && controller_state == state_::LOCAL_FOLLOW) {
+
             controller_state = state_::GLOBAL_FOLLOW;
+
         }
+
     }
 
 }
@@ -170,12 +166,20 @@ assumption for this one  :
   to find the look ahead distance point
 - the z value of the point encodes the velocity at the desired point
 */
-void Pure_Persuit_Node::get_local_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity) {
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
 
     geometry_msgs::msg::Point target_point;
     double target_velocity;
 
-    geometry_msgs::msg::Pose origin;
+    if (current_local_path.poses.empty()) {
+
+        RCLCPP_WARN(this->get_logger(), "no waypoints in local path while in LOCAL_FOLLOW state");
+        return std::nullopt;
+
+    }
+    
+    // i know it inits to zero, but just to be safe
+    geometry_msgs::msg::Pose origin; 
     origin.position.x = 0.0;
     origin.position.y = 0.0;
     origin.position.z = 0.0;
@@ -185,15 +189,15 @@ void Pure_Persuit_Node::get_local_waypoint(geometry_msgs::msg::Point &current_po
         double distance = Pure_Persuit_Node::find_distance(origin, point.pose);
 
         if (distance >= look_ahead_distance) {
-            current_point = point.pose.position;
-            current_velocity = point.pose.position.z;
-            return;
+
+            return point.pose.position;
+
         }
+    
     }
 
     // Fallback: path shorter than lookahead — use last point
-    current_point    = current_local_path.poses.back().pose.position;
-    current_velocity = current_local_path.poses.back().pose.position.z;
+    return current_local_path.poses.back().pose.position;
 
 }
 
@@ -202,44 +206,79 @@ assumption for this one  :
 - the global planner always gives all the cordinates in map frame, thus requiring a cordinate
   requiring a cordinate conversion before being able to apply the control law to it
 */
-void Pure_Persuit_Node::get_global_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity) {
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint() {
+
+    //check the global path
+    if (current_global_path.poses.empty()) {
+
+        RCLCPP_WARN(this->get_logger(), "no waypoints in global path while in GLOBAL_FOLLOW state");
+        return std::nullopt;
+
+    }
 
     //find the current index corosponding to current location of vehicle
     int current_pose_index = Pure_Persuit_Node::find_current_position_index();
 
-    //find the look_ahead point
-    bool found_look_ahead_point = false;
-    geometry_msgs::msg::Pose global_target_point;
+    //find the look_ahead point in the global frame
+    std::optional<geometry_msgs::msg::Point> target_waypoint_global = Pure_Persuit_Node::find_lookahead_global(current_pose_index);
 
+    if (!target_waypoint_global.has_value()) {
 
-    for (int i = current_pose_index + 1 ; i < current_global_path.poses.size(); i ++) {
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        RCLCPP_WARN(this->get_logger(), "no target look ahead point found | find_lookahead_global()");
+        return std::nullopt;
 
-        if (distance >= look_ahead_distance) {
-            found_look_ahead_point = true;
-            global_target_point = current_global_path.poses[i].pose;
-            break;
-        }
-
-    }
-
-    if (!found_look_ahead_point) {
-        for (int i = 0; i < current_pose_index; i++) {
-
-            double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
-
-            if (distance >= look_ahead_distance) {
-                found_look_ahead_point = true;
-                global_target_point = current_global_path.poses[i].pose;
-                break;
-            }
-
-        }
     }
 
     //convert the point to the local frame
+    std::optional<geometry_msgs::msg::Point> converted_waypoint = Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
 
+    if (!converted_waypoint.has_value()) {
 
+        RCLCPP_WARN(this->get_logger(), "no target look ahead point found | convert_to_local_frame()");
+        return std::nullopt;
+
+    }
+
+    return converted_waypoint;
+
+}
+
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::convert_to_local_frame(
+    const geometry_msgs::msg::Point &global_point) {
+
+    geometry_msgs::msg::TransformStamped t;
+
+    try {
+
+        t = tf_buffer_->lookupTransform(local_frame_id, global_frame_id, tf2::TimePointZero);
+
+    } catch (const tf2::TransformException & ex) {
+
+        RCLCPP_INFO(
+            this->get_logger(), "Could not transform %s to %s: %s",
+            local_frame_id.c_str(), global_frame_id.c_str(), ex.what());
+        return std::nullopt;
+
+    }
+
+    return Pure_Persuit_Node::transfrom_point_(global_point,t.transform);
+
+}
+
+geometry_msgs::msg::Point Pure_Persuit_Node::transfrom_point_(
+    const geometry_msgs::msg::Point &point_, 
+    const geometry_msgs::msg::Transform &t_) {
+ 
+    geometry_msgs::msg::Point p;
+    
+    double theta = Pure_Persuit_Node::extractYaw(t_.rotation);
+
+    p.x = (std::cos(theta) * point_.x - std::sin(theta)* point_.y) + t_.translation.x;
+    p.y = (std::sin(theta) * point_.x + std::cos(theta)* point_.y) + t_.translation.y;
+    p.z = point_.z; // the speed
+
+    return p;
+    
 }
 
 int Pure_Persuit_Node::find_current_position_index() {
@@ -295,6 +334,44 @@ int Pure_Persuit_Node::find_current_position_index() {
     prev_index_cache = prev_index;
     return prev_index_cache;
     
+}
+
+// finding lookahead distance from current vehicle position
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(int current_vehicle_index) {
+
+    // case 1 : from current point to end of vector
+    for (int i = current_vehicle_index + 1 ; i < current_global_path.poses.size(); i ++) {
+
+        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+
+        if (distance >= look_ahead_distance) {
+
+            return current_global_path.poses[i].pose.position;
+
+        }
+
+    }
+
+    //case 2 : loop back from start to current as this represetns a closed loop
+    for (int i = 0; i < current_vehicle_index; i++) {
+
+        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+
+        if (distance >= look_ahead_distance) {
+
+            return current_global_path.poses[i].pose.position;
+
+        }
+
+    }
+
+    /*
+      case 3 : 
+      could not find suitble point, return nullopt, caller choses how to handle
+      this should in theory never happen
+    */
+    RCLCPP_ERROR(this->get_logger(), "could not find lookahead point");
+    return std::nullopt;
 }
 
 ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::dead_stop() {
@@ -368,7 +445,13 @@ void Pure_Persuit_Node::init_parameters () {
     overtake_active.data = false;
 
     controller_state = state_::INACTIVE;
+}
 
-    current_global_path = nav_msgs::msg::Path();
-    current_local_path = nav_msgs::msg::Path();
+int main(int argc, char ** argv) {
+
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<Pure_Persuit_Node>());
+  rclcpp::shutdown();
+  return 0;
+
 }

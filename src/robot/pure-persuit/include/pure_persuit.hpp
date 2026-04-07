@@ -57,23 +57,29 @@ private:
     //timer
     rclcpp::TimerBase::SharedPtr control_loop_timer;
 
+    //tf2
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+
     //callback functions
     void control_timer_callback ();
-    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    //void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     //helpers
     void init_parameters();
 
     void update_controller_state();
-    void get_local_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity);
-    void get_global_waypoint(geometry_msgs::msg::Point &current_point, double &current_velocity);
+    std::optional<geometry_msgs::msg::Point> get_local_waypoint();
+    std::optional<geometry_msgs::msg::Point> get_global_waypoint();
 
-    ackermann_msgs::msg::AckermannDriveStamped calculate_control(const geometry_msgs::msg::Point &target_point, const double &velocity);
+    ackermann_msgs::msg::AckermannDriveStamped calculate_control(const geometry_msgs::msg::Point &target_point);
     ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
     double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
     int find_current_position_index();
-    geometry_msgs::msg::Point convert_to_local_frame();
+    std::optional<geometry_msgs::msg::Point> find_lookahead_global(int current_vehicle_index);
+    std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point &global_point);
+    geometry_msgs::msg::Point transfrom_point_ (const geometry_msgs::msg::Point &point_, const geometry_msgs::msg::Transform &t_);
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
     //parameters
