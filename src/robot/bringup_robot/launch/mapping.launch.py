@@ -79,18 +79,6 @@ def generate_launch_description():
     
     ld.add_action(laser_to_base_link)
    
-    # provides a transfrom map to car
-    # this emulates how particle filter 
-    # functions on the real car 
-    map_to_odom = Node (
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_baselink_to_laser',
-        arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'map', 'odom']
-    )
-    
-    ld.add_action(map_to_odom)
-    
     # the job the conterter is to provide 
     # a way to convert velocity and steering comands
     # that are compatible with the real car to 
@@ -149,5 +137,22 @@ def generate_launch_description():
     )
     
     ld.add_action(global_planner)
+
+    slam_node = Node(
+        package='slam_toolbox',
+        executable='async_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen',
+        parameters=[{
+            'scan_topic': '/scan',
+            'use_odometry': True,
+            'map_frame': 'map',
+            'odom_frame': 'odom',
+            'base_frame': 'base_link',
+            'use_sim_time' : True,
+        }]
+    )
+    
+    ld.add_action(slam_node)
      
     return ld

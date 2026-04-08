@@ -89,6 +89,8 @@ private:
     std::string ackermann_control_topic, odom_topic;
     bool overtaking_enable, speed_limit_enable;
     double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
+    int global_start_index;
+    double kp_gain;
 
     //internal state and variabels
     state_ controller_state ;

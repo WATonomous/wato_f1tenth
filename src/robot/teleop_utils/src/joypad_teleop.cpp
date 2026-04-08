@@ -28,6 +28,7 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     gamepad_topic = this->get_parameter("gamepad_topic").as_string();
     joy_topic = this->get_parameter("joy_topic").as_string();
     my_frame_id = this->get_parameter("my_frame_id").as_string();
+    dead_man_topic = this->get_parameter("dead_man_topic").as_string();
 
     max_speed = this->get_parameter("max_speed").as_double();
     max_steering_rate = this->get_parameter("max_steering_rate").as_double();

@@ -9,11 +9,10 @@ might consider changing that in the future
 /*
 test & developmnet plan :
     short term (next 3 days):
-    - compile it and get rid of any compilation bugs
-    - just start the node by itself -> should say no dead man
+    - compile it and get rid of any compilation bugs (done)
+    - just start the node by itself -> should say no dead man (done)
     - manually send true to dead man -> should say no global path
-    - launch the node with the global path and other stuff then launch pure persuit -> do nothing , send true -> should start to follow path at 0.5 m/s
-    - test our my muta's formulations for steering angle (direct) vs steven's (kp gain method)
+    - launch the node with the global path and other stuff then launch pure persuit -> do nothing , send true -> should start to follow path at 0.5 m/s (done)
 
     medium term (1 week);
     - need to add and test dynamic look ahead distance -> car shold ossilate less on straights, but track the corners well
@@ -189,7 +188,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
 
 size_t Pure_Persuit_Node::find_current_position_index() {
 
-    static size_t prev_index_cache = 0;
+    static size_t prev_index_cache = static_cast<size_t>(global_start_index); // make this a parameter, if yo fuck this up, it messes eveyrthing up (make this a parameter maybe)
     bool found_local_minimum = false;
 
     //use the prev_index_cache to find current distance prev_distance from point
@@ -368,12 +367,8 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
 ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     const geometry_msgs::msg::Point &target_point) {
 
-    //this formula derivation should be a in muhtasim note's co-op 1 notes and should be a picture on the github
-    double steering_angle = std::atan2(wheel_base * 2 * target_point.y, std::pow(look_ahead_distance, 2));
-
-    //steven gong's method
-    //double kp = 0.25; // this should be a ros parameter
-    //double steering_angle = kp * (2 * y / std::pow(look_ahead_distance, 2));
+    double kp = 0.15; // this should be a ros parameter
+    double steering_angle = kp * (2 * target_point.y / std::pow(look_ahead_distance, 2));
 
     if (steering_angle > max_steering_angle) {
         steering_angle = max_steering_angle;
@@ -444,12 +439,15 @@ void Pure_Persuit_Node::init_parameters () {
 
     this->declare_parameter<bool>("overtake_enable",false);
 
-    this->declare_parameter<double>("look_ahead_distance",0.15);
+    this->declare_parameter<double>("look_ahead_distance",1.0);
     this->declare_parameter<bool>("speed_limit_active", true);
-    this->declare_parameter<double>("speed_limit", 0.5);
+    this->declare_parameter<double>("speed_limit", 1.0);
 
-    this->declare_parameter<double>("wheel_base",0.31);
+    this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);
+
+    this->declare_parameter<int>("global_start_index", 80);
+    this->declare_parameter<double>("kp_gain", 0.25);
 
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
@@ -469,6 +467,9 @@ void Pure_Persuit_Node::init_parameters () {
     speed_limit = this->get_parameter("speed_limit").as_double();
     wheel_base = this->get_parameter("wheel_base").as_double();
     max_steering_angle = this->get_parameter("max_steering_angle").as_double();
+
+    global_start_index = this->get_parameter("global_start_index").as_int();
+    kp_gain = this->get_parameter("kp_gain").as_double();
 
     //initalize state and internal variables
     dead_man_active.data = false;
