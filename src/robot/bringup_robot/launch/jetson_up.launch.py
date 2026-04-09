@@ -51,6 +51,12 @@ def generate_launch_description():
         'config',
         'mux.yaml'
     )
+
+    gamepad_config = os.path.join(
+        get_package_share_directory('teleop_utils'),
+        'config',
+        'joypad_config.yaml'
+    )
     
     vesc_la = DeclareLaunchArgument(
         'vesc_config',
@@ -71,7 +77,13 @@ def generate_launch_description():
         default_value=mux_config,
         description='Descriptions for ackermann mux configs')
     
-    ld = LaunchDescription([vesc_la, sensors_la, joy_la,mux_la])
+    gamepad_la = DeclareLaunchArgument (
+        'gamepad_config',
+        default_value=gamepad_config,
+        description='the config with gamepad settings'
+    )
+    
+    ld = LaunchDescription([vesc_la, sensors_la, joy_la,mux_la, gamepad_la])
 
     deadzone = DeclareLaunchArgument (
         'deadzone',
@@ -146,9 +158,10 @@ def generate_launch_description():
     )
     
     gamepad = Node (
-        package='gamepad',
+        package='teleop_utils',
         executable='joypad_node',
-        name='joypad_node',
+        name='gamepad_node',
+        parameters=[LaunchConfiguration('gamepad_config')],
         output='screen'
     )
     
@@ -178,7 +191,6 @@ def generate_launch_description():
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
     ld.add_action(vesc_driver_node)
-    # ld.add_action(throttle_interpolator_node)
     ld.add_action(urg_node)
     ld.add_action(static_tf_node)
     ld.add_action(joy)
