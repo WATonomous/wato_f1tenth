@@ -381,10 +381,10 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     ackermann_msgs::msg::AckermannDrive drive;
     drive.steering_angle = steering_angle;
 
-    if (speed_limit_enable) {
+    drive.speed = target_point.z;
+
+    if (speed_limit_enable && drive.speed > speed_limit) {
         drive.speed = speed_limit;
-    } else { 
-        drive.speed = target_point.z;
     }
 
     ackermann_msgs::msg::AckermannDriveStamped stamp;
@@ -441,13 +441,13 @@ void Pure_Persuit_Node::init_parameters () {
 
     this->declare_parameter<double>("look_ahead_distance",1.0);
     this->declare_parameter<bool>("speed_limit_active", true);
-    this->declare_parameter<double>("speed_limit", 1.0);
+    this->declare_parameter<double>("speed_limit", 10.0);
 
     this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);
 
     this->declare_parameter<int>("global_start_index", 80);
-    this->declare_parameter<double>("kp_gain", 0.25);
+    this->declare_parameter<double>("kp_gain", 0.31);
 
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
