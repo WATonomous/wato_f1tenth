@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>wheel_odom</name>
+  <name>teleop_utils</name>
   <version>0.0.0</version>
-  <description>takes wheel encoder data and produces odometrey relative to the starting postion, 
-          also broadcasts the odom to f1_teenth transform</description>
+  <description>a simple package for converting gamepad input into car outputs</description>
   <maintainer email="muhtasim.business@gmail.com">bolty</maintainer>
   <license>Apache-2.0</license>
 
@@ -15,12 +14,9 @@
 
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
-  <depend>nav_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>message_filters</depend>
-
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
+  <depend>joy</depend>
+  <depend>ackermann_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

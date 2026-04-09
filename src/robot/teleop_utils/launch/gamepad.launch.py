@@ -7,8 +7,20 @@ from launch_ros.actions import Node
 import os
 
 def generate_launch_description():
+    
+    gamepad_config = os.path.join(
+        get_package_share_directory('teleop_utils'),
+        'config',
+        'joypad_config.yaml'
+    )
 
-    ld = LaunchDescription() # Begin building a launch description
+    gamepad_la = DeclareLaunchArgument (
+        'gamepad_config',
+        default_value=gamepad_config,
+        description='the config with gamepad settings'
+    )
+
+    ld = LaunchDescription([gamepad_la]) # Begin building a launch description
 
     deadzone = DeclareLaunchArgument (
         'deadzone',
@@ -45,13 +57,15 @@ def generate_launch_description():
     ld.add_action(joy)
 
     gamepad = Node (
-        package='gamepad',
+        package='teleop_utils',
         executable='joypad_node',
-        name='joypad_node',
+        name='gamepad_node',
+        parameters=[LaunchConfiguration('gamepad_config')],
         output='screen'
     )
 
     ld.add_action(gamepad)
     
-
     return ld
+
+

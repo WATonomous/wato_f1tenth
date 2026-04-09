@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(gamepad)
+project(global_planner)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -12,8 +12,11 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(ackermann_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+#find_package(visualization_msgs REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -27,25 +30,17 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(gamepad_node src/gamepad_node.cpp)
-target_include_directories(gamepad_node PUBLIC include)
+add_executable(global_planner_node src/global_planner.cpp)
+target_include_directories(global_planner_node PUBLIC include)
+ament_target_dependencies(global_planner_node rclcpp std_msgs nav_msgs geometry_msgs ament_index_cpp)
 
-ament_target_dependencies(gamepad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
-
-add_executable(joypad_node src/joypad_teleop.cpp)
-target_include_directories(joypad_node PUBLIC include)
-
-ament_target_dependencies(joypad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
-
-install(TARGETS
-  gamepad_node
-  joypad_node
-  DESTINATION lib/${PROJECT_NAME}
+install(DIRECTORY assets/
+  DESTINATION share/${PROJECT_NAME}/assets
 )
 
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
+install(TARGETS
+  global_planner_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()
