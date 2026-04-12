@@ -53,6 +53,12 @@ def generate_launch_description():
         'config',
         'mux.yaml'
     )
+
+    gamepad_config = os.path.join(
+        get_package_share_directory('teleop_utils'),
+        'config',
+        'joypad_config.yaml'
+    )
     
     vesc_la = DeclareLaunchArgument(
         'vesc_config',
@@ -79,6 +85,12 @@ def generate_launch_description():
         default_value=mux_config,
         description='Descriptions for ackermann mux configs')
     
+    gamepad_la = DeclareLaunchArgument (
+        'gamepad_config',
+        default_value=gamepad_config,
+        description='the config with gamepad settings'
+    )
+    
     localize_config_dict = yaml.safe_load(open(localize_config, 'r'))
 
     map_name = localize_config_dict['map_server']['ros__parameters']['map']
@@ -89,7 +101,7 @@ def generate_launch_description():
         description='Localization configs'
     )
 
-    ld = LaunchDescription([vesc_la, sensors_la, joy_la, localize_la, mux_la])
+    ld = LaunchDescription([vesc_la, sensors_la, joy_la, localize_la, mux_la, gamepad_la])
 
     deadzone = DeclareLaunchArgument (
         'deadzone',
@@ -156,9 +168,10 @@ def generate_launch_description():
     )
     
     gamepad = Node (
-        package='gamepad',
+        package='teleop_utils',
         executable='joypad_node',
-        name='joypad_node',
+        name='gamepad_node',
+        parameters=[LaunchConfiguration('gamepad_config')],
         output='screen'
     )
     
