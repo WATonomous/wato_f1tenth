@@ -36,7 +36,7 @@ RUN sudo apt-get clean && \
     sudo rosdep update
 
 # ADD MORE DEPENDENCIES HERE
-RUN sudo apt-get install libeigen3-dev
+RUN sudo apt-get install -y libeigen3-dev
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
@@ -49,7 +49,7 @@ COPY --from=source ${AMENT_WS}/src src
 COPY config/sample_settings/*.json .vscode/
 
 #add support for controller
-RUN sudo apt-get install -y ros-humble-joy 
+#RUN sudo apt-get install -y ros-humble-joy 
 #RUN sudo apt install -y ros-$ROS_DISTRO-slam-toolbox
 #RUN sudo apt-get install -y jstest-gtk
 #RUN mkdir -p /root/.config/jstest-gtk
