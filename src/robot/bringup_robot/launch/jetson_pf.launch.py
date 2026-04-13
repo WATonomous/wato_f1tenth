@@ -234,6 +234,18 @@ def generate_launch_description():
         name ="ekf",
         output="screen"
     )    
+
+    global_planner = Node (
+
+        package='global_planner',
+
+        executable='global_planner_node',
+
+        name='global_planner_node',
+
+        output='screen'
+
+    )
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -252,5 +264,6 @@ def generate_launch_description():
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
     ld.add_action(ekf)
+    ld.add_action(global_planner)
     
     return ld

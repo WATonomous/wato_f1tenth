@@ -188,7 +188,8 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
 
 size_t Pure_Persuit_Node::find_current_position_index() {
 
-    static size_t prev_index_cache = static_cast<size_t>(global_start_index); // make this a parameter, if yo fuck this up, it messes eveyrthing up (make this a parameter maybe)
+    static size_t prev_index_cache = Pure_Persuit_Node::init_position_index_cache(); 
+
     bool found_local_minimum = false;
 
     //use the prev_index_cache to find current distance prev_distance from point
@@ -424,6 +425,25 @@ double Pure_Persuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat)
 
 }
 
+size_t Pure_Persuit_Node::init_position_index_cache() {
+
+    size_t last_index = 0;
+    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[last_index].pose);
+
+    for (size_t i = 1; i < current_global_path.poses.size(); i++) {
+
+        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        if (current_distance < prev_distance) {
+            prev_distance = current_distance;
+            last_index = i;
+        }
+
+    }
+
+    return last_index;
+
+}
+
 void Pure_Persuit_Node::init_parameters () {
 
     //declare parameters
@@ -446,7 +466,6 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);
 
-    this->declare_parameter<int>("global_start_index", 80);
     this->declare_parameter<double>("kp_gain", 0.31);
 
     //init parameters
@@ -468,7 +487,6 @@ void Pure_Persuit_Node::init_parameters () {
     wheel_base = this->get_parameter("wheel_base").as_double();
     max_steering_angle = this->get_parameter("max_steering_angle").as_double();
 
-    global_start_index = this->get_parameter("global_start_index").as_int();
     kp_gain = this->get_parameter("kp_gain").as_double();
 
     //initalize state and internal variables
@@ -476,6 +494,8 @@ void Pure_Persuit_Node::init_parameters () {
     overtake_active.data = false;
 
     controller_state = state_::INACTIVE;
+
+
 }
 
 int main(int argc, char ** argv) {

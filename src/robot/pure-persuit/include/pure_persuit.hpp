@@ -81,6 +81,7 @@ private:
     std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point &global_point);
     geometry_msgs::msg::Point transfrom_point_ (const geometry_msgs::msg::Point &point_, const geometry_msgs::msg::Transform &t_);
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
+    size_t init_position_index_cache();
 
     //parameters
     std::string global_frame_id, local_frame_id;
@@ -89,7 +90,6 @@ private:
     std::string ackermann_control_topic, odom_topic;
     bool overtaking_enable, speed_limit_enable;
     double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
-    int global_start_index;
     double kp_gain;
 
     //internal state and variabels
