@@ -32,8 +32,6 @@ from threading import Lock
 from particle_filter import utils as Utils
 
 # TF
-# import tf.transformations
-# import tf
 from tf2_ros import TransformBroadcaster
 import tf_transformations
 
@@ -128,6 +126,9 @@ class ParticleFiler(Node):
         self.last_stamp = None
         self.first_sensor_update = True
         self.state_lock = Lock()
+
+        # store the latest odom->base_link pose for map->odom computation
+        self.odom_pose = None
 
         # cache this to avoid memory allocation in motion model
         self.local_deltas = np.zeros((self.MAX_PARTICLES, 3))
@@ -235,32 +236,69 @@ class ParticleFiler(Node):
         self.permissible_region[array_255==0] = 1
         self.map_initialized = True
 
+    def compute_map_to_odom(self, map_to_base, odom_to_base):
+        '''
+        Compute the map->odom transform given:
+          map_to_base:  [x, y, theta] - inferred pose of base_link in map frame
+          odom_to_base: [x, y, theta] - pose of base_link in odom frame (from odometry)
+
+        Returns [x, y, theta] for the map->odom transform.
+
+        map->odom = map->base_link * inv(odom->base_link)
+        '''
+        # inverse of odom->base_link
+        cos_o = np.cos(odom_to_base[2])
+        sin_o = np.sin(odom_to_base[2])
+        inv_x = -(cos_o * odom_to_base[0] + sin_o * odom_to_base[1])
+        inv_y = (sin_o * odom_to_base[0] - cos_o * odom_to_base[1])
+        inv_theta = -odom_to_base[2]
+
+        # compose map->base_link * inv(odom->base_link)
+        cos_m = np.cos(map_to_base[2])
+        sin_m = np.sin(map_to_base[2])
+        mo_x = map_to_base[0] + cos_m * inv_x - sin_m * inv_y
+        mo_y = map_to_base[1] + sin_m * inv_x + cos_m * inv_y
+        mo_theta = map_to_base[2] + inv_theta
+
+        return np.array([mo_x, mo_y, mo_theta])
+
     def publish_tf(self, pose, stamp=None):
-        ''' Publish a tf for the car. This tells ROS where the car is with respect to the map. '''
-        if stamp == None:
+        '''
+        Publish the map->odom transform. This corrects the odometry drift so that
+        the full TF chain map->odom->base_link->laser is consistent.
+        '''
+        if stamp is None:
             stamp = self.get_clock().now().to_msg()
+
+        # need a valid odom pose to compute map->odom
+        if self.odom_pose is None:
+            return
+
+        # compute map->odom from inferred map->base_link and known odom->base_link
+        map_to_odom = self.compute_map_to_odom(pose, self.odom_pose)
 
         t = TransformStamped()
         # header
         t.header.stamp = stamp
-        t.header.frame_id = '/map'
-        t.child_frame_id = '/laser'
+        t.header.frame_id = 'map'
+        t.child_frame_id = 'odom'
         # translation
-        t.transform.translation.x = pose[0]
-        t.transform.translation.y = pose[1]
+        t.transform.translation.x = map_to_odom[0]
+        t.transform.translation.y = map_to_odom[1]
         t.transform.translation.z = 0.0
-        q = tf_transformations.quaternion_from_euler(0., 0., pose[2])
+        q = tf_transformations.quaternion_from_euler(0., 0., map_to_odom[2])
         # rotation
         t.transform.rotation.x = q[0]
         t.transform.rotation.y = q[1]
         t.transform.rotation.z = q[2]
         t.transform.rotation.w = q[3]
         self.pub_tf.sendTransform(t)
+
         # also publish odometry to facilitate getting the localization pose
         if self.PUBLISH_ODOM:
             odom = Odometry()
             odom.header.stamp = self.get_clock().now().to_msg()
-            odom.header.frame_id = '/map'
+            odom.header.frame_id = 'map'
             odom.pose.pose.position.x = pose[0]
             odom.pose.pose.position.y = pose[1]
             odom.pose.pose.orientation = Utils.angle_to_quaternion(pose[2])
@@ -282,7 +320,7 @@ class ParticleFiler(Node):
             # Publish the inferred pose for visualization
             ps = PoseStamped()
             ps.header.stamp = self.get_clock().now().to_msg()
-            ps.header.frame_id = '/map'
+            ps.header.frame_id = 'map'
             ps.pose.position.x = self.inferred_pose[0]
             ps.pose.position.y = self.inferred_pose[1]
             ps.pose.orientation = Utils.angle_to_quaternion(self.inferred_pose[2])
@@ -310,7 +348,7 @@ class ParticleFiler(Node):
         # publish the given particles as a PoseArray object
         pa = PoseArray()
         pa.header.stamp = self.get_clock().now().to_msg()
-        pa.header.frame_id = '/map'
+        pa.header.frame_id = 'map'
         pa.poses = Utils.particles_to_poses(particles)
         self.particle_pub.publish(pa)
 
@@ -318,7 +356,7 @@ class ParticleFiler(Node):
         # publish the given angels and ranges as a laser scan message
         ls = LaserScan()
         ls.header.stamp = self.last_stamp
-        ls.header.frame_id = '/laser'
+        ls.header.frame_id = 'laser'
         ls.angle_min = np.min(angles)
         ls.angle_max = np.max(angles)
         ls.angle_increment = np.abs(angles[0] - angles[1])
@@ -372,12 +410,15 @@ class ParticleFiler(Node):
             self.get_logger().info('...Received first Odometry message')
             self.last_pose = pose
 
+        # store the current odom->base_link pose for map->odom computation
+        self.odom_pose = pose
+
         # this topic is slower than lidar, so update every time we receive a message
         self.update()
 
     def clicked_pose(self, msg):
         '''
-        Receive pose messages from RViz and initialize the particle distribution in response.
+        Receive pose messages from RViz/Foxglove and initialize the particle distribution in response.
         '''
         if isinstance(msg, PointStamped):
             self.initialize_global()
@@ -684,26 +725,6 @@ class ParticleFiler(Node):
 
                 self.visualize()
 
-# import argparse
-# import sys
-# parser = argparse.ArgumentParser(description='Particle filter.')
-# parser.add_argument('--config', help='Path to yaml file containing config parameters. Helpful for calling node directly with Python for profiling.')
-
-# def load_params_from_yaml(fp):
-#     from yaml import load
-#     with open(fp, 'r') as infile:
-#         yaml_data = load(infile)
-#         for param in yaml_data:
-#             print 'param:', param, ':', yaml_data[param]
-#             rospy.set_param('~'+param, yaml_data[param])
-
-# # this function can be used to generate flame graphs easily
-# def make_flamegraph(filterx=None):
-#     import flamegraph, os
-#     perf_log_path = os.path.join(os.path.dirname(__file__), '../tmp/perf.log')
-#     flamegraph.start_profile_thread(fd=open(perf_log_path, 'w'),
-#                                     filter=filterx,
-#                                     interval=0.001)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -712,15 +733,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-# if __name__=='__main__':
-#     rospy.init_node('particle_filter')
-
-#     args,_ = parser.parse_known_args()
-#     if args.config:
-#         load_params_from_yaml(args.config)
-
-#     # make_flamegraph(r'update')
-
-#     pf = ParticleFiler()
-#     rospy.spin()
