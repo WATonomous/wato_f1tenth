@@ -455,13 +455,13 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("overtake_ready_topic","/overtake_ready");
     this->declare_parameter<std::string>("dead_man_active_topic","/dead_man_switch");
     this->declare_parameter<std::string>("ackermann_control_topic","/drive/autonomy");
-    this->declare_parameter<std::string>("odom_topic","/odom");
+    this->declare_parameter<std::string>("odom_topic","/pf/pose/odom");
 
     this->declare_parameter<bool>("overtake_enable",false);
 
-    this->declare_parameter<double>("look_ahead_distance",1.0);
+    this->declare_parameter<double>("look_ahead_distance",3.0);
     this->declare_parameter<bool>("speed_limit_active", true);
-    this->declare_parameter<double>("speed_limit", 10.0);
+    this->declare_parameter<double>("speed_limit", 3.0);
 
     this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);

@@ -3,7 +3,7 @@
 GlobalPlanner::GlobalPlanner () : Node ("global_planner_node") {
 
     //parameters
-    this->declare_parameter<std::string>("file_directory", "/assets/optmial_clean_map.csv");
+    this->declare_parameter<std::string>("file_directory", "/assets/e7_fifth_v3_optimal.csv");
     this->declare_parameter<std::string>("vis_topic", "/global_planner/vis");
     this->declare_parameter<std::string>("path_topic", "/global_planner/path");
     this->declare_parameter<std::string>("waypoint_frame_id","map");
