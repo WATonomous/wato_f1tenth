@@ -12,10 +12,12 @@
 #include <string>
 #include <thread>
 #include <string>
+#include <algorithm>
 
 #include "rclcpp/rclcpp.hpp"
 
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/float32.hpp"
 
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -43,7 +45,8 @@ public:
 private:
 
     //publishers
-    rclcpp::Publisher< ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
+    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr look_ahead_pub_;
 
     //subscription
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr overtake_sub_;
@@ -53,6 +56,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr local_path_sub_;
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
 
     //timer
     rclcpp::TimerBase::SharedPtr control_loop_timer;
@@ -81,6 +85,7 @@ private:
     std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point &global_point);
     geometry_msgs::msg::Point transfrom_point_ (const geometry_msgs::msg::Point &point_, const geometry_msgs::msg::Transform &t_);
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
+    void update_lookahead_distance();
     size_t init_position_index_cache();
 
     //parameters
@@ -88,9 +93,12 @@ private:
     std::string global_path_topic, local_path_topic;
     std::string overtake_ready_topic, dead_man_active_topic;
     std::string ackermann_control_topic, odom_topic;
+    std::string speed_topic;
     bool overtaking_enable, speed_limit_enable;
     double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
     double kp_gain;
+    double max_lookahead, min_lookahead, lookahead_ratio;
+    double current_velocity;
 
     //internal state and variabels
     state_ controller_state ;

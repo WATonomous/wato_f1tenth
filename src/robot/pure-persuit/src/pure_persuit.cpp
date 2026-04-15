@@ -15,7 +15,7 @@ test & developmnet plan :
     - launch the node with the global path and other stuff then launch pure persuit -> do nothing , send true -> should start to follow path at 0.5 m/s (done)
 
     medium term (1 week);
-    - need to add and test dynamic look ahead distance -> car shold ossilate less on straights, but track the corners well
+    - need to add and test dynamic look ahead distance -> car shold ossilate less on straights, but track the corners well (done)
     - need to add and test point and velocity interpolation between 2 points -> should result in less jittery movemnet verify using log output
 
     long term (1 month):
@@ -41,36 +41,57 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
 
     dead_man_sub_ = this->create_subscription<std_msgs::msg::Bool>( dead_man_active_topic, latched_qos, 
-        [this](const std_msgs::msg::Bool::SharedPtr msg) {dead_man_active = *msg;}
+        [this](const std_msgs::msg::Bool::SharedPtr msg) {
+            dead_man_active = *msg;
+        }
     );
 
     global_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
         global_path_topic, latched_qos,
-        [this](const nav_msgs::msg::Path::SharedPtr msg){current_global_path = *msg;}
+        [this](const nav_msgs::msg::Path::SharedPtr msg){
+            current_global_path = *msg;
+        }
     );
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         odom_topic, 10,
-        [this](const nav_msgs::msg::Odometry::SharedPtr msg){current_pose = *msg;}
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg){
+            current_pose = *msg;
+        }
     );
+
+    speed_sub_= this->create_subscription<nav_msgs::msg::Odometry>(
+        speed_topic, 10,
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg){
+            current_velocity = msg->twist.twist.linear.x;
+        }
+    );
+
+    look_ahead_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/lookahead_distange",10);
 
     //making this an options branch now as we don't have the local planing stuff working
     if (overtaking_enable) {
 
         overtake_sub_ = this->create_subscription<std_msgs::msg::Bool>(
             overtake_ready_topic, latched_qos,
-            [this](const std_msgs::msg::Bool::SharedPtr msg) { overtake_active = *msg; }
+            [this](const std_msgs::msg::Bool::SharedPtr msg) { 
+                overtake_active = *msg; 
+            }
         );
 
         local_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
             local_path_topic, 10,
-            [this](const nav_msgs::msg::Path::SharedPtr msg) { current_local_path = *msg; }
+            [this](const nav_msgs::msg::Path::SharedPtr msg) { 
+                current_local_path = *msg; 
+            }
         );
     }
 
     control_loop_timer = this->create_wall_timer (
         std::chrono::milliseconds(50), 
-        [this](){control_timer_callback();}
+        [this](){
+            control_timer_callback();
+        }
     );
 
     //tf2
@@ -87,6 +108,7 @@ void Pure_Persuit_Node::control_timer_callback() {
 
     //updated controller state
     Pure_Persuit_Node::update_controller_state();
+    Pure_Persuit_Node::update_lookahead_distance();
 
     //don't apply any control if the controler is not active, stop everything
     if (controller_state == state_::INACTIVE) {
@@ -368,8 +390,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
 ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     const geometry_msgs::msg::Point &target_point) {
 
-    double kp = 0.15; // this should be a ros parameter
-    double steering_angle = kp * (2 * target_point.y / std::pow(look_ahead_distance, 2));
+    double steering_angle = kp_gain * (2 * target_point.y / std::pow(look_ahead_distance, 2));
 
     if (steering_angle > max_steering_angle) {
         steering_angle = max_steering_angle;
@@ -425,6 +446,16 @@ double Pure_Persuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat)
 
 }
 
+void Pure_Persuit_Node::update_lookahead_distance() {
+
+    look_ahead_distance = std::clamp(max_lookahead * current_velocity / lookahead_ratio, min_lookahead, max_lookahead);
+
+    //for debug purpose
+    std_msgs::msg::Float32 ld;
+    ld.data = look_ahead_distance;
+    look_ahead_pub_->publish(ld);
+}
+
 size_t Pure_Persuit_Node::init_position_index_cache() {
 
     size_t last_index = 0;
@@ -455,18 +486,24 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("overtake_ready_topic","/overtake_ready");
     this->declare_parameter<std::string>("dead_man_active_topic","/dead_man_switch");
     this->declare_parameter<std::string>("ackermann_control_topic","/drive/autonomy");
-    this->declare_parameter<std::string>("odom_topic","/pf/pose/odom");
+    this->declare_parameter<std::string>("odom_topic","/odom");
 
     this->declare_parameter<bool>("overtake_enable",false);
 
-    this->declare_parameter<double>("look_ahead_distance",3.0);
     this->declare_parameter<bool>("speed_limit_active", true);
-    this->declare_parameter<double>("speed_limit", 3.0);
+    this->declare_parameter<double>("speed_limit", 10.0);
 
     this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);
 
-    this->declare_parameter<double>("kp_gain", 0.31);
+    this->declare_parameter<double>("kp_gain", 0.15);
+
+    this->declare_parameter<double>("max_lookahead",2.0);
+    this->declare_parameter<double>("min_lookahead",1.0);
+    this->declare_parameter<double>("lookahead_ratio",6.0);
+
+    //this->declare_parameter<std::string>("speed_topic","/ekf/odom");
+    this->declare_parameter<std::string>("speed_topic","/autodrive/roboracer_1/odom");
 
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
@@ -480,7 +517,6 @@ void Pure_Persuit_Node::init_parameters () {
     odom_topic = this->get_parameter("odom_topic").as_string();
 
     overtaking_enable = this->get_parameter("overtake_enable").as_bool();
-    look_ahead_distance = this->get_parameter("look_ahead_distance").as_double();
 
     speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
     speed_limit = this->get_parameter("speed_limit").as_double();
@@ -489,11 +525,18 @@ void Pure_Persuit_Node::init_parameters () {
 
     kp_gain = this->get_parameter("kp_gain").as_double();
 
+    max_lookahead = this->get_parameter("max_lookahead").as_double();
+    min_lookahead = this->get_parameter("min_lookahead").as_double();
+    lookahead_ratio = this->get_parameter("lookahead_ratio").as_double();
+
+    speed_topic = this->get_parameter("speed_topic").as_string();
+
     //initalize state and internal variables
     dead_man_active.data = false;
     overtake_active.data = false;
 
     controller_state = state_::INACTIVE;
+    look_ahead_distance = 0.5;
 
 
 }
