@@ -18,9 +18,9 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<std::string>("ackermann_steering_topic","/drive/joystick");
 
     //ttc time stages (lower the time, the more breaking need to be applied)
-    this->declare_parameter<double>("ttc1", 0.39);
-    this->declare_parameter<double>("ttc2", 0.23);
-    this->declare_parameter<double>("ttc3", 0.15);
+    this->declare_parameter<double>("ttc1", 0.1011);
+    this->declare_parameter<double>("ttc2", 0.075);
+    this->declare_parameter<double>("ttc3", 0.0456);
 
     //ttc reduction factor stage 1 = 40% reduction, stage 2 = 70% reduction, stage 3 = 100% reduction
     //must me tweaked and adjusted
@@ -33,7 +33,7 @@ EBREAK_NODE::EBREAK_NODE() : Node ("ebreak_node") {
     this->declare_parameter<double>("look_ofset", 0.2618); // pi/3
 
     //how many ttc warning need to go off before we activate the emergancy break
-    this->declare_parameter<int>("alarm_threshold",2);
+    this->declare_parameter<int>("alarm_threshold",5);
 
     ttc1 = this->get_parameter("ttc1").as_double();
     ttc2 = this->get_parameter("ttc2").as_double();
