@@ -1,22 +1,16 @@
 #include "pure_persuit.hpp"
 
 /*
-currently state transitions are allowd no mater what, 
-but if the way points are empty then car is just halted
-might consider changing that in the future
-*/
-
-/*
 test & developmnet plan :
-    short term (next 3 days):
+    tasks done:
     - compile it and get rid of any compilation bugs (done)
     - just start the node by itself -> should say no dead man (done)
     - manually send true to dead man -> should say no global path
     - launch the node with the global path and other stuff then launch pure persuit -> do nothing , send true -> should start to follow path at 0.5 m/s (done)
-
-    medium term (1 week);
     - need to add and test dynamic look ahead distance -> car shold ossilate less on straights, but track the corners well (done)
-    - need to add and test point and velocity interpolation between 2 points -> should result in less jittery movemnet verify using log output
+
+    tasks that need to be done:
+    - need to add and test point and velocity interpolation between 2 points -> should result in less jittery movemnet verify using log output (Jordan)
 
     long term (1 month):
     - need to figure out how to test and verify local path switching (need to make this shit first though ahhhhhh)
@@ -275,6 +269,7 @@ size_t Pure_Persuit_Node::find_current_position_index() {
 }
 
 // finding lookahead distance from current vehicle position
+//will need to modefiy this to for interpolation
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(size_t current_vehicle_index) {
 
     // case 1 : from current point to end of vector
@@ -358,6 +353,7 @@ assumption for this one  :
   to find the look ahead distance point
 - the z value of the point encodes the velocity at the desired point
 */
+//will need to modefiy this one for interpolation
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
 
     if (current_local_path.poses.empty()) {
@@ -493,7 +489,6 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<bool>("speed_limit_active", true);
     this->declare_parameter<double>("speed_limit", 10.0);
 
-    this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);
 
     this->declare_parameter<double>("kp_gain", 0.15);
@@ -520,7 +515,6 @@ void Pure_Persuit_Node::init_parameters () {
 
     speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
     speed_limit = this->get_parameter("speed_limit").as_double();
-    wheel_base = this->get_parameter("wheel_base").as_double();
     max_steering_angle = this->get_parameter("max_steering_angle").as_double();
 
     kp_gain = this->get_parameter("kp_gain").as_double();

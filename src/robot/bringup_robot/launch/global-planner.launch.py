@@ -26,6 +26,12 @@ def generate_launch_description():
         'joypad_config.yaml'
     )
 
+    pure_persuit_config = os.path.join(
+        get_package_share_directory('pure_persuit'),
+        'config',
+        'pure_persuit.yaml'
+    )
+
     mux_la = DeclareLaunchArgument(
         'mux_config',
         default_value=mux_config,
@@ -37,7 +43,13 @@ def generate_launch_description():
         description='the config with gamepad settings'
     )
 
-    ld = LaunchDescription([gamepad_la, mux_la]) # Begin building a launch description
+    pure_persuit_la = DeclareLaunchArgument (
+        'pure_persuit_config',
+        default_value=pure_persuit_config,
+        description='the config for pure persuit settings'
+    )
+
+    ld = LaunchDescription([gamepad_la, mux_la, pure_persuit_la]) # Begin building a launch description
   
     # the first 4 nodes are MANDATORY to launch every time
     # they are responsible for providing you with odometry
@@ -150,4 +162,14 @@ def generate_launch_description():
     
     ld.add_action(global_planner)
      
+    pure_persuit = Node (
+        package='pure_persuit',
+        executable='pure_persuit_node',
+        name='pure_persuit_node',
+        parameters=[LaunchConfiguration('pure_persuit_config')],
+        output='screen'
+    )
+
+    ld.add_action(pure_persuit)
+
     return ld

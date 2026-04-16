@@ -1,7 +1,24 @@
 /*
     Author : Muhtasim Ahsan
-    Last Date of Edit : 2026-04-02
-    Description : a standard implemntaion of pure persuit
+    Last Date of Edit : 2026-04-16
+    
+    Pure Persuit Node
+
+    This Node is a implemntation of the Pure Persuit algo described in 
+    the Robo racer docs. This implementation is the general pure persuit 
+    implementation + the addition of a dynamic look ahead distance to 
+    improve high speed stability without compromising on need to speed
+    accuracy. The node is also driven by a state machine which decides 
+    wheather to follow the global paht or the local path based off the inputs 
+    of the semantic planner. The controller will not move the vehicle forward 
+    unless the deadman switch on the human operated controller is activated
+
+    Testing and verification : 
+    - the the car was able to comple several laps on the track autonomly 
+    - to verify the dynamic lookahed, a debug topic was made where the 
+    dynamic look ahead distance was published. this was graphed against 
+    vehicle speed in foxglove to show a the look ahead increase with speed
+
 */
 #ifndef PURE_PERSUIT_NODE_HPP_
 #define PURE_PERSUIT_NODE_HPP_
@@ -95,7 +112,7 @@ private:
     std::string ackermann_control_topic, odom_topic;
     std::string speed_topic;
     bool overtaking_enable, speed_limit_enable;
-    double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
+    double look_ahead_distance, speed_limit, max_steering_angle;
     double kp_gain;
     double max_lookahead, min_lookahead, lookahead_ratio;
     double current_velocity;
