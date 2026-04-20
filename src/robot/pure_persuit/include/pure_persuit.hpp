@@ -116,6 +116,10 @@ private:
     double kp_gain;
     double max_lookahead, min_lookahead, lookahead_ratio;
     double current_velocity;
+    bool steering_limit_speed;
+    double steering_filter_alpha;
+    bool speed_rate_limit;
+    double speed_alpha;
 
     //internal state and variabels
     state_ controller_state ;

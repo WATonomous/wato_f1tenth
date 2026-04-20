@@ -389,11 +389,15 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     double steering_angle = kp_gain * (2 * target_point.y / std::pow(look_ahead_distance, 2));
 
     if (steering_angle > max_steering_angle) {
+
         steering_angle = max_steering_angle;
+
     }
 
     if (steering_angle < -max_steering_angle) {
+
         steering_angle = -max_steering_angle;
+
     }
 
     ackermann_msgs::msg::AckermannDrive drive;
@@ -402,7 +406,23 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     drive.speed = target_point.z;
 
     if (speed_limit_enable && drive.speed > speed_limit) {
+
         drive.speed = speed_limit;
+
+    }
+
+    if (steering_limit_speed) {
+
+        double v_scale = 1 - steering_filter_alpha * std::pow(std::abs(steering_angle) / max_steering_angle, 2);
+        drive.speed *= v_scale;
+
+    }
+
+    if (speed_rate_limit) {
+
+        double rate_limit_speed = speed_alpha * drive.speed + (1- speed_alpha) * current_velocity;
+        drive.speed = rate_limit_speed;
+
     }
 
     ackermann_msgs::msg::AckermannDriveStamped stamp;
@@ -500,6 +520,12 @@ void Pure_Persuit_Node::init_parameters () {
     //this->declare_parameter<std::string>("speed_topic","/ekf/odom");
     this->declare_parameter<std::string>("speed_topic","/autodrive/roboracer_1/odom");
 
+    // dynamics fixes
+    this->declare_parameter<bool>("steering_limit_speed",false);
+    this->declare_parameter<double>("steering_filter_alpha",0.75);
+    this->declare_parameter<bool>("speed_rate_limit",false);
+    this->declare_parameter<double>("speed_alpha",0.75);
+
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id = this->get_parameter("local_frame_id").as_string();
@@ -524,6 +550,11 @@ void Pure_Persuit_Node::init_parameters () {
     lookahead_ratio = this->get_parameter("lookahead_ratio").as_double();
 
     speed_topic = this->get_parameter("speed_topic").as_string();
+
+    steering_limit_speed = this->get_parameter("steering_limit_speed").as_bool();
+    steering_filter_alpha = this->get_parameter("steering_filter_alpha").as_double();
+    speed_rate_limit = this->get_parameter("speed_rate_limit").as_bool();
+    speed_alpha = this->get_parameter("speed_alpha").as_double();
 
     //initalize state and internal variables
     dead_man_active.data = false;

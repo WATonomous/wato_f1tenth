@@ -1,5 +1,7 @@
 pure_pursuit_node:
+
   ros__parameters:
+
     global_frame_id: "map"
     local_frame_id: "base_link"
     global_path_topic: "/global_planner/path"
@@ -8,12 +10,24 @@ pure_pursuit_node:
     dead_man_active_topic: "/dead_man_switch"
     ackermann_control_topic: "/drive/autonomy"
     odom_topic: "/odom"
+
     overtake_enable: false
     speed_limit_active: true
-    speed_limit: 10.0
+    speed_limit: 2.0
     max_steering_angle: 0.52
-    kp_gain: 0.15 #change this if the not enough steering in hair pins or tight corners
+
+    kp_gain: 0.25 #change this if the not enough steering in hair pins or tight corners
     max_lookahead: 2.0 #increase this if there is more lots of ossilation at high speed
     min_lookahead: 1.0 # decrease this if the car is very slugish on low speed corners
-    lookahead_ratio: 6.0 #this is he speed at which the car will have max look ahead distance
+    lookahead_ratio: 1.8 #this is he speed at which the car will have max look ahead distance
+
     speed_topic: "/autodrive/roboracer_1/odom"
+
+    # limit speed or steering based off a ratio
+    ramp_up_speed: false
+    speed_rate_limit: false
+    steering_filter_alpha: 0.75
+    speed_alpha: 0.75
+
+    #debug 
+    debug: false

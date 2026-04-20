@@ -170,6 +170,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    ld.add_action(pure_persuit)
+    #ld.add_action(pure_persuit)
 
     return ld

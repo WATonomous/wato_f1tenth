@@ -16,6 +16,8 @@
   <depend>control</depend>
   <depend>gym_vis</depend>
   <depend>slam_toolbox</depend>
+  <depend>rosbag2_storage_mcap</depend>
+  <depend>rosbag2</depend>
 
 
   <export>
