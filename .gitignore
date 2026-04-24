@@ -1,5 +1,6 @@
 .env
 __pycache__
 .vscode/
+wato_env
 
 watod-config.local.sh

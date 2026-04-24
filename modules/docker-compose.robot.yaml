@@ -26,4 +26,4 @@ services:
     environment:
       - DISPLAY=${DISPLAY}
     device_cgroup_rules:
-      - 'c 13:* rmw' 
+      - 'c 13:* rmw'
