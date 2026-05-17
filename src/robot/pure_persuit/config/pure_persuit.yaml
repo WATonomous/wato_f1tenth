@@ -1,4 +1,4 @@
-pure_pursuit_node:
+pure_persuit_node:
   ros__parameters:
     global_frame_id: "map"
     local_frame_id: "base_link"
@@ -9,6 +9,7 @@ pure_pursuit_node:
     ackermann_control_topic: "/drive/autonomy"
     odom_topic: "/odom"
     overtake_enable: false
+    dead_man_always_on: true
     speed_limit_active: true
     speed_limit: 10.0
     max_steering_angle: 0.52

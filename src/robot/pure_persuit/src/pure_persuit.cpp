@@ -156,7 +156,7 @@ void Pure_Persuit_Node::control_timer_callback() {
 
 void Pure_Persuit_Node::update_controller_state () {
 
-    if (dead_man_active.data) {
+    if (dead_man_always_on || dead_man_active.data) {
 
        controller_state = state_::GLOBAL_FOLLOW; 
 
@@ -581,6 +581,7 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("odom_topic","/odom");
 
     this->declare_parameter<bool>("overtake_enable",false);
+    this->declare_parameter<bool>("dead_man_always_on", false);
 
     this->declare_parameter<bool>("speed_limit_active", true);
     this->declare_parameter<double>("speed_limit", 10.0);
@@ -608,6 +609,7 @@ void Pure_Persuit_Node::init_parameters () {
     odom_topic = this->get_parameter("odom_topic").as_string();
 
     overtaking_enable = this->get_parameter("overtake_enable").as_bool();
+    dead_man_always_on = this->get_parameter("dead_man_always_on").as_bool();
 
     speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
     speed_limit = this->get_parameter("speed_limit").as_double();

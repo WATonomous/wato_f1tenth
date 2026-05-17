@@ -1,0 +1,34 @@
+local_planner_node:
+  ros__parameters:
+    global_frame_id: "map"
+    local_frame_id: "base_link"
+    global_path_topic: "/global_planner/path"
+    local_path_topic: "/local_path"
+    odom_topic: "/odom"
+    scan_topic: "/scan"
+    ready_topic: "/overtake_ready"
+    clicked_point_topic: "/clicked_point"
+    clear_manual_obstacles_topic: "/local_planner/debug/clear_obstacles"
+    use_scan_obstacles: true
+    use_straight_path: true
+    debug_map_enabled: true
+    debug_map_package: "global_planner"
+    debug_map_file: "/assets/my_map_clean.csv"
+    planning_distance: 4.0
+    goal_lookahead: 2.0
+    goal_retry_lookaheads: [1.5, 1.0, 0.75, 0.5, 0.25]
+    path_speed: 2.5
+    max_lateral: 2.2
+    step_size: 0.20
+    goal_tolerance: 0.45
+    obstacle_inflation: 0.35
+    scan_min_range: 0.0
+    scan_max_range: 5.0
+    scan_front_min_x: 0.0
+    laser_to_base_x: 0.27
+    laser_to_base_y: 0.0
+    manual_obstacle_lifetime: 30.0
+    max_manual_obstacles: 32
+    max_iterations: 3000
+    plan_points: 24
+    goal_sample_rate: 0.40

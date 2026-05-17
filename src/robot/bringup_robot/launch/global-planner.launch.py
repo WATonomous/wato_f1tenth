@@ -32,6 +32,12 @@ def generate_launch_description():
         'pure_persuit.yaml'
     )
 
+    local_planner_config = os.path.join(
+        get_package_share_directory('local_planner'),
+        'config',
+        'local_planner.yaml'
+    )
+
     mux_la = DeclareLaunchArgument(
         'mux_config',
         default_value=mux_config,
@@ -49,7 +55,13 @@ def generate_launch_description():
         description='the config for pure persuit settings'
     )
 
-    ld = LaunchDescription([gamepad_la, mux_la, pure_persuit_la]) # Begin building a launch description
+    local_planner_la = DeclareLaunchArgument (
+        'local_planner_config',
+        default_value=local_planner_config,
+        description='the config for local planner settings'
+    )
+
+    ld = LaunchDescription([gamepad_la, mux_la, pure_persuit_la, local_planner_la]) # Begin building a launch description
   
     # the first 4 nodes are MANDATORY to launch every time
     # they are responsible for providing you with odometry
@@ -146,7 +158,7 @@ def generate_launch_description():
     gamepad = Node (
         package='teleop_utils',
         executable='joypad_node',
-        name='gamepad_node',
+        name='joypad_node',
         parameters=[LaunchConfiguration('gamepad_config')],
         output='screen'
     )
@@ -161,12 +173,31 @@ def generate_launch_description():
     )
     
     ld.add_action(global_planner)
+
+    local_planner = Node (
+        package='local_planner',
+        executable='local_planner_node',
+        name='local_planner_node',
+        parameters=[LaunchConfiguration('local_planner_config')],
+        output='screen'
+    )
+
+    ld.add_action(local_planner)
      
     pure_persuit = Node (
         package='pure_persuit',
         executable='pure_persuit_node',
         name='pure_persuit_node',
-        parameters=[LaunchConfiguration('pure_persuit_config')],
+        parameters=[
+            LaunchConfiguration('pure_persuit_config'),
+            {
+                'overtake_enable': True,
+                'local_path_topic': '/local_path',
+                'overtake_ready_topic': '/overtake_ready',
+                'ackermann_control_topic': '/drive/autonomy',
+                'global_path_topic': '/global_planner/controller_disabled',
+            },
+        ],
         output='screen'
     )
 
