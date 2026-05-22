@@ -99,7 +99,6 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
 
 /*
 key assumption : the z value of the point holdes the velocity and always will
-todo : come back and add dynamic look ahead distance, add adjustmnet for that
 */
 void Pure_Persuit_Node::control_timer_callback() {
 
@@ -128,23 +127,9 @@ void Pure_Persuit_Node::control_timer_callback() {
     }
 
     // publish debug lookahead point for foxglove visualization
-    visualization_msgs::msg::Marker dbg;
-    dbg.header.stamp = this->now();
-    dbg.header.frame_id = local_frame_id; // "base_link"
-    dbg.ns = "lookahead";
-    dbg.id = 0;
-    dbg.type = visualization_msgs::msg::Marker::SPHERE;
-    dbg.action = visualization_msgs::msg::Marker::ADD;
-    dbg.pose.position = p.value();
-    dbg.pose.orientation.w = 1.0;
-    dbg.scale.x = 0.2;
-    dbg.scale.y = 0.2;
-    dbg.scale.z = 0.2;
-    dbg.color.r = 1.0;
-    dbg.color.g = 0.2;
-    dbg.color.b = 0.2;
-    dbg.color.a = 1.0;
-    lookahead_point_pub_->publish(dbg);
+    if (enable_debug_vis) {
+        publish_debug_vis(p.value());
+    }
 
     //apply the control law
     ackermann_msgs::msg::AckermannDriveStamped control_command = Pure_Persuit_Node::calculate_control(p.value());
@@ -341,6 +326,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
 }
 
 /*
+function author : Jordan Khatri
 interpolates between prev_pt (inside the lookahead circle) and curr_pt (outside it)
 to synthesize a point that lies exactly on the lookahead circumference. Velocity (z)
 is linearly interpolated along the segment using the same parameter t.
@@ -534,18 +520,41 @@ double Pure_Persuit_Node::find_distance(geometry_msgs::msg::Pose current_locatio
 
 double Pure_Persuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
 
-  return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 1.0 - 2.0 * (std::pow(quat.y,2) + std::pow(quat.z,2)));
+    return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 1.0 - 2.0 * (std::pow(quat.y,2) + std::pow(quat.z,2)));
 
 }
 
 void Pure_Persuit_Node::update_lookahead_distance() {
 
     look_ahead_distance = std::clamp(max_lookahead * current_velocity / lookahead_ratio, min_lookahead, max_lookahead);
+}
+
+void Pure_Persuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p) {
 
     //for debug purpose
     std_msgs::msg::Float32 ld;
     ld.data = look_ahead_distance;
     look_ahead_pub_->publish(ld);
+
+    // publish debug lookahead point for foxglove visualization
+    visualization_msgs::msg::Marker dbg;
+    dbg.header.stamp = this->now();
+    dbg.header.frame_id = local_frame_id; // "base_link"
+    dbg.ns = "lookahead";
+    dbg.id = 0;
+    dbg.type = visualization_msgs::msg::Marker::SPHERE;
+    dbg.action = visualization_msgs::msg::Marker::ADD;
+    dbg.pose.position = look_ahead_point_p;
+    dbg.pose.orientation.w = 1.0;
+    dbg.scale.x = 0.2;
+    dbg.scale.y = 0.2;
+    dbg.scale.z = 0.2;
+    dbg.color.r = 1.0;
+    dbg.color.g = 0.2;
+    dbg.color.b = 0.2;
+    dbg.color.a = 1.0;
+    lookahead_point_pub_->publish(dbg);
+
 }
 
 size_t Pure_Persuit_Node::init_position_index_cache() {
@@ -596,6 +605,9 @@ void Pure_Persuit_Node::init_parameters () {
     //this->declare_parameter<std::string>("speed_topic","/ekf/odom");
     this->declare_parameter<std::string>("speed_topic","/autodrive/roboracer_1/odom");
 
+    //DEBUG VIS
+    this->declare_parameter<bool>("enable_debug_vis",true);
+
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id = this->get_parameter("local_frame_id").as_string();
@@ -620,6 +632,8 @@ void Pure_Persuit_Node::init_parameters () {
     lookahead_ratio = this->get_parameter("lookahead_ratio").as_double();
 
     speed_topic = this->get_parameter("speed_topic").as_string();
+
+    enable_debug_vis = this->get_parameter("enable_debug_vis").as_bool();
 
     //initalize state and internal variables
     dead_man_active.data = false;

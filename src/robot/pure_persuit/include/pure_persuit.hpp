@@ -130,6 +130,7 @@ private:
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
     void update_lookahead_distance();
     size_t init_position_index_cache();
+    void publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p);
 
     //parameters
     std::string global_frame_id, local_frame_id;
@@ -142,6 +143,7 @@ private:
     double kp_gain;
     double max_lookahead, min_lookahead, lookahead_ratio;
     double current_velocity;
+    bool enable_debug_vis;
 
     //internal state and variabels
     state_ controller_state ;

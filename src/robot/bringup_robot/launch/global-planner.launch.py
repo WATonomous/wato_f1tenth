@@ -27,7 +27,7 @@ def generate_launch_description():
     )
 
     pure_persuit_config = os.path.join(
-        get_package_share_directory('pure_persuit'),
+        get_package_share_directory('bringup_robot'),
         'config',
         'pure_persuit.yaml'
     )

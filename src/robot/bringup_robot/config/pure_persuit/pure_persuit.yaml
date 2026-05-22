@@ -17,3 +17,4 @@ pure_pursuit_node:
     min_lookahead: 1.0 # decrease this if the car is very slugish on low speed corners
     lookahead_ratio: 6.0 #this is he speed at which the car will have max look ahead distance
     speed_topic: "/autodrive/roboracer_1/odom"
+    enable_debug_vis: false
