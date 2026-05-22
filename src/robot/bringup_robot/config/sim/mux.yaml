@@ -16,4 +16,4 @@ ackermann_mux:
       autonomy:
         topic: /drive/autonomy
         timeout: 0.2
-        priority: 15
+        priority: 25

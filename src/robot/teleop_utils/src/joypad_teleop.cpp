@@ -11,6 +11,7 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     //parameters
     this->declare_parameter<std::string>("gamepad_topic","/drive/joystick");
     this->declare_parameter<std::string>("joy_topic","/joy");
+    this->declare_parameter<std::string>("dead_man_topic","/dead_man_switch");
     this->declare_parameter<std::string>("my_frame_id","base_link");
 
     this->declare_parameter<float>("max_speed",22.88);
@@ -27,6 +28,7 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     gamepad_topic = this->get_parameter("gamepad_topic").as_string();
     joy_topic = this->get_parameter("joy_topic").as_string();
     my_frame_id = this->get_parameter("my_frame_id").as_string();
+    dead_man_topic = this->get_parameter("dead_man_topic").as_string();
 
     max_speed = this->get_parameter("max_speed").as_double();
     max_steering_rate = this->get_parameter("max_steering_rate").as_double();
@@ -46,6 +48,9 @@ JOYPAD::JOYPAD () : Node ("joypad_node") {
     ackerman_pub = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
         gamepad_topic, 10);
 
+    dead_man_pub_ = this->create_publisher<std_msgs::msg::Bool>(
+        dead_man_topic, rclcpp::QoS(1).transient_local().reliable());
+
     gamepad_sub = this->create_subscription<sensor_msgs::msg::Joy>(
         joy_topic,20 , std::bind(&JOYPAD::gamepadCallback, this, std::placeholders::_1));
 
@@ -59,6 +64,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
 
     ackermann_msgs::msg::AckermannDrive drive;
     ackermann_msgs::msg::AckermannDriveStamped drive_msg;
+    std_msgs::msg::Bool dead_man_bool;
 
     drive_msg.header.frame_id = my_frame_id;
     drive_msg.header.stamp = msg->header.stamp;
@@ -69,6 +75,8 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if (!msg->buttons.at(ba.safety_button)) {
         drive_msg.drive = emergancy_drive_msg;
         ackerman_pub->publish(drive_msg);
+        dead_man_bool.data = false;
+        dead_man_pub_->publish(dead_man_bool);
         //RCLCPP_INFO(this->get_logger(),"press x to activate drive");
         return;
     }
@@ -110,8 +118,10 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     }
 
     //publish the message
+    dead_man_bool.data = true;
     drive_msg.drive = drive;
     ackerman_pub->publish(drive_msg);
+    dead_man_pub_->publish(dead_man_bool);
 }
 
 float JOYPAD::trigger_maper(const float r2) {
