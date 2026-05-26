@@ -23,7 +23,7 @@ struct LocalFrenetPlannerConfig {
     double layer_spacing_m = 0.5;
     double lane_spacing_m = 0.1;
     double max_lateral_offset_m = 1.8;
-    int max_lane_jump_per_layer = 3;
+    double max_path_angle_deg = 50.0;
     double sample_spacing_m = 0.1;
     double obstacle_inflation_distance_m = 0.2;
     int occupied_threshold = 50;
@@ -50,7 +50,7 @@ struct LocalFrenetPlannerDiagnostics {
     int valid_edges = 0;
     int invalid_collision_edges = 0;
     int invalid_out_of_grid_edges = 0;
-    int invalid_dynamic_edges = 0;
+    int invalid_geometry_edges = 0;
     std::vector<double> lane_offsets;
 };
 
@@ -83,7 +83,8 @@ private:
     enum class CollisionStatus {
         FREE,
         COLLISION,
-        OUT_OF_GRID
+        OUT_OF_GRID,
+        GEOMETRY_CONSTRAINT
     };
 
     struct EdgeEvaluation {

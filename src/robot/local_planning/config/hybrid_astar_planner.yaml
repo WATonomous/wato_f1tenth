@@ -14,7 +14,7 @@ hybrid_astar_planner_node:
     layer_spacing_m: 0.5
     lane_spacing_m: 0.1
     max_lateral_offset_m: 1.8
-    max_lane_jump_per_layer: 3 # ngl i think this is unnecessary if our planner is good enough anyway
+    max_path_angle_deg: 50.0 # max heading deviation from raceline for sampled edge geometry
     sample_spacing_m: 0.1 #basically the resolution of the path
     obstacle_inflation_distance_m: 0.2
     occupied_threshold: 50
@@ -28,3 +28,6 @@ hybrid_astar_planner_node:
     merge_d_weight: 0.20 # pull towards racing line in merge mode
     merge_terminal_d_weight: 0.0 # punish merge paths that dont return to racing line
     default_intent: 0
+
+
+# max_path_angle_deg replaces the old lane-jump cap with a geometry constraint on edge slope

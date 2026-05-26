@@ -9,6 +9,7 @@ namespace {
 
 constexpr double kGravity = 9.81;
 constexpr double kEpsilon = 1e-6;
+constexpr double kPi = 3.14159265358979323846;
 constexpr double kFrontCollisionCircleOffsetM = 0.26;
 
 double distance(const Point& a, const Point& b)
@@ -70,7 +71,9 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     if (frenet_converter_.getTotalLength() <= kEpsilon ||
         config_.layer_spacing_m <= kEpsilon ||
         config_.lane_spacing_m <= kEpsilon ||
-        config_.sample_spacing_m <= kEpsilon) {
+        config_.sample_spacing_m <= kEpsilon ||
+        config_.max_path_angle_deg <= 0.0 ||
+        config_.max_path_angle_deg >= 90.0) {
         return result;
     }
 
@@ -125,14 +128,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
             const double d0 = (layer == 0) ? start.d : lanes[static_cast<size_t>(from_lane)];
             const double slope0 = (layer == 0) ? start_slope : 0.0;
             
-            //this can be constant time optimized, also again im not really sure if max lane jumps is a thing we want to hardcode
-            //imo if the planner can reason it on its own we dont really need to keep it but im not sure atm
-            
             for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
-                if (std::abs(to_lane - from_lane) > config_.max_lane_jump_per_layer) {
-                    continue;
-                }
-
                 EdgeEvaluation edge = evaluateEdge(
                     s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], intent, grid);
 
@@ -142,6 +138,10 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
                 }
                 if (edge.collision_status == CollisionStatus::OUT_OF_GRID) {
                     ++result.diagnostics.invalid_out_of_grid_edges;
+                    continue;
+                }
+                if (edge.collision_status == CollisionStatus::GEOMETRY_CONSTRAINT) {
+                    ++result.diagnostics.invalid_geometry_edges;
                     continue;
                 }
 
@@ -277,6 +277,7 @@ LocalFrenetLatticePlanner::EdgeEvaluation LocalFrenetLatticePlanner::evaluateEdg
     const QuinticPolynomial curve = computeQuintic(
         d_start, slope_start, d_end, 0.0, config_.layer_spacing_m);
     const int sample_count = std::max(2, static_cast<int>(std::ceil(config_.layer_spacing_m / config_.sample_spacing_m)) + 1);
+    const double max_path_angle_rad = config_.max_path_angle_deg * kPi / 180.0;
 
     edge.samples.reserve(static_cast<size_t>(sample_count));
     std::vector<double> curvatures(static_cast<size_t>(sample_count), 0.0);
@@ -287,7 +288,13 @@ LocalFrenetLatticePlanner::EdgeEvaluation LocalFrenetLatticePlanner::evaluateEdg
         Point p = frenet_converter_.frenetToCartesian({s, curve.evaluate(t)});
 
         const double path_slope = curve.evaluateDerivative(t) / curve.delta_s;
-        const double path_heading = frenet_converter_.getRacingLineHeading(s) + std::atan(path_slope);
+        const double path_angle = std::atan(path_slope);
+        if (std::abs(path_angle) > max_path_angle_rad) {
+            edge.collision_status = CollisionStatus::GEOMETRY_CONSTRAINT;
+            return edge;
+        }
+
+        const double path_heading = frenet_converter_.getRacingLineHeading(s) + path_angle;
         const CollisionStatus status = collisionStatus(p, path_heading, grid);
         if (status != CollisionStatus::FREE) {
             edge.collision_status = status;

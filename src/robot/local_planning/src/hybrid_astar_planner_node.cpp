@@ -25,7 +25,7 @@ HybridAStarPlannerNode::HybridAStarPlannerNode()
     this->declare_parameter<double>("layer_spacing_m", 0.5);
     this->declare_parameter<double>("lane_spacing_m", 0.1);
     this->declare_parameter<double>("max_lateral_offset_m", 1.8);
-    this->declare_parameter<int>("max_lane_jump_per_layer", 3);
+    this->declare_parameter<double>("max_path_angle_deg", 50.0);
     this->declare_parameter<double>("sample_spacing_m", 0.1);
     this->declare_parameter<double>("obstacle_inflation_distance_m", 0.2);
     this->declare_parameter<int>("occupied_threshold", 50);
@@ -56,7 +56,7 @@ HybridAStarPlannerNode::HybridAStarPlannerNode()
     planner_config_.layer_spacing_m = this->get_parameter("layer_spacing_m").as_double();
     planner_config_.lane_spacing_m = this->get_parameter("lane_spacing_m").as_double();
     planner_config_.max_lateral_offset_m = this->get_parameter("max_lateral_offset_m").as_double();
-    planner_config_.max_lane_jump_per_layer = this->get_parameter("max_lane_jump_per_layer").as_int();
+    planner_config_.max_path_angle_deg = this->get_parameter("max_path_angle_deg").as_double();
     planner_config_.sample_spacing_m = this->get_parameter("sample_spacing_m").as_double();
     planner_config_.obstacle_inflation_distance_m = this->get_parameter("obstacle_inflation_distance_m").as_double();
     planner_config_.occupied_threshold = this->get_parameter("occupied_threshold").as_int();
@@ -192,7 +192,7 @@ void HybridAStarPlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_
     const auto& diagnostics = plan.diagnostics;
     RCLCPP_INFO(
         this->get_logger(),
-        "intent=%s ego_s=%.2f ego_d=%.2f d_weight=%.3f merge_terminal_d_weight=%.3f lanes=%d valid_edges=%d invalid_collision=%d invalid_out=%d invalid_dynamic=%d selected_cost=%.3f final_lane=%d final_d=%.2f",
+        "intent=%s ego_s=%.2f ego_d=%.2f d_weight=%.3f merge_terminal_d_weight=%.3f lanes=%d valid_edges=%d invalid_collision=%d invalid_out=%d invalid_geometry=%d selected_cost=%.3f final_lane=%d final_d=%.2f",
         intentToString(diagnostics.intent).c_str(),
         diagnostics.ego_frenet.s,
         diagnostics.ego_frenet.d,
@@ -202,7 +202,7 @@ void HybridAStarPlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_
         diagnostics.valid_edges,
         diagnostics.invalid_collision_edges,
         diagnostics.invalid_out_of_grid_edges,
-        diagnostics.invalid_dynamic_edges,
+        diagnostics.invalid_geometry_edges,
         diagnostics.selected_cost,
         diagnostics.selected_final_lane,
         diagnostics.selected_final_d);
