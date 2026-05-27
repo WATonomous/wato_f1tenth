@@ -21,7 +21,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PlanPath.action"
-  DEPENDENCIES nav_msgs
+  "msg/PlannerDiagnostics.msg"
+  DEPENDENCIES nav_msgs std_msgs
 )
 
 if(BUILD_TESTING)

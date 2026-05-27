@@ -1,6 +1,7 @@
 #include "planning/local_frenet_lattice_planner.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <limits>
 
@@ -11,6 +12,13 @@ constexpr double kGravity = 9.81;
 constexpr double kEpsilon = 1e-6;
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kFrontCollisionCircleOffsetM = 0.26;
+
+using SteadyClock = std::chrono::steady_clock;
+
+double millisecondsSince(SteadyClock::time_point start)
+{
+    return std::chrono::duration<double, std::milli>(SteadyClock::now() - start).count();
+}
 
 double distance(const Point& a, const Point& b)
 {
@@ -66,6 +74,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     LocalFrenetPlan result;
     result.diagnostics.intent = intent;
 
+    const auto setup_start = SteadyClock::now();
 
     //catch any weird config issues 
     if (frenet_converter_.getTotalLength() <= kEpsilon ||
@@ -74,6 +83,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         config_.sample_spacing_m <= kEpsilon ||
         config_.max_path_angle_deg <= 0.0 ||
         config_.max_path_angle_deg >= 90.0) {
+        result.diagnostics.planner_setup_ms = millisecondsSince(setup_start);
         return result;
     }
 
@@ -102,6 +112,9 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
 
     states[0][static_cast<size_t>(start_lane)].reachable = true;
     states[0][static_cast<size_t>(start_lane)].total_cost = 0.0;
+    result.diagnostics.planner_setup_ms = millisecondsSince(setup_start);
+
+    const auto search_start = SteadyClock::now();
 
     /*
     i could defo make this clearer and use better practice
@@ -129,6 +142,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
             const double slope0 = (layer == 0) ? start_slope : 0.0;
             
             for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
+                ++result.diagnostics.attempted_edges;
                 EdgeEvaluation edge = evaluateEdge(
                     s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], intent, grid);
 
@@ -168,6 +182,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
             }
         }
     }
+    result.diagnostics.planner_search_ms = millisecondsSince(search_start);
     //at this point the dp table is actually filled
     /*
     what happens next you ask...
@@ -177,6 +192,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     3.  and then yeah just reconstruct the path and return 
     */
 
+    const auto goal_select_start = SteadyClock::now();
     int best_lane = -1;
     double best_cost = std::numeric_limits<double>::infinity();
     double best_curvature_change = std::numeric_limits<double>::infinity();
@@ -208,11 +224,15 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         }
     }
 
+    result.diagnostics.planner_goal_select_ms = millisecondsSince(goal_select_start);
+
     if (best_lane < 0) {
         return result;
     }
 
+    const auto reconstruct_start = SteadyClock::now();
     result.path = reconstructPath(states, best_lane);
+    result.diagnostics.planner_reconstruct_ms = millisecondsSince(reconstruct_start);
     result.diagnostics.selected_cost = best_cost;
     result.diagnostics.selected_final_lane = best_lane;
     result.diagnostics.selected_final_d = lanes[static_cast<size_t>(best_lane)];

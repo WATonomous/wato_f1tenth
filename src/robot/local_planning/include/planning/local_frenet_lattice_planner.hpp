@@ -47,10 +47,15 @@ struct LocalFrenetPlannerDiagnostics {
     int selected_final_lane = 0;
     int total_lanes = 0;
     int layers = 0;
+    int attempted_edges = 0;
     int valid_edges = 0;
     int invalid_collision_edges = 0;
     int invalid_out_of_grid_edges = 0;
     int invalid_geometry_edges = 0;
+    double planner_setup_ms = 0.0;
+    double planner_search_ms = 0.0;
+    double planner_goal_select_ms = 0.0;
+    double planner_reconstruct_ms = 0.0;
     std::vector<double> lane_offsets;
 };
 

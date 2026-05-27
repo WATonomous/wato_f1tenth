@@ -10,6 +10,7 @@
 #include <nav_msgs/msg/path.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <local_planning/action/plan_path.hpp>
+#include <local_planning/msg/planner_diagnostics.hpp>
 
 #include <memory>
 #include <atomic>
@@ -47,6 +48,7 @@ private:
     // utility
     void loadRacingLine();
     void publishPlannerViz(const LocalFrenetPlan& plan);
+    void publishRuntimeDiagnostics(const local_planning::msg::PlannerDiagnostics& diagnostics);
     LocalPlannerIntent intentFromAction(uint8_t intent) const;
 
     // conversions
@@ -64,6 +66,7 @@ private:
     // pubs
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr viz_pub_;
+    rclcpp::Publisher<local_planning::msg::PlannerDiagnostics>::SharedPtr diagnostics_pub_;
 
     // planner
     std::unique_ptr<LocalFrenetLatticePlanner> planner_;
@@ -83,6 +86,9 @@ private:
     std::string racing_line_file_;
     LocalFrenetPlannerConfig planner_config_;
     LocalPlannerIntent default_intent_;
+    bool enable_runtime_diagnostics_ = true;
+    double planner_runtime_budget_ms_ = 100.0;
+    double diagnostics_log_period_ms_ = 1000.0;
 };
 
 } // namespace local_planning

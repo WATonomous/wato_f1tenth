@@ -28,6 +28,9 @@ hybrid_astar_planner_node:
     merge_d_weight: 0.20 # pull towards racing line in merge mode
     merge_terminal_d_weight: 0.0 # punish merge paths that dont return to racing line
     default_intent: 0
+    enable_runtime_diagnostics: true
+    planner_runtime_budget_ms: 100.0
+    diagnostics_log_period_ms: 1000.0
 
 
 # max_path_angle_deg replaces the old lane-jump cap with a geometry constraint on edge slope

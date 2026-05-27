@@ -1,0 +1,37 @@
+std_msgs/Header header
+uint64 sequence
+uint8 intent
+bool success
+bool stale_or_canceled
+
+float64 total_ms
+float64 input_copy_ms
+float64 ros_conversion_ms
+float64 planner_ms
+float64 path_conversion_ms
+float64 publish_ms
+float64 viz_ms
+
+float64 planner_setup_ms
+float64 planner_search_ms
+float64 planner_goal_select_ms
+float64 planner_reconstruct_ms
+
+int32 layers
+int32 total_lanes
+int32 attempted_edges
+int32 valid_edges
+int32 invalid_collision_edges
+int32 invalid_out_of_grid_edges
+int32 invalid_geometry_edges
+uint32 path_points
+
+float64 budget_ms
+float64 lane_spacing_m
+float64 layer_spacing_m
+float64 sample_spacing_m
+float64 horizon_m
+float64 ego_s
+float64 ego_d
+float64 selected_cost
+float64 selected_final_d

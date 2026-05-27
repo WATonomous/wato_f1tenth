@@ -10,10 +10,27 @@
 #include <thread>
 #include <functional>
 #include <algorithm>
+#include <chrono>
 
 namespace local_planning {
 
 using namespace std::placeholders;
+
+namespace {
+
+using SteadyClock = std::chrono::steady_clock;
+
+double elapsedMs(SteadyClock::time_point start, SteadyClock::time_point end)
+{
+    return std::chrono::duration<double, std::milli>(end - start).count();
+}
+
+double elapsedMs(SteadyClock::time_point start)
+{
+    return elapsedMs(start, SteadyClock::now());
+}
+
+} // namespace
 
 HybridAStarPlannerNode::HybridAStarPlannerNode()
     : Node("hybrid_astar_planner_node")
@@ -38,6 +55,9 @@ HybridAStarPlannerNode::HybridAStarPlannerNode()
     this->declare_parameter<double>("overtake_d_weight", 0.02);
     this->declare_parameter<double>("merge_d_weight", 0.20);
     this->declare_parameter<double>("merge_terminal_d_weight", 0.0);
+    this->declare_parameter<bool>("enable_runtime_diagnostics", true);
+    this->declare_parameter<double>("planner_runtime_budget_ms", 100.0);
+    this->declare_parameter<double>("diagnostics_log_period_ms", 1000.0);
 
     racing_line_file_ = this->get_parameter("racing_line_file").as_string();
     switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
@@ -69,6 +89,9 @@ HybridAStarPlannerNode::HybridAStarPlannerNode()
     planner_config_.overtake_d_weight = this->get_parameter("overtake_d_weight").as_double();
     planner_config_.merge_d_weight = this->get_parameter("merge_d_weight").as_double();
     planner_config_.merge_terminal_d_weight = this->get_parameter("merge_terminal_d_weight").as_double();
+    enable_runtime_diagnostics_ = this->get_parameter("enable_runtime_diagnostics").as_bool();
+    planner_runtime_budget_ms_ = this->get_parameter("planner_runtime_budget_ms").as_double();
+    diagnostics_log_period_ms_ = this->get_parameter("diagnostics_log_period_ms").as_double();
 
     // planner
     planner_ = std::make_unique<LocalFrenetLatticePlanner>();
@@ -86,6 +109,7 @@ HybridAStarPlannerNode::HybridAStarPlannerNode()
     // publishers
     path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/path", 10);
     viz_pub_  = this->create_publisher<visualization_msgs::msg::MarkerArray>("/local_frenet_lattice_viz", 10);
+    diagnostics_pub_ = this->create_publisher<local_planning::msg::PlannerDiagnostics>("/planner_diagnostics", 10);
 
     // action server
     plan_action_server_ = rclcpp_action::create_server<PlanPath>(
@@ -131,56 +155,109 @@ void HybridAStarPlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> go
 }
 
 void HybridAStarPlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uint64_t sequence) {
+    const auto total_start = SteadyClock::now();
     auto result = std::make_shared<PlanPath::Result>();
+
+    auto goal = goal_handle->get_goal();
+    const LocalPlannerIntent intent = intentFromAction(goal->intent);
+
+    LocalFrenetPlan plan;
+    plan.diagnostics.intent = intent;
+
+    double input_copy_ms = 0.0;
+    double ros_conversion_ms = 0.0;
+    double planner_ms = 0.0;
+    double path_conversion_ms = 0.0;
+    double publish_ms = 0.0;
+    double viz_ms = 0.0;
+
+    auto emit_diagnostics = [&](bool success, bool stale_or_canceled, size_t path_points) {
+        local_planning::msg::PlannerDiagnostics msg;
+        msg.header.frame_id = "map";
+        msg.header.stamp = this->now();
+        msg.sequence = sequence;
+        msg.intent = static_cast<uint8_t>(intent);
+        msg.success = success;
+        msg.stale_or_canceled = stale_or_canceled;
+
+        msg.total_ms = elapsedMs(total_start);
+        msg.input_copy_ms = input_copy_ms;
+        msg.ros_conversion_ms = ros_conversion_ms;
+        msg.planner_ms = planner_ms;
+        msg.path_conversion_ms = path_conversion_ms;
+        msg.publish_ms = publish_ms;
+        msg.viz_ms = viz_ms;
+
+        const auto& diagnostics = plan.diagnostics;
+        msg.planner_setup_ms = diagnostics.planner_setup_ms;
+        msg.planner_search_ms = diagnostics.planner_search_ms;
+        msg.planner_goal_select_ms = diagnostics.planner_goal_select_ms;
+        msg.planner_reconstruct_ms = diagnostics.planner_reconstruct_ms;
+
+        msg.layers = diagnostics.layers;
+        msg.total_lanes = diagnostics.total_lanes;
+        msg.attempted_edges = diagnostics.attempted_edges;
+        msg.valid_edges = diagnostics.valid_edges;
+        msg.invalid_collision_edges = diagnostics.invalid_collision_edges;
+        msg.invalid_out_of_grid_edges = diagnostics.invalid_out_of_grid_edges;
+        msg.invalid_geometry_edges = diagnostics.invalid_geometry_edges;
+        msg.path_points = static_cast<uint32_t>(path_points);
+
+        msg.budget_ms = planner_runtime_budget_ms_;
+        msg.lane_spacing_m = planner_config_.lane_spacing_m;
+        msg.layer_spacing_m = planner_config_.layer_spacing_m;
+        msg.sample_spacing_m = planner_config_.sample_spacing_m;
+        msg.horizon_m = planner_config_.horizon_m;
+        msg.ego_s = diagnostics.ego_frenet.s;
+        msg.ego_d = diagnostics.ego_frenet.d;
+        msg.selected_cost = diagnostics.selected_cost;
+        msg.selected_final_d = diagnostics.selected_final_d;
+
+        publishRuntimeDiagnostics(msg);
+    };
 
     nav_msgs::msg::Odometry::SharedPtr odom_msg;
     nav_msgs::msg::OccupancyGrid::SharedPtr occupancy_grid_msg;
+    const auto input_copy_start = SteadyClock::now();
     {
         std::lock_guard<std::mutex> lock(input_mutex_);
         odom_msg = current_odom_;
         occupancy_grid_msg = current_occupancy_grid_;
     }
+    input_copy_ms = elapsedMs(input_copy_start);
 
     if (!odom_msg || !occupancy_grid_msg) {
         RCLCPP_WARN(this->get_logger(), "Missing odom or occupancy grid, cannot plan");
         result->success = false;
+        emit_diagnostics(false, false, 0);
         goal_handle->succeed(result);
         return;
     }
 
     if (goal_handle->is_canceling()) {
         result->success = false;
+        emit_diagnostics(false, true, 0);
         goal_handle->canceled(result);
         return;
     }
 
-    auto goal = goal_handle->get_goal();
+    const auto conversion_start = SteadyClock::now();
     local_planning::Odometry odom = rosToOdometry(odom_msg);
     local_planning::OccupancyGrid grid = rosToOccupancyGrid(occupancy_grid_msg);
+    ros_conversion_ms = elapsedMs(conversion_start);
 
-    const LocalPlannerIntent intent = intentFromAction(goal->intent);
+    const auto planner_start = SteadyClock::now();
+    plan = planner_->plan(odom.position, odom.heading, grid, intent);
+    planner_ms = elapsedMs(planner_start);
 
-    //just for logging below, to be deleted 
-    double d_weight = planner_config_.follow_d_weight;
-    switch (intent) {
-        case LocalPlannerIntent::OVERTAKE:
-            d_weight = planner_config_.overtake_d_weight;
-            break;
-        case LocalPlannerIntent::MERGE:
-            d_weight = planner_config_.merge_d_weight;
-            break;
-        case LocalPlannerIntent::FOLLOW_RACING_LINE:
-        default:
-            d_weight = planner_config_.follow_d_weight;
-            break;
-    }
-
-    LocalFrenetPlan plan = planner_->plan(odom.position, odom.heading, grid, intent);
+    const auto path_conversion_start = SteadyClock::now();
+    result->path = pathToRosPath(plan.path);
+    path_conversion_ms = elapsedMs(path_conversion_start);
 
     const bool stale_plan = sequence != latest_plan_sequence_.load();
     if (stale_plan || goal_handle->is_canceling()) {
         result->success = false;
-        result->path = pathToRosPath(plan.path);
+        emit_diagnostics(false, true, result->path.poses.size());
         if (goal_handle->is_canceling()) {
             goal_handle->canceled(result);
         } else {
@@ -188,31 +265,14 @@ void HybridAStarPlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_
         }
         return;
     }
-    //lots and lots of logging 
-    const auto& diagnostics = plan.diagnostics;
-    RCLCPP_INFO(
-        this->get_logger(),
-        "intent=%s ego_s=%.2f ego_d=%.2f d_weight=%.3f merge_terminal_d_weight=%.3f lanes=%d valid_edges=%d invalid_collision=%d invalid_out=%d invalid_geometry=%d selected_cost=%.3f final_lane=%d final_d=%.2f",
-        intentToString(diagnostics.intent).c_str(),
-        diagnostics.ego_frenet.s,
-        diagnostics.ego_frenet.d,
-        d_weight,
-        planner_config_.merge_terminal_d_weight,
-        diagnostics.total_lanes,
-        diagnostics.valid_edges,
-        diagnostics.invalid_collision_edges,
-        diagnostics.invalid_out_of_grid_edges,
-        diagnostics.invalid_geometry_edges,
-        diagnostics.selected_cost,
-        diagnostics.selected_final_lane,
-        diagnostics.selected_final_d);
 
     if (plan.path.empty()) {
         RCLCPP_WARN(this->get_logger(), "Planner returned empty path");
         result->success = false;
-        result->path = pathToRosPath(plan.path);
         std::lock_guard<std::mutex> lock(publish_mutex_);
-        if (sequence != latest_plan_sequence_.load() || goal_handle->is_canceling()) {
+        const bool stale_or_canceling = sequence != latest_plan_sequence_.load() || goal_handle->is_canceling();
+        if (stale_or_canceling) {
+            emit_diagnostics(false, true, result->path.poses.size());
             if (goal_handle->is_canceling()) {
                 goal_handle->canceled(result);
             } else {
@@ -220,18 +280,20 @@ void HybridAStarPlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_
             }
             return;
         }
+        const auto viz_start = SteadyClock::now();
         publishPlannerViz(plan);
+        viz_ms = elapsedMs(viz_start);
+        emit_diagnostics(false, false, result->path.poses.size());
         goal_handle->succeed(result);
         return;
     }
 
-    //returning everything 
     result->success = true;
-    result->path = pathToRosPath(plan.path);
 
     std::lock_guard<std::mutex> lock(publish_mutex_);
     if (sequence != latest_plan_sequence_.load() || goal_handle->is_canceling()) {
         result->success = false;
+        emit_diagnostics(false, true, result->path.poses.size());
         if (goal_handle->is_canceling()) {
             goal_handle->canceled(result);
         } else {
@@ -240,9 +302,15 @@ void HybridAStarPlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_
         return;
     }
 
+    const auto publish_start = SteadyClock::now();
     path_pub_->publish(result->path);
-    publishPlannerViz(plan);
+    publish_ms = elapsedMs(publish_start);
 
+    const auto viz_start = SteadyClock::now();
+    publishPlannerViz(plan);
+    viz_ms = elapsedMs(viz_start);
+
+    emit_diagnostics(true, false, result->path.poses.size());
     goal_handle->succeed(result);
 }
 
@@ -352,6 +420,54 @@ void HybridAStarPlannerNode::publishPlannerViz(const LocalFrenetPlan& plan) {
 
     markers.markers.push_back(line_strip);
     viz_pub_->publish(markers);
+}
+
+void HybridAStarPlannerNode::publishRuntimeDiagnostics(
+    const local_planning::msg::PlannerDiagnostics& diagnostics)
+{
+    if (!enable_runtime_diagnostics_) {
+        return;
+    }
+
+    diagnostics_pub_->publish(diagnostics);
+
+    const int64_t log_period_ms = std::max<int64_t>(
+        1, static_cast<int64_t>(diagnostics_log_period_ms_));
+    const char* status = diagnostics.success ? "success" : "failure";
+    if (diagnostics.total_ms > planner_runtime_budget_ms_) {
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), log_period_ms,
+            "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d attempted_edges=%d valid_edges=%d path_points=%u planner_ms=%.2f search_ms=%.2f viz_ms=%.2f",
+            diagnostics.total_ms,
+            diagnostics.budget_ms,
+            status,
+            diagnostics.stale_or_canceled ? "true" : "false",
+            diagnostics.total_lanes,
+            diagnostics.layers,
+            diagnostics.attempted_edges,
+            diagnostics.valid_edges,
+            diagnostics.path_points,
+            diagnostics.planner_ms,
+            diagnostics.planner_search_ms,
+            diagnostics.viz_ms);
+        return;
+    }
+
+    RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), log_period_ms,
+        "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d attempted_edges=%d valid_edges=%d path_points=%u planner_ms=%.2f search_ms=%.2f viz_ms=%.2f",
+        diagnostics.total_ms,
+        diagnostics.budget_ms,
+        status,
+        diagnostics.stale_or_canceled ? "true" : "false",
+        diagnostics.total_lanes,
+        diagnostics.layers,
+        diagnostics.attempted_edges,
+        diagnostics.valid_edges,
+        diagnostics.path_points,
+        diagnostics.planner_ms,
+        diagnostics.planner_search_ms,
+        diagnostics.viz_ms);
 }
 
 local_planning::Odometry HybridAStarPlannerNode::rosToOdometry(
