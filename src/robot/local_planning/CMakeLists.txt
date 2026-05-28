@@ -33,14 +33,26 @@ if(BUILD_TESTING)
 endif()
 
 # state manager node
-add_executable(state_manager_node src/state_manager_node.cpp src/state_manager_code.cpp src/frenet_converter.cpp)
+add_executable(state_manager_node
+  src/state_manager/state_manager_node.cpp
+  src/state_manager/state_manager_code.cpp
+  src/frenet_converter.cpp
+)
 target_include_directories(state_manager_node PUBLIC include)
 ament_target_dependencies(state_manager_node rclcpp rclcpp_action nav_msgs std_msgs geometry_msgs visualization_msgs tf2 tf2_geometry_msgs)
 rosidl_get_typesupport_target(state_manager_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(state_manager_node ${state_manager_typesupport})
 
 # local Frenet lattice planner node. The executable name is kept for launch compatibility.
-add_executable(hybrid_astar_planner_node src/hybrid_astar_planner_node.cpp src/local_frenet_lattice_planner.cpp src/frenet_converter.cpp)
+add_executable(hybrid_astar_planner_node
+  src/planner/planner_node.cpp
+  src/planner/local_frenet_lattice_planner.cpp
+  src/planner/quintic_polynomial.cpp
+  src/planner/edge_evaluator.cpp
+  src/planner/collision_checker.cpp
+  src/planner/planner_costs.cpp
+  src/frenet_converter.cpp
+)
 target_include_directories(hybrid_astar_planner_node PUBLIC include)
 ament_target_dependencies(hybrid_astar_planner_node
   rclcpp
