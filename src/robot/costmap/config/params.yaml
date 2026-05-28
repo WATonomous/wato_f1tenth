@@ -3,13 +3,13 @@ occupancy_grid_generator:
     # Grid dimensions and resolution
     grid_width: 20.0        # meters
     grid_height: 20.0       # meters
-    resolution: 0.1         # meters per cell
+    resolution: 0.05         # meters per cell
 
     # Frame IDs
-    robot_frame: "roboracer_1"
+    robot_frame: "base_link"
 
     # Topic names
-    scan_topic: "/autodrive/roboracer_1/lidar"
+    scan_topic: "/scan"
     output_topic: "/costmap"
 
     # Obstacle marking

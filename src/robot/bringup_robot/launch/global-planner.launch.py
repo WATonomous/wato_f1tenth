@@ -172,4 +172,24 @@ def generate_launch_description():
 
     ld.add_action(pure_persuit)
 
+    #################### Costmap Node #####################
+
+    costmap_pkg_prefix = get_package_share_directory('costmap')
+    costmap_param_file = os.path.join(
+        costmap_pkg_prefix, 'config', 'params.yaml')
+
+    costmap_param = DeclareLaunchArgument(
+        'costmap_param_file',
+        default_value=costmap_param_file,
+        description='Path to config file for costmap node'
+    )
+    costmap_node = Node(
+        package='costmap',
+        name='occupancy_grid_generator',
+        executable='costmap_node',
+        parameters=[LaunchConfiguration('costmap_param_file')],
+    )
+    ld.add_action(costmap_param)
+    ld.add_action(costmap_node)
+
     return ld
