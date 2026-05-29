@@ -33,6 +33,7 @@ public:
     double d_start,
     double slope_start,
     double d_end,
+    double slope_end,
     LocalPlannerIntent intent,
     const OccupancyGrid & grid) const;
 

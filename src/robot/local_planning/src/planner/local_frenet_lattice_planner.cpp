@@ -124,7 +124,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
         ++result.diagnostics.attempted_edges;
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], intent, grid);
+          s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], 0.0, intent, grid);
 
         if (edge.collision_status == CollisionStatus::COLLISION) {
           ++result.diagnostics.invalid_collision_edges;

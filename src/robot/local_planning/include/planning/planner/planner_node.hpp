@@ -82,6 +82,7 @@ private:
   std::mutex input_mutex_;
   std::mutex publish_mutex_;
   std::atomic<uint64_t> latest_plan_sequence_{0};
+  std::atomic_bool planner_busy_{false};
 
   // racing line
   std::vector<local_planning::Point> racing_line_;

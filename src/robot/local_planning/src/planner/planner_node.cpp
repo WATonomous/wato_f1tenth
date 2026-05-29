@@ -1,7 +1,8 @@
 #include "planning/planner/planner_node.hpp"
 
+//get rid of one of the below includes 
+#include "planning/planner/frenet_hybrid_astar_planner.hpp"
 #include "planning/planner/local_frenet_lattice_planner.hpp"
-
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -13,6 +14,7 @@
 #include <functional>
 #include <algorithm>
 #include <chrono>
+#include <stdexcept>
 
 namespace local_planning
 {
@@ -23,6 +25,27 @@ namespace
 {
 
 using SteadyClock = std::chrono::steady_clock;
+
+constexpr double kMinimumPlannerBudgetMs = 1.0;
+constexpr double kSearchBudgetReserveMs = 20.0;
+constexpr double kVizDeadlineReserveMs = 5.0;
+
+class ScopedPlannerBusyFlag
+{
+public:
+  explicit ScopedPlannerBusyFlag(std::atomic_bool & flag)
+  : flag_(flag)
+  {
+  }
+
+  ~ScopedPlannerBusyFlag()
+  {
+    flag_.store(false);
+  }
+
+private:
+  std::atomic_bool & flag_;
+};
 
 double elapsedMs(SteadyClock::time_point start, SteadyClock::time_point end)
 {
@@ -48,8 +71,16 @@ PlannerNode::PlannerNode()
   this->declare_parameter<double>("layer_spacing_m", 0.5);
   this->declare_parameter<double>("lane_spacing_m", 0.1);
   this->declare_parameter<double>("max_lateral_offset_m", 1.8);
+  this->declare_parameter<int>("max_lane_jump_per_layer", 3);
   this->declare_parameter<double>("max_path_angle_deg", 50.0);
   this->declare_parameter<double>("sample_spacing_m", 0.1);
+  this->declare_parameter<double>("max_runtime_ms", 50.0);
+  this->declare_parameter<double>("heuristic_weight", 1.0);
+  this->declare_parameter<std::vector<double>>(
+    "heading_buckets_deg", std::vector<double>{-10.0, -5.0, 0.0, 5.0, 10.0});
+  this->declare_parameter<int>("max_heading_jump_per_layer", 1);
+  this->declare_parameter<double>("max_heading_mismatch_deg", 25.0);
+  this->declare_parameter<int>("heuristic_sample_count", 8);
   this->declare_parameter<double>("obstacle_inflation_distance_m", 0.2);
   this->declare_parameter<int>("occupied_threshold", 50);
   this->declare_parameter<double>("friction_coeff", 1.0);
@@ -82,8 +113,19 @@ PlannerNode::PlannerNode()
   planner_config_.layer_spacing_m = this->get_parameter("layer_spacing_m").as_double();
   planner_config_.lane_spacing_m = this->get_parameter("lane_spacing_m").as_double();
   planner_config_.max_lateral_offset_m = this->get_parameter("max_lateral_offset_m").as_double();
+  planner_config_.max_lane_jump_per_layer = this->get_parameter(
+    "max_lane_jump_per_layer").as_int();
   planner_config_.max_path_angle_deg = this->get_parameter("max_path_angle_deg").as_double();
   planner_config_.sample_spacing_m = this->get_parameter("sample_spacing_m").as_double();
+  planner_config_.max_runtime_ms = this->get_parameter("max_runtime_ms").as_double();
+  planner_config_.heuristic_weight = this->get_parameter("heuristic_weight").as_double();
+  planner_config_.heading_buckets_deg =
+    this->get_parameter("heading_buckets_deg").as_double_array();
+  planner_config_.max_heading_jump_per_layer = this->get_parameter(
+    "max_heading_jump_per_layer").as_int();
+  planner_config_.max_heading_mismatch_deg = this->get_parameter(
+    "max_heading_mismatch_deg").as_double();
+  planner_config_.heuristic_sample_count = this->get_parameter("heuristic_sample_count").as_int();
   planner_config_.obstacle_inflation_distance_m = this->get_parameter(
     "obstacle_inflation_distance_m").as_double();
   planner_config_.occupied_threshold = this->get_parameter("occupied_threshold").as_int();
@@ -99,11 +141,22 @@ PlannerNode::PlannerNode()
   planner_config_.merge_terminal_d_weight =
     this->get_parameter("merge_terminal_d_weight").as_double();
   enable_runtime_diagnostics_ = this->get_parameter("enable_runtime_diagnostics").as_bool();
-  planner_runtime_budget_ms_ = this->get_parameter("planner_runtime_budget_ms").as_double();
+  planner_runtime_budget_ms_ = std::max(
+    kMinimumPlannerBudgetMs, this->get_parameter("planner_runtime_budget_ms").as_double());
   diagnostics_log_period_ms_ = this->get_parameter("diagnostics_log_period_ms").as_double();
 
+  const double max_search_budget_ms = std::max(
+    kMinimumPlannerBudgetMs, planner_runtime_budget_ms_ - kSearchBudgetReserveMs);
+  if (planner_config_.max_runtime_ms > max_search_budget_ms) {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "Clamping planner search budget from %.2f ms to %.2f ms to keep action budget %.2f ms",
+      planner_config_.max_runtime_ms, max_search_budget_ms, planner_runtime_budget_ms_);
+    planner_config_.max_runtime_ms = max_search_budget_ms;
+  }
+
   // planner
-  planner_ = std::make_unique<LocalFrenetLatticePlanner>();
+  planner_ = std::make_unique<FrenetHybridAStarPlanner>();
   planner_->setConfig(planner_config_);
 
   // subscribers
@@ -151,6 +204,14 @@ rclcpp_action::GoalResponse PlannerNode::handleGoal(
   const rclcpp_action::GoalUUID & /*uuid*/,
   std::shared_ptr<const PlanPath::Goal>/*goal*/)
 {
+  bool expected_idle = false;
+  if (!planner_busy_.compare_exchange_strong(expected_idle, true)) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 1000,
+      "Rejecting plan goal because the previous plan is still running");
+    return rclcpp_action::GoalResponse::REJECT;
+  }
+
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -163,14 +224,42 @@ rclcpp_action::CancelResponse PlannerNode::handleCancel(
 void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
 {
   const uint64_t sequence = ++latest_plan_sequence_;
+  auto self = shared_from_this();
+  auto goal_handle_holder = new std::shared_ptr<GoalHandle>(goal_handle);
   std::thread(
-    [this, goal_handle, sequence]() {
-      executePlan(goal_handle, sequence);
+    [this, self, goal_handle_holder, sequence]() {
+      try {
+        executePlan(*goal_handle_holder, sequence);
+      } catch (const std::exception & ex) {
+        planner_busy_.store(false);
+        if (rclcpp::ok()) {
+          RCLCPP_WARN(
+            this->get_logger(), "Planner action worker exited after exception: %s", ex.what());
+        }
+      } catch (...) {
+        planner_busy_.store(false);
+        if (rclcpp::ok()) {
+          RCLCPP_WARN(this->get_logger(), "Planner action worker exited after unknown exception");
+        }
+      }
+
+      bool release_goal_handle = rclcpp::ok();
+      try {
+        release_goal_handle = release_goal_handle && !(*goal_handle_holder)->is_active();
+      } catch (...) {
+        release_goal_handle = false;
+      }
+
+      if (release_goal_handle) {
+        delete goal_handle_holder;
+      }
     }).detach();
 }
 
 void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uint64_t sequence)
+try
 {
+  ScopedPlannerBusyFlag clear_busy(planner_busy_);
   const auto total_start = SteadyClock::now();
   auto result = std::make_shared<PlanPath::Result>();
 
@@ -187,7 +276,65 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
   double publish_ms = 0.0;
   double viz_ms = 0.0;
 
+  auto action_budget_expired = [&]() {
+      return elapsedMs(total_start) >= planner_runtime_budget_ms_;
+    };
+  auto has_budget_for_viz = [&]() {
+      return elapsedMs(total_start) + kVizDeadlineReserveMs < planner_runtime_budget_ms_;
+    };
+
+  auto ros_active = []() {
+      return rclcpp::ok();
+    };
+
+  auto finish_succeeded = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
+      if (!ros_active()) {
+        return;
+      }
+      try {
+        if (!goal_handle->is_active()) {
+          return;
+        }
+        goal_handle->succeed(result_msg);
+      } catch (const std::exception & ex) {
+        if (rclcpp::ok()) {
+          RCLCPP_WARN(
+            this->get_logger(), "Could not publish planning result because goal ended: %s",
+            ex.what());
+        }
+      } catch (...) {
+        if (rclcpp::ok()) {
+          RCLCPP_WARN(this->get_logger(), "Could not publish planning result because goal ended");
+        }
+      }
+    };
+
+  auto finish_canceled = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
+      if (!ros_active()) {
+        return;
+      }
+      try {
+        if (!goal_handle->is_active()) {
+          return;
+        }
+        goal_handle->canceled(result_msg);
+      } catch (const std::exception & ex) {
+        if (rclcpp::ok()) {
+          RCLCPP_WARN(
+            this->get_logger(), "Could not publish canceled planning result because goal ended: %s",
+            ex.what());
+        }
+      } catch (...) {
+        if (rclcpp::ok()) {
+          RCLCPP_WARN(this->get_logger(), "Could not publish canceled planning result because goal ended");
+        }
+      }
+    };
+
   auto emit_diagnostics = [&](bool success, bool stale_or_canceled, size_t path_points) {
+      if (!ros_active()) {
+        return;
+      }
       local_planning::msg::PlannerDiagnostics msg;
       msg.header.frame_id = "map";
       msg.header.stamp = this->now();
@@ -212,11 +359,16 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
 
       msg.layers = diagnostics.layers;
       msg.total_lanes = diagnostics.total_lanes;
+      msg.total_heading_buckets = diagnostics.total_heading_buckets;
       msg.attempted_edges = diagnostics.attempted_edges;
       msg.valid_edges = diagnostics.valid_edges;
       msg.invalid_collision_edges = diagnostics.invalid_collision_edges;
       msg.invalid_out_of_grid_edges = diagnostics.invalid_out_of_grid_edges;
       msg.invalid_geometry_edges = diagnostics.invalid_geometry_edges;
+      msg.states_popped = diagnostics.states_popped;
+      msg.states_pushed = diagnostics.states_pushed;
+      msg.final_candidates_found = diagnostics.final_candidates_found;
+      msg.deepest_layer_reached = diagnostics.deepest_layer_reached;
       msg.path_points = static_cast<uint32_t>(path_points);
 
       msg.budget_ms = planner_runtime_budget_ms_;
@@ -226,8 +378,16 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
       msg.horizon_m = planner_config_.horizon_m;
       msg.ego_s = diagnostics.ego_frenet.s;
       msg.ego_d = diagnostics.ego_frenet.d;
+      msg.runtime_ms = diagnostics.runtime_ms;
       msg.selected_cost = diagnostics.selected_cost;
       msg.selected_final_d = diagnostics.selected_final_d;
+      msg.selected_final_lane = diagnostics.selected_final_lane;
+      msg.selected_g_cost = diagnostics.selected_g_cost;
+      msg.selected_h_cost = diagnostics.selected_h_cost;
+      msg.selected_f_cost = diagnostics.selected_f_cost;
+      msg.selected_final_heading_idx = diagnostics.selected_final_heading_idx;
+      msg.selected_final_heading_deg = diagnostics.selected_final_heading_deg;
+      msg.returned_partial_path = diagnostics.returned_partial_path;
 
       publishRuntimeDiagnostics(msg);
     };
@@ -246,14 +406,14 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
     RCLCPP_WARN(this->get_logger(), "Missing odom or occupancy grid, cannot plan");
     result->success = false;
     emit_diagnostics(false, false, 0);
-    goal_handle->succeed(result);
+    finish_succeeded(result);
     return;
   }
 
   if (goal_handle->is_canceling()) {
     result->success = false;
     emit_diagnostics(false, true, 0);
-    goal_handle->canceled(result);
+    finish_canceled(result);
     return;
   }
 
@@ -262,22 +422,34 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
   local_planning::OccupancyGrid grid = rosToOccupancyGrid(occupancy_grid_msg);
   ros_conversion_ms = elapsedMs(conversion_start);
 
+  if (action_budget_expired()) {
+    result->success = false;
+    emit_diagnostics(false, false, 0);
+    finish_succeeded(result);
+    return;
+  }
+
   const auto planner_start = SteadyClock::now();
   plan = planner_->plan(odom.position, odom.heading, grid, intent);
   planner_ms = elapsedMs(planner_start);
+
+  if (!ros_active()) {
+    return;
+  }
 
   const auto path_conversion_start = SteadyClock::now();
   result->path = pathToRosPath(plan.path);
   path_conversion_ms = elapsedMs(path_conversion_start);
 
   const bool stale_plan = sequence != latest_plan_sequence_.load();
-  if (stale_plan || goal_handle->is_canceling()) {
+  const bool over_budget = action_budget_expired();
+  if (stale_plan || goal_handle->is_canceling() || over_budget) {
     result->success = false;
-    emit_diagnostics(false, true, result->path.poses.size());
+    emit_diagnostics(false, stale_plan || goal_handle->is_canceling(), result->path.poses.size());
     if (goal_handle->is_canceling()) {
-      goal_handle->canceled(result);
+      finish_canceled(result);
     } else {
-      goal_handle->succeed(result);
+      finish_succeeded(result);
     }
     return;
   }
@@ -291,31 +463,44 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
     if (stale_or_canceling) {
       emit_diagnostics(false, true, result->path.poses.size());
       if (goal_handle->is_canceling()) {
-        goal_handle->canceled(result);
+        finish_canceled(result);
       } else {
-        goal_handle->succeed(result);
+        finish_succeeded(result);
       }
       return;
     }
-    const auto viz_start = SteadyClock::now();
-    publishPlannerViz(plan);
-    viz_ms = elapsedMs(viz_start);
+
+    const auto publish_start = SteadyClock::now();
+    path_pub_->publish(result->path);
+    publish_ms = elapsedMs(publish_start);
+
+    if (has_budget_for_viz()) {
+      const auto viz_start = SteadyClock::now();
+      publishPlannerViz(plan);
+      viz_ms = elapsedMs(viz_start);
+    }
     emit_diagnostics(false, false, result->path.poses.size());
-    goal_handle->succeed(result);
+    finish_succeeded(result);
     return;
   }
 
   result->success = true;
 
   std::lock_guard<std::mutex> lock(publish_mutex_);
-  if (sequence != latest_plan_sequence_.load() || goal_handle->is_canceling()) {
+  const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
+    goal_handle->is_canceling();
+  if (stale_or_canceling || action_budget_expired()) {
     result->success = false;
-    emit_diagnostics(false, true, result->path.poses.size());
+    emit_diagnostics(false, stale_or_canceling, result->path.poses.size());
     if (goal_handle->is_canceling()) {
-      goal_handle->canceled(result);
+      finish_canceled(result);
     } else {
-      goal_handle->succeed(result);
+      finish_succeeded(result);
     }
+    return;
+  }
+
+  if (!ros_active()) {
     return;
   }
 
@@ -323,12 +508,29 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uin
   path_pub_->publish(result->path);
   publish_ms = elapsedMs(publish_start);
 
-  const auto viz_start = SteadyClock::now();
-  publishPlannerViz(plan);
-  viz_ms = elapsedMs(viz_start);
+  if (has_budget_for_viz()) {
+    const auto viz_start = SteadyClock::now();
+    publishPlannerViz(plan);
+    viz_ms = elapsedMs(viz_start);
+  }
 
-  emit_diagnostics(true, false, result->path.poses.size());
-  goal_handle->succeed(result);
+  result->success = !action_budget_expired();
+  emit_diagnostics(result->success, false, result->path.poses.size());
+  finish_succeeded(result);
+}
+catch (const std::exception & ex)
+{
+  planner_busy_.store(false);
+  if (rclcpp::ok()) {
+    RCLCPP_WARN(this->get_logger(), "Planner action thread exited after exception: %s", ex.what());
+  }
+}
+catch (...)
+{
+  planner_busy_.store(false);
+  if (rclcpp::ok()) {
+    RCLCPP_WARN(this->get_logger(), "Planner action thread exited after unknown exception");
+  }
 }
 
 void PlannerNode::loadRacingLine()
@@ -381,6 +583,10 @@ LocalPlannerIntent PlannerNode::intentFromAction(uint8_t intent) const
 
 void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
 {
+  if (!rclcpp::ok()) {
+    return;
+  }
+
   visualization_msgs::msg::MarkerArray markers;
 
   visualization_msgs::msg::Marker clear;
@@ -448,6 +654,10 @@ void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
 void PlannerNode::publishRuntimeDiagnostics(
   const local_planning::msg::PlannerDiagnostics & diagnostics)
 {
+  if (!rclcpp::ok()) {
+    return;
+  }
+
   if (!enable_runtime_diagnostics_) {
     return;
   }
@@ -461,38 +671,60 @@ void PlannerNode::publishRuntimeDiagnostics(
     RCLCPP_WARN_THROTTLE(
       this->get_logger(),
       *this->get_clock(), log_period_ms,
-      "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d attempted_edges=%d valid_edges=%d path_points=%u planner_ms=%.2f search_ms=%.2f viz_ms=%.2f",
+      "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d heading_buckets=%d attempted_edges=%d valid_edges=%d states_popped=%d states_pushed=%d final_candidates=%d deepest_layer=%d returned_partial=%s path_points=%u planner_ms=%.2f runtime_ms=%.2f search_ms=%.2f viz_ms=%.2f selected_g=%.3f selected_h=%.3f selected_f=%.3f final_heading_deg=%.2f",
       diagnostics.total_ms,
       diagnostics.budget_ms,
       status,
       diagnostics.stale_or_canceled ? "true" : "false",
       diagnostics.total_lanes,
       diagnostics.layers,
+      diagnostics.total_heading_buckets,
       diagnostics.attempted_edges,
       diagnostics.valid_edges,
+      diagnostics.states_popped,
+      diagnostics.states_pushed,
+      diagnostics.final_candidates_found,
+      diagnostics.deepest_layer_reached,
+      diagnostics.returned_partial_path ? "true" : "false",
       diagnostics.path_points,
       diagnostics.planner_ms,
+      diagnostics.runtime_ms,
       diagnostics.planner_search_ms,
-      diagnostics.viz_ms);
+      diagnostics.viz_ms,
+      diagnostics.selected_g_cost,
+      diagnostics.selected_h_cost,
+      diagnostics.selected_f_cost,
+      diagnostics.selected_final_heading_deg);
     return;
   }
 
   RCLCPP_INFO_THROTTLE(
     this->get_logger(),
     *this->get_clock(), log_period_ms,
-    "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d attempted_edges=%d valid_edges=%d path_points=%u planner_ms=%.2f search_ms=%.2f viz_ms=%.2f",
+    "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d heading_buckets=%d attempted_edges=%d valid_edges=%d states_popped=%d states_pushed=%d final_candidates=%d deepest_layer=%d returned_partial=%s path_points=%u planner_ms=%.2f runtime_ms=%.2f search_ms=%.2f viz_ms=%.2f selected_g=%.3f selected_h=%.3f selected_f=%.3f final_heading_deg=%.2f",
     diagnostics.total_ms,
     diagnostics.budget_ms,
     status,
     diagnostics.stale_or_canceled ? "true" : "false",
     diagnostics.total_lanes,
     diagnostics.layers,
+    diagnostics.total_heading_buckets,
     diagnostics.attempted_edges,
     diagnostics.valid_edges,
+    diagnostics.states_popped,
+    diagnostics.states_pushed,
+    diagnostics.final_candidates_found,
+    diagnostics.deepest_layer_reached,
+    diagnostics.returned_partial_path ? "true" : "false",
     diagnostics.path_points,
     diagnostics.planner_ms,
+    diagnostics.runtime_ms,
     diagnostics.planner_search_ms,
-    diagnostics.viz_ms);
+    diagnostics.viz_ms,
+    diagnostics.selected_g_cost,
+    diagnostics.selected_h_cost,
+    diagnostics.selected_f_cost,
+    diagnostics.selected_final_heading_deg);
 }
 
 local_planning::Odometry PlannerNode::rosToOdometry(

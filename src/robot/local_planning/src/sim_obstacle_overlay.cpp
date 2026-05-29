@@ -54,8 +54,9 @@ public:
         publishMergedGrid(*msg);
       });
 
+    const auto clicked_point_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
     clicked_point_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
-      clicked_point_topic_, 10,
+      clicked_point_topic_, clicked_point_qos,
       [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
         addObstacle(*msg);
       });
@@ -94,12 +95,21 @@ private:
     if (!point.header.frame_id.empty() && point.header.frame_id != frame_id_) {
       try {
         point_in_map = tf_buffer_->transform(point, frame_id_, tf2::durationFromSec(0.1));
-      } catch (const tf2::TransformException & ex) {
-        RCLCPP_WARN(
-          this->get_logger(),
-          "Ignoring clicked point in frame '%s'; cannot transform to '%s': %s",
-          point.header.frame_id.c_str(), frame_id_.c_str(), ex.what());
-        return;
+      } catch (const tf2::TransformException & stamped_ex) {
+        geometry_msgs::msg::PointStamped latest_point = point;
+        latest_point.header.stamp.sec = 0;
+        latest_point.header.stamp.nanosec = 0;
+        try {
+          point_in_map = tf_buffer_->transform(
+            latest_point, frame_id_, tf2::durationFromSec(0.1));
+        } catch (const tf2::TransformException & latest_ex) {
+          RCLCPP_WARN(
+            this->get_logger(),
+            "Ignoring clicked point in frame '%s'; cannot transform to '%s': %s; latest TF fallback also failed: %s",
+            point.header.frame_id.c_str(), frame_id_.c_str(), stamped_ex.what(),
+            latest_ex.what());
+          return;
+        }
       }
     } else {
       point_in_map = point;

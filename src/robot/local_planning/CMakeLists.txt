@@ -47,6 +47,7 @@ target_link_libraries(state_manager_node ${state_manager_typesupport})
 add_executable(hybrid_astar_planner_node
   src/planner/planner_node.cpp
   src/planner/local_frenet_lattice_planner.cpp
+  src/planner/frenet_hybrid_astar_planner.cpp
   src/planner/quintic_polynomial.cpp
   src/planner/edge_evaluator.cpp
   src/planner/collision_checker.cpp

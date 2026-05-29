@@ -4,6 +4,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/utils.h>
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -74,10 +75,11 @@ StateManagerNode::StateManagerNode()
     state_period_ms,
     std::bind(&StateManagerNode::stateTimerCallback, this));
 
-  auto planning_period_ms = std::chrono::milliseconds(
-    static_cast<int>(1000.0 / planning_trigger_rate_));
+  const double safe_planning_trigger_rate = std::max(0.1, planning_trigger_rate_);
+  planning_period_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::duration<double>(1.0 / safe_planning_trigger_rate));
   planning_timer_ = this->create_wall_timer(
-    planning_period_ms,
+    planning_period_,
     std::bind(&StateManagerNode::planningTimerCallback, this));
 
   loadRacingLine();
@@ -120,6 +122,40 @@ void StateManagerNode::planningTimerCallback()
   sendPlanGoal(state_machine_->getCurrentState());
 }
 
+void StateManagerNode::scheduleNextPlanGoal()
+{
+  if (!current_odom_ || !current_occupancy_grid_) {
+    return;
+  }
+
+  std::chrono::nanoseconds delay(0);
+  if (has_sent_plan_goal_) {
+    const auto next_send_time = last_plan_goal_sent_ + planning_period_;
+    const auto now = std::chrono::steady_clock::now();
+    if (next_send_time > now) {
+      delay = std::chrono::duration_cast<std::chrono::nanoseconds>(next_send_time - now);
+    }
+  }
+
+  if (deferred_planning_timer_) {
+    deferred_planning_timer_->cancel();
+  }
+
+  if (delay <= std::chrono::milliseconds(1)) {
+    planningTimerCallback();
+    return;
+  }
+
+  deferred_planning_timer_ = this->create_wall_timer(
+    delay,
+    [this]() {
+      if (deferred_planning_timer_) {
+        deferred_planning_timer_->cancel();
+      }
+      planningTimerCallback();
+    });
+}
+
 void StateManagerNode::loadRacingLine()
 {
   racing_line_ = loadRacingLineFromFile(racing_line_file_);
@@ -147,17 +183,24 @@ void StateManagerNode::publishState()
 
 void StateManagerNode::sendPlanGoal(RacingState state)
 {
-  if (!plan_action_client_->wait_for_action_server(std::chrono::milliseconds(100))) {
-    RCLCPP_WARN_THROTTLE(
-      this->get_logger(), *this->get_clock(), 5000,
-      "Plan action server not available");
+  if (!plan_action_server_ready_) {
+    plan_action_server_ready_ = plan_action_client_->wait_for_action_server(
+      std::chrono::milliseconds(100));
+    if (!plan_action_server_ready_) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Plan action server not available");
+      return;
+    }
+  }
+
+  if (current_goal_handle_) {
     return;
   }
 
-  // cancel current goal if in flight
-  if (current_goal_handle_) {
-    plan_action_client_->async_cancel_goal(current_goal_handle_);
-    current_goal_handle_ = nullptr;
+  const auto now = std::chrono::steady_clock::now();
+  if (has_sent_plan_goal_ && now - last_plan_goal_sent_ < planning_period_) {
+    return;
   }
 
   auto goal_msg = PlanPath::Goal();
@@ -188,6 +231,8 @@ void StateManagerNode::sendPlanGoal(RacingState state)
   send_goal_options.result_callback =
     std::bind(&StateManagerNode::planResultCallback, this, _1);
 
+  last_plan_goal_sent_ = std::chrono::steady_clock::now();
+  has_sent_plan_goal_ = true;
   plan_action_client_->async_send_goal(goal_msg, send_goal_options);
 }
 
@@ -210,6 +255,8 @@ void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & resu
       RCLCPP_WARN(this->get_logger(), "???");
       break;
   }
+
+  scheduleNextPlanGoal();
 }
 //visualizer stuff
 void StateManagerNode::publishRacingLineLattices()

@@ -11,6 +11,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <local_planning/action/plan_path.hpp>
 
+#include <chrono>
 #include <memory>
 #include <vector>
 #include <string>
@@ -33,6 +34,7 @@ private:
 
   void stateTimerCallback();
   void planningTimerCallback();
+  void scheduleNextPlanGoal();
 
   //utility
   void loadRacingLine();
@@ -91,8 +93,13 @@ private:
   // state tracking
   RacingState last_published_state_{RacingState::STEADY_STATE};
 
-  // track in-flight action goal so we can cancel before sending a new one
+  // track in-flight action goal so we do not churn/cancel the synchronous planner
   GoalHandle::SharedPtr current_goal_handle_;
+  bool plan_action_server_ready_{false};
+  std::chrono::nanoseconds planning_period_{std::chrono::milliseconds(100)};
+  std::chrono::steady_clock::time_point last_plan_goal_sent_{};
+  bool has_sent_plan_goal_{false};
+  rclcpp::TimerBase::SharedPtr deferred_planning_timer_;
 };
 
 } // namespace local_planning

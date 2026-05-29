@@ -44,12 +44,13 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   double d_start,
   double slope_start,
   double d_end,
+  double slope_end,
   LocalPlannerIntent intent,
   const OccupancyGrid & grid) const
 {
   EdgeEvaluation edge;
   const QuinticPolynomial curve = computeQuintic(
-    d_start, slope_start, d_end, 0.0, config_.layer_spacing_m);
+    d_start, slope_start, d_end, slope_end, config_.layer_spacing_m);
   const int sample_count =
     std::max(
     2, static_cast<int>(std::ceil(

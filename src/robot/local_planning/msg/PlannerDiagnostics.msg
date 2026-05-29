@@ -19,11 +19,16 @@ float64 planner_reconstruct_ms
 
 int32 layers
 int32 total_lanes
+int32 total_heading_buckets
 int32 attempted_edges
 int32 valid_edges
 int32 invalid_collision_edges
 int32 invalid_out_of_grid_edges
 int32 invalid_geometry_edges
+int32 states_popped
+int32 states_pushed
+int32 final_candidates_found
+int32 deepest_layer_reached
 uint32 path_points
 
 float64 budget_ms
@@ -33,5 +38,13 @@ float64 sample_spacing_m
 float64 horizon_m
 float64 ego_s
 float64 ego_d
+float64 runtime_ms
 float64 selected_cost
 float64 selected_final_d
+int32 selected_final_lane
+float64 selected_g_cost
+float64 selected_h_cost
+float64 selected_f_cost
+int32 selected_final_heading_idx
+float64 selected_final_heading_deg
+bool returned_partial_path
