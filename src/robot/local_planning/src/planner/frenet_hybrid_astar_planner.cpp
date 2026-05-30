@@ -118,6 +118,7 @@ LocalFrenetPlan FrenetHybridAStarPlanner::plan(
 
   CollisionChecker collision_checker(config_);
   FrenetEdgeEvaluator edge_evaluator(config_, frenet_converter_, collision_checker);
+  EdgeEvaluationScratch edge_scratch;
 
   const int start_index = stateIndex(
     0, start_lane, start_heading_idx, lane_count, heading_count);
@@ -218,7 +219,7 @@ LocalFrenetPlan FrenetHybridAStarPlanner::plan(
         }
 
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, d1, slope1, intent, grid);
+          s0, d0, slope0, d1, slope1, intent, grid, edge_scratch);
 
         if (edge.collision_status == CollisionStatus::COLLISION) {
           ++result.diagnostics.invalid_collision_edges;
@@ -257,7 +258,7 @@ LocalFrenetPlan FrenetHybridAStarPlanner::plan(
         successor.f_cost = successor.g_cost + config_.heuristic_weight * successor.h_cost;
         successor.curvature_change_cost = tentative_curvature_change;
         successor.parent_index = item.state_index;
-        successor.edge_samples = std::move(edge.samples);
+        successor.edge_samples.assign(edge_scratch.samples.begin(), edge_scratch.samples.end());
 
         if (isBetterPartial(successor, states[static_cast<size_t>(best_partial_index)])) {
           best_partial_index = successor_index;

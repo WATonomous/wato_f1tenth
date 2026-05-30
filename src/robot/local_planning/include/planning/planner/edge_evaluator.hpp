@@ -10,10 +10,15 @@
 namespace local_planning
 {
 
+struct EdgeEvaluationScratch
+{
+  std::vector<Point> samples;
+  std::vector<double> curvatures;
+};
+
 struct EdgeEvaluation
 {
   CollisionStatus collision_status = CollisionStatus::FREE;
-  std::vector<Point> samples;
   double predicted_time_cost = 0.0;
   double curvature_change_cost = 0.0;
   double intent_bias_cost = 0.0;   //how much we pull to raceline
@@ -36,7 +41,8 @@ public:
     double d_end,
     double slope_end,
     LocalPlannerIntent intent,
-    const OccupancyGrid & grid) const;
+    const OccupancyGrid & grid,
+    EdgeEvaluationScratch & scratch) const;
 
 private:
   const LocalFrenetPlannerConfig & config_;

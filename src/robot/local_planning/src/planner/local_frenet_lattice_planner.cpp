@@ -90,6 +90,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
 
   CollisionChecker collision_checker(config_);
   FrenetEdgeEvaluator edge_evaluator(config_, frenet_converter_, collision_checker);
+  EdgeEvaluationScratch edge_scratch;
 
   result.diagnostics.planner_setup_ms = millisecondsSince(setup_start);
 
@@ -124,7 +125,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
         ++result.diagnostics.attempted_edges;
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], 0.0, intent, grid);
+          s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], 0.0, intent, grid, edge_scratch);
 
         if (edge.collision_status == CollisionStatus::COLLISION) {
           ++result.diagnostics.invalid_collision_edges;
@@ -159,7 +160,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         to_state.curvature_change_cost = from_state.curvature_change_cost +
           edge.curvature_change_cost;
         to_state.parent_lane = from_lane;
-        to_state.edge_samples = std::move(edge.samples);
+        to_state.edge_samples.assign(edge_scratch.samples.begin(), edge_scratch.samples.end());
       }
     }
   }
@@ -253,14 +254,17 @@ std::vector<Point> LocalFrenetLatticePlanner::reconstructPath(
   const std::vector<std::vector<DpState>> & states,
   int final_lane) const
 {
-  std::vector<std::vector<Point>> segments;
+  std::vector<const std::vector<Point> *> segments;
+  segments.reserve(states.size() - 1);
+  size_t path_capacity = 0;
   int lane = final_lane;
   for (int layer = static_cast<int>(states.size()) - 1; layer > 0; --layer) {
     const DpState & state = states[static_cast<size_t>(layer)][static_cast<size_t>(lane)];
     if (!state.reachable) {
       return {};
     }
-    segments.push_back(state.edge_samples);
+    segments.push_back(&state.edge_samples);
+    path_capacity += state.edge_samples.size();
     lane = state.parent_lane;
     if (lane < 0) {
       return {};
@@ -268,8 +272,9 @@ std::vector<Point> LocalFrenetLatticePlanner::reconstructPath(
   }
 
   std::vector<Point> path;
+  path.reserve(path_capacity);
   for (auto segment_it = segments.rbegin(); segment_it != segments.rend(); ++segment_it) {
-    const std::vector<Point> & segment = *segment_it;
+    const std::vector<Point> & segment = **segment_it;
     const size_t start_index = path.empty() ? 0 : 1;
     for (size_t i = start_index; i < segment.size(); ++i) {
       path.push_back(segment[i]);

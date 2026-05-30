@@ -46,7 +46,8 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   double d_end,
   double slope_end,
   LocalPlannerIntent intent,
-  const OccupancyGrid & grid) const
+  const OccupancyGrid & grid,
+  EdgeEvaluationScratch & scratch) const
 {
   EdgeEvaluation edge;
   const QuinticPolynomial curve = computeQuintic(
@@ -57,13 +58,17 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
       config_.layer_spacing_m / config_.sample_spacing_m)) + 1);
   const double max_path_angle_rad = config_.max_path_angle_deg * kPi / 180.0;
 
-  edge.samples.reserve(static_cast<size_t>(sample_count));
-  std::vector<double> curvatures(static_cast<size_t>(sample_count), 0.0);
+  scratch.samples.clear();
+  scratch.samples.reserve(static_cast<size_t>(sample_count));
+  scratch.curvatures.assign(static_cast<size_t>(sample_count), 0.0);
+  std::vector<Point> & samples = scratch.samples;
+  std::vector<double> & curvatures = scratch.curvatures;
   //get samples along quintic
   for (int i = 0; i < sample_count; ++i) {
     const double t = static_cast<double>(i) / static_cast<double>(sample_count - 1);
     const double s = s_start + t * config_.layer_spacing_m;
-    Point p = frenet_converter_.frenetToCartesian({s, curve.evaluate(t)});
+    const double d = curve.evaluate(t);
+    Point p = frenet_converter_.frenetToCartesian({s, d});
 
     const double path_slope = curve.evaluateDerivative(t) / curve.delta_s;
     const double path_angle = std::atan(path_slope);
@@ -81,14 +86,15 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
       return edge;
     }
 
-    edge.samples.push_back(p);
+    samples.push_back(p);
+    edge.intent_bias_cost += intentBias(d, intent, config_);
   }
   //get all the curvatures
   for (int i = 1; i + 1 < sample_count; ++i) {
     curvatures[static_cast<size_t>(i)] = computeCurvature(
-      edge.samples[static_cast<size_t>(i - 1)],
-      edge.samples[static_cast<size_t>(i)],
-      edge.samples[static_cast<size_t>(i + 1)]);
+      samples[static_cast<size_t>(i - 1)],
+      samples[static_cast<size_t>(i)],
+      samples[static_cast<size_t>(i + 1)]);
   }
   if (sample_count > 2) {
     curvatures.front() = curvatures[1];
@@ -98,15 +104,15 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   for (int i = 0; i < sample_count; ++i) {
     const double s = s_start + (static_cast<double>(i) / static_cast<double>(sample_count - 1)) *
       config_.layer_spacing_m;
-    edge.samples[static_cast<size_t>(i)].velocity =
+    samples[static_cast<size_t>(i)].velocity =
       computeVelocity(s, curvatures[static_cast<size_t>(i)], frenet_converter_, config_);
   }
   /*
   the stuff below is just adding together a bunch of subcosts for the samples
   */
   for (int i = 1; i < sample_count; ++i) {
-    const Point & prev = edge.samples[static_cast<size_t>(i - 1)];
-    const Point & curr = edge.samples[static_cast<size_t>(i)];
+    const Point & prev = samples[static_cast<size_t>(i - 1)];
+    const Point & curr = samples[static_cast<size_t>(i)];
     const double segment_length = distance(prev, curr);
     const double v = std::max(config_.min_velocity_mps, 0.5 * (prev.velocity + curr.velocity));
     edge.predicted_time_cost += segment_length / v;
@@ -115,11 +121,7 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
     edge.curvature_change_cost += dk * dk;
   }
 
-  for (const Point & sample : edge.samples) {
-    const FrenetPoint fp = frenet_converter_.cartesianToFrenet(sample);
-    edge.intent_bias_cost += intentBias(fp.d, intent, config_);
-  }
-  edge.intent_bias_cost /= static_cast<double>(edge.samples.size());
+  edge.intent_bias_cost /= static_cast<double>(samples.size());
 
   edge.total_cost =
     config_.time_weight * edge.predicted_time_cost +
