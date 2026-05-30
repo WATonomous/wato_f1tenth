@@ -94,7 +94,7 @@ RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
     echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> ~/.bashrc
 
 #copy in the code 
-RUN mkdir -p /home/ros_user/ros_ws
+RUN mkdir -p /home/bolty/ament_ws
 WORKDIR /home/ros_user/ros_ws
 COPY src/robot src
 
