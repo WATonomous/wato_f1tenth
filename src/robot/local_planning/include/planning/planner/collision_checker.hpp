@@ -9,6 +9,7 @@ namespace local_planning
 enum class CollisionStatus
 {
   FREE,
+  SOFT_INFLATION,
   COLLISION,
   OUT_OF_GRID,
   GEOMETRY_CONSTRAINT

@@ -23,7 +23,10 @@ hybrid_astar_planner_node:
     max_heading_jump_per_layer: 1
     max_heading_mismatch_deg: 25.0
     heuristic_sample_count: 8
-    obstacle_inflation_distance_m: 0.2
+    collision_circle_radius_m: 0.20
+    front_collision_circle_offset_m: 0.26
+    soft_inflation_distance_m: 0.40
+    soft_inflation_cost: 100.0
     occupied_threshold: 50
     friction_coeff: 1.0 #yeah this number is completely made up
     min_velocity_mps: 0.5 # ill probably make this 0 at some point

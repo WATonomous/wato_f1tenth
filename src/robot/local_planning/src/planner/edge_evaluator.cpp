@@ -74,7 +74,9 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
 
     const double path_heading = frenet_converter_.getRacingLineHeading(s) + path_angle;
     const CollisionStatus status = collision_checker_.collisionStatus(p, path_heading, grid);
-    if (status != CollisionStatus::FREE) {
+    if (status == CollisionStatus::SOFT_INFLATION) {
+      edge.obstacle_proximity_cost = config_.soft_inflation_cost;
+    } else if (status != CollisionStatus::FREE) {
       edge.collision_status = status;
       return edge;
     }
@@ -122,7 +124,8 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   edge.total_cost =
     config_.time_weight * edge.predicted_time_cost +
     config_.curvature_change_weight * edge.curvature_change_cost +
-    edge.intent_bias_cost;
+    edge.intent_bias_cost +
+    edge.obstacle_proximity_cost;
   return edge;
 }
 

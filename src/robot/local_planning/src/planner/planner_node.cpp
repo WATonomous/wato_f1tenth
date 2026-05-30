@@ -79,7 +79,10 @@ PlannerNode::PlannerNode()
   this->declare_parameter<int>("max_heading_jump_per_layer", 1);
   this->declare_parameter<double>("max_heading_mismatch_deg", 25.0);
   this->declare_parameter<int>("heuristic_sample_count", 8);
-  this->declare_parameter<double>("obstacle_inflation_distance_m", 0.2);
+  this->declare_parameter<double>("collision_circle_radius_m", 0.20);
+  this->declare_parameter<double>("front_collision_circle_offset_m", 0.26);
+  this->declare_parameter<double>("soft_inflation_distance_m", 0.40);
+  this->declare_parameter<double>("soft_inflation_cost", 100.0);
   this->declare_parameter<int>("occupied_threshold", 50);
   this->declare_parameter<double>("friction_coeff", 1.0);
   this->declare_parameter<double>("min_velocity_mps", 0.5);
@@ -124,8 +127,13 @@ PlannerNode::PlannerNode()
   planner_config_.max_heading_mismatch_deg = this->get_parameter(
     "max_heading_mismatch_deg").as_double();
   planner_config_.heuristic_sample_count = this->get_parameter("heuristic_sample_count").as_int();
-  planner_config_.obstacle_inflation_distance_m = this->get_parameter(
-    "obstacle_inflation_distance_m").as_double();
+  planner_config_.collision_circle_radius_m = this->get_parameter(
+    "collision_circle_radius_m").as_double();
+  planner_config_.front_collision_circle_offset_m = this->get_parameter(
+    "front_collision_circle_offset_m").as_double();
+  planner_config_.soft_inflation_distance_m = this->get_parameter(
+    "soft_inflation_distance_m").as_double();
+  planner_config_.soft_inflation_cost = this->get_parameter("soft_inflation_cost").as_double();
   planner_config_.occupied_threshold = this->get_parameter("occupied_threshold").as_int();
   planner_config_.friction_coeff = this->get_parameter("friction_coeff").as_double();
   planner_config_.min_velocity_mps = this->get_parameter("min_velocity_mps").as_double();

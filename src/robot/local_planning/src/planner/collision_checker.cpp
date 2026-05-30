@@ -10,7 +10,6 @@ namespace
 {
 
 constexpr double kEpsilon = 1e-6;
-constexpr double kFrontCollisionCircleOffsetM = 0.26;
 
 } // namespace
 
@@ -28,20 +27,24 @@ CollisionStatus CollisionChecker::collisionStatus(
     return CollisionStatus::OUT_OF_GRID;
   }
 
+  const double collision_radius_m = std::max(0.0, config_.collision_circle_radius_m);
+  const double soft_inflation_distance_m = std::max(0.0, config_.soft_inflation_distance_m);
+  const double outer_radius_m = collision_radius_m + soft_inflation_distance_m;
   const int inflation_cells =
     std::max(
     0,
-    static_cast<int>(std::ceil(config_.obstacle_inflation_distance_m / grid.resolution)));
-  const double inflation_sq = config_.obstacle_inflation_distance_m *
-    config_.obstacle_inflation_distance_m;
+    static_cast<int>(std::ceil(outer_radius_m / grid.resolution)));
+  const double collision_radius_sq = collision_radius_m * collision_radius_m;
+  const double outer_radius_sq = outer_radius_m * outer_radius_m;
   const Point circle_centers[] = {
     p,
     {
-      p.x + kFrontCollisionCircleOffsetM * std::cos(heading),
-      p.y + kFrontCollisionCircleOffsetM * std::sin(heading),
+      p.x + config_.front_collision_circle_offset_m * std::cos(heading),
+      p.y + config_.front_collision_circle_offset_m * std::sin(heading),
       p.velocity
     }
   };
+  bool within_soft_inflation = false;
 
   for (const Point & center : circle_centers) {
     const int center_col = static_cast<int>((center.x - grid.origin.x) / grid.resolution);
@@ -58,21 +61,27 @@ CollisionStatus CollisionChecker::collisionStatus(
           continue;
         }
 
+        if (grid.data[static_cast<size_t>(row * grid.width + col)] < config_.occupied_threshold) {
+          continue;
+        }
+
         const double cell_x = grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
         const double cell_y = grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
         const double dx = cell_x - center.x;
         const double dy = cell_y - center.y;
-        if (dx * dx + dy * dy > inflation_sq) {
+        const double distance_sq = dx * dx + dy * dy;
+        if (distance_sq > outer_radius_sq) {
           continue;
         }
-        if (grid.data[static_cast<size_t>(row * grid.width + col)] >= config_.occupied_threshold) {
+        if (distance_sq <= collision_radius_sq) {
           return CollisionStatus::COLLISION;
         }
+        within_soft_inflation = true;
       }
     }
   }
 
-  return CollisionStatus::FREE;
+  return within_soft_inflation ? CollisionStatus::SOFT_INFLATION : CollisionStatus::FREE;
 }
 
 } // namespace local_planning

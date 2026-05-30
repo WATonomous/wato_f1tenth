@@ -17,6 +17,7 @@ struct EdgeEvaluation
   double predicted_time_cost = 0.0;
   double curvature_change_cost = 0.0;
   double intent_bias_cost = 0.0;   //how much we pull to raceline
+  double obstacle_proximity_cost = 0.0;
   double total_cost = 0.0;
 };
 

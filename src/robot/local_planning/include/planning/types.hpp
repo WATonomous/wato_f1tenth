@@ -65,7 +65,10 @@ struct LocalFrenetPlannerConfig
   int max_heading_jump_per_layer = 1;
   double max_heading_mismatch_deg = 25.0;
   int heuristic_sample_count = 8;
-  double obstacle_inflation_distance_m = 0.2;
+  double collision_circle_radius_m = 0.20;
+  double front_collision_circle_offset_m = 0.26;
+  double soft_inflation_distance_m = 0.40;
+  double soft_inflation_cost = 100.0;
   int occupied_threshold = 50;
   double friction_coeff = 1.0;
   double min_velocity_mps = 0.5;
