@@ -121,6 +121,18 @@ def generate_launch_description():
 
     deadzone_value = LaunchConfiguration('deadzone')
     sticky_button_value = LaunchConfiguration('sticky_button')
+
+    costmap_pkg_prefix = get_package_share_directory('costmap')
+    costmap_param_file = os.path.join(
+        costmap_pkg_prefix, 'config', 'params.yaml')
+
+    costmap_param = DeclareLaunchArgument(
+        'costmap_param_file',
+        default_value=costmap_param_file,
+        description='Path to config file for costmap node'
+    )
+
+    ld.add_action(costmap_param)
     
     ackermann_to_vesc_node = Node(
         package='vesc_ackermann',
@@ -246,6 +258,14 @@ def generate_launch_description():
         output='screen'
 
     )
+
+    costmap_node = Node(
+        package='costmap',
+        name='occupancy_grid_generator',
+        executable='costmap_node',
+        parameters=[LaunchConfiguration('costmap_param_file')],
+    )
+
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -264,6 +284,7 @@ def generate_launch_description():
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
     ld.add_action(ekf)
+    ld.add_action(costmap_node)
     ld.add_action(global_planner)
     
     return ld
