@@ -61,7 +61,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
         }
     );
 
-    look_ahead_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/lookahead_distance",10);
+    velocity_lookahead_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/velocity_lookahead_distance",10);
 
     lookahead_point_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
         "/debug/lookahead_point", 10);
@@ -85,7 +85,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
     }
 
     control_loop_timer = this->create_wall_timer (
-        std::chrono::milliseconds(50), 
+        std::chrono::milliseconds(static_cast<int>(1000/controller_rate)), 
         [this](){
             control_timer_callback();
         }
@@ -105,6 +105,7 @@ void Pure_Persuit_Node::control_timer_callback() {
     //updated controller state
     Pure_Persuit_Node::update_controller_state();
     Pure_Persuit_Node::update_lookahead_distance();
+    Pure_Persuit_Node::update_velocity_lookahead();
 
     //don't apply any control if the controler is not active, stop everything
     if (controller_state == state_::INACTIVE) {
@@ -186,9 +187,10 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
     size_t current_pose_index = Pure_Persuit_Node::find_current_position_index();
 
     //find the look_ahead point in the global frame
-    std::optional<geometry_msgs::msg::Point> target_waypoint_global = Pure_Persuit_Node::find_lookahead_global(current_pose_index);
+    std::optional<geometry_msgs::msg::Point> target_waypoint_global = Pure_Persuit_Node::find_lookahead_global(current_pose_index, look_ahead_distance);
+    std::optional<geometry_msgs::msg::Point> target_velocity = Pure_Persuit_Node::find_lookahead_global(current_pose_index, velocity_lookahead);
 
-    if (!target_waypoint_global.has_value()) {
+    if (!target_waypoint_global.has_value() || !target_velocity ) {
 
         RCLCPP_WARN(this->get_logger(), "no target look ahead point found | find_lookahead_global()");
         return std::nullopt;
@@ -196,6 +198,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
     }
 
     //convert the point to the local frame
+    target_waypoint_global.value().z = target_velocity.value().z; //hooks into target and injects the velocty of the current waypoint
     std::optional<geometry_msgs::msg::Point> converted_waypoint = Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
 
     if (!converted_waypoint.has_value()) {
@@ -278,7 +281,7 @@ size_t Pure_Persuit_Node::find_current_position_index() {
 // finding lookahead distance from current vehicle position
 // interpolates between the bracketing waypoints so the returned point lies
 // precisely on the lookahead circumference (prevents jitter)
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(size_t current_vehicle_index) {
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(size_t current_vehicle_index, double current_lookahead) {
 
     const double ref_x = current_pose.pose.pose.position.x;
     const double ref_y = current_pose.pose.pose.position.y;
@@ -289,11 +292,11 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
 
         double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
 
-        if (distance >= look_ahead_distance) {
+        if (distance >= current_lookahead) {
 
             const auto &prev_pt = current_global_path.poses[i - 1].pose.position;
             const auto &curr_pt = current_global_path.poses[i].pose.position;
-            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
+            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, current_lookahead);
 
         }
 
@@ -304,13 +307,13 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
 
         double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
 
-        if (distance >= look_ahead_distance) {
+        if (distance >= current_lookahead) {
 
             // at the wrap boundary the previous waypoint is the last one in the path
             size_t prev_idx = (i == 0) ? (n - 1) : (i - 1);
             const auto &prev_pt = current_global_path.poses[prev_idx].pose.position;
             const auto &curr_pt = current_global_path.poses[i].pose.position;
-            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
+            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, current_lookahead);
 
         }
 
@@ -402,7 +405,6 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::convert_to_local_fra
 }
 
 geometry_msgs::msg::Point Pure_Persuit_Node::transfrom_point_(
-
     const geometry_msgs::msg::Point &point_, 
     const geometry_msgs::msg::Transform &t_) {
  
@@ -529,12 +531,19 @@ void Pure_Persuit_Node::update_lookahead_distance() {
     look_ahead_distance = std::clamp(max_lookahead * current_velocity / lookahead_ratio, min_lookahead, max_lookahead);
 }
 
+void Pure_Persuit_Node::update_velocity_lookahead() {
+
+    static const double delta_t = (1000/controller_rate) / 1000 ;
+    velocity_lookahead = current_velocity * delta_t;
+
+}
+
 void Pure_Persuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p) {
 
     //for debug purpose
     std_msgs::msg::Float32 ld;
-    ld.data = look_ahead_distance;
-    look_ahead_pub_->publish(ld);
+    ld.data = velocity_lookahead;
+    velocity_lookahead_pub_->publish(ld);
 
     // publish debug lookahead point for foxglove visualization
     visualization_msgs::msg::Marker dbg;
@@ -608,6 +617,9 @@ void Pure_Persuit_Node::init_parameters () {
     //DEBUG VIS
     this->declare_parameter<bool>("enable_debug_vis",true);
 
+    //controler hertz
+    this->declare_parameter<int>("controller_rate",50);
+
     //init parameters
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id = this->get_parameter("local_frame_id").as_string();
@@ -634,6 +646,8 @@ void Pure_Persuit_Node::init_parameters () {
     speed_topic = this->get_parameter("speed_topic").as_string();
 
     enable_debug_vis = this->get_parameter("enable_debug_vis").as_bool();
+
+    controller_rate = this->get_parameter("controller_rate").as_int();
 
     //initalize state and internal variables
     dead_man_active.data = false;
