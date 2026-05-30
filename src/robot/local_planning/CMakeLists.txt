@@ -10,9 +10,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -68,19 +66,14 @@ ament_target_dependencies(hybrid_astar_planner_node
 rosidl_get_typesupport_target(planner_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(hybrid_astar_planner_node ${planner_typesupport})
 
-add_executable(scan_to_occupancy_grid_node src/scan_to_occupancy_grid.cpp)
-target_include_directories(scan_to_occupancy_grid_node PUBLIC include)
-ament_target_dependencies(scan_to_occupancy_grid_node rclcpp nav_msgs sensor_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
-
-add_executable(sim_obstacle_overlay_node src/sim_obstacle_overlay.cpp)
-target_include_directories(sim_obstacle_overlay_node PUBLIC include)
-ament_target_dependencies(sim_obstacle_overlay_node rclcpp nav_msgs std_srvs geometry_msgs visualization_msgs tf2 tf2_ros tf2_geometry_msgs)
+add_executable(occupancy_grid_frame_adapter_node src/occupancy_grid_frame_adapter.cpp)
+target_include_directories(occupancy_grid_frame_adapter_node PUBLIC include)
+ament_target_dependencies(occupancy_grid_frame_adapter_node rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
 
 install(TARGETS
   state_manager_node
   hybrid_astar_planner_node
-  scan_to_occupancy_grid_node
-  sim_obstacle_overlay_node
+  occupancy_grid_frame_adapter_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

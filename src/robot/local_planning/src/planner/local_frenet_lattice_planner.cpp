@@ -16,6 +16,7 @@ namespace
 {
 
 constexpr double kEpsilon = 1e-6;
+constexpr double kPi = 3.14159265358979323846;
 
 using SteadyClock = std::chrono::steady_clock;
 
@@ -121,11 +122,18 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
 
       const double d0 = (layer == 0) ? start.d : lanes[static_cast<size_t>(from_lane)];
       const double slope0 = (layer == 0) ? start_slope : 0.0;
+      const double max_slope = std::tan(config_.max_path_angle_deg * kPi / 180.0);
 
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
+        const double d_end = lanes[static_cast<size_t>(to_lane)];
+        if (std::abs(d_end - d0) / config_.layer_spacing_m > max_slope) {
+          ++result.diagnostics.invalid_geometry_edges;
+          continue; // MVT dictates this quintic will geometrically fail, so we skip early!
+        }
+
         ++result.diagnostics.attempted_edges;
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, lanes[static_cast<size_t>(to_lane)], 0.0, intent, grid, edge_scratch);
+          s0, d0, slope0, d_end, 0.0, intent, grid, edge_scratch);
 
         if (edge.collision_status == CollisionStatus::COLLISION) {
           ++result.diagnostics.invalid_collision_edges;

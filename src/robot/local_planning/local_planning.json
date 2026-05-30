@@ -29,15 +29,6 @@
       "fixedFrame": "map",
       "followMode": "follow-position",
       "followTf": "base_link",
-      "publish": {
-        "type": "point",
-        "pointTopic": "/clicked_point",
-        "poseTopic": "/move_base_simple/goal",
-        "poseEstimateTopic": "/initialpose",
-        "poseEstimateXDeviation": 0.5,
-        "poseEstimateYDeviation": 0.5,
-        "poseEstimateThetaDeviation": 0.26179939
-      },
       "scene": {
         "backgroundColor": "#111318",
         "labelScale": 1,
@@ -58,18 +49,6 @@
         },
         "/occupancy_grid": {
           "visible": true
-        },
-        "/occupancy_grid_raw": {
-          "visible": false
-        },
-        "/sim_obstacles/markers": {
-          "visible": true,
-          "showOutlines": false,
-          "namespaces": {
-            "sim_obstacles": {
-              "visible": true
-            }
-          }
         },
         "/scan": {
           "visible": false,
