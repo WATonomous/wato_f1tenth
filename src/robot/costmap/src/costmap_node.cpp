@@ -104,6 +104,14 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
   // Process each laser ray
   for (size_t i = 0; i < scan->ranges.size(); ++i) {
     float range = scan->ranges[i];
+    bool marks_obstacle = true;
+
+    // Positive infinity means the laser saw no obstacle within its range.
+    // Trace the ray to range_max so that observed space is still marked free.
+    if (std::isinf(range) && range > 0.0f) {
+      range = scan->range_max;
+      marks_obstacle = false;
+    }
 
     if (!std::isfinite(range) || range < scan->range_min || range > scan->range_max) {
       continue;
@@ -136,10 +144,15 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     // Mark free cells along the ray
     bresenham(x0, y0, x1, y1, grid_msg.data);
 
-    // Mark the hit cell as occupied
+    // Mark the endpoint based on whether this ray actually hit an obstacle.
     if (x1 >= 0 && x1 < static_cast<int>(grid_cols_) &&
         y1 >= 0 && y1 < static_cast<int>(grid_rows_)) {
-      grid_msg.data[y1 * grid_cols_ + x1] = obstacle_value_;
+      size_t idx = y1 * grid_cols_ + x1;
+      if (marks_obstacle) {
+        grid_msg.data[idx] = obstacle_value_;
+      } else if (grid_msg.data[idx] == unknown_value_) {
+        grid_msg.data[idx] = free_value_;
+      }
     }
   }
 
@@ -156,7 +169,7 @@ void CostmapNode::bresenham(int x0, int y0, int x1, int y1,
   int err = dx - dy;
 
   while (true) {
-    // Stop before the endpoint (that cell is the obstacle)
+    // Stop before the endpoint
     if (x0 == x1 && y0 == y1) {
       break;
     }

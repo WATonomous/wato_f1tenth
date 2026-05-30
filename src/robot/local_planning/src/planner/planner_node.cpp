@@ -1,7 +1,5 @@
 #include "planning/planner/planner_node.hpp"
 
-//get rid of one of the below includes 
-#include "planning/planner/frenet_hybrid_astar_planner.hpp"
 #include "planning/planner/local_frenet_lattice_planner.hpp"
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -156,7 +154,7 @@ PlannerNode::PlannerNode()
   }
 
   // planner
-  planner_ = std::make_unique<FrenetHybridAStarPlanner>();
+  planner_ = std::make_unique<LocalFrenetLatticePlanner>();
   planner_->setConfig(planner_config_);
 
   // subscribers

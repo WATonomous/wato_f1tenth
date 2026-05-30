@@ -4,7 +4,6 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 
 import os
 
@@ -13,6 +12,7 @@ def generate_launch_description():
     bringup_share = get_package_share_directory('bringup_robot')
     global_planner_share = get_package_share_directory('global_planner')
     local_planning_share = get_package_share_directory('local_planning')
+    costmap_share = get_package_share_directory('costmap')
 
     minimum_launch = os.path.join(bringup_share, 'launch', 'minimumEx.launch.py')
     mux_config = os.path.join(bringup_share, 'config', 'sim', 'mux.yaml')
@@ -22,6 +22,7 @@ def generate_launch_description():
         local_planning_share, 'config', 'hybrid_astar_planner.yaml')
     racing_line_file = os.path.join(
         global_planner_share, 'assets', 'optmial_clean_map.csv')
+    costmap_param_file = os.path.join(costmap_share, 'config', 'params.yaml')
 
     mux_config_arg = DeclareLaunchArgument(
         'mux_config',
@@ -39,14 +40,10 @@ def generate_launch_description():
         'racing_line_file',
         default_value=racing_line_file,
         description='CSV racing line used by global planner, state manager, and local planner')
-    occupancy_grid_width_arg = DeclareLaunchArgument(
-        'occupancy_grid_width_m',
-        default_value='30.0',
-        description='Width of the ego-centered occupancy grid in meters')
-    occupancy_grid_height_arg = DeclareLaunchArgument(
-        'occupancy_grid_height_m',
-        default_value='30.0',
-        description='Height of the ego-centered occupancy grid in meters')
+    costmap_param_file_arg = DeclareLaunchArgument(
+        'costmap_param_file',
+        default_value=costmap_param_file,
+        description='Path to config file for costmap node')
 
     minimum_stack = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(minimum_launch),
@@ -64,22 +61,19 @@ def generate_launch_description():
             'waypoint_frame_id': 'map',
         }])
 
-    occupancy_grid = Node(
-        package='local_planning',
-        executable='scan_to_occupancy_grid_node',
-        name='scan_to_occupancy_grid_node',
+    costmap = Node(
+        package='costmap',
+        executable='costmap_node',
+        name='occupancy_grid_generator',
         output='screen',
-        parameters=[{
-            'width_m': ParameterValue(LaunchConfiguration('occupancy_grid_width_m'), value_type=float),
-            'height_m': ParameterValue(LaunchConfiguration('occupancy_grid_height_m'), value_type=float),
-        }],
-        remappings=[('/occupancy_grid', '/occupancy_grid_raw')])
+        parameters=[LaunchConfiguration('costmap_param_file')])
 
     sim_obstacles = Node(
         package='local_planning',
         executable='sim_obstacle_overlay_node',
         name='sim_obstacle_overlay_node',
-        output='screen')
+        output='screen',
+        parameters=[{'raw_grid_topic': '/costmap'}])
 
     local_planner = Node(
         package='local_planning',
@@ -114,11 +108,10 @@ def generate_launch_description():
         pure_persuit_config_arg,
         planner_config_arg,
         racing_line_file_arg,
-        occupancy_grid_width_arg,
-        occupancy_grid_height_arg,
+        costmap_param_file_arg,
         minimum_stack,
         global_planner,
-        occupancy_grid,
+        costmap,
         sim_obstacles,
         local_planner,
         state_manager,

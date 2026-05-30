@@ -9,6 +9,7 @@
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/empty.hpp"
+#include "tf2/LinearMath/Transform.h"
 #include "tf2/exceptions.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_ros/buffer.h"
@@ -21,7 +22,7 @@ public:
   SimObstacleOverlay()
   : Node("sim_obstacle_overlay_node")
   {
-    this->declare_parameter<std::string>("raw_grid_topic", "/occupancy_grid_raw");
+    this->declare_parameter<std::string>("raw_grid_topic", "/costmap");
     this->declare_parameter<std::string>("grid_topic", "/occupancy_grid");
     this->declare_parameter<std::string>("clicked_point_topic", "/clicked_point");
     this->declare_parameter<std::string>("marker_topic", "/sim_obstacles/markers");
@@ -69,7 +70,7 @@ public:
         obstacles_.clear();
         publishMarkers();
         if (last_raw_grid_) {
-          grid_pub_->publish(*last_raw_grid_);
+          publishMergedGrid(*last_raw_grid_);
         }
         RCLCPP_INFO(this->get_logger(), "Cleared simulated obstacles");
       });
@@ -130,9 +131,96 @@ private:
 
   void publishMergedGrid(const nav_msgs::msg::OccupancyGrid & raw_grid)
   {
-    nav_msgs::msg::OccupancyGrid merged_grid = raw_grid;
+    nav_msgs::msg::OccupancyGrid merged_grid;
+    if (!convertToMapGrid(raw_grid, merged_grid)) {
+      return;
+    }
     stampObstacles(merged_grid);
     grid_pub_->publish(merged_grid);
+  }
+
+  bool convertToMapGrid(
+    const nav_msgs::msg::OccupancyGrid & raw_grid,
+    nav_msgs::msg::OccupancyGrid & map_grid)
+  {
+    const size_t cell_count =
+      static_cast<size_t>(raw_grid.info.width) * static_cast<size_t>(raw_grid.info.height);
+    if (raw_grid.header.frame_id.empty() || raw_grid.info.resolution <= 0.0 ||
+      raw_grid.info.width == 0 || raw_grid.info.height == 0 ||
+      raw_grid.data.size() != cell_count)
+    {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "Ignoring malformed occupancy grid from %s", raw_grid_topic_.c_str());
+      return false;
+    }
+
+    tf2::Transform raw_frame_to_map;
+    raw_frame_to_map.setIdentity();
+    if (raw_grid.header.frame_id != frame_id_) {
+      geometry_msgs::msg::TransformStamped transform;
+      try {
+        transform = tf_buffer_->lookupTransform(
+          frame_id_, raw_grid.header.frame_id, rclcpp::Time(raw_grid.header.stamp),
+          tf2::durationFromSec(0.1));
+      } catch (const tf2::TransformException & stamped_ex) {
+        try {
+          transform = tf_buffer_->lookupTransform(
+            frame_id_, raw_grid.header.frame_id, tf2::TimePointZero,
+            tf2::durationFromSec(0.1));
+        } catch (const tf2::TransformException & latest_ex) {
+          RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), 2000,
+            "Cannot transform occupancy grid from '%s' to '%s': %s; latest TF fallback also failed: %s",
+            raw_grid.header.frame_id.c_str(), frame_id_.c_str(), stamped_ex.what(),
+            latest_ex.what());
+          return false;
+        }
+      }
+      tf2::fromMsg(transform.transform, raw_frame_to_map);
+    }
+
+    tf2::Transform grid_to_raw_frame;
+    tf2::fromMsg(raw_grid.info.origin, grid_to_raw_frame);
+    const tf2::Transform grid_to_map = raw_frame_to_map * grid_to_raw_frame;
+    const tf2::Transform map_to_grid = grid_to_map.inverse();
+    const double resolution = raw_grid.info.resolution;
+    const double width_m = static_cast<double>(raw_grid.info.width) * resolution;
+    const double height_m = static_cast<double>(raw_grid.info.height) * resolution;
+    const tf2::Vector3 center_in_map =
+      grid_to_map * tf2::Vector3(width_m * 0.5, height_m * 0.5, 0.0);
+
+    map_grid = raw_grid;
+    map_grid.header.frame_id = frame_id_;
+    map_grid.info.origin.position.x = center_in_map.x() - width_m * 0.5;
+    map_grid.info.origin.position.y = center_in_map.y() - height_m * 0.5;
+    map_grid.info.origin.position.z = 0.0;
+    map_grid.info.origin.orientation.x = 0.0;
+    map_grid.info.origin.orientation.y = 0.0;
+    map_grid.info.origin.orientation.z = 0.0;
+    map_grid.info.origin.orientation.w = 1.0;
+    map_grid.data.assign(cell_count, -1);
+
+    for (uint32_t row = 0; row < map_grid.info.height; ++row) {
+      for (uint32_t col = 0; col < map_grid.info.width; ++col) {
+        const tf2::Vector3 point_in_map(
+          map_grid.info.origin.position.x + (static_cast<double>(col) + 0.5) * resolution,
+          map_grid.info.origin.position.y + (static_cast<double>(row) + 0.5) * resolution,
+          0.0);
+        const tf2::Vector3 point_in_grid = map_to_grid * point_in_map;
+        const int source_col = static_cast<int>(std::floor(point_in_grid.x() / resolution));
+        const int source_row = static_cast<int>(std::floor(point_in_grid.y() / resolution));
+
+        if (source_col >= 0 && source_col < static_cast<int>(raw_grid.info.width) &&
+          source_row >= 0 && source_row < static_cast<int>(raw_grid.info.height))
+        {
+          map_grid.data[static_cast<size_t>(row) * map_grid.info.width + col] =
+            raw_grid.data[static_cast<size_t>(source_row) * raw_grid.info.width + source_col];
+        }
+      }
+    }
+
+    return true;
   }
 
   void stampObstacles(nav_msgs::msg::OccupancyGrid & grid) const
