@@ -59,6 +59,7 @@ private:
   local_planning::Odometry rosToOdometry(const nav_msgs::msg::Odometry::SharedPtr & msg);
   local_planning::OccupancyGrid rosToOccupancyGrid(
     const nav_msgs::msg::OccupancyGrid::SharedPtr & msg);
+  void buildClearanceMasks(local_planning::OccupancyGrid & grid) const;
   nav_msgs::msg::Path pathToRosPath(const std::vector<local_planning::Point> & path);
 
   // action server
@@ -78,7 +79,8 @@ private:
 
   // cached messages
   nav_msgs::msg::Odometry::SharedPtr current_odom_;
-  nav_msgs::msg::OccupancyGrid::SharedPtr current_occupancy_grid_;
+  local_planning::OccupancyGrid current_occupancy_grid_;
+  bool has_current_occupancy_grid_ = false;
   std::mutex input_mutex_;
   std::mutex publish_mutex_;
   std::atomic<uint64_t> latest_plan_sequence_{0};

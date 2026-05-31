@@ -25,7 +25,7 @@ hybrid_astar_planner_node:
     heuristic_sample_count: 8
     collision_circle_radius_m: 0.20
     front_collision_circle_offset_m: 0.26
-    soft_inflation_distance_m: 0.40
+    soft_inflation_distance_m: 0.18
     soft_inflation_cost: 100.0
     occupied_threshold: 50
     friction_coeff: 1.0 #yeah this number is completely made up

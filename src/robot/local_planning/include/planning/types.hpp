@@ -38,6 +38,9 @@ struct OccupancyGrid
   int height;
   double resolution;
   Point origin;
+  std::vector<uint8_t> definitely_blocked_mask;
+  std::vector<uint8_t> needs_exact_check_mask;
+  bool has_clearance_cache = false;
 };
 
 enum class LocalPlannerIntent : uint8_t
@@ -67,7 +70,7 @@ struct LocalFrenetPlannerConfig
   int heuristic_sample_count = 8;
   double collision_circle_radius_m = 0.20;
   double front_collision_circle_offset_m = 0.26;
-  double soft_inflation_distance_m = 0.40;
+  double soft_inflation_distance_m = 0.18;
   double soft_inflation_cost = 100.0;
   int occupied_threshold = 50;
   double friction_coeff = 1.0;

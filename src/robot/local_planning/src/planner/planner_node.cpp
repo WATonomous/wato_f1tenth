@@ -12,7 +12,9 @@
 #include <functional>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <stdexcept>
+#include <utility>
 
 namespace local_planning
 {
@@ -81,7 +83,7 @@ PlannerNode::PlannerNode()
   this->declare_parameter<int>("heuristic_sample_count", 8);
   this->declare_parameter<double>("collision_circle_radius_m", 0.20);
   this->declare_parameter<double>("front_collision_circle_offset_m", 0.26);
-  this->declare_parameter<double>("soft_inflation_distance_m", 0.40);
+  this->declare_parameter<double>("soft_inflation_distance_m", 0.18);
   this->declare_parameter<double>("soft_inflation_cost", 100.0);
   this->declare_parameter<int>("occupied_threshold", 50);
   this->declare_parameter<double>("friction_coeff", 1.0);
@@ -202,8 +204,12 @@ void PlannerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
 void PlannerNode::occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
+  local_planning::OccupancyGrid grid = rosToOccupancyGrid(msg);
+  buildClearanceMasks(grid);
+
   std::lock_guard<std::mutex> lock(input_mutex_);
-  current_occupancy_grid_ = msg;
+  current_occupancy_grid_ = std::move(grid);
+  has_current_occupancy_grid_ = true;
 }
 
 rclcpp_action::GoalResponse PlannerNode::handleGoal(
@@ -399,16 +405,20 @@ try
     };
 
   nav_msgs::msg::Odometry::SharedPtr odom_msg;
-  nav_msgs::msg::OccupancyGrid::SharedPtr occupancy_grid_msg;
+  local_planning::OccupancyGrid occupancy_grid;
+  bool has_occupancy_grid = false;
   const auto input_copy_start = SteadyClock::now();
   {
     std::lock_guard<std::mutex> lock(input_mutex_);
     odom_msg = current_odom_;
-    occupancy_grid_msg = current_occupancy_grid_;
+    if (has_current_occupancy_grid_) {
+      occupancy_grid = current_occupancy_grid_;
+      has_occupancy_grid = true;
+    }
   }
   input_copy_ms = elapsedMs(input_copy_start);
 
-  if (!odom_msg || !occupancy_grid_msg) {
+  if (!odom_msg || !has_occupancy_grid) {
     RCLCPP_WARN(this->get_logger(), "Missing odom or occupancy grid, cannot plan");
     result->success = false;
     emit_diagnostics(false, false, 0);
@@ -425,7 +435,6 @@ try
 
   const auto conversion_start = SteadyClock::now();
   local_planning::Odometry odom = rosToOdometry(odom_msg);
-  local_planning::OccupancyGrid grid = rosToOccupancyGrid(occupancy_grid_msg);
   ros_conversion_ms = elapsedMs(conversion_start);
 
   if (action_budget_expired()) {
@@ -436,7 +445,7 @@ try
   }
 
   const auto planner_start = SteadyClock::now();
-  plan = planner_->plan(odom.position, odom.heading, grid, intent);
+  plan = planner_->plan(odom.position, odom.heading, occupancy_grid, intent);
   planner_ms = elapsedMs(planner_start);
 
   if (!ros_active()) {
@@ -755,6 +764,81 @@ local_planning::OccupancyGrid PlannerNode::rosToOccupancyGrid(
   grid.origin.y = msg->info.origin.position.y;
   grid.data.assign(msg->data.begin(), msg->data.end());
   return grid;
+}
+
+void PlannerNode::buildClearanceMasks(local_planning::OccupancyGrid & grid) const
+{
+  if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= 1e-6) {
+    grid.definitely_blocked_mask.clear();
+    grid.needs_exact_check_mask.clear();
+    grid.has_clearance_cache = false;
+    return;
+  }
+
+  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
+  grid.definitely_blocked_mask.assign(cell_count, 0);
+  grid.needs_exact_check_mask.assign(cell_count, 0);
+
+  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
+  const double blocked_radius = std::max(
+    0.0, planner_config_.collision_circle_radius_m - cell_half_diagonal);
+  const double exact_check_radius = std::max(
+    blocked_radius,
+    planner_config_.collision_circle_radius_m +
+    planner_config_.soft_inflation_distance_m + cell_half_diagonal);
+
+  auto makeDiskOffsets = [&](double radius_m) {
+      std::vector<std::pair<int, int>> offsets;
+      const int max_cells = std::max(
+        0, static_cast<int>(std::ceil(radius_m / grid.resolution)));
+      const double radius_sq = radius_m * radius_m;
+      for (int dr = -max_cells; dr <= max_cells; ++dr) {
+        for (int dc = -max_cells; dc <= max_cells; ++dc) {
+          const double dx = static_cast<double>(dc) * grid.resolution;
+          const double dy = static_cast<double>(dr) * grid.resolution;
+          if (dx * dx + dy * dy <= radius_sq) {
+            offsets.emplace_back(dr, dc);
+          }
+        }
+      }
+      return offsets;
+    };
+
+  const std::vector<std::pair<int, int>> blocked_offsets = makeDiskOffsets(blocked_radius);
+  const std::vector<std::pair<int, int>> exact_offsets = makeDiskOffsets(exact_check_radius);
+
+  for (int row = 0; row < grid.height; ++row) {
+    for (int col = 0; col < grid.width; ++col) {
+      const size_t source_index = static_cast<size_t>(row * grid.width + col);
+      if (grid.data[source_index] < planner_config_.occupied_threshold) {
+        continue;
+      }
+
+      for (const auto & offset : blocked_offsets) {
+        const int masked_row = row + offset.first;
+        const int masked_col = col + offset.second;
+        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
+          continue;
+        }
+
+        grid.definitely_blocked_mask[
+          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
+      }
+
+      for (const auto & offset : exact_offsets) {
+        const int masked_row = row + offset.first;
+        const int masked_col = col + offset.second;
+        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
+          continue;
+        }
+
+        grid.needs_exact_check_mask[
+          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
+      }
+    }
+  }
+
+  grid.has_clearance_cache = true;
 }
 
 nav_msgs::msg::Path PlannerNode::pathToRosPath(

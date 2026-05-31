@@ -49,6 +49,37 @@ CollisionStatus CollisionChecker::collisionStatus(
     }
   };
 
+  if (grid.has_clearance_cache) {
+    bool needs_exact_check = false;
+    for (const Point & center : circle_centers) {
+      const int center_col = static_cast<int>((center.x - grid.origin.x) / grid.resolution);
+      const int center_row = static_cast<int>((center.y - grid.origin.y) / grid.resolution);
+      if (center_col < 0 || center_col >= grid.width || center_row < 0 || center_row >= grid.height) {
+        return CollisionStatus::OUT_OF_GRID;
+      }
+
+      const size_t center_index = static_cast<size_t>(center_row * grid.width + center_col);
+      if (center_index >= grid.definitely_blocked_mask.size() ||
+        center_index >= grid.needs_exact_check_mask.size())
+      {
+        needs_exact_check = true;
+        continue;
+      }
+
+      if (grid.definitely_blocked_mask[center_index] != 0) {
+        return CollisionStatus::COLLISION;
+      }
+
+      if (grid.needs_exact_check_mask[center_index] != 0) {
+        needs_exact_check = true;
+      }
+    }
+
+    if (!needs_exact_check) {
+      return CollisionStatus::FREE;
+    }
+  }
+
   // Check hard collision first (smaller bounding box, immediate exit)
   for (const Point & center : circle_centers) {
     const int center_col = static_cast<int>((center.x - grid.origin.x) / grid.resolution);
@@ -71,8 +102,10 @@ CollisionStatus CollisionChecker::collisionStatus(
 
         const double cell_x = grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
         const double cell_y = grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
-        const double distance_sq = (cell_x - center.x) * (cell_x - center.x) + (cell_y - center.y) * (cell_y - center.y);
-        
+        const double distance_sq =
+          (cell_x - center.x) * (cell_x - center.x) +
+          (cell_y - center.y) * (cell_y - center.y);
+
         if (distance_sq <= collision_radius_sq) {
           return CollisionStatus::COLLISION;
         }
@@ -106,10 +139,12 @@ CollisionStatus CollisionChecker::collisionStatus(
 
         const double cell_x = grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
         const double cell_y = grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
-        const double distance_sq = (cell_x - center.x) * (cell_x - center.x) + (cell_y - center.y) * (cell_y - center.y);
-        
+        const double distance_sq =
+          (cell_x - center.x) * (cell_x - center.x) +
+          (cell_y - center.y) * (cell_y - center.y);
+
         if (distance_sq <= outer_radius_sq) {
-          return CollisionStatus::SOFT_INFLATION; // Immediate exit!
+          return CollisionStatus::SOFT_INFLATION;
         }
       }
     }
