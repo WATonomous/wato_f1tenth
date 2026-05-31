@@ -90,13 +90,16 @@ RUN sudo apt-get install -y ros-humble-joy
 RUN sudo apt-get install -y jstest-gtk
 RUN mkdir -p /root/.config/jstest-gtk
 
+# Realsense driver
+RUN sudo apt install -y ros-humble-realsense2-camera
+
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
     echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> ~/.bashrc
 
 #copy in the code 
 RUN mkdir -p /home/bolty/ament_ws
-WORKDIR /home/ros_user/ros_ws
-COPY src/robot src
+WORKDIR /home/bolty/ament_ws 
+COPY src/ src
 
 RUN sudo apt-get install -y pip
 RUN sudo pip3 install cython
@@ -109,7 +112,7 @@ RUN mkdir -p /tmp/build && \
     cd / && rm -rf /tmp/build
 
 #use ros dep to solve the remaning dependencies 
-RUN cd /home/ros_user/ros_ws
+RUN cd /home/bolty/ament_ws
 #RUN rosdep install -r --from-paths src --ignore-src --rosdistro humble -y
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && apt-get update && \
     rosdep install -r --from-paths src --ignore-src --rosdistro humble -y"
@@ -122,6 +125,6 @@ RUN . /opt/ros/humble/setup.sh && \
 RUN rm -rf src/* build/* devel/* install/* log/*
 
 #entry point
-COPY docker/wato_ros_entrypoint.sh /home/ros_user/ros_ws/wato_ros_entrypoint.sh
-RUN chmod +x /home/ros_user/ros_ws/wato_ros_entrypoint.sh
-ENTRYPOINT ["/home/ros_user/ros_ws/wato_ros_entrypoint.sh"]
+COPY docker/wato_ros_entrypoint.sh /home/bolty/ament_ws/wato_ros_entrypoint.sh
+RUN chmod +x /home/bolty/ament_ws/wato_ros_entrypoint.sh
+ENTRYPOINT ["/home/bolty/ament_ws/wato_ros_entrypoint.sh"]
