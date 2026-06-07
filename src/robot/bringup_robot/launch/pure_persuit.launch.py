@@ -25,8 +25,20 @@ def generate_launch_description():
         default_value=pure_persuit_config,
         description='the config for pure persuit settings'
     )
+    
+    local_planning_config = os.path.join(
+        get_package_share_directory('local_planning'),
+        'config',
+        'hybrid_astar_planner.yaml'
+    )
 
-    ld = LaunchDescription([pure_persuit_la]) # Begin building a launch description
+    local_planning_la = DeclareLaunchArgument(
+        'local_planning_config',
+        default_value=local_planning_config,
+        description='the config for local planning settings'
+    )
+
+    ld = LaunchDescription([pure_persuit_la, local_planning_la]) # Begin building a launch description
      
     pure_persuit = Node (
         package='pure_persuit',
@@ -36,6 +48,31 @@ def generate_launch_description():
         output='screen'
     )
 
+    state_manager = Node(
+        package='local_planning',
+        executable='state_manager_node',
+        name='state_manager_node',
+        parameters=[LaunchConfiguration('local_planning_config')],
+        remappings=[
+            ('/odom', '/pf/pose/odom'),
+        ],
+        output='screen'
+    )
+
+    local_planning = Node(
+        package='local_planning',
+        executable='hybrid_astar_planner_node',
+        name='hybrid_astar_planner_node',
+        parameters=[LaunchConfiguration('local_planning_config')],
+        remappings=[
+            ('/odom', '/pf/pose/odom'),
+            ('/path', '/local_path'),
+        ],
+        output='screen'
+    )
+
+    ld.add_action(state_manager)
+    ld.add_action(local_planning)
     ld.add_action(pure_persuit)
 
     return ld
