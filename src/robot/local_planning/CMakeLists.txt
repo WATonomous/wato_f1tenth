@@ -19,7 +19,6 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PlanPath.action"
-  "msg/PlannerDiagnostics.msg"
   DEPENDENCIES nav_msgs std_msgs
 )
 
@@ -37,7 +36,7 @@ add_executable(state_manager_node
   src/frenet_converter.cpp
 )
 target_include_directories(state_manager_node PUBLIC include)
-ament_target_dependencies(state_manager_node rclcpp rclcpp_action nav_msgs std_msgs geometry_msgs visualization_msgs tf2 tf2_geometry_msgs)
+ament_target_dependencies(state_manager_node rclcpp rclcpp_action nav_msgs std_msgs geometry_msgs tf2 tf2_geometry_msgs)
 rosidl_get_typesupport_target(state_manager_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(state_manager_node ${state_manager_typesupport})
 
@@ -45,7 +44,6 @@ target_link_libraries(state_manager_node ${state_manager_typesupport})
 add_executable(hybrid_astar_planner_node
   src/planner/planner_node.cpp
   src/planner/local_frenet_lattice_planner.cpp
-  src/planner/frenet_hybrid_astar_planner.cpp
   src/planner/quintic_polynomial.cpp
   src/planner/edge_evaluator.cpp
   src/planner/collision_checker.cpp

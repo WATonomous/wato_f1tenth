@@ -1,13 +1,11 @@
 #include "planning/state_manager/state_manager_node.hpp"
 
-#include <geometry_msgs/msg/point_stamped.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <cmath>
 #include <functional>
 #include <chrono>
 
@@ -21,15 +19,13 @@ StateManagerNode::StateManagerNode()
 {
   // parameters
   this->declare_parameter<std::string>("racing_line_file", "racing_line.csv");
-  this->declare_parameter<double>("state_update_rate", 20.0);
-  this->declare_parameter<double>("planning_trigger_rate", 10.0);
+  this->declare_parameter<double>("state_update_rate", 50.0);
+  this->declare_parameter<double>("planning_trigger_rate", 50.0);
   this->declare_parameter<double>("overtake_start_distance_m", 3.0);
   this->declare_parameter<double>("side_by_side_distance_m", 0.5);
   this->declare_parameter<double>("merge_start_gap_m", 1.0);
   this->declare_parameter<double>("merge_done_gap_m", 2.0);
   this->declare_parameter<double>("merge_done_d_m", 0.25);
-  this->declare_parameter<int>("num_lattices", 5);
-  this->declare_parameter<double>("lattice_spacing", 0.1);
 
   racing_line_file_ = this->get_parameter("racing_line_file").as_string();
   state_update_rate_ = this->get_parameter("state_update_rate").as_double();
@@ -39,8 +35,6 @@ StateManagerNode::StateManagerNode()
   merge_start_gap_m_ = this->get_parameter("merge_start_gap_m").as_double();
   merge_done_gap_m_ = this->get_parameter("merge_done_gap_m").as_double();
   merge_done_d_m_ = this->get_parameter("merge_done_d_m").as_double();
-  num_lattices_ = this->get_parameter("num_lattices").as_int();
-  lattice_spacing_ = this->get_parameter("lattice_spacing").as_double();
 
   // state machine
   state_machine_ = std::make_unique<RacingStateMachine>();
@@ -62,8 +56,6 @@ StateManagerNode::StateManagerNode()
 
   // publishers
   state_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/racing_state", 10);
-  lattice_viz_pub_ =
-    this->create_publisher<visualization_msgs::msg::MarkerArray>("/lattice_viz", 10);
 
   // action client
   plan_action_client_ = rclcpp_action::create_client<PlanPath>(this, "plan_path");
@@ -83,8 +75,6 @@ StateManagerNode::StateManagerNode()
     std::bind(&StateManagerNode::planningTimerCallback, this));
 
   loadRacingLine();
-
-  RCLCPP_INFO(this->get_logger(), "StateManagerNode initialized");
 }
 
 void StateManagerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -168,9 +158,6 @@ void StateManagerNode::loadRacingLine()
   }
 
   state_machine_->setRacingLine(racing_line_);
-  RCLCPP_INFO(this->get_logger(), "Loaded racing line with %zu points", racing_line_.size());
-
-  publishRacingLineLattices();
 }
 
 void StateManagerNode::publishState()
@@ -183,6 +170,13 @@ void StateManagerNode::publishState()
 
 void StateManagerNode::sendPlanGoal(RacingState state)
 {
+  PlanPath::Goal goal_msg = buildPlanGoal(state);
+
+  if (hasActivePlanGoal() || goal_request_pending_) {
+    bufferPlanGoal(goal_msg);
+    return;
+  }
+
   if (!plan_action_server_ready_) {
     plan_action_server_ready_ = plan_action_client_->wait_for_action_server(
       std::chrono::milliseconds(100));
@@ -194,15 +188,16 @@ void StateManagerNode::sendPlanGoal(RacingState state)
     }
   }
 
-  if (current_goal_handle_) {
-    return;
-  }
-
   const auto now = std::chrono::steady_clock::now();
   if (has_sent_plan_goal_ && now - last_plan_goal_sent_ < planning_period_) {
     return;
   }
 
+  dispatchPlanGoal(goal_msg);
+}
+
+StateManagerNode::PlanPath::Goal StateManagerNode::buildPlanGoal(RacingState state) const
+{
   auto goal_msg = PlanPath::Goal();
 
   switch (state) {
@@ -219,21 +214,99 @@ void StateManagerNode::sendPlanGoal(RacingState state)
       break;
   }
 
+  return goal_msg;
+}
+
+void StateManagerNode::dispatchPlanGoal(const PlanPath::Goal & goal_msg)
+{
+  if (deferred_planning_timer_) {
+    deferred_planning_timer_->cancel();
+  }
+
   auto send_goal_options = rclcpp_action::Client<PlanPath>::SendGoalOptions();
   send_goal_options.goal_response_callback =
     [this](const GoalHandle::SharedPtr & goal_handle) {
+      goal_request_pending_ = false;
+
       if (!goal_handle) {
         RCLCPP_WARN(this->get_logger(), "Plan goal was rejected");
+        if (!promoteBufferedPlanGoal()) {
+          scheduleNextPlanGoal();
+        }
         return;
       }
+
       current_goal_handle_ = goal_handle;
+      if (!hasActivePlanGoal()) {
+        if (!promoteBufferedPlanGoal()) {
+          scheduleNextPlanGoal();
+        }
+      }
     };
   send_goal_options.result_callback =
     std::bind(&StateManagerNode::planResultCallback, this, _1);
 
+  goal_request_pending_ = true;
   last_plan_goal_sent_ = std::chrono::steady_clock::now();
   has_sent_plan_goal_ = true;
   plan_action_client_->async_send_goal(goal_msg, send_goal_options);
+}
+
+void StateManagerNode::bufferPlanGoal(const PlanPath::Goal & goal_msg)
+{
+  buffered_plan_goal_ = goal_msg;
+}
+
+bool StateManagerNode::hasActivePlanGoal()
+{
+  if (!current_goal_handle_) {
+    return false;
+  }
+
+  try {
+    const int8_t status = current_goal_handle_->get_status();
+    if (status == action_msgs::msg::GoalStatus::STATUS_ACCEPTED ||
+      status == action_msgs::msg::GoalStatus::STATUS_EXECUTING ||
+      status == action_msgs::msg::GoalStatus::STATUS_CANCELING)
+    {
+      return true;
+    }
+  } catch (const std::exception & ex) {
+    RCLCPP_WARN(
+      this->get_logger(), "Could not inspect current plan goal state: %s", ex.what());
+    return true;
+  } catch (...) {
+    RCLCPP_WARN(this->get_logger(), "Could not inspect current plan goal state");
+    return true;
+  }
+
+  current_goal_handle_ = nullptr;
+  return false;
+}
+
+bool StateManagerNode::promoteBufferedPlanGoal()
+{
+  if (!buffered_plan_goal_ || hasActivePlanGoal() || goal_request_pending_) {
+    return false;
+  }
+
+  PlanPath::Goal next_goal = *buffered_plan_goal_;
+  buffered_plan_goal_.reset();
+
+  if (!plan_action_server_ready_) {
+    plan_action_server_ready_ = plan_action_client_->wait_for_action_server(
+      std::chrono::milliseconds(100));
+    if (!plan_action_server_ready_) {
+      buffered_plan_goal_ = next_goal;
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Plan action server not available");
+      return false;
+    }
+  }
+
+  dispatchPlanGoal(next_goal);
+  return true;
 }
 
 void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & result)
@@ -252,105 +325,15 @@ void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & resu
     case rclcpp_action::ResultCode::CANCELED:
       break;
     default:
-      RCLCPP_WARN(this->get_logger(), "???");
+      RCLCPP_WARN(this->get_logger(), "Planner goal ended with unknown result code");
       break;
   }
 
-  scheduleNextPlanGoal();
-}
-//visualizer stuff
-void StateManagerNode::publishRacingLineLattices()
-{
-  if (racing_line_.empty()) {
+  if (promoteBufferedPlanGoal()) {
     return;
   }
 
-  visualization_msgs::msg::MarkerArray markers;
-
-  // racing line
-  visualization_msgs::msg::Marker line_marker;
-  line_marker.header.frame_id = "map";
-  line_marker.header.stamp = this->now();
-  line_marker.ns = "racing_line";
-  line_marker.id = 0;
-  line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-  line_marker.action = visualization_msgs::msg::Marker::ADD;
-  line_marker.scale.x = 0.03;
-  line_marker.color.r = 1.0;
-  line_marker.color.g = 0.0;
-  line_marker.color.b = 0.0;
-  line_marker.color.a = 1.0;
-
-  for (const auto & p : racing_line_) {
-    geometry_msgs::msg::Point pt;
-    pt.x = p.x;
-    pt.y = p.y;
-    pt.z = 0.0;
-    line_marker.points.push_back(pt);
-  }
-
-  // close the loop
-  if (racing_line_.size() > 1) {
-    geometry_msgs::msg::Point pt;
-    pt.x = racing_line_.front().x;
-    pt.y = racing_line_.front().y;
-    pt.z = 0.0;
-    line_marker.points.push_back(pt);
-  }
-
-  markers.markers.push_back(line_marker);
-
-  // offset lattice lines
-  int marker_id = 1;
-  int n = static_cast<int>(racing_line_.size());
-  for (int l = -num_lattices_; l <= num_lattices_; ++l) {
-    if (l == 0) {
-      continue;
-    }
-
-    double offset = l * lattice_spacing_;
-
-    visualization_msgs::msg::Marker lattice_marker;
-    lattice_marker.header.frame_id = "map";
-    lattice_marker.header.stamp = this->now();
-    lattice_marker.ns = "lattice_lines";
-    lattice_marker.id = marker_id++;
-    lattice_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    lattice_marker.action = visualization_msgs::msg::Marker::ADD;
-    lattice_marker.scale.x = 0.02;
-    lattice_marker.color.r = 0.5;
-    lattice_marker.color.g = 0.5;
-    lattice_marker.color.b = 1.0;
-    lattice_marker.color.a = 0.5;
-
-    for (int i = 0; i < n; ++i) {
-      int next = (i + 1) % n;
-      double dx = racing_line_[next].x - racing_line_[i].x;
-      double dy = racing_line_[next].y - racing_line_[i].y;
-      double len = std::hypot(dx, dy);
-      if (len < 1e-12) {
-        continue;
-      }
-      // perpendicular normal (left-pointing)
-      double nx = -dy / len;
-      double ny = dx / len;
-
-      geometry_msgs::msg::Point pt;
-      pt.x = racing_line_[i].x + offset * nx;
-      pt.y = racing_line_[i].y + offset * ny;
-      pt.z = 0.0;
-      lattice_marker.points.push_back(pt);
-    }
-
-    // close the loop
-    if (!lattice_marker.points.empty()) {
-      lattice_marker.points.push_back(lattice_marker.points.front());
-    }
-
-    markers.markers.push_back(lattice_marker);
-  }
-
-  lattice_viz_pub_->publish(markers);
+  scheduleNextPlanGoal();
 }
 
 std::vector<local_planning::Point> StateManagerNode::loadRacingLineFromFile(

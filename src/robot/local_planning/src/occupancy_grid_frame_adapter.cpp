@@ -37,9 +37,6 @@ public:
         publishGrid(*msg);
       });
 
-    RCLCPP_INFO(
-      this->get_logger(), "Adapting occupancy grids from %s to %s in frame '%s'",
-      raw_grid_topic_.c_str(), grid_topic_.c_str(), frame_id_.c_str());
   }
 
 private:

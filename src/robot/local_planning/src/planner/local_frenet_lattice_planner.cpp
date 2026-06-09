@@ -5,7 +5,6 @@
 #include "planning/planner/planner_costs.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <limits>
 #include <utility>
@@ -18,12 +17,6 @@ namespace
 constexpr double kEpsilon = 1e-6;
 constexpr double kPi = 3.14159265358979323846;
 
-using SteadyClock = std::chrono::steady_clock;
-
-double millisecondsSince(SteadyClock::time_point start)
-{
-  return std::chrono::duration<double, std::milli>(SteadyClock::now() - start).count();
-}
 
 } // namespace
 
@@ -44,11 +37,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   LocalPlannerIntent intent)
 {
   LocalFrenetPlan result;
-  result.diagnostics.intent = intent;
 
-  const auto setup_start = SteadyClock::now();
-
-  //catch any weird config issues
   if (frenet_converter_.getTotalLength() <= kEpsilon ||
     config_.layer_spacing_m <= kEpsilon ||
     config_.lane_spacing_m <= kEpsilon ||
@@ -56,7 +45,6 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     config_.max_path_angle_deg <= 0.0 ||
     config_.max_path_angle_deg >= 90.0)
   {
-    result.diagnostics.planner_setup_ms = millisecondsSince(setup_start);
     return result;
   }
 
@@ -66,22 +54,10 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     std::max(1, static_cast<int>(std::ceil(config_.horizon_m / config_.layer_spacing_m)));
   const int lane_count = static_cast<int>(lanes.size());
   const int start_lane = nearestLaneIndex(start.d, lanes);
-  //wrap heading error
   const double heading_error = normalizeHeadingError(
-    start_heading - frenet_converter_.getRacingLineHeading(
-      start.s));
-
-  //really large angles destroys the quintic
-  //TODO: try out different values for clamping
+    start_heading - frenet_converter_.getRacingLineHeading(start.s));
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
 
-  //diagnostics
-  result.diagnostics.ego_frenet = start;
-  result.diagnostics.total_lanes = lane_count;
-  result.diagnostics.layers = layer_count;
-  result.diagnostics.lane_offsets = lanes;
-
-  // states[layer][lane] eventually will add [theta] get excited i guess
   std::vector<std::vector<DpState>> states(
     static_cast<size_t>(layer_count + 1),
     std::vector<DpState>(static_cast<size_t>(lane_count)));
@@ -92,10 +68,6 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   CollisionChecker collision_checker(config_);
   FrenetEdgeEvaluator edge_evaluator(config_, frenet_converter_, collision_checker);
   EdgeEvaluationScratch edge_scratch;
-
-  result.diagnostics.planner_setup_ms = millisecondsSince(setup_start);
-
-  const auto search_start = SteadyClock::now();
 
   /*
   i could defo make this clearer and use better practice
@@ -127,31 +99,19 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
         const double d_end = lanes[static_cast<size_t>(to_lane)];
         if (std::abs(d_end - d0) / config_.layer_spacing_m > max_slope) {
-          ++result.diagnostics.invalid_geometry_edges;
-          continue; // MVT dictates this quintic will geometrically fail, so we skip early!
+          continue;
         }
 
-        ++result.diagnostics.attempted_edges;
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
           s0, d0, slope0, d_end, 0.0, intent, grid, edge_scratch);
 
-        if (edge.collision_status == CollisionStatus::COLLISION) {
-          ++result.diagnostics.invalid_collision_edges;
-          continue;
-        }
-        if (edge.collision_status == CollisionStatus::OUT_OF_GRID) {
-          ++result.diagnostics.invalid_out_of_grid_edges;
-          continue;
-        }
-        if (edge.collision_status == CollisionStatus::GEOMETRY_CONSTRAINT) {
-          ++result.diagnostics.invalid_geometry_edges;
+        if (edge.collision_status == CollisionStatus::COLLISION ||
+          edge.collision_status == CollisionStatus::OUT_OF_GRID ||
+          edge.collision_status == CollisionStatus::GEOMETRY_CONSTRAINT)
+        {
           continue;
         }
 
-        ++result.diagnostics.valid_edges;
-        //if we have a better total cost take it
-        //rn the tie break depends on curavture and not time but this could go either way
-        //im not sure what makes more sense theoretically
         DpState & to_state = states[static_cast<size_t>(next_layer)][static_cast<size_t>(to_lane)];
         const double new_total_cost = from_state.total_cost + edge.total_cost;
         const bool improves = !to_state.reachable ||
@@ -172,7 +132,6 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       }
     }
   }
-  result.diagnostics.planner_search_ms = millisecondsSince(search_start);
   //at this point the dp table is actually filled
   /*
   what happens next you ask...
@@ -182,7 +141,6 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   3.  and then yeah just reconstruct the path and return
   */
 
-  const auto goal_select_start = SteadyClock::now();
   int best_lane = -1;
   double best_cost = std::numeric_limits<double>::infinity();
   double best_curvature_change = std::numeric_limits<double>::infinity();
@@ -214,18 +172,11 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     }
   }
 
-  result.diagnostics.planner_goal_select_ms = millisecondsSince(goal_select_start);
-
   if (best_lane < 0) {
     return result;
   }
 
-  const auto reconstruct_start = SteadyClock::now();
   result.path = reconstructPath(states, best_lane);
-  result.diagnostics.planner_reconstruct_ms = millisecondsSince(reconstruct_start);
-  result.diagnostics.selected_cost = best_cost;
-  result.diagnostics.selected_final_lane = best_lane;
-  result.diagnostics.selected_final_d = lanes[static_cast<size_t>(best_lane)];
   return result;
 }
 

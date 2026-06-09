@@ -1,10 +1,9 @@
 #include "planning/planner/planner_node.hpp"
 
 #include "planning/planner/local_frenet_lattice_planner.hpp"
-#include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <fstream>
 #include <sstream>
@@ -95,9 +94,7 @@ PlannerNode::PlannerNode()
   this->declare_parameter<double>("overtake_d_weight", 0.02);
   this->declare_parameter<double>("merge_d_weight", 0.20);
   this->declare_parameter<double>("merge_terminal_d_weight", 0.0);
-  this->declare_parameter<bool>("enable_runtime_diagnostics", true);
   this->declare_parameter<double>("planner_runtime_budget_ms", 100.0);
-  this->declare_parameter<double>("diagnostics_log_period_ms", 1000.0);
 
   racing_line_file_ = this->get_parameter("racing_line_file").as_string();
   switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
@@ -148,10 +145,8 @@ PlannerNode::PlannerNode()
   planner_config_.merge_d_weight = this->get_parameter("merge_d_weight").as_double();
   planner_config_.merge_terminal_d_weight =
     this->get_parameter("merge_terminal_d_weight").as_double();
-  enable_runtime_diagnostics_ = this->get_parameter("enable_runtime_diagnostics").as_bool();
   planner_runtime_budget_ms_ = std::max(
     kMinimumPlannerBudgetMs, this->get_parameter("planner_runtime_budget_ms").as_double());
-  diagnostics_log_period_ms_ = this->get_parameter("diagnostics_log_period_ms").as_double();
 
   const double max_search_budget_ms = std::max(
     kMinimumPlannerBudgetMs, planner_runtime_budget_ms_ - kSearchBudgetReserveMs);
@@ -180,8 +175,6 @@ PlannerNode::PlannerNode()
   path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/path", 10);
   viz_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     "/local_frenet_lattice_viz", 10);
-  diagnostics_pub_ = this->create_publisher<local_planning::msg::PlannerDiagnostics>(
-    "/planner_diagnostics", 10);
 
   // action server
   plan_action_server_ = rclcpp_action::create_server<PlanPath>(
@@ -193,7 +186,6 @@ PlannerNode::PlannerNode()
 
   loadRacingLine();
 
-  RCLCPP_INFO(this->get_logger(), "Local Frenet lattice planner initialized");
 }
 //mutex this to prevent races
 void PlannerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -278,16 +270,6 @@ try
   auto goal = goal_handle->get_goal();
   const LocalPlannerIntent intent = intentFromAction(goal->intent);
 
-  LocalFrenetPlan plan;
-  plan.diagnostics.intent = intent;
-
-  double input_copy_ms = 0.0;
-  double ros_conversion_ms = 0.0;
-  double planner_ms = 0.0;
-  double path_conversion_ms = 0.0;
-  double publish_ms = 0.0;
-  double viz_ms = 0.0;
-
   auto action_budget_expired = [&]() {
       return elapsedMs(total_start) >= planner_runtime_budget_ms_;
     };
@@ -343,71 +325,9 @@ try
       }
     };
 
-  auto emit_diagnostics = [&](bool success, bool stale_or_canceled, size_t path_points) {
-      if (!ros_active()) {
-        return;
-      }
-      local_planning::msg::PlannerDiagnostics msg;
-      msg.header.frame_id = "map";
-      msg.header.stamp = this->now();
-      msg.sequence = sequence;
-      msg.intent = static_cast<uint8_t>(intent);
-      msg.success = success;
-      msg.stale_or_canceled = stale_or_canceled;
-
-      msg.total_ms = elapsedMs(total_start);
-      msg.input_copy_ms = input_copy_ms;
-      msg.ros_conversion_ms = ros_conversion_ms;
-      msg.planner_ms = planner_ms;
-      msg.path_conversion_ms = path_conversion_ms;
-      msg.publish_ms = publish_ms;
-      msg.viz_ms = viz_ms;
-
-      const auto & diagnostics = plan.diagnostics;
-      msg.planner_setup_ms = diagnostics.planner_setup_ms;
-      msg.planner_search_ms = diagnostics.planner_search_ms;
-      msg.planner_goal_select_ms = diagnostics.planner_goal_select_ms;
-      msg.planner_reconstruct_ms = diagnostics.planner_reconstruct_ms;
-
-      msg.layers = diagnostics.layers;
-      msg.total_lanes = diagnostics.total_lanes;
-      msg.total_heading_buckets = diagnostics.total_heading_buckets;
-      msg.attempted_edges = diagnostics.attempted_edges;
-      msg.valid_edges = diagnostics.valid_edges;
-      msg.invalid_collision_edges = diagnostics.invalid_collision_edges;
-      msg.invalid_out_of_grid_edges = diagnostics.invalid_out_of_grid_edges;
-      msg.invalid_geometry_edges = diagnostics.invalid_geometry_edges;
-      msg.states_popped = diagnostics.states_popped;
-      msg.states_pushed = diagnostics.states_pushed;
-      msg.final_candidates_found = diagnostics.final_candidates_found;
-      msg.deepest_layer_reached = diagnostics.deepest_layer_reached;
-      msg.path_points = static_cast<uint32_t>(path_points);
-
-      msg.budget_ms = planner_runtime_budget_ms_;
-      msg.lane_spacing_m = planner_config_.lane_spacing_m;
-      msg.layer_spacing_m = planner_config_.layer_spacing_m;
-      msg.sample_spacing_m = planner_config_.sample_spacing_m;
-      msg.horizon_m = planner_config_.horizon_m;
-      msg.ego_s = diagnostics.ego_frenet.s;
-      msg.ego_d = diagnostics.ego_frenet.d;
-      msg.runtime_ms = diagnostics.runtime_ms;
-      msg.selected_cost = diagnostics.selected_cost;
-      msg.selected_final_d = diagnostics.selected_final_d;
-      msg.selected_final_lane = diagnostics.selected_final_lane;
-      msg.selected_g_cost = diagnostics.selected_g_cost;
-      msg.selected_h_cost = diagnostics.selected_h_cost;
-      msg.selected_f_cost = diagnostics.selected_f_cost;
-      msg.selected_final_heading_idx = diagnostics.selected_final_heading_idx;
-      msg.selected_final_heading_deg = diagnostics.selected_final_heading_deg;
-      msg.returned_partial_path = diagnostics.returned_partial_path;
-
-      publishRuntimeDiagnostics(msg);
-    };
-
   nav_msgs::msg::Odometry::SharedPtr odom_msg;
   local_planning::OccupancyGrid occupancy_grid;
   bool has_occupancy_grid = false;
-  const auto input_copy_start = SteadyClock::now();
   {
     std::lock_guard<std::mutex> lock(input_mutex_);
     odom_msg = current_odom_;
@@ -416,51 +336,42 @@ try
       has_occupancy_grid = true;
     }
   }
-  input_copy_ms = elapsedMs(input_copy_start);
 
   if (!odom_msg || !has_occupancy_grid) {
-    RCLCPP_WARN(this->get_logger(), "Missing odom or occupancy grid, cannot plan");
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Missing odom or occupancy grid, cannot plan");
     result->success = false;
-    emit_diagnostics(false, false, 0);
     finish_succeeded(result);
     return;
   }
 
   if (goal_handle->is_canceling()) {
     result->success = false;
-    emit_diagnostics(false, true, 0);
     finish_canceled(result);
     return;
   }
 
-  const auto conversion_start = SteadyClock::now();
   local_planning::Odometry odom = rosToOdometry(odom_msg);
-  ros_conversion_ms = elapsedMs(conversion_start);
 
   if (action_budget_expired()) {
     result->success = false;
-    emit_diagnostics(false, false, 0);
     finish_succeeded(result);
     return;
   }
 
-  const auto planner_start = SteadyClock::now();
-  plan = planner_->plan(odom.position, odom.heading, occupancy_grid, intent);
-  planner_ms = elapsedMs(planner_start);
+  LocalFrenetPlan plan = planner_->plan(odom.position, odom.heading, occupancy_grid, intent);
 
   if (!ros_active()) {
     return;
   }
 
-  const auto path_conversion_start = SteadyClock::now();
   result->path = pathToRosPath(plan.path);
-  path_conversion_ms = elapsedMs(path_conversion_start);
 
   const bool stale_plan = sequence != latest_plan_sequence_.load();
   const bool over_budget = action_budget_expired();
   if (stale_plan || goal_handle->is_canceling() || over_budget) {
     result->success = false;
-    emit_diagnostics(false, stale_plan || goal_handle->is_canceling(), result->path.poses.size());
     if (goal_handle->is_canceling()) {
       finish_canceled(result);
     } else {
@@ -470,13 +381,14 @@ try
   }
 
   if (plan.path.empty()) {
-    RCLCPP_WARN(this->get_logger(), "Planner returned empty path");
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Planner returned empty path");
     result->success = false;
     std::lock_guard<std::mutex> lock(publish_mutex_);
     const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
       goal_handle->is_canceling();
     if (stale_or_canceling) {
-      emit_diagnostics(false, true, result->path.poses.size());
       if (goal_handle->is_canceling()) {
         finish_canceled(result);
       } else {
@@ -485,16 +397,10 @@ try
       return;
     }
 
-    const auto publish_start = SteadyClock::now();
     path_pub_->publish(result->path);
-    publish_ms = elapsedMs(publish_start);
-
     if (has_budget_for_viz()) {
-      const auto viz_start = SteadyClock::now();
       publishPlannerViz(plan);
-      viz_ms = elapsedMs(viz_start);
     }
-    emit_diagnostics(false, false, result->path.poses.size());
     finish_succeeded(result);
     return;
   }
@@ -506,7 +412,6 @@ try
     goal_handle->is_canceling();
   if (stale_or_canceling || action_budget_expired()) {
     result->success = false;
-    emit_diagnostics(false, stale_or_canceling, result->path.poses.size());
     if (goal_handle->is_canceling()) {
       finish_canceled(result);
     } else {
@@ -519,18 +424,13 @@ try
     return;
   }
 
-  const auto publish_start = SteadyClock::now();
   path_pub_->publish(result->path);
-  publish_ms = elapsedMs(publish_start);
 
   if (has_budget_for_viz()) {
-    const auto viz_start = SteadyClock::now();
     publishPlannerViz(plan);
-    viz_ms = elapsedMs(viz_start);
   }
 
   result->success = !action_budget_expired();
-  emit_diagnostics(result->success, false, result->path.poses.size());
   finish_succeeded(result);
 }
 catch (const std::exception & ex)
@@ -578,8 +478,6 @@ void PlannerNode::loadRacingLine()
   }
 
   planner_->setRacingLine(racing_line_);
-  viz_frenet_converter_.setRacingLine(racing_line_);
-  RCLCPP_INFO(this->get_logger(), "Loaded racing line with %zu points", racing_line_.size());
 }
 
 LocalPlannerIntent PlannerNode::intentFromAction(uint8_t intent) const
@@ -610,42 +508,11 @@ void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
   clear.action = visualization_msgs::msg::Marker::DELETEALL;
   markers.markers.push_back(clear);
 
-  const LocalFrenetPlannerDiagnostics & diagnostics = plan.diagnostics;
-  int marker_id = 0;
-
-  for (double d : diagnostics.lane_offsets) {
-    visualization_msgs::msg::Marker lane_marker;
-    lane_marker.header.frame_id = "map";
-    lane_marker.header.stamp = this->now();
-    lane_marker.ns = "candidate_lanes";
-    lane_marker.id = marker_id++;
-    lane_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    lane_marker.action = visualization_msgs::msg::Marker::ADD;
-    lane_marker.scale.x = 0.015;
-    lane_marker.color.r = 0.35;
-    lane_marker.color.g = 0.55;
-    lane_marker.color.b = 1.0;
-    lane_marker.color.a = 0.28;
-
-    for (int layer = 0; layer <= diagnostics.layers; ++layer) {
-      Point p = viz_frenet_converter_.frenetToCartesian(
-        {
-          diagnostics.ego_frenet.s + static_cast<double>(layer) * planner_config_.layer_spacing_m,
-          d});
-      geometry_msgs::msg::Point pt;
-      pt.x = p.x;
-      pt.y = p.y;
-      pt.z = 0.02;
-      lane_marker.points.push_back(pt);
-    }
-    markers.markers.push_back(lane_marker);
-  }
-
   visualization_msgs::msg::Marker line_strip;
   line_strip.header.frame_id = "map";
   line_strip.header.stamp = this->now();
   line_strip.ns = "selected_path";
-  line_strip.id = marker_id++;
+  line_strip.id = 0;
   line_strip.type = visualization_msgs::msg::Marker::LINE_STRIP;
   line_strip.action = visualization_msgs::msg::Marker::ADD;
   line_strip.scale.x = 0.08;
@@ -664,82 +531,6 @@ void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
 
   markers.markers.push_back(line_strip);
   viz_pub_->publish(markers);
-}
-
-void PlannerNode::publishRuntimeDiagnostics(
-  const local_planning::msg::PlannerDiagnostics & diagnostics)
-{
-  if (!rclcpp::ok()) {
-    return;
-  }
-
-  if (!enable_runtime_diagnostics_) {
-    return;
-  }
-
-  diagnostics_pub_->publish(diagnostics);
-
-  const int64_t log_period_ms = std::max<int64_t>(
-    1, static_cast<int64_t>(diagnostics_log_period_ms_));
-  const char * status = diagnostics.success ? "success" : "failure";
-  if (diagnostics.total_ms > planner_runtime_budget_ms_) {
-    RCLCPP_WARN_THROTTLE(
-      this->get_logger(),
-      *this->get_clock(), log_period_ms,
-      "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d heading_buckets=%d attempted_edges=%d valid_edges=%d states_popped=%d states_pushed=%d final_candidates=%d deepest_layer=%d returned_partial=%s path_points=%u planner_ms=%.2f runtime_ms=%.2f search_ms=%.2f viz_ms=%.2f selected_g=%.3f selected_h=%.3f selected_f=%.3f final_heading_deg=%.2f",
-      diagnostics.total_ms,
-      diagnostics.budget_ms,
-      status,
-      diagnostics.stale_or_canceled ? "true" : "false",
-      diagnostics.total_lanes,
-      diagnostics.layers,
-      diagnostics.total_heading_buckets,
-      diagnostics.attempted_edges,
-      diagnostics.valid_edges,
-      diagnostics.states_popped,
-      diagnostics.states_pushed,
-      diagnostics.final_candidates_found,
-      diagnostics.deepest_layer_reached,
-      diagnostics.returned_partial_path ? "true" : "false",
-      diagnostics.path_points,
-      diagnostics.planner_ms,
-      diagnostics.runtime_ms,
-      diagnostics.planner_search_ms,
-      diagnostics.viz_ms,
-      diagnostics.selected_g_cost,
-      diagnostics.selected_h_cost,
-      diagnostics.selected_f_cost,
-      diagnostics.selected_final_heading_deg);
-    return;
-  }
-
-  RCLCPP_INFO_THROTTLE(
-    this->get_logger(),
-    *this->get_clock(), log_period_ms,
-    "plan_ms=%.2f budget_ms=%.2f status=%s stale_or_canceled=%s lanes=%d layers=%d heading_buckets=%d attempted_edges=%d valid_edges=%d states_popped=%d states_pushed=%d final_candidates=%d deepest_layer=%d returned_partial=%s path_points=%u planner_ms=%.2f runtime_ms=%.2f search_ms=%.2f viz_ms=%.2f selected_g=%.3f selected_h=%.3f selected_f=%.3f final_heading_deg=%.2f",
-    diagnostics.total_ms,
-    diagnostics.budget_ms,
-    status,
-    diagnostics.stale_or_canceled ? "true" : "false",
-    diagnostics.total_lanes,
-    diagnostics.layers,
-    diagnostics.total_heading_buckets,
-    diagnostics.attempted_edges,
-    diagnostics.valid_edges,
-    diagnostics.states_popped,
-    diagnostics.states_pushed,
-    diagnostics.final_candidates_found,
-    diagnostics.deepest_layer_reached,
-    diagnostics.returned_partial_path ? "true" : "false",
-    diagnostics.path_points,
-    diagnostics.planner_ms,
-    diagnostics.runtime_ms,
-    diagnostics.planner_search_ms,
-    diagnostics.viz_ms,
-    diagnostics.selected_g_cost,
-    diagnostics.selected_h_cost,
-    diagnostics.selected_f_cost,
-    diagnostics.selected_final_heading_deg);
 }
 
 local_planning::Odometry PlannerNode::rosToOdometry(

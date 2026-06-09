@@ -68,10 +68,10 @@ def generate_launch_description():
         output='screen',
         parameters=[LaunchConfiguration('costmap_param_file')])
 
-    sim_obstacles = Node(
+    occupancy_grid_adapter = Node(
         package='local_planning',
-        executable='sim_obstacle_overlay_node',
-        name='sim_obstacle_overlay_node',
+        executable='occupancy_grid_frame_adapter_node',
+        name='occupancy_grid_frame_adapter_node',
         output='screen',
         parameters=[{'raw_grid_topic': '/costmap'}])
 
@@ -112,7 +112,7 @@ def generate_launch_description():
         minimum_stack,
         global_planner,
         costmap,
-        sim_obstacles,
+        occupancy_grid_adapter,
         local_planner,
         state_manager,
         pure_persuit,

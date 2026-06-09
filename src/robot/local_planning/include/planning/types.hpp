@@ -84,44 +84,9 @@ struct LocalFrenetPlannerConfig
   double merge_terminal_d_weight = 0.0;
 };
 
-//to make my debugging life easy
-struct LocalFrenetPlannerDiagnostics
-{
-  LocalPlannerIntent intent = LocalPlannerIntent::FOLLOW_RACING_LINE;
-  FrenetPoint ego_frenet{};
-  double selected_cost = 0.0;
-  double selected_final_d = 0.0;
-  int selected_final_lane = 0;
-  int total_lanes = 0;
-  int total_heading_buckets = 0;
-  int layers = 0;
-  int attempted_edges = 0;
-  int valid_edges = 0;
-  int invalid_collision_edges = 0;
-  int invalid_out_of_grid_edges = 0;
-  int invalid_geometry_edges = 0;
-  int states_popped = 0;
-  int states_pushed = 0;
-  int final_candidates_found = 0;
-  int deepest_layer_reached = 0;
-  double planner_setup_ms = 0.0;
-  double planner_search_ms = 0.0;
-  double planner_goal_select_ms = 0.0;
-  double planner_reconstruct_ms = 0.0;
-  double runtime_ms = 0.0;
-  double selected_g_cost = 0.0;
-  double selected_h_cost = 0.0;
-  double selected_f_cost = 0.0;
-  int selected_final_heading_idx = 0;
-  double selected_final_heading_deg = 0.0;
-  bool returned_partial_path = false;
-  std::vector<double> lane_offsets;
-};
-
 struct LocalFrenetPlan
 {
   std::vector<Point> path;
-  LocalFrenetPlannerDiagnostics diagnostics;
 };
 
 } // namespace local_planning

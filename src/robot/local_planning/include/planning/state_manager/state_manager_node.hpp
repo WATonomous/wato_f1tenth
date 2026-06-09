@@ -8,11 +8,11 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <std_msgs/msg/u_int8.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
 #include <local_planning/action/plan_path.hpp>
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <string>
 
@@ -40,9 +40,11 @@ private:
   void loadRacingLine();
   void publishState();
   void sendPlanGoal(RacingState state);
-
-  //mainly for visualization in foxglove
-  void publishRacingLineLattices();
+  PlanPath::Goal buildPlanGoal(RacingState state) const;
+  void dispatchPlanGoal(const PlanPath::Goal & goal_msg);
+  void bufferPlanGoal(const PlanPath::Goal & goal_msg);
+  bool hasActivePlanGoal();
+  bool promoteBufferedPlanGoal();
 
   // action result callback
   void planResultCallback(const GoalHandle::WrappedResult & result);
@@ -59,7 +61,6 @@ private:
 
   // pubs
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr lattice_viz_pub_;
 
   // action client
   rclcpp_action::Client<PlanPath>::SharedPtr plan_action_client_;
@@ -87,15 +88,15 @@ private:
   double merge_start_gap_m_;
   double merge_done_gap_m_;
   double merge_done_d_m_;
-  int num_lattices_;
-  double lattice_spacing_;
 
   // state tracking
   RacingState last_published_state_{RacingState::STEADY_STATE};
 
   // track in-flight action goal so we do not churn/cancel the synchronous planner
   GoalHandle::SharedPtr current_goal_handle_;
+  std::optional<PlanPath::Goal> buffered_plan_goal_;
   bool plan_action_server_ready_{false};
+  bool goal_request_pending_{false};
   std::chrono::nanoseconds planning_period_{std::chrono::milliseconds(100)};
   std::chrono::steady_clock::time_point last_plan_goal_sent_{};
   bool has_sent_plan_goal_{false};
