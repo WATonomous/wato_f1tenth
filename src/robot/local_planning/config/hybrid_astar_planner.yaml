@@ -39,6 +39,9 @@ hybrid_astar_planner_node:
     merge_terminal_d_weight: 0.0 # punish merge paths that dont return to racing line
     default_intent: 0
     planner_runtime_budget_ms: 100.0
+    planner_path_frame: "map"
+    controller_path_frame: "base_link"
+    debug_path_topic: "/local_path_map"
 
 
 # max_path_angle_deg replaces the old lane-jump cap with a geometry constraint on edge slope

@@ -44,6 +44,10 @@ def generate_launch_description():
         'costmap_param_file',
         default_value=costmap_param_file,
         description='Path to config file for costmap node')
+    debug_path_topic_arg = DeclareLaunchArgument(
+        'debug_path_topic',
+        default_value='/local_path_map',
+        description='Map-frame debug topic for the selected local plan')
 
     minimum_stack = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(minimum_launch),
@@ -83,6 +87,7 @@ def generate_launch_description():
         parameters=[
             LaunchConfiguration('planner_config'),
             {'racing_line_file': LaunchConfiguration('racing_line_file')},
+            {'debug_path_topic': LaunchConfiguration('debug_path_topic')},
         ],
         remappings=[('/path', '/local_path')])
 
@@ -109,6 +114,7 @@ def generate_launch_description():
         planner_config_arg,
         racing_line_file_arg,
         costmap_param_file_arg,
+        debug_path_topic_arg,
         minimum_stack,
         global_planner,
         costmap,

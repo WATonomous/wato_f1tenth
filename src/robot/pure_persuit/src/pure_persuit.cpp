@@ -44,7 +44,6 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
         global_path_topic, latched_qos,
         [this](const nav_msgs::msg::Path::SharedPtr msg){
             current_global_path = *msg;
-            global_path_index_cache = 0;
         }
     );
 
@@ -80,8 +79,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
         local_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
             local_path_topic, 10,
             [this](const nav_msgs::msg::Path::SharedPtr msg) { 
-                current_local_path = *msg;
-                local_path_index_cache = 0;
+                current_local_path = *msg; 
             }
         );
     }
@@ -143,12 +141,9 @@ void Pure_Persuit_Node::control_timer_callback() {
 
 void Pure_Persuit_Node::update_controller_state () {
 
-    const bool dead_man_allowed = dead_man_active.data || force_dead_man_active;
-    const bool local_follow_requested = force_local_follow || overtake_active.data;
+    if (dead_man_active.data || force_dead_man_active) {
 
-    if (dead_man_allowed) {
-
-       controller_state = state_::GLOBAL_FOLLOW;
+       controller_state = state_::GLOBAL_FOLLOW; 
 
     } else {
 
@@ -156,9 +151,17 @@ void Pure_Persuit_Node::update_controller_state () {
 
     }
 
-    if (overtaking_enable && local_follow_requested && controller_state == state_::GLOBAL_FOLLOW) {
+    if (overtaking_enable) {
 
-        controller_state = state_::LOCAL_FOLLOW;
+        if (overtake_active.data && controller_state == state_::GLOBAL_FOLLOW) {
+
+            controller_state = state_::LOCAL_FOLLOW;
+
+        } else if (!overtake_active.data && controller_state == state_::LOCAL_FOLLOW) {
+
+            controller_state = state_::GLOBAL_FOLLOW;
+
+        }
 
     }
 
@@ -171,53 +174,33 @@ assumption for this one  :
 */
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint() {
 
-    return Pure_Persuit_Node::get_waypoint_from_path(
-        current_global_path, global_path_index_cache, true, "global path");
+    //check the global path
+    if (current_global_path.poses.empty()) {
 
-}
-/*
-global and local have the same 3 step process 
-1. find closest index
-2. find lookahead
-3. transform to base_link 
-*/
-
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_waypoint_from_path(
-    const nav_msgs::msg::Path &path,
-    size_t &index_cache,
-    bool allow_wraparound,
-    const std::string &path_name) {
-
-    if (path.poses.empty()) {
-
+        RCLCPP_WARN(this->get_logger(), "no waypoints in global path while in GLOBAL_FOLLOW state");
         return std::nullopt;
 
     }
 
-    //find the current index corresponding to current location of vehicle
-    size_t current_pose_index = Pure_Persuit_Node::find_current_position_index(
-        path, index_cache, allow_wraparound);
+    //find the current index corosponding to current location of vehicle
+    size_t current_pose_index = Pure_Persuit_Node::find_current_position_index();
 
     //find the look_ahead point in the global frame
-    std::optional<geometry_msgs::msg::Point> target_waypoint_global =
-        Pure_Persuit_Node::find_lookahead_point(path, current_pose_index, allow_wraparound);
+    std::optional<geometry_msgs::msg::Point> target_waypoint_global = Pure_Persuit_Node::find_lookahead_global(current_pose_index);
 
     if (!target_waypoint_global.has_value()) {
 
-        RCLCPP_WARN(this->get_logger(), "no target look ahead point found in %s", path_name.c_str());
+        RCLCPP_WARN(this->get_logger(), "no target look ahead point found | find_lookahead_global()");
         return std::nullopt;
 
     }
 
     //convert the point to the local frame
-    std::optional<geometry_msgs::msg::Point> converted_waypoint =
-        Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
+    std::optional<geometry_msgs::msg::Point> converted_waypoint = Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
 
     if (!converted_waypoint.has_value()) {
 
-        RCLCPP_WARN(
-            this->get_logger(), "could not transform %s lookahead point to %s",
-            path_name.c_str(), local_frame_id.c_str());
+        RCLCPP_WARN(this->get_logger(), "no target look ahead point found | convert_to_local_frame()");
         return std::nullopt;
 
     }
@@ -226,28 +209,19 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_waypoint_from_pa
 
 }
 
-size_t Pure_Persuit_Node::find_current_position_index(
-    const nav_msgs::msg::Path &path,
-    size_t &index_cache,
-    bool allow_wraparound) {
+size_t Pure_Persuit_Node::find_current_position_index() {
 
-    if (path.poses.empty()) {
-        return 0;
-    }
-
-    if (index_cache >= path.poses.size()) {
-        index_cache = Pure_Persuit_Node::init_position_index_cache(path);
-    }
+    static size_t prev_index_cache = Pure_Persuit_Node::init_position_index_cache(); 
 
     bool found_local_minimum = false;
 
     //use the prev_index_cache to find current distance prev_distance from point
-    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[index_cache].pose);
-    size_t prev_index = index_cache;
+    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[prev_index_cache].pose);
+    size_t prev_index = prev_index_cache;
 
-    for (size_t i = index_cache + 1; i < path.poses.size(); i++) {
+    for (size_t i = prev_index_cache + 1; i < current_global_path.poses.size(); i++) {
 
-        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[i].pose);
+        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
         if (current_distance <= prev_distance) {
 
             prev_index = i;
@@ -264,11 +238,11 @@ size_t Pure_Persuit_Node::find_current_position_index(
 
     }
 
-    if (allow_wraparound && !found_local_minimum) {
+    if (!found_local_minimum) {
 
-        for (size_t i = 0; i < index_cache; i++) {
+        for (size_t i = 0; i < prev_index_cache; i++) {
 
-            double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[i].pose);
+            double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
             if (current_distance <= prev_distance) {
 
                 prev_index = i;
@@ -296,61 +270,46 @@ size_t Pure_Persuit_Node::find_current_position_index(
 
     }
 
-    index_cache = prev_index;
-    return index_cache;
+    prev_index_cache = prev_index;
+    return prev_index_cache;
     
 }
 
 // finding lookahead distance from current vehicle position
 // interpolates between the bracketing waypoints so the returned point lies
 // precisely on the lookahead circumference (prevents jitter)
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_point(
-    const nav_msgs::msg::Path &path,
-    size_t current_vehicle_index,
-    bool allow_wraparound) {
-
-    if (path.poses.empty()) {
-        return std::nullopt;
-    }
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(size_t current_vehicle_index) {
 
     const double ref_x = current_pose.pose.pose.position.x;
     const double ref_y = current_pose.pose.pose.position.y;
-    const size_t n = path.poses.size();
-
-    if (current_vehicle_index >= n) {
-        current_vehicle_index = n - 1;
-    }
+    const size_t n = current_global_path.poses.size();
 
     // case 1 : from current point to end of vector
     for (size_t i = current_vehicle_index + 1 ; i < n; i ++) {
 
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[i].pose);
+        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
 
         if (distance >= look_ahead_distance) {
 
-            const auto &prev_pt = path.poses[i - 1].pose.position;
-            const auto &curr_pt = path.poses[i].pose.position;
+            const auto &prev_pt = current_global_path.poses[i - 1].pose.position;
+            const auto &curr_pt = current_global_path.poses[i].pose.position;
             return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
 
         }
 
     }
 
-    if (!allow_wraparound) {
-        return path.poses.back().pose.position;
-    }
-
-    //case 2 : loop back from start to current as this represents a closed loop
+    //case 2 : loop back from start to current as this represetns a closed loop
     for (size_t i = 0; i < current_vehicle_index; i++) {
 
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[i].pose);
+        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
 
         if (distance >= look_ahead_distance) {
 
             // at the wrap boundary the previous waypoint is the last one in the path
             size_t prev_idx = (i == 0) ? (n - 1) : (i - 1);
-            const auto &prev_pt = path.poses[prev_idx].pose.position;
-            const auto &curr_pt = path.poses[i].pose.position;
+            const auto &prev_pt = current_global_path.poses[prev_idx].pose.position;
+            const auto &curr_pt = current_global_path.poses[i].pose.position;
             return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
 
         }
@@ -421,11 +380,7 @@ geometry_msgs::msg::Point Pure_Persuit_Node::interpolate_lookahead_point(
 }
 
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::convert_to_local_frame(
-    const geometry_msgs::msg::Point &point) {
-
-    if (global_frame_id.empty() || global_frame_id == local_frame_id) {
-        return point;
-    }
+    const geometry_msgs::msg::Point &global_point) {
 
     geometry_msgs::msg::TransformStamped t;
 
@@ -436,13 +391,13 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::convert_to_local_fra
     } catch (const tf2::TransformException & ex) {
 
         RCLCPP_INFO(
-            this->get_logger(), "Could not transform point from %s to %s: %s",
-            global_frame_id.c_str(), local_frame_id.c_str(), ex.what());
+            this->get_logger(), "Could not transform %s to %s: %s",
+            local_frame_id.c_str(), global_frame_id.c_str(), ex.what());
         return std::nullopt;
 
     }
 
-    return Pure_Persuit_Node::transfrom_point_(point,t.transform);
+    return Pure_Persuit_Node::transfrom_point_(global_point,t.transform);
 
 }
 
@@ -464,14 +419,49 @@ geometry_msgs::msg::Point Pure_Persuit_Node::transfrom_point_(
 }
 
 /*
-assumption for this one  :
-- the local planner publishes the local path in map frame, matching the global
-  planner waypoint convention
+assumption for this one  : 
+- the local planner always gives all the cordinates in base_link frame
+- the start of the local planning array will always be 0,0 so you just need to traverse up 
+  to find the look ahead distance point
+- the z value of the point encodes the velocity at the desired point
 */
+// local path is in base_link, so the vehicle reference is the origin.
+// Interpolates between bracketing waypoints so the target rides on the lookahead circle.
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
 
-    return Pure_Persuit_Node::get_waypoint_from_path(
-        current_local_path, local_path_index_cache, false, "local path");
+    if (current_local_path.poses.empty()) {
+
+        RCLCPP_WARN(this->get_logger(), "no waypoints in local path while in LOCAL_FOLLOW state");
+        return std::nullopt;
+
+    }
+
+    // i know it inits to zero, but just to be safe
+    geometry_msgs::msg::Pose origin;
+
+    for (size_t i = 0; i < current_local_path.poses.size(); i++) {
+
+        const auto &point = current_local_path.poses[i];
+        double distance = Pure_Persuit_Node::find_distance(origin, point.pose);
+
+        if (distance >= look_ahead_distance) {
+
+            // if the very first point is already past the lookahead there's no
+            // inner point to bracket against — just use it directly
+            if (i == 0) {
+                return point.pose.position;
+            }
+
+            const auto &prev_pt = current_local_path.poses[i - 1].pose.position;
+            const auto &curr_pt = point.pose.position;
+            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, 0.0, 0.0, look_ahead_distance);
+
+        }
+
+    }
+
+    // Fallback: path shorter than lookahead — use last point
+    return current_local_path.poses.back().pose.position;
 
 }
 
@@ -567,18 +557,14 @@ void Pure_Persuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_p
 
 }
 
-size_t Pure_Persuit_Node::init_position_index_cache(const nav_msgs::msg::Path &path) {
-
-    if (path.poses.empty()) {
-        return 0;
-    }
+size_t Pure_Persuit_Node::init_position_index_cache() {
 
     size_t last_index = 0;
-    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[last_index].pose);
+    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[last_index].pose);
 
-    for (size_t i = 1; i < path.poses.size(); i++) {
+    for (size_t i = 1; i < current_global_path.poses.size(); i++) {
 
-        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, path.poses[i].pose);
+        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
         if (current_distance < prev_distance) {
             prev_distance = current_distance;
             last_index = i;
@@ -603,9 +589,8 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("ackermann_control_topic","/drive/autonomy");
     this->declare_parameter<std::string>("odom_topic","/odom");
 
-    this->declare_parameter<bool>("overtake_enable",true);
-    this->declare_parameter<bool>("force_dead_man_active",true);
-    this->declare_parameter<bool>("force_local_follow",true);
+    this->declare_parameter<bool>("overtake_enable",false);
+    this->declare_parameter<bool>("force_dead_man_active",false);
 
     this->declare_parameter<bool>("speed_limit_active", true);
     this->declare_parameter<double>("speed_limit", 10.0);
@@ -637,7 +622,6 @@ void Pure_Persuit_Node::init_parameters () {
 
     overtaking_enable = this->get_parameter("overtake_enable").as_bool();
     force_dead_man_active = this->get_parameter("force_dead_man_active").as_bool();
-    force_local_follow = this->get_parameter("force_local_follow").as_bool();
 
     speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
     speed_limit = this->get_parameter("speed_limit").as_double();
@@ -654,13 +638,11 @@ void Pure_Persuit_Node::init_parameters () {
     enable_debug_vis = this->get_parameter("enable_debug_vis").as_bool();
 
     //initalize state and internal variables
-    dead_man_active.data = force_dead_man_active;
-    overtake_active.data = force_local_follow;
+    dead_man_active.data = false;
+    overtake_active.data = false;
 
     controller_state = state_::INACTIVE;
     look_ahead_distance = 0.5;
-    global_path_index_cache = 0;
-    local_path_index_cache = 0;
 
 
 }

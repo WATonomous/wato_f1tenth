@@ -59,6 +59,7 @@ ament_target_dependencies(hybrid_astar_planner_node
   geometry_msgs
   visualization_msgs
   tf2
+  tf2_ros
   tf2_geometry_msgs
 )
 rosidl_get_typesupport_target(planner_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)

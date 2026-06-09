@@ -10,7 +10,6 @@ pure_persuit_node:
     odom_topic: "/odom"
     overtake_enable: true
     force_dead_man_active: true
-    force_local_follow: true
     speed_limit_active: true
     speed_limit: 10.0
     max_steering_angle: 0.52

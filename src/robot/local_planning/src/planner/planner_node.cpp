@@ -2,6 +2,9 @@
 
 #include "planning/planner/local_frenet_lattice_planner.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/exceptions.h>
+#include <tf2/time.h>
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -95,6 +98,9 @@ PlannerNode::PlannerNode()
   this->declare_parameter<double>("merge_d_weight", 0.20);
   this->declare_parameter<double>("merge_terminal_d_weight", 0.0);
   this->declare_parameter<double>("planner_runtime_budget_ms", 100.0);
+  this->declare_parameter<std::string>("planner_path_frame", "map");
+  this->declare_parameter<std::string>("controller_path_frame", "base_link");
+  this->declare_parameter<std::string>("debug_path_topic", "/local_path_map");
 
   racing_line_file_ = this->get_parameter("racing_line_file").as_string();
   switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
@@ -147,6 +153,9 @@ PlannerNode::PlannerNode()
     this->get_parameter("merge_terminal_d_weight").as_double();
   planner_runtime_budget_ms_ = std::max(
     kMinimumPlannerBudgetMs, this->get_parameter("planner_runtime_budget_ms").as_double());
+  planner_path_frame_ = this->get_parameter("planner_path_frame").as_string();
+  controller_path_frame_ = this->get_parameter("controller_path_frame").as_string();
+  debug_path_topic_ = this->get_parameter("debug_path_topic").as_string();
 
   const double max_search_budget_ms = std::max(
     kMinimumPlannerBudgetMs, planner_runtime_budget_ms_ - kSearchBudgetReserveMs);
@@ -162,6 +171,10 @@ PlannerNode::PlannerNode()
   planner_ = std::make_unique<LocalFrenetLatticePlanner>();
   planner_->setConfig(planner_config_);
 
+  // tf2
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
   // subscribers
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
     "/odom", 10,
@@ -173,6 +186,7 @@ PlannerNode::PlannerNode()
 
   // publishers
   path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/path", 10);
+  debug_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(debug_path_topic_, 10);
   viz_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     "/local_frenet_lattice_viz", 10);
 
@@ -366,7 +380,7 @@ try
     return;
   }
 
-  result->path = pathToRosPath(plan.path);
+  const nav_msgs::msg::Path planner_path = pathToRosPath(plan.path, planner_path_frame_);
 
   const bool stale_plan = sequence != latest_plan_sequence_.load();
   const bool over_budget = action_budget_expired();
@@ -385,6 +399,7 @@ try
       this->get_logger(), *this->get_clock(), 2000,
       "Planner returned empty path");
     result->success = false;
+    result->path = pathToRosPath(plan.path, controller_path_frame_);
     std::lock_guard<std::mutex> lock(publish_mutex_);
     const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
       goal_handle->is_canceling();
@@ -398,6 +413,7 @@ try
     }
 
     path_pub_->publish(result->path);
+    debug_path_pub_->publish(planner_path);
     if (has_budget_for_viz()) {
       publishPlannerViz(plan);
     }
@@ -405,6 +421,15 @@ try
     return;
   }
 
+  nav_msgs::msg::Path controller_path;
+  if (!transformPathToControllerFrame(planner_path, controller_path)) {
+    result->success = false;
+    result->path = pathToRosPath({}, controller_path_frame_);
+    finish_succeeded(result);
+    return;
+  }
+
+  result->path = controller_path;
   result->success = true;
 
   std::lock_guard<std::mutex> lock(publish_mutex_);
@@ -425,6 +450,7 @@ try
   }
 
   path_pub_->publish(result->path);
+  debug_path_pub_->publish(planner_path);
 
   if (has_budget_for_viz()) {
     publishPlannerViz(plan);
@@ -633,10 +659,10 @@ void PlannerNode::buildClearanceMasks(local_planning::OccupancyGrid & grid) cons
 }
 
 nav_msgs::msg::Path PlannerNode::pathToRosPath(
-  const std::vector<local_planning::Point> & path)
+  const std::vector<local_planning::Point> & path, const std::string & frame_id)
 {
   nav_msgs::msg::Path ros_path;
-  ros_path.header.frame_id = "map";
+  ros_path.header.frame_id = frame_id;
   ros_path.header.stamp = this->now();
 
   for (const auto & p : path) {
@@ -649,6 +675,66 @@ nav_msgs::msg::Path PlannerNode::pathToRosPath(
     ros_path.poses.push_back(pose);
   }
   return ros_path;
+}
+
+bool PlannerNode::transformPathToControllerFrame(
+  const nav_msgs::msg::Path & planner_path, nav_msgs::msg::Path & controller_path)
+{
+  controller_path = planner_path;
+  controller_path.header.frame_id = controller_path_frame_;
+
+  if (planner_path.header.frame_id == controller_path_frame_) {
+    for (auto & pose : controller_path.poses) {
+      pose.header = controller_path.header;
+    }
+    return true;
+  }
+
+  geometry_msgs::msg::TransformStamped transform;
+  try {
+    transform = tf_buffer_->lookupTransform(
+      controller_path_frame_, planner_path.header.frame_id,
+      rclcpp::Time(planner_path.header.stamp), tf2::durationFromSec(0.1));
+  } catch (const tf2::TransformException & stamped_ex) {
+    try {
+      transform = tf_buffer_->lookupTransform(
+        controller_path_frame_, planner_path.header.frame_id,
+        tf2::TimePointZero, tf2::durationFromSec(0.1));
+    } catch (const tf2::TransformException & latest_ex) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "Cannot transform local path from '%s' to '%s': %s; latest TF fallback also failed: %s",
+        planner_path.header.frame_id.c_str(), controller_path_frame_.c_str(),
+        stamped_ex.what(), latest_ex.what());
+      return false;
+    }
+  }
+
+  tf2::Transform planner_to_controller;
+  tf2::fromMsg(transform.transform, planner_to_controller);
+
+  for (size_t i = 0; i < planner_path.poses.size(); ++i) {
+    const auto & planner_pose = planner_path.poses[i];
+    auto & controller_pose = controller_path.poses[i];
+    const double velocity = planner_pose.pose.position.z;
+
+    const tf2::Vector3 planner_point(
+      planner_pose.pose.position.x,
+      planner_pose.pose.position.y,
+      0.0);
+    const tf2::Vector3 controller_point = planner_to_controller * planner_point;
+
+    controller_pose.header = controller_path.header;
+    controller_pose.pose.position.x = controller_point.x();
+    controller_pose.pose.position.y = controller_point.y();
+    controller_pose.pose.position.z = velocity;
+    controller_pose.pose.orientation.x = 0.0;
+    controller_pose.pose.orientation.y = 0.0;
+    controller_pose.pose.orientation.z = 0.0;
+    controller_pose.pose.orientation.w = 1.0;
+  }
+
+  return true;
 }
 
 } // namespace local_planning
