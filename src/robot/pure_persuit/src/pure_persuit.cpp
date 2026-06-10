@@ -281,21 +281,27 @@ size_t Pure_Persuit_Node::find_current_position_index() {
 // finding lookahead distance from current vehicle position
 // interpolates between the bracketing waypoints so the returned point lies
 // precisely on the lookahead circumference (prevents jitter)
+// TODO : change from the eucledian distance to calculating the actual arc lenght, this could possibly 
+// fix the issue with the point jumping wierdly during cornering.
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(size_t current_vehicle_index, double current_lookahead) {
 
     const double ref_x = current_pose.pose.pose.position.x;
     const double ref_y = current_pose.pose.pose.position.y;
     const size_t n = current_global_path.poses.size();
+    double distance = 0;
 
     // case 1 : from current point to end of vector
     for (size_t i = current_vehicle_index + 1 ; i < n; i ++) {
 
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        size_t prev_idx = i - 1;
+        size_t current_idx= i;
+
+        distance += Pure_Persuit_Node::find_distance(current_global_path.poses[prev_idx].pose, current_global_path.poses[current_idx].pose);
 
         if (distance >= current_lookahead) {
 
-            const auto &prev_pt = current_global_path.poses[i - 1].pose.position;
-            const auto &curr_pt = current_global_path.poses[i].pose.position;
+            const auto &prev_pt = current_global_path.poses[prev_idx].pose.position;
+            const auto &curr_pt = current_global_path.poses[current_idx].pose.position;
             return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, current_lookahead);
 
         }
@@ -305,14 +311,16 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
     //case 2 : loop back from start to current as this represetns a closed loop
     for (size_t i = 0; i < current_vehicle_index; i++) {
 
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        // at the wrap boundary the previous waypoint is the last one in the path
+        size_t prev_idx = (i == 0) ? (n - 1) : (i - 1);
+        size_t current_idx= i;
+
+        distance += Pure_Persuit_Node::find_distance(current_global_path.poses[i-1].pose, current_global_path.poses[i].pose);
 
         if (distance >= current_lookahead) {
 
-            // at the wrap boundary the previous waypoint is the last one in the path
-            size_t prev_idx = (i == 0) ? (n - 1) : (i - 1);
             const auto &prev_pt = current_global_path.poses[prev_idx].pose.position;
-            const auto &curr_pt = current_global_path.poses[i].pose.position;
+            const auto &curr_pt = current_global_path.poses[current_idx].pose.position;
             return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, current_lookahead);
 
         }
@@ -429,6 +437,7 @@ assumption for this one  :
 */
 // local path is in base_link, so the vehicle reference is the origin.
 // Interpolates between bracketing waypoints so the target rides on the lookahead circle.
+
 std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
 
     if (current_local_path.poses.empty()) {
@@ -439,24 +448,23 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
     }
 
     // i know it inits to zero, but just to be safe
-    geometry_msgs::msg::Pose origin;
+    double distance = Pure_Persuit_Node::find_distance(geometry_msgs::msg::Pose(),current_local_path.poses[0].pose);
 
-    for (size_t i = 0; i < current_local_path.poses.size(); i++) {
+    for (size_t i = 1; i < current_local_path.poses.size(); i++) {
 
-        const auto &point = current_local_path.poses[i];
-        double distance = Pure_Persuit_Node::find_distance(origin, point.pose);
+        auto current_point = current_local_path.poses[i].pose;
+        auto prev_point = current_local_path.poses[i-1].pose;
+        distance += Pure_Persuit_Node::find_distance(prev_point,current_point);
 
         if (distance >= look_ahead_distance) {
 
             // if the very first point is already past the lookahead there's no
             // inner point to bracket against — just use it directly
             if (i == 0) {
-                return point.pose.position;
+                return current_point.position;
             }
 
-            const auto &prev_pt = current_local_path.poses[i - 1].pose.position;
-            const auto &curr_pt = point.pose.position;
-            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, 0.0, 0.0, look_ahead_distance);
+            return Pure_Persuit_Node::interpolate_lookahead_point(prev_point.position,current_point.position, 0.0, 0.0, look_ahead_distance);
 
         }
 
@@ -533,7 +541,7 @@ void Pure_Persuit_Node::update_lookahead_distance() {
 
 void Pure_Persuit_Node::update_velocity_lookahead() {
 
-    static const double delta_t = (1000/controller_rate) / 1000 ;
+    static const double delta_t = (1000.0/controller_rate) / 1000.0 ;
     velocity_lookahead = current_velocity * delta_t;
 
 }
