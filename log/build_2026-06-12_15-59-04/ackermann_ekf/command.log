@@ -1,3 +1,0 @@
-Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_ekf -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_ekf
-Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_ekf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_ekf -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_ekf
-Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_ekf -- -j22 -l22

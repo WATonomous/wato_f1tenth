@@ -1,2 +1,0 @@
-drivers::udp_driver::UdpReceiverNode;lib/libudp_driver_nodes.so
-drivers::udp_driver::UdpSenderNode;lib/libudp_driver_nodes.so

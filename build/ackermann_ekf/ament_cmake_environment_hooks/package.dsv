@@ -1,4 +1,0 @@
-source;share/ackermann_ekf/local_setup.bash
-source;share/ackermann_ekf/local_setup.dsv
-source;share/ackermann_ekf/local_setup.sh
-source;share/ackermann_ekf/local_setup.zsh

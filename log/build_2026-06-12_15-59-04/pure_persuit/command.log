@@ -1,3 +1,0 @@
-Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/pure-persuit -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/pure_persuit
-Invoked command in '/home/rraina/wato_f1tenth/build/pure_persuit' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/pure-persuit -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/pure_persuit
-Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/pure_persuit -- -j22 -l22

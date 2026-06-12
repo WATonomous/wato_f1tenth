@@ -1,6 +1,0 @@
-Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/global_planner -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/global_planner
-Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/global_planner -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/global_planner
-Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/global_planner -- -j22 -l22
-Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/global_planner -- -j22 -l22
-Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/global_planner
-Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/global_planner

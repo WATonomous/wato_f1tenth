@@ -1,8 +1,0 @@
-setup.py
-local_planning/__init__.py
-local_planning.egg-info/PKG-INFO
-local_planning.egg-info/SOURCES.txt
-local_planning.egg-info/dependency_links.txt
-local_planning.egg-info/top_level.txt
-local_planning/action/__init__.py
-local_planning/action/_plan_path.py

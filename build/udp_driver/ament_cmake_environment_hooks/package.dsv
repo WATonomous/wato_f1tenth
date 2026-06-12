@@ -1,4 +1,0 @@
-source;share/udp_driver/local_setup.bash
-source;share/udp_driver/local_setup.dsv
-source;share/udp_driver/local_setup.sh
-source;share/udp_driver/local_setup.zsh

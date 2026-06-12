@@ -1,6 +1,0 @@
-Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/costmap -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/costmap
-Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/costmap -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/costmap
-Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
-Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
-Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/costmap
-Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/costmap
