@@ -1,0 +1,65 @@
+// generated from rosidl_typesupport_fastrtps_c/resource/idl__rosidl_typesupport_fastrtps_c.h.em
+// with input from sample_msgs:msg/Unfiltered.idl
+// generated code does not contain a copyright notice
+#ifndef SAMPLE_MSGS__MSG__DETAIL__UNFILTERED__ROSIDL_TYPESUPPORT_FASTRTPS_C_H_
+#define SAMPLE_MSGS__MSG__DETAIL__UNFILTERED__ROSIDL_TYPESUPPORT_FASTRTPS_C_H_
+
+
+#include <stddef.h>
+#include "rosidl_runtime_c/message_type_support_struct.h"
+#include "rosidl_typesupport_interface/macros.h"
+#include "sample_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h"
+#include "sample_msgs/msg/detail/unfiltered__struct.h"
+#include "fastcdr/Cdr.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+bool cdr_serialize_sample_msgs__msg__Unfiltered(
+  const sample_msgs__msg__Unfiltered * ros_message,
+  eprosima::fastcdr::Cdr & cdr);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+bool cdr_deserialize_sample_msgs__msg__Unfiltered(
+  eprosima::fastcdr::Cdr &,
+  sample_msgs__msg__Unfiltered * ros_message);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+size_t get_serialized_size_sample_msgs__msg__Unfiltered(
+  const void * untyped_ros_message,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+size_t max_serialized_size_sample_msgs__msg__Unfiltered(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+bool cdr_serialize_key_sample_msgs__msg__Unfiltered(
+  const sample_msgs__msg__Unfiltered * ros_message,
+  eprosima::fastcdr::Cdr & cdr);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+size_t get_serialized_size_key_sample_msgs__msg__Unfiltered(
+  const void * untyped_ros_message,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+size_t max_serialized_size_key_sample_msgs__msg__Unfiltered(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_sample_msgs
+const rosidl_message_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, sample_msgs, msg, Unfiltered)();
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // SAMPLE_MSGS__MSG__DETAIL__UNFILTERED__ROSIDL_TYPESUPPORT_FASTRTPS_C_H_

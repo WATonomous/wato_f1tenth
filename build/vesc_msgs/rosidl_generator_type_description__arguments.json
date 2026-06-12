@@ -1,0 +1,15 @@
+{
+  "package_name": "vesc_msgs",
+  "output_dir": "/home/rraina/wato_f1tenth/build/vesc_msgs/rosidl_generator_type_description/vesc_msgs",
+  "idl_tuples": [
+    "/home/rraina/wato_f1tenth/build/vesc_msgs/rosidl_adapter/vesc_msgs:msg/VescState.idl",
+    "/home/rraina/wato_f1tenth/build/vesc_msgs/rosidl_adapter/vesc_msgs:msg/VescStateStamped.idl",
+    "/home/rraina/wato_f1tenth/build/vesc_msgs/rosidl_adapter/vesc_msgs:msg/VescImu.idl",
+    "/home/rraina/wato_f1tenth/build/vesc_msgs/rosidl_adapter/vesc_msgs:msg/VescImuStamped.idl"
+  ],
+  "include_paths": [
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces",
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "geometry_msgs:/opt/ros/jazzy/share/geometry_msgs"
+  ]
+}

@@ -1,0 +1,46 @@
+[0.051s] Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_ekf -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_ekf
+[0.536s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[0.537s] -- Found rclcpp: 28.1.16 (/opt/ros/jazzy/share/rclcpp/cmake)
+[0.583s] -- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[0.583s] -- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[0.584s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.604s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.716s] -- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+[0.720s] -- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+[1.119s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[1.413s] -- Found std_msgs: 5.3.6 (/opt/ros/jazzy/share/std_msgs/cmake)
+[1.432s] -- Found nav_msgs: 5.3.6 (/opt/ros/jazzy/share/nav_msgs/cmake)
+[1.485s] -- Found sensor_msgs: 5.3.6 (/opt/ros/jazzy/share/sensor_msgs/cmake)
+[1.513s] -- Found tf2_ros: 0.36.19 (/opt/ros/jazzy/share/tf2_ros/cmake)
+[1.695s] -- Found tf2_geometry_msgs: 0.36.19 (/opt/ros/jazzy/share/tf2_geometry_msgs/cmake)
+[1.704s] -- Found eigen3_cmake_module: 0.3.0 (/opt/ros/jazzy/share/eigen3_cmake_module/cmake)
+[1.706s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[1.709s] -- Found ackermann_msgs: 2.0.2 (/opt/ros/jazzy/share/ackermann_msgs/cmake)
+[1.863s] -- Configuring done (1.8s)
+[1.913s] -- Generating done (0.0s)
+[1.951s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/ackermann_ekf
+[1.955s] Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_ekf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_ekf -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_ekf
+[1.956s] Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_ekf -- -j22 -l22
+[2.040s] [ 50%] Built target ekf
+[2.041s] [100%] Built target ekf_node
+[2.058s] Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_ekf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_ekf -- -j22 -l22
+[2.060s] Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/ackermann_ekf
+[2.067s] -- Install configuration: ""
+[2.069s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/lib/ackermann_ekf/ekf_node
+[2.071s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/lib/ackermann_ekf/ekf
+[2.071s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ament_index/resource_index/package_run_dependencies/ackermann_ekf
+[2.072s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ament_index/resource_index/parent_prefix_path/ackermann_ekf
+[2.072s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/environment/ament_prefix_path.sh
+[2.072s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/environment/ament_prefix_path.dsv
+[2.072s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/environment/path.sh
+[2.073s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/environment/path.dsv
+[2.073s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/local_setup.bash
+[2.074s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/local_setup.sh
+[2.074s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/local_setup.zsh
+[2.074s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/local_setup.dsv
+[2.076s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/package.dsv
+[2.076s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ament_index/resource_index/packages/ackermann_ekf
+[2.078s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/cmake/ackermann_ekfConfig.cmake
+[2.079s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/cmake/ackermann_ekfConfig-version.cmake
+[2.079s] -- Up-to-date: /home/rraina/wato_f1tenth/install/ackermann_ekf/share/ackermann_ekf/package.xml
+[2.084s] Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_ekf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/ackermann_ekf

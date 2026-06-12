@@ -1,0 +1,32 @@
+[0.283s] Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/foxglove_msgs
+[0.527s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[0.528s] -- Found std_msgs: 5.3.6 (/opt/ros/jazzy/share/std_msgs/cmake)
+[0.773s] -- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[0.784s] -- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[0.800s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.819s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.858s] -- Found nav_msgs: 5.3.6 (/opt/ros/jazzy/share/nav_msgs/cmake)
+[1.022s] -- Configuring done (0.7s)
+[1.035s] -- Generating done (0.0s)
+[1.039s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/foxglove_msgs
+[1.046s] Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/foxglove_msgs
+[1.047s] Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/foxglove_msgs -- -j22 -l22
+[1.101s] Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/foxglove_msgs -- -j22 -l22
+[1.103s] Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/foxglove_msgs
+[1.115s] -- Install configuration: ""
+[1.116s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/ament_index/resource_index/package_run_dependencies/foxglove_msgs
+[1.116s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/ament_index/resource_index/parent_prefix_path/foxglove_msgs
+[1.116s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/ament_prefix_path.sh
+[1.116s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/ament_prefix_path.dsv
+[1.117s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/path.sh
+[1.117s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/path.dsv
+[1.117s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.bash
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.sh
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.zsh
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.dsv
+[1.118s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.dsv
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/ament_index/resource_index/packages/foxglove_msgs
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/cmake/foxglove_msgsConfig.cmake
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/cmake/foxglove_msgsConfig-version.cmake
+[1.118s] -- Up-to-date: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.xml
+[1.120s] Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/foxglove_msgs

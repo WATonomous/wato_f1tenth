@@ -1,0 +1,22 @@
+[0.916s] Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/pure_persuit -- -j22 -l22
+[1.399s] [100%] Built target pure_persuit_node
+[1.468s] Invoked command in '/home/rraina/wato_f1tenth/build/pure_persuit' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/pure_persuit -- -j22 -l22
+[1.470s] Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/pure_persuit
+[1.565s] -- Install configuration: ""
+[1.565s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/lib/pure_persuit/pure_persuit_node
+[1.566s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/ament_index/resource_index/package_run_dependencies/pure_persuit
+[1.567s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/ament_index/resource_index/parent_prefix_path/pure_persuit
+[1.567s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/ament_prefix_path.sh
+[1.567s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/ament_prefix_path.dsv
+[1.567s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/path.sh
+[1.567s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/path.dsv
+[1.568s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.bash
+[1.569s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.sh
+[1.569s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.zsh
+[1.571s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.dsv
+[1.572s] -- Installing: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.dsv
+[1.573s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/ament_index/resource_index/packages/pure_persuit
+[1.573s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/cmake/pure_persuitConfig.cmake
+[1.573s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/cmake/pure_persuitConfig-version.cmake
+[1.574s] -- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.xml
+[1.608s] Invoked command in '/home/rraina/wato_f1tenth/build/pure_persuit' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/pure_persuit

@@ -152,11 +152,13 @@ void Pure_Persuit_Node::update_controller_state () {
 
     if (overtaking_enable) {
 
-        if (overtake_active.data && controller_state == state_::GLOBAL_FOLLOW) {
+        const bool overtake_ready = force_overtake_ready || overtake_active.data;
+
+        if (overtake_ready && controller_state == state_::GLOBAL_FOLLOW) {
 
             controller_state = state_::LOCAL_FOLLOW;
 
-        } else if (!overtake_active.data && controller_state == state_::LOCAL_FOLLOW) {
+        } else if (!overtake_ready && controller_state == state_::LOCAL_FOLLOW) {
 
             controller_state = state_::GLOBAL_FOLLOW;
 
@@ -489,6 +491,7 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("odom_topic","/pf/pose/odom");
 
     this->declare_parameter<bool>("overtake_enable",false);
+    this->declare_parameter<bool>("force_overtake_ready",false);
 
     this->declare_parameter<bool>("speed_limit_active", true);
     this->declare_parameter<double>("speed_limit", 3.0);
@@ -516,7 +519,8 @@ void Pure_Persuit_Node::init_parameters () {
     ackermann_control_topic = this->get_parameter("ackermann_control_topic").as_string();
     odom_topic = this->get_parameter("odom_topic").as_string();
 
-    overtaking_enable = this->get_parameter("overtake_enable").as_bool();
+    force_overtake_ready = this->get_parameter("force_overtake_ready").as_bool();
+    overtaking_enable = this->get_parameter("overtake_enable").as_bool() || force_overtake_ready;
 
     speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
     speed_limit = this->get_parameter("speed_limit").as_double();
@@ -533,7 +537,7 @@ void Pure_Persuit_Node::init_parameters () {
 
     //initalize state and internal variables
     dead_man_active.data = false;
-    overtake_active.data = false;
+    overtake_active.data = force_overtake_ready;
 
     controller_state = state_::INACTIVE;
     look_ahead_distance = 0.5;

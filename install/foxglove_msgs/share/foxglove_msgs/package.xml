@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>foxglove_msgs</name>
+  <version>0.0.0</version>
+  <description>Add any message packages here that you would like foxglove to have access to</description>
+
+  <maintainer email="v3jayaku@watonomous.ca">Vishal Jayakumar</maintainer>
+  <license>Apache2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>std_msgs</depend>
+  <depend>ackermann_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

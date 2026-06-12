@@ -1,0 +1,63 @@
+-- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/rraina/wato_f1tenth/build/bringup_robot
+-- Install configuration: ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/jetson_pf.launch.py
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/jetson_mapping.launch.py
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/jetson_up.launch.py
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/joypad.launch.py
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/car_up.launch.py
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/__pycache__
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/__pycache__/jetson_up.launch.cpython-312.pyc
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/__pycache__/pure_persuit.launch.cpython-312.pyc
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/__pycache__/jetson_pf.launch.cpython-312.pyc
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/launch/pure_persuit.launch.py
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/maps
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/maps/wato1.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/maps/e7_fifth_v3.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/maps/e7_fifth_v3.pgm
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/maps/wato1.pgm
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/pure_persuit
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/pure_persuit/pure_persuit.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/sensors.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/joy_teleop.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/mux.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/rviz
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/rviz/localize.rviz
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/rviz/mapping.rviz
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/rviz/mylocalize.rviz
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/vesc.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/simulator
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/simulator/ekf.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/simulator/localize.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/simulator/perception.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/config/simulator/amcl.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/frames_2025-08-02_20.22.56.gv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/ekf_testdata_fast_lap
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/ekf_testdata_fast_lap/metadata.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/ekf_testdata_fast_lap/ekf_testdata_fast_lap_0.db3
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/frames_2025-08-02_20.22.27.pdf
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/frames_2025-08-02_20.22.56.pdf
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/frames_2025-08-02_20.22.27.gv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/ekf_testdata_steady_lap
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/ekf_testdata_steady_lap/ekf_testdata_steady_lap_0.db3
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/bags/ekf_testdata_steady_lap/metadata.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/ament_index/resource_index/package_run_dependencies/bringup_robot
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/ament_index/resource_index/parent_prefix_path/bringup_robot
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/environment/ament_prefix_path.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/environment/path.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/environment/path.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/local_setup.bash
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/local_setup.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/local_setup.zsh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/ament_index/resource_index/packages/bringup_robot
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/cmake/bringup_robotConfig.cmake
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/cmake/bringup_robotConfig-version.cmake
+-- Up-to-date: /home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.xml

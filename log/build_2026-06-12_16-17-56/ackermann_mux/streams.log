@@ -1,0 +1,39 @@
+[0.111s] Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_mux': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_mux -- -j22 -l22
+[1.008s] [100%] Built target ackermann_mux
+[1.047s] Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_mux' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_mux -- -j22 -l22
+[1.050s] Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_mux': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/ackermann_mux
+[1.139s] -- Install configuration: ""
+[1.139s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/lib/ackermann_mux/ackermann_mux
+[1.454s] -- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/ackermann_mux/lib/ackermann_mux/ackermann_mux" to ""
+[1.457s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/launch
+[1.458s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/launch/ackermann_mux_launch.py
+[1.459s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/config
+[1.460s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/config/ackermann_mux_locks.yaml
+[1.462s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/config/ackermann_mux_topics.yaml
+[1.463s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/config/joystick.yaml
+[1.464s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include
+[1.465s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux
+[1.465s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux/params_helpers.hpp
+[1.465s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux/ackermann_mux_diagnostics_status.hpp
+[1.467s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux/topic_handle.hpp
+[1.467s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux/ackermann_mux.hpp
+[1.467s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux/utils.hpp
+[1.468s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/include/ackermann_mux/ackermann_mux_diagnostics.hpp
+[1.471s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ament_index/resource_index/package_run_dependencies/ackermann_mux
+[1.471s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ament_index/resource_index/parent_prefix_path/ackermann_mux
+[1.472s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/environment/ament_prefix_path.sh
+[1.473s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/environment/ament_prefix_path.dsv
+[1.473s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/environment/path.sh
+[1.474s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/environment/path.dsv
+[1.475s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/local_setup.bash
+[1.476s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/local_setup.sh
+[1.477s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/local_setup.zsh
+[1.478s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/local_setup.dsv
+[1.478s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/package.dsv
+[1.478s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ament_index/resource_index/packages/ackermann_mux
+[1.479s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/cmake/ament_cmake_export_include_directories-extras.cmake
+[1.480s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/cmake/ament_cmake_export_dependencies-extras.cmake
+[1.480s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/cmake/ackermann_muxConfig.cmake
+[1.481s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/cmake/ackermann_muxConfig-version.cmake
+[1.482s] -- Installing: /home/rraina/wato_f1tenth/install/ackermann_mux/share/ackermann_mux/package.xml
+[1.530s] Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_mux' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/ackermann_mux

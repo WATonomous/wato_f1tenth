@@ -1,0 +1,50 @@
+-- Found ament_cmake_auto: 2.5.5 (/opt/ros/jazzy/share/ament_cmake_auto/cmake)
+-- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+-- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+In this package, headers install destination is set to `include` by ament_auto_package. It is recommended to install `include/vesc_ackermann` instead and will be the default behavior of ament_auto_package from ROS 2 Kilted Kaiju. On distributions before Kilted, ament_auto_package behaves the same way when you use USE_SCOPED_HEADER_INSTALL_DIR option.
+-- Configuring done (1.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/rraina/wato_f1tenth/build/vesc_ackermann
+[ 57%] Built target vesc_to_odom_node
+[ 57%] Built target ackermann_to_vesc_node
+[100%] Built target vesc_ackermann
+-- Install configuration: ""
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/lib/vesc_ackermann/ackermann_to_vesc_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/vesc_ackermann/lib/vesc_ackermann/ackermann_to_vesc_node" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/lib/vesc_ackermann/vesc_to_odom_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/vesc_ackermann/lib/vesc_ackermann/vesc_to_odom_node" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/include
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/include/vesc_ackermann
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/include/vesc_ackermann/vesc_to_odom.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/include/vesc_ackermann/ackermann_to_vesc.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/environment/library_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/environment/library_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/lib/libvesc_ackermann.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/vesc_ackermann/lib/libvesc_ackermann.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/launch
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/launch/vesc_to_odom_node.launch.xml
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/launch/ackermann_to_vesc_node.launch.xml
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/ament_index/resource_index/package_run_dependencies/vesc_ackermann
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/ament_index/resource_index/parent_prefix_path/vesc_ackermann
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/environment/ament_prefix_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/environment/ament_prefix_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/environment/path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/environment/path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/local_setup.bash
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/local_setup.sh
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/local_setup.zsh
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/package.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/ament_index/resource_index/packages/vesc_ackermann
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/ament_index/resource_index/rclcpp_components/vesc_ackermann
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/cmake/vesc_ackermannConfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/cmake/vesc_ackermannConfig-version.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/vesc_ackermann/share/vesc_ackermann/package.xml

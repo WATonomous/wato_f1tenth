@@ -1,0 +1,12 @@
+In this package, headers install destination is set to `include` by ament_auto_package. It is recommended to install `include/serial_driver` instead and will be the default behavior of ament_auto_package from ROS 2 Kilted Kaiju. On distributions before Kilted, ament_auto_package behaves the same way when you use USE_SCOPED_HEADER_INSTALL_DIR option.
+In file included from /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/converters.hpp:21,
+                 from /home/rraina/wato_f1tenth/src/robot/transport_drivers/serial_driver/include/serial_driver/serial_bridge_node.hpp:29,
+                 from /home/rraina/wato_f1tenth/src/robot/transport_drivers/serial_driver/src/serial_bridge_node.cpp:15:
+/home/rraina/wato_f1tenth/install/io_context/include/msg_converters/udp_msgs.hpp:20:10: fatal error: udp_msgs/msg/udp_packet.hpp: No such file or directory
+   20 | #include <udp_msgs/msg/udp_packet.hpp>
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+gmake[2]: *** [CMakeFiles/serial_driver_nodes.dir/build.make:76: CMakeFiles/serial_driver_nodes.dir/src/serial_bridge_node.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:167: CMakeFiles/serial_driver_nodes.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+gmake: *** [Makefile:146: all] Error 2

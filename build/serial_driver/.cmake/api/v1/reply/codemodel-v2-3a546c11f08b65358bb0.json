@@ -1,0 +1,97 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-82df325438c28c9131e7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "serial_driver",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "serial_bridge::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-serial_bridge-66d6df3aaa124f2f5eea.json",
+					"name" : "serial_bridge",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "serial_driver::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-serial_driver-5c9e0d3545fa59d3dfb3.json",
+					"name" : "serial_driver",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "serial_driver_nodes::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-serial_driver_nodes-c7174301eac5aa823d2a.json",
+					"name" : "serial_driver_nodes",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "serial_driver_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-serial_driver_uninstall-049a71e5b1a908d8f793.json",
+					"name" : "serial_driver_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-b79b37925785378ecfd1.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/rraina/wato_f1tenth/build/serial_driver",
+		"source" : "/home/rraina/wato_f1tenth/src/robot/transport_drivers/serial_driver"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

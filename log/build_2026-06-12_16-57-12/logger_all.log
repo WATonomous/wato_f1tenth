@@ -1,0 +1,806 @@
+[0.247s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--packages-select', 'gym_vis', 'costmap', 'local_planning', 'pure_persuit', 'bringup_robot', '--event-handlers', 'console_direct+']
+[0.247s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=22, event_handlers=['console_direct+'], ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=['gym_vis', 'costmap', 'local_planning', 'pure_persuit', 'bringup_robot'], packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, verb_parser=<colcon_defaults.argument_parser.defaults.DefaultArgumentsDecorator object at 0x74f882470500>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x74f882420ad0>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x74f882420ad0>>)
+[0.306s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.306s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.306s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.306s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.306s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.306s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.306s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/rraina/wato_f1tenth'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.337s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[0.337s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[0.337s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[0.337s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[0.337s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['ignore', 'ignore_ament_install']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'ignore'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'ignore_ament_install'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['colcon_pkg']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'colcon_pkg'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['colcon_meta']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'colcon_meta'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['ros']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'ros'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['cmake', 'python']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'cmake'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'python'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['python_setup_py']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'python_setup_py'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['ignore', 'ignore_ament_install']
+[0.338s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'ignore'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'ignore_ament_install'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['colcon_pkg']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'colcon_pkg'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['colcon_meta']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'colcon_meta'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['ros']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'ros'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['cmake', 'python']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'cmake'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'python'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['python_setup_py']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'python_setup_py'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['ignore', 'ignore_ament_install']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'ignore'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'ignore_ament_install'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['colcon_pkg']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'colcon_pkg'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['colcon_meta']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'colcon_meta'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['ros']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'ros'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['cmake', 'python']
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'cmake'
+[0.339s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'python'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['python_setup_py']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'python_setup_py'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['ignore', 'ignore_ament_install']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'ignore'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'ignore_ament_install'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['colcon_pkg']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'colcon_pkg'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['colcon_meta']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'colcon_meta'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['ros']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'ros'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['cmake', 'python']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'cmake'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'python'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['python_setup_py']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'python_setup_py'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['ignore', 'ignore_ament_install']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'ignore'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'ignore_ament_install'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['colcon_pkg']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'colcon_pkg'
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['colcon_meta']
+[0.340s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'colcon_meta'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['ros']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'ros'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['cmake', 'python']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'cmake'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'python'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['python_setup_py']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'python_setup_py'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['ignore', 'ignore_ament_install']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'ignore'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'ignore_ament_install'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['colcon_pkg']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'colcon_pkg'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['colcon_meta']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'colcon_meta'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['ros']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'ros'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['cmake', 'python']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'cmake'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'python'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['python_setup_py']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'python_setup_py'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['ignore', 'ignore_ament_install']
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'ignore'
+[0.341s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'ignore_ament_install'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['colcon_pkg']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'colcon_pkg'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['colcon_meta']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'colcon_meta'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['ros']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'ros'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['cmake', 'python']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'cmake'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'python'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['python_setup_py']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'python_setup_py'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['ignore', 'ignore_ament_install']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'ignore'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'ignore_ament_install'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['colcon_pkg']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'colcon_pkg'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['colcon_meta']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'colcon_meta'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['ros']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'ros'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['cmake', 'python']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'cmake'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'python'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['python_setup_py']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'python_setup_py'
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[0.342s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['ignore', 'ignore_ament_install']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'ignore'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'ignore_ament_install'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['colcon_pkg']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'colcon_pkg'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['colcon_meta']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'colcon_meta'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['ros']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'ros'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['cmake', 'python']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'cmake'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'python'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['python_setup_py']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'python_setup_py'
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[0.343s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['ignore', 'ignore_ament_install']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'ignore'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'ignore_ament_install'
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['colcon_pkg']
+[0.344s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'colcon_pkg'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['colcon_meta']
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'colcon_meta'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['ros']
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'ros'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['cmake', 'python']
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'cmake'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'python'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['python_setup_py']
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'python_setup_py'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['ignore', 'ignore_ament_install']
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'ignore'
+[0.345s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'ignore_ament_install'
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['colcon_pkg']
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'colcon_pkg'
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['colcon_meta']
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'colcon_meta'
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['ros']
+[0.346s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'ros'
+[0.349s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/ackermann_ekf' with type 'ros.ament_cmake' and name 'ackermann_ekf'
+[0.349s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['ignore', 'ignore_ament_install']
+[0.349s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'ignore'
+[0.349s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'ignore_ament_install'
+[0.349s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['colcon_pkg']
+[0.349s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'colcon_pkg'
+[0.349s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['colcon_meta']
+[0.350s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'colcon_meta'
+[0.350s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['ros']
+[0.350s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'ros'
+[0.351s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/ackermann_mux' with type 'ros.ament_cmake' and name 'ackermann_mux'
+[0.351s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['ignore', 'ignore_ament_install']
+[0.351s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'ignore'
+[0.351s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'ignore_ament_install'
+[0.351s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['colcon_pkg']
+[0.351s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'colcon_pkg'
+[0.351s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['colcon_meta']
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'colcon_meta'
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['ros']
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'ros'
+[0.352s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/action' with type 'ros.ament_python' and name 'action'
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['ignore', 'ignore_ament_install']
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'ignore'
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'ignore_ament_install'
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['colcon_pkg']
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'colcon_pkg'
+[0.352s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['colcon_meta']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'colcon_meta'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['ros']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'ros'
+[0.353s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/bringup_robot' with type 'ros.ament_cmake' and name 'bringup_robot'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['ignore', 'ignore_ament_install']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'ignore'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'ignore_ament_install'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['colcon_pkg']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'colcon_pkg'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['colcon_meta']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'colcon_meta'
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['ros']
+[0.353s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'ros'
+[0.354s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/costmap' with type 'ros.ament_cmake' and name 'costmap'
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['ignore', 'ignore_ament_install']
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'ignore'
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'ignore_ament_install'
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['colcon_pkg']
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'colcon_pkg'
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['colcon_meta']
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'colcon_meta'
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['ros']
+[0.354s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'ros'
+[0.355s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/global_planner' with type 'ros.ament_cmake' and name 'global_planner'
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['ignore', 'ignore_ament_install']
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'ignore'
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'ignore_ament_install'
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['colcon_pkg']
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'colcon_pkg'
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['colcon_meta']
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'colcon_meta'
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['ros']
+[0.355s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'ros'
+[0.356s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/gym_vis' with type 'ros.ament_cmake' and name 'gym_vis'
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['ignore', 'ignore_ament_install']
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'ignore'
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'ignore_ament_install'
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['colcon_pkg']
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'colcon_pkg'
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['colcon_meta']
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'colcon_meta'
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['ros']
+[0.356s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'ros'
+[0.357s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/local_planning' with type 'ros.ament_cmake' and name 'local_planning'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['ignore', 'ignore_ament_install']
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'ignore'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'ignore_ament_install'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['colcon_pkg']
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'colcon_pkg'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['colcon_meta']
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'colcon_meta'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['ros']
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'ros'
+[0.357s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/particle_filter' with type 'ros.ament_python' and name 'particle_filter'
+[0.357s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['ignore', 'ignore_ament_install']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'ignore'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'ignore_ament_install'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['colcon_pkg']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'colcon_pkg'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['colcon_meta']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'colcon_meta'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['ros']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'ros'
+[0.358s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/pure-persuit' with type 'ros.ament_cmake' and name 'pure_persuit'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['ignore', 'ignore_ament_install']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'ignore'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'ignore_ament_install'
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['colcon_pkg']
+[0.358s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'colcon_pkg'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['colcon_meta']
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'colcon_meta'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['ros']
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'ros'
+[0.359s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/safety_system' with type 'ros.ament_cmake' and name 'safety_node'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['ignore', 'ignore_ament_install']
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'ignore'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'ignore_ament_install'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['colcon_pkg']
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'colcon_pkg'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['colcon_meta']
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'colcon_meta'
+[0.359s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['ros']
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'ros'
+[0.360s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/teleop_utils' with type 'ros.ament_cmake' and name 'teleop_utils'
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['ignore', 'ignore_ament_install']
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'ignore'
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'ignore_ament_install'
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['colcon_pkg']
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'colcon_pkg'
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['colcon_meta']
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'colcon_meta'
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['ros']
+[0.360s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'ros'
+[0.361s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transform_broadcast' with type 'ros.ament_cmake' and name 'transform_broadcast'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['ignore', 'ignore_ament_install']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'ignore'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'ignore_ament_install'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['colcon_pkg']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'colcon_pkg'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['colcon_meta']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'colcon_meta'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['ros']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'ros'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['cmake', 'python']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'cmake'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'python'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['python_setup_py']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'python_setup_py'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['ignore', 'ignore_ament_install']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'ignore'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'ignore_ament_install'
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['colcon_pkg']
+[0.361s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'colcon_pkg'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['colcon_meta']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'colcon_meta'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['ros']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'ros'
+[0.362s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/asio_cmake_module' with type 'ros.ament_cmake' and name 'asio_cmake_module'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['ignore', 'ignore_ament_install']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'ignore'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'ignore_ament_install'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['colcon_pkg']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'colcon_pkg'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['colcon_meta']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'colcon_meta'
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['ros']
+[0.362s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'ros'
+[0.363s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/io_context' with type 'ros.ament_cmake' and name 'io_context'
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'ignore'
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'ignore_ament_install'
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['colcon_pkg']
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'colcon_pkg'
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['colcon_meta']
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'colcon_meta'
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['ros']
+[0.363s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'ros'
+[0.364s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/serial_driver' with type 'ros.ament_cmake' and name 'serial_driver'
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'ignore'
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'ignore_ament_install'
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['colcon_pkg']
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'colcon_pkg'
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['colcon_meta']
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'colcon_meta'
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['ros']
+[0.364s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'ros'
+[0.365s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/udp_driver' with type 'ros.ament_cmake' and name 'udp_driver'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['ignore', 'ignore_ament_install']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'ignore'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'ignore_ament_install'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['colcon_pkg']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'colcon_pkg'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['colcon_meta']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'colcon_meta'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['ros']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'ros'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['cmake', 'python']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'cmake'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'python'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['python_setup_py']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'python_setup_py'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['ignore', 'ignore_ament_install']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'ignore'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'ignore_ament_install'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['colcon_pkg']
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'colcon_pkg'
+[0.365s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['colcon_meta']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'colcon_meta'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['ros']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'ros'
+[0.366s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc' with type 'ros.ament_cmake' and name 'vesc'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['ignore', 'ignore_ament_install']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'ignore'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'ignore_ament_install'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['colcon_pkg']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'colcon_pkg'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['colcon_meta']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'colcon_meta'
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['ros']
+[0.366s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'ros'
+[0.367s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc_ackermann' with type 'ros.ament_cmake' and name 'vesc_ackermann'
+[0.367s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'ignore'
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'ignore_ament_install'
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['colcon_pkg']
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'colcon_pkg'
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['colcon_meta']
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'colcon_meta'
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['ros']
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'ros'
+[0.368s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc_driver' with type 'ros.ament_cmake' and name 'vesc_driver'
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'ignore'
+[0.368s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'ignore_ament_install'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['colcon_pkg']
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'colcon_pkg'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['colcon_meta']
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'colcon_meta'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['ros']
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'ros'
+[0.369s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc_msgs' with type 'ros.ament_cmake' and name 'vesc_msgs'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'ignore'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'ignore_ament_install'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['colcon_pkg']
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'colcon_pkg'
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['colcon_meta']
+[0.369s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'colcon_meta'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['ros']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'ros'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['cmake', 'python']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'cmake'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'python'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['python_setup_py']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'python_setup_py'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'ignore'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'ignore_ament_install'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['colcon_pkg']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'colcon_pkg'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['colcon_meta']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'colcon_meta'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['ros']
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'ros'
+[0.370s] DEBUG:colcon.colcon_core.package_identification:Package 'src/wato_msgs/foxglove_msgs' with type 'ros.ament_cmake' and name 'foxglove_msgs'
+[0.370s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'ignore'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'ignore_ament_install'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['colcon_pkg']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'colcon_pkg'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['colcon_meta']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'colcon_meta'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['ros']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'ros'
+[0.371s] DEBUG:colcon.colcon_core.package_identification:Package 'src/wato_msgs/sample_msgs' with type 'ros.ament_cmake' and name 'sample_msgs'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['ignore', 'ignore_ament_install']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'ignore'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'ignore_ament_install'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['colcon_pkg']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'colcon_pkg'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['colcon_meta']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'colcon_meta'
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['ros']
+[0.371s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'ros'
+[0.372s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['cmake', 'python']
+[0.372s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'cmake'
+[0.372s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'python'
+[0.372s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['python_setup_py']
+[0.372s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'python_setup_py'
+[0.372s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.372s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.372s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.372s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.372s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'ackermann_ekf' in 'src/robot/ackermann_ekf'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'ackermann_mux' in 'src/robot/ackermann_mux'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'action' in 'src/robot/action'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'asio_cmake_module' in 'src/robot/transport_drivers/asio_cmake_module'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'foxglove_msgs' in 'src/wato_msgs/foxglove_msgs'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'global_planner' in 'src/robot/global_planner'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'particle_filter' in 'src/robot/particle_filter'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'safety_node' in 'src/robot/safety_system'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'sample_msgs' in 'src/wato_msgs/sample_msgs'
+[0.399s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'teleop_utils' in 'src/robot/teleop_utils'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'transform_broadcast' in 'src/robot/transform_broadcast'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vesc_msgs' in 'src/robot/vesc/vesc_msgs'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'io_context' in 'src/robot/transport_drivers/io_context'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vesc_ackermann' in 'src/robot/vesc/vesc_ackermann'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'serial_driver' in 'src/robot/transport_drivers/serial_driver'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'udp_driver' in 'src/robot/transport_drivers/udp_driver'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vesc_driver' in 'src/robot/vesc/vesc_driver'
+[0.400s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vesc' in 'src/robot/vesc/vesc'
+[0.401s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[0.401s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[0.406s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 442 installed packages in /opt/ros/jazzy
+[0.407s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_args' from command line to 'None'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_target' from command line to 'None'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_clean_cache' from command line to 'False'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_clean_first' from command line to 'False'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_force_configure' from command line to 'False'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'ament_cmake_args' from command line to 'None'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'catkin_cmake_args' from command line to 'None'
+[0.546s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.546s] DEBUG:colcon.colcon_core.verb:Building package 'costmap' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/costmap', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/costmap', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/costmap', 'symlink_install': False, 'test_result_base': None}
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_args' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_target' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_clean_cache' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_clean_first' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_force_configure' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'ament_cmake_args' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'catkin_cmake_args' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.547s] DEBUG:colcon.colcon_core.verb:Building package 'gym_vis' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/gym_vis', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/gym_vis', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/gym_vis', 'symlink_install': False, 'test_result_base': None}
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_args' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_target' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_clean_cache' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_clean_first' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_force_configure' from command line to 'False'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'ament_cmake_args' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'catkin_cmake_args' from command line to 'None'
+[0.547s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.547s] DEBUG:colcon.colcon_core.verb:Building package 'local_planning' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/local_planning', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/local_planning', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/local_planning', 'symlink_install': False, 'test_result_base': None}
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_args' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_target' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_clean_cache' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_clean_first' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_force_configure' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'ament_cmake_args' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'catkin_cmake_args' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.548s] DEBUG:colcon.colcon_core.verb:Building package 'pure_persuit' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/pure_persuit', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/pure_persuit', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/pure-persuit', 'symlink_install': False, 'test_result_base': None}
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_args' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_target' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_clean_cache' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_clean_first' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_force_configure' from command line to 'False'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'ament_cmake_args' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'catkin_cmake_args' from command line to 'None'
+[0.548s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.548s] DEBUG:colcon.colcon_core.verb:Building package 'bringup_robot' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/bringup_robot', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/bringup_robot', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/bringup_robot', 'symlink_install': False, 'test_result_base': None}
+[0.549s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[0.550s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[0.550s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/gym_vis' with build type 'ament_cmake'
+[0.550s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/gym_vis'
+[0.556s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[0.556s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.556s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.559s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/costmap' with build type 'ament_cmake'
+[0.560s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/costmap'
+[0.560s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.560s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.563s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/local_planning' with build type 'ament_cmake'
+[0.564s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/local_planning'
+[0.564s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.564s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.566s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/pure-persuit' with build type 'ament_cmake'
+[0.567s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/pure-persuit'
+[0.567s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.567s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.574s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/gym_vis -- -j22 -l22
+[0.577s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
+[0.580s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/local_planning -- -j22 -l22
+[0.582s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/pure_persuit -- -j22 -l22
+[0.702s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/gym_vis -- -j22 -l22
+[0.711s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/gym_vis
+[0.713s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
+[0.714s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/costmap
+[0.726s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(costmap)
+[0.732s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/costmap
+[0.738s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap' for CMake module files
+[0.738s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap' for CMake config files
+[0.739s] Level 1:colcon.colcon_core.shell:create_environment_hook('costmap', 'cmake_prefix_path')
+[0.739s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/costmap/share/costmap/hook/cmake_prefix_path.ps1'
+[0.740s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/costmap/share/costmap/hook/cmake_prefix_path.dsv'
+[0.741s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/costmap/share/costmap/hook/cmake_prefix_path.sh'
+[0.741s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/lib'
+[0.741s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/bin'
+[0.742s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/lib/pkgconfig/costmap.pc'
+[0.742s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/lib/python3.12/site-packages'
+[0.742s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/bin'
+[0.742s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.ps1'
+[0.743s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.dsv'
+[0.745s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.sh'
+[0.745s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.bash'
+[0.746s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.zsh'
+[0.746s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/costmap/share/colcon-core/packages/costmap)
+[0.747s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(costmap)
+[0.747s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap' for CMake module files
+[0.747s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap' for CMake config files
+[0.747s] Level 1:colcon.colcon_core.shell:create_environment_hook('costmap', 'cmake_prefix_path')
+[0.748s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/costmap/share/costmap/hook/cmake_prefix_path.ps1'
+[0.748s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/costmap/share/costmap/hook/cmake_prefix_path.dsv'
+[0.749s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/costmap/share/costmap/hook/cmake_prefix_path.sh'
+[0.750s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/lib'
+[0.750s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/bin'
+[0.750s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/lib/pkgconfig/costmap.pc'
+[0.750s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/lib/python3.12/site-packages'
+[0.751s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/costmap/bin'
+[0.752s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.ps1'
+[0.753s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.dsv'
+[0.753s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.sh'
+[0.754s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.bash'
+[0.755s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/costmap/share/costmap/package.zsh'
+[0.755s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/costmap/share/colcon-core/packages/costmap)
+[0.756s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(gym_vis)
+[0.756s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis' for CMake module files
+[0.757s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis' for CMake config files
+[0.758s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/gym_vis
+[0.758s] Level 1:colcon.colcon_core.shell:create_environment_hook('gym_vis', 'cmake_prefix_path')
+[0.758s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.ps1'
+[0.759s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.dsv'
+[0.759s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.sh'
+[0.760s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/lib'
+[0.760s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/bin'
+[0.761s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/lib/pkgconfig/gym_vis.pc'
+[0.761s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/lib/python3.12/site-packages'
+[0.761s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/bin'
+[0.762s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.ps1'
+[0.763s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.dsv'
+[0.763s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.sh'
+[0.764s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.bash'
+[0.764s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.zsh'
+[0.764s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/gym_vis/share/colcon-core/packages/gym_vis)
+[0.765s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(gym_vis)
+[0.765s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis' for CMake module files
+[0.766s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis' for CMake config files
+[0.766s] Level 1:colcon.colcon_core.shell:create_environment_hook('gym_vis', 'cmake_prefix_path')
+[0.766s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.ps1'
+[0.767s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.dsv'
+[0.767s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/hook/cmake_prefix_path.sh'
+[0.768s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/lib'
+[0.768s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/bin'
+[0.768s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/lib/pkgconfig/gym_vis.pc'
+[0.768s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/lib/python3.12/site-packages'
+[0.768s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/gym_vis/bin'
+[0.769s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.ps1'
+[0.770s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.dsv'
+[0.770s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.sh'
+[0.772s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.bash'
+[0.772s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.zsh'
+[0.773s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/gym_vis/share/colcon-core/packages/gym_vis)
+[0.773s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/bringup_robot' with build type 'ament_cmake'
+[0.773s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/bringup_robot'
+[0.774s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.774s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.841s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/bringup_robot': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/bringup_robot -- -j22 -l22
+[0.881s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/bringup_robot' returned '0': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/bringup_robot -- -j22 -l22
+[0.882s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/bringup_robot': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/bringup_robot
+[0.896s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(bringup_robot)
+[0.896s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot' for CMake module files
+[0.898s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot' for CMake config files
+[0.901s] Level 1:colcon.colcon_core.shell:create_environment_hook('bringup_robot', 'cmake_prefix_path')
+[0.902s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.ps1'
+[0.903s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.dsv'
+[0.905s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.sh'
+[0.908s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/bin'
+[0.908s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/lib/pkgconfig/bringup_robot.pc'
+[0.908s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/lib/python3.12/site-packages'
+[0.909s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/bin'
+[0.909s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.ps1'
+[0.910s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.dsv'
+[0.912s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.sh'
+[0.913s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.bash'
+[0.914s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.zsh'
+[0.915s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/bringup_robot/share/colcon-core/packages/bringup_robot)
+[0.915s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/bringup_robot' returned '0': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/gym_vis:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/bringup_robot
+[0.916s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(bringup_robot)
+[0.916s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot' for CMake module files
+[0.916s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot' for CMake config files
+[0.917s] Level 1:colcon.colcon_core.shell:create_environment_hook('bringup_robot', 'cmake_prefix_path')
+[0.917s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.ps1'
+[0.917s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.dsv'
+[0.918s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/hook/cmake_prefix_path.sh'
+[0.918s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/bin'
+[0.918s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/lib/pkgconfig/bringup_robot.pc'
+[0.919s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/lib/python3.12/site-packages'
+[0.919s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/bringup_robot/bin'
+[0.919s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.ps1'
+[0.919s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.dsv'
+[0.920s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.sh'
+[0.920s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.bash'
+[0.921s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/bringup_robot/share/bringup_robot/package.zsh'
+[0.921s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/bringup_robot/share/colcon-core/packages/bringup_robot)
+[0.991s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/local_planning' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/local_planning -- -j22 -l22
+[0.992s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/local_planning
+[1.042s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(local_planning)
+[1.043s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning' for CMake module files
+[1.046s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning' for CMake config files
+[1.049s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/local_planning' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/local_planning
+[1.049s] Level 1:colcon.colcon_core.shell:create_environment_hook('local_planning', 'cmake_prefix_path')
+[1.050s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/cmake_prefix_path.ps1'
+[1.051s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/cmake_prefix_path.dsv'
+[1.051s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/cmake_prefix_path.sh'
+[1.051s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/lib'
+[1.052s] Level 1:colcon.colcon_core.shell:create_environment_hook('local_planning', 'ld_library_path_lib')
+[1.052s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/ld_library_path_lib.ps1'
+[1.052s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/ld_library_path_lib.dsv'
+[1.052s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/ld_library_path_lib.sh'
+[1.053s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/bin'
+[1.053s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/lib/pkgconfig/local_planning.pc'
+[1.053s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages'
+[1.053s] Level 1:colcon.colcon_core.shell:create_environment_hook('local_planning', 'pythonpath')
+[1.053s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/pythonpath.ps1'
+[1.054s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/pythonpath.dsv'
+[1.054s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/pythonpath.sh'
+[1.054s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/bin'
+[1.054s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.ps1'
+[1.055s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.dsv'
+[1.055s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.sh'
+[1.056s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.bash'
+[1.056s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.zsh'
+[1.056s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/local_planning/share/colcon-core/packages/local_planning)
+[1.057s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(local_planning)
+[1.057s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning' for CMake module files
+[1.057s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning' for CMake config files
+[1.057s] Level 1:colcon.colcon_core.shell:create_environment_hook('local_planning', 'cmake_prefix_path')
+[1.057s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/cmake_prefix_path.ps1'
+[1.058s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/cmake_prefix_path.dsv'
+[1.058s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/cmake_prefix_path.sh'
+[1.058s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/lib'
+[1.058s] Level 1:colcon.colcon_core.shell:create_environment_hook('local_planning', 'ld_library_path_lib')
+[1.059s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/ld_library_path_lib.ps1'
+[1.059s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/ld_library_path_lib.dsv'
+[1.059s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/ld_library_path_lib.sh'
+[1.059s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/bin'
+[1.059s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/lib/pkgconfig/local_planning.pc'
+[1.060s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages'
+[1.060s] Level 1:colcon.colcon_core.shell:create_environment_hook('local_planning', 'pythonpath')
+[1.060s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/pythonpath.ps1'
+[1.060s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/pythonpath.dsv'
+[1.060s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/hook/pythonpath.sh'
+[1.061s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/local_planning/bin'
+[1.061s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.ps1'
+[1.061s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.dsv'
+[1.062s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.sh'
+[1.062s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.bash'
+[1.062s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.zsh'
+[1.062s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/local_planning/share/colcon-core/packages/local_planning)
+[13.657s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/pure_persuit' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/pure_persuit -- -j22 -l22
+[13.657s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/pure_persuit
+[13.673s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(pure_persuit)
+[13.674s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit' for CMake module files
+[13.674s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/pure_persuit' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/pure_persuit
+[13.675s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit' for CMake config files
+[13.675s] Level 1:colcon.colcon_core.shell:create_environment_hook('pure_persuit', 'cmake_prefix_path')
+[13.675s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/hook/cmake_prefix_path.ps1'
+[13.676s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/hook/cmake_prefix_path.dsv'
+[13.676s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/hook/cmake_prefix_path.sh'
+[13.677s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/lib'
+[13.677s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/bin'
+[13.677s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/lib/pkgconfig/pure_persuit.pc'
+[13.677s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/lib/python3.12/site-packages'
+[13.677s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/bin'
+[13.677s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.ps1'
+[13.678s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.dsv'
+[13.678s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.sh'
+[13.679s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.bash'
+[13.679s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.zsh'
+[13.679s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/pure_persuit/share/colcon-core/packages/pure_persuit)
+[13.680s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(pure_persuit)
+[13.680s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit' for CMake module files
+[13.680s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit' for CMake config files
+[13.680s] Level 1:colcon.colcon_core.shell:create_environment_hook('pure_persuit', 'cmake_prefix_path')
+[13.680s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/hook/cmake_prefix_path.ps1'
+[13.681s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/hook/cmake_prefix_path.dsv'
+[13.681s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/hook/cmake_prefix_path.sh'
+[13.681s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/lib'
+[13.681s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/bin'
+[13.681s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/lib/pkgconfig/pure_persuit.pc'
+[13.682s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/lib/python3.12/site-packages'
+[13.682s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/pure_persuit/bin'
+[13.682s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.ps1'
+[13.682s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.dsv'
+[13.683s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.sh'
+[13.683s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.bash'
+[13.683s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.zsh'
+[13.684s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/pure_persuit/share/colcon-core/packages/pure_persuit)
+[13.684s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[13.684s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[13.684s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[13.685s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[13.723s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[13.723s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[13.723s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[13.723s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[13.723s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.AccessDenied: Failed to connect to socket /run/user/1000/bus: Operation not permitted
+[13.724s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[13.724s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.ps1'
+[13.725s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/rraina/wato_f1tenth/install/_local_setup_util_ps1.py'
+[13.726s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.ps1'
+[13.727s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.sh'
+[13.727s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/rraina/wato_f1tenth/install/_local_setup_util_sh.py'
+[13.728s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.sh'
+[13.729s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.bash'
+[13.729s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.bash'
+[13.730s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.zsh'
+[13.731s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.zsh'

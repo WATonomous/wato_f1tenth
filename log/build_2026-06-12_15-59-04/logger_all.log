@@ -1,0 +1,1139 @@
+[0.649s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build']
+[0.650s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=22, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=None, packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, verb_parser=<colcon_defaults.argument_parser.defaults.DefaultArgumentsDecorator object at 0x7d2ea6624080>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x7d2ea65ff3b0>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x7d2ea65ff3b0>>)
+[0.759s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.759s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.759s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.760s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.760s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.760s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.760s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/rraina/wato_f1tenth'
+[0.760s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.760s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.760s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.761s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.761s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.761s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.761s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.761s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.761s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['ignore', 'ignore_ament_install']
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'ignore'
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'ignore_ament_install'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['colcon_pkg']
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'colcon_pkg'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['colcon_meta']
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'colcon_meta'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['ros']
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'ros'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['cmake', 'python']
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'cmake'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'python'
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extensions ['python_setup_py']
+[0.825s] Level 1:colcon.colcon_core.package_identification:_identify(Raceline-Optimization) by extension 'python_setup_py'
+[0.826s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[0.826s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[0.826s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['ignore', 'ignore_ament_install']
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'ignore'
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'ignore_ament_install'
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['colcon_pkg']
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'colcon_pkg'
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['colcon_meta']
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'colcon_meta'
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['ros']
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'ros'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['cmake', 'python']
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'cmake'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'python'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extensions ['python_setup_py']
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(config) by extension 'python_setup_py'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['ignore', 'ignore_ament_install']
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'ignore'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'ignore_ament_install'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['colcon_pkg']
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'colcon_pkg'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['colcon_meta']
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'colcon_meta'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['ros']
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'ros'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['cmake', 'python']
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'cmake'
+[0.829s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'python'
+[0.830s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extensions ['python_setup_py']
+[0.830s] Level 1:colcon.colcon_core.package_identification:_identify(config/sample_settings) by extension 'python_setup_py'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['ignore', 'ignore_ament_install']
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'ignore'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'ignore_ament_install'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['colcon_pkg']
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'colcon_pkg'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['colcon_meta']
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'colcon_meta'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['ros']
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'ros'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['cmake', 'python']
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'cmake'
+[0.831s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'python'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extensions ['python_setup_py']
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker) by extension 'python_setup_py'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['ignore', 'ignore_ament_install']
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'ignore'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'ignore_ament_install'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['colcon_pkg']
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'colcon_pkg'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['colcon_meta']
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'colcon_meta'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['ros']
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'ros'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['cmake', 'python']
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'cmake'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'python'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extensions ['python_setup_py']
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/robot) by extension 'python_setup_py'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['ignore', 'ignore_ament_install']
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'ignore'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'ignore_ament_install'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['colcon_pkg']
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'colcon_pkg'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['colcon_meta']
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'colcon_meta'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['ros']
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'ros'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['cmake', 'python']
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'cmake'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'python'
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extensions ['python_setup_py']
+[0.834s] Level 1:colcon.colcon_core.package_identification:_identify(docker/samples) by extension 'python_setup_py'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['ignore', 'ignore_ament_install']
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'ignore'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'ignore_ament_install'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['colcon_pkg']
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'colcon_pkg'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['colcon_meta']
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'colcon_meta'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['ros']
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'ros'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['cmake', 'python']
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'cmake'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'python'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extensions ['python_setup_py']
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/sim) by extension 'python_setup_py'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['ignore', 'ignore_ament_install']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'ignore'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'ignore_ament_install'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['colcon_pkg']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'colcon_pkg'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['colcon_meta']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'colcon_meta'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['ros']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'ros'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['cmake', 'python']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'cmake'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'python'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extensions ['python_setup_py']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(docker/vis_tools) by extension 'python_setup_py'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['ignore', 'ignore_ament_install']
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'ignore'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'ignore_ament_install'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['colcon_pkg']
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'colcon_pkg'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['colcon_meta']
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'colcon_meta'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['ros']
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'ros'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['cmake', 'python']
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'cmake'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'python'
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extensions ['python_setup_py']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(modules) by extension 'python_setup_py'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['ignore', 'ignore_ament_install']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'ignore'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'ignore_ament_install'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['colcon_pkg']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'colcon_pkg'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['colcon_meta']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'colcon_meta'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['ros']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'ros'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['cmake', 'python']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'cmake'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'python'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extensions ['python_setup_py']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot) by extension 'python_setup_py'
+[0.842s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['ignore', 'ignore_ament_install']
+[0.842s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'ignore'
+[0.842s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'ignore_ament_install'
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['colcon_pkg']
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'colcon_pkg'
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['colcon_meta']
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'colcon_meta'
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extensions ['ros']
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_ekf) by extension 'ros'
+[0.850s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/ackermann_ekf' with type 'ros.ament_cmake' and name 'ackermann_ekf'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['ignore', 'ignore_ament_install']
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'ignore'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'ignore_ament_install'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['colcon_pkg']
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'colcon_pkg'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['colcon_meta']
+[0.852s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'colcon_meta'
+[0.852s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extensions ['ros']
+[0.852s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/ackermann_mux) by extension 'ros'
+[0.854s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/ackermann_mux' with type 'ros.ament_cmake' and name 'ackermann_mux'
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['ignore', 'ignore_ament_install']
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'ignore'
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'ignore_ament_install'
+[0.855s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['colcon_pkg']
+[0.855s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'colcon_pkg'
+[0.855s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['colcon_meta']
+[0.855s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'colcon_meta'
+[0.855s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extensions ['ros']
+[0.855s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/action) by extension 'ros'
+[0.856s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/action' with type 'ros.ament_python' and name 'action'
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['ignore', 'ignore_ament_install']
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'ignore'
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'ignore_ament_install'
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['colcon_pkg']
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'colcon_pkg'
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['colcon_meta']
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'colcon_meta'
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extensions ['ros']
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/bringup_robot) by extension 'ros'
+[0.858s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/bringup_robot' with type 'ros.ament_cmake' and name 'bringup_robot'
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['ignore', 'ignore_ament_install']
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'ignore'
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'ignore_ament_install'
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['colcon_pkg']
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'colcon_pkg'
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['colcon_meta']
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'colcon_meta'
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extensions ['ros']
+[0.859s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/costmap) by extension 'ros'
+[0.861s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/costmap' with type 'ros.ament_cmake' and name 'costmap'
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['ignore', 'ignore_ament_install']
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'ignore'
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'ignore_ament_install'
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['colcon_pkg']
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'colcon_pkg'
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['colcon_meta']
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'colcon_meta'
+[0.862s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extensions ['ros']
+[0.863s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/global_planner) by extension 'ros'
+[0.864s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/global_planner' with type 'ros.ament_cmake' and name 'global_planner'
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['ignore', 'ignore_ament_install']
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'ignore'
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'ignore_ament_install'
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['colcon_pkg']
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'colcon_pkg'
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['colcon_meta']
+[0.865s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'colcon_meta'
+[0.866s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extensions ['ros']
+[0.866s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/gym_vis) by extension 'ros'
+[0.867s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/gym_vis' with type 'ros.ament_cmake' and name 'gym_vis'
+[0.867s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['ignore', 'ignore_ament_install']
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'ignore'
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'ignore_ament_install'
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['colcon_pkg']
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'colcon_pkg'
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['colcon_meta']
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'colcon_meta'
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extensions ['ros']
+[0.868s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/local_planning) by extension 'ros'
+[0.870s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/local_planning' with type 'ros.ament_cmake' and name 'local_planning'
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['ignore', 'ignore_ament_install']
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'ignore'
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'ignore_ament_install'
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['colcon_pkg']
+[0.870s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'colcon_pkg'
+[0.871s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['colcon_meta']
+[0.871s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'colcon_meta'
+[0.871s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extensions ['ros']
+[0.871s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/particle_filter) by extension 'ros'
+[0.872s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/particle_filter' with type 'ros.ament_python' and name 'particle_filter'
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['ignore', 'ignore_ament_install']
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'ignore'
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'ignore_ament_install'
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['colcon_pkg']
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'colcon_pkg'
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['colcon_meta']
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'colcon_meta'
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extensions ['ros']
+[0.873s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/pure-persuit) by extension 'ros'
+[0.875s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/pure-persuit' with type 'ros.ament_cmake' and name 'pure_persuit'
+[0.875s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['ignore', 'ignore_ament_install']
+[0.875s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'ignore'
+[0.875s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'ignore_ament_install'
+[0.876s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['colcon_pkg']
+[0.876s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'colcon_pkg'
+[0.876s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['colcon_meta']
+[0.876s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'colcon_meta'
+[0.876s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extensions ['ros']
+[0.876s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/safety_system) by extension 'ros'
+[0.877s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/safety_system' with type 'ros.ament_cmake' and name 'safety_node'
+[0.878s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['ignore', 'ignore_ament_install']
+[0.878s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'ignore'
+[0.878s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'ignore_ament_install'
+[0.878s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['colcon_pkg']
+[0.879s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'colcon_pkg'
+[0.879s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['colcon_meta']
+[0.879s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'colcon_meta'
+[0.879s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extensions ['ros']
+[0.879s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/teleop_utils) by extension 'ros'
+[0.881s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/teleop_utils' with type 'ros.ament_cmake' and name 'teleop_utils'
+[0.881s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['ignore', 'ignore_ament_install']
+[0.881s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'ignore'
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'ignore_ament_install'
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['colcon_pkg']
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'colcon_pkg'
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['colcon_meta']
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'colcon_meta'
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extensions ['ros']
+[0.882s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transform_broadcast) by extension 'ros'
+[0.883s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transform_broadcast' with type 'ros.ament_cmake' and name 'transform_broadcast'
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['ignore', 'ignore_ament_install']
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'ignore'
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'ignore_ament_install'
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['colcon_pkg']
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'colcon_pkg'
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['colcon_meta']
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'colcon_meta'
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['ros']
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'ros'
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['cmake', 'python']
+[0.884s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'cmake'
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'python'
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extensions ['python_setup_py']
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers) by extension 'python_setup_py'
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['ignore', 'ignore_ament_install']
+[0.885s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'ignore'
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'ignore_ament_install'
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['colcon_pkg']
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'colcon_pkg'
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['colcon_meta']
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'colcon_meta'
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extensions ['ros']
+[0.886s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/asio_cmake_module) by extension 'ros'
+[0.887s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/asio_cmake_module' with type 'ros.ament_cmake' and name 'asio_cmake_module'
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['ignore', 'ignore_ament_install']
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'ignore'
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'ignore_ament_install'
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['colcon_pkg']
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'colcon_pkg'
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['colcon_meta']
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'colcon_meta'
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extensions ['ros']
+[0.888s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/io_context) by extension 'ros'
+[0.890s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/io_context' with type 'ros.ament_cmake' and name 'io_context'
+[0.890s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.890s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'ignore'
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'ignore_ament_install'
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['colcon_pkg']
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'colcon_pkg'
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['colcon_meta']
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'colcon_meta'
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extensions ['ros']
+[0.891s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/serial_driver) by extension 'ros'
+[0.892s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/serial_driver' with type 'ros.ament_cmake' and name 'serial_driver'
+[0.893s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.893s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'ignore'
+[0.893s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'ignore_ament_install'
+[0.893s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['colcon_pkg']
+[0.893s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'colcon_pkg'
+[0.893s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['colcon_meta']
+[0.894s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'colcon_meta'
+[0.894s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extensions ['ros']
+[0.894s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/transport_drivers/udp_driver) by extension 'ros'
+[0.895s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/transport_drivers/udp_driver' with type 'ros.ament_cmake' and name 'udp_driver'
+[0.896s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['ignore', 'ignore_ament_install']
+[0.897s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'ignore'
+[0.897s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'ignore_ament_install'
+[0.897s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['colcon_pkg']
+[0.897s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'colcon_pkg'
+[0.897s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['colcon_meta']
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'colcon_meta'
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['ros']
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'ros'
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['cmake', 'python']
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'cmake'
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'python'
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extensions ['python_setup_py']
+[0.898s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc) by extension 'python_setup_py'
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['ignore', 'ignore_ament_install']
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'ignore'
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'ignore_ament_install'
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['colcon_pkg']
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'colcon_pkg'
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['colcon_meta']
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'colcon_meta'
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extensions ['ros']
+[0.899s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc) by extension 'ros'
+[0.900s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc' with type 'ros.ament_cmake' and name 'vesc'
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['ignore', 'ignore_ament_install']
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'ignore'
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'ignore_ament_install'
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['colcon_pkg']
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'colcon_pkg'
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['colcon_meta']
+[0.901s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'colcon_meta'
+[0.902s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extensions ['ros']
+[0.902s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_ackermann) by extension 'ros'
+[0.903s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc_ackermann' with type 'ros.ament_cmake' and name 'vesc_ackermann'
+[0.903s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'ignore'
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'ignore_ament_install'
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['colcon_pkg']
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'colcon_pkg'
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['colcon_meta']
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'colcon_meta'
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extensions ['ros']
+[0.904s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_driver) by extension 'ros'
+[0.905s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc_driver' with type 'ros.ament_cmake' and name 'vesc_driver'
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'ignore'
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'ignore_ament_install'
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['colcon_pkg']
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'colcon_pkg'
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['colcon_meta']
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'colcon_meta'
+[0.906s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extensions ['ros']
+[0.907s] Level 1:colcon.colcon_core.package_identification:_identify(src/robot/vesc/vesc_msgs) by extension 'ros'
+[0.908s] DEBUG:colcon.colcon_core.package_identification:Package 'src/robot/vesc/vesc_msgs' with type 'ros.ament_cmake' and name 'vesc_msgs'
+[0.908s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.908s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'ignore'
+[0.908s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'ignore_ament_install'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['colcon_pkg']
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'colcon_pkg'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['colcon_meta']
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'colcon_meta'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['ros']
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'ros'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['cmake', 'python']
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'cmake'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'python'
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extensions ['python_setup_py']
+[0.909s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs) by extension 'python_setup_py'
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'ignore'
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'ignore_ament_install'
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['colcon_pkg']
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'colcon_pkg'
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['colcon_meta']
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'colcon_meta'
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extensions ['ros']
+[0.910s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/foxglove_msgs) by extension 'ros'
+[0.911s] DEBUG:colcon.colcon_core.package_identification:Package 'src/wato_msgs/foxglove_msgs' with type 'ros.ament_cmake' and name 'foxglove_msgs'
+[0.912s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['ignore', 'ignore_ament_install']
+[0.912s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'ignore'
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'ignore_ament_install'
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['colcon_pkg']
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'colcon_pkg'
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['colcon_meta']
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'colcon_meta'
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extensions ['ros']
+[0.913s] Level 1:colcon.colcon_core.package_identification:_identify(src/wato_msgs/sample_msgs) by extension 'ros'
+[0.915s] DEBUG:colcon.colcon_core.package_identification:Package 'src/wato_msgs/sample_msgs' with type 'ros.ament_cmake' and name 'sample_msgs'
+[0.915s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['ignore', 'ignore_ament_install']
+[0.915s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'ignore'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'ignore_ament_install'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['colcon_pkg']
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'colcon_pkg'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['colcon_meta']
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'colcon_meta'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['ros']
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'ros'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['cmake', 'python']
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'cmake'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'python'
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extensions ['python_setup_py']
+[0.916s] Level 1:colcon.colcon_core.package_identification:_identify(watod_scripts) by extension 'python_setup_py'
+[0.916s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.916s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.917s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.917s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.917s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.969s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[0.969s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[0.979s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 442 installed packages in /opt/ros/jazzy
+[0.980s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'cmake_args' from command line to 'None'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'cmake_target' from command line to 'None'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'cmake_clean_cache' from command line to 'False'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'cmake_clean_first' from command line to 'False'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'cmake_force_configure' from command line to 'False'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'ament_cmake_args' from command line to 'None'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'catkin_cmake_args' from command line to 'None'
+[1.232s] Level 5:colcon.colcon_core.verb:set package 'ackermann_ekf' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.233s] DEBUG:colcon.colcon_core.verb:Building package 'ackermann_ekf' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/ackermann_ekf', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/ackermann_ekf', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/ackermann_ekf', 'symlink_install': False, 'test_result_base': None}
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'cmake_args' from command line to 'None'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'cmake_target' from command line to 'None'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'cmake_clean_cache' from command line to 'False'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'cmake_clean_first' from command line to 'False'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'cmake_force_configure' from command line to 'False'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'ament_cmake_args' from command line to 'None'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'catkin_cmake_args' from command line to 'None'
+[1.233s] Level 5:colcon.colcon_core.verb:set package 'ackermann_mux' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.233s] DEBUG:colcon.colcon_core.verb:Building package 'ackermann_mux' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/ackermann_mux', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/ackermann_mux', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/ackermann_mux', 'symlink_install': False, 'test_result_base': None}
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_args' from command line to 'None'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_target' from command line to 'None'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_clean_cache' from command line to 'False'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_clean_first' from command line to 'False'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'cmake_force_configure' from command line to 'False'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'ament_cmake_args' from command line to 'None'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'catkin_cmake_args' from command line to 'None'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'action' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.234s] DEBUG:colcon.colcon_core.verb:Building package 'action' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/action', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/action', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/action', 'symlink_install': False, 'test_result_base': None}
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'cmake_args' from command line to 'None'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'cmake_target' from command line to 'None'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'cmake_clean_cache' from command line to 'False'
+[1.234s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'cmake_clean_first' from command line to 'False'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'cmake_force_configure' from command line to 'False'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'ament_cmake_args' from command line to 'None'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'catkin_cmake_args' from command line to 'None'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'asio_cmake_module' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.235s] DEBUG:colcon.colcon_core.verb:Building package 'asio_cmake_module' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/asio_cmake_module', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/asio_cmake_module', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module', 'symlink_install': False, 'test_result_base': None}
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_args' from command line to 'None'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_target' from command line to 'None'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_clean_cache' from command line to 'False'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_clean_first' from command line to 'False'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'cmake_force_configure' from command line to 'False'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'ament_cmake_args' from command line to 'None'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'catkin_cmake_args' from command line to 'None'
+[1.235s] Level 5:colcon.colcon_core.verb:set package 'costmap' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.235s] DEBUG:colcon.colcon_core.verb:Building package 'costmap' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/costmap', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/costmap', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/costmap', 'symlink_install': False, 'test_result_base': None}
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_args' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_target' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_clean_cache' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_clean_first' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'cmake_force_configure' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'ament_cmake_args' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'catkin_cmake_args' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'foxglove_msgs' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.236s] DEBUG:colcon.colcon_core.verb:Building package 'foxglove_msgs' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/foxglove_msgs', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/foxglove_msgs', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs', 'symlink_install': False, 'test_result_base': None}
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'cmake_args' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'cmake_target' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'cmake_clean_cache' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'cmake_clean_first' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'cmake_force_configure' from command line to 'False'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'ament_cmake_args' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'catkin_cmake_args' from command line to 'None'
+[1.236s] Level 5:colcon.colcon_core.verb:set package 'global_planner' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.236s] DEBUG:colcon.colcon_core.verb:Building package 'global_planner' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/global_planner', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/global_planner', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/global_planner', 'symlink_install': False, 'test_result_base': None}
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_args' from command line to 'None'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_target' from command line to 'None'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_clean_cache' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_clean_first' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'cmake_force_configure' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'ament_cmake_args' from command line to 'None'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'catkin_cmake_args' from command line to 'None'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'gym_vis' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.237s] DEBUG:colcon.colcon_core.verb:Building package 'gym_vis' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/gym_vis', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/gym_vis', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/gym_vis', 'symlink_install': False, 'test_result_base': None}
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_args' from command line to 'None'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_target' from command line to 'None'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_clean_cache' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_clean_first' from command line to 'False'
+[1.237s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'cmake_force_configure' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'ament_cmake_args' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'catkin_cmake_args' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'local_planning' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.238s] DEBUG:colcon.colcon_core.verb:Building package 'local_planning' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/local_planning', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/local_planning', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/local_planning', 'symlink_install': False, 'test_result_base': None}
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'cmake_args' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'cmake_target' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'cmake_clean_cache' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'cmake_clean_first' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'cmake_force_configure' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'ament_cmake_args' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'catkin_cmake_args' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'particle_filter' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.238s] DEBUG:colcon.colcon_core.verb:Building package 'particle_filter' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/particle_filter', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/particle_filter', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/particle_filter', 'symlink_install': False, 'test_result_base': None}
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_args' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_target' from command line to 'None'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_clean_cache' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_clean_first' from command line to 'False'
+[1.238s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'cmake_force_configure' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'ament_cmake_args' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'catkin_cmake_args' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'pure_persuit' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.239s] DEBUG:colcon.colcon_core.verb:Building package 'pure_persuit' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/pure_persuit', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/pure_persuit', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/pure-persuit', 'symlink_install': False, 'test_result_base': None}
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_args' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_target' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_clean_cache' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_clean_first' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'cmake_force_configure' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'ament_cmake_args' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'catkin_cmake_args' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'safety_node' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.239s] DEBUG:colcon.colcon_core.verb:Building package 'safety_node' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/safety_node', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/safety_node', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/safety_system', 'symlink_install': False, 'test_result_base': None}
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_args' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_target' from command line to 'None'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_clean_cache' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_clean_first' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'cmake_force_configure' from command line to 'False'
+[1.239s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'ament_cmake_args' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'catkin_cmake_args' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'sample_msgs' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.240s] DEBUG:colcon.colcon_core.verb:Building package 'sample_msgs' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/sample_msgs', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/sample_msgs', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs', 'symlink_install': False, 'test_result_base': None}
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'cmake_args' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'cmake_target' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'cmake_clean_cache' from command line to 'False'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'cmake_clean_first' from command line to 'False'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'cmake_force_configure' from command line to 'False'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'ament_cmake_args' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'catkin_cmake_args' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'teleop_utils' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.240s] DEBUG:colcon.colcon_core.verb:Building package 'teleop_utils' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/teleop_utils', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/teleop_utils', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/teleop_utils', 'symlink_install': False, 'test_result_base': None}
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'cmake_args' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'cmake_target' from command line to 'None'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'cmake_clean_cache' from command line to 'False'
+[1.240s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'cmake_clean_first' from command line to 'False'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'cmake_force_configure' from command line to 'False'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'ament_cmake_args' from command line to 'None'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'catkin_cmake_args' from command line to 'None'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'transform_broadcast' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.241s] DEBUG:colcon.colcon_core.verb:Building package 'transform_broadcast' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/transform_broadcast', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/transform_broadcast', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/transform_broadcast', 'symlink_install': False, 'test_result_base': None}
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'cmake_args' from command line to 'None'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'cmake_target' from command line to 'None'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'cmake_clean_cache' from command line to 'False'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'cmake_clean_first' from command line to 'False'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'cmake_force_configure' from command line to 'False'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'ament_cmake_args' from command line to 'None'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'catkin_cmake_args' from command line to 'None'
+[1.241s] Level 5:colcon.colcon_core.verb:set package 'vesc_msgs' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.241s] DEBUG:colcon.colcon_core.verb:Building package 'vesc_msgs' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/vesc_msgs', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/vesc_msgs', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_msgs', 'symlink_install': False, 'test_result_base': None}
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_args' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_target' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_clean_cache' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_clean_first' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'cmake_force_configure' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'ament_cmake_args' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'catkin_cmake_args' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'bringup_robot' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.242s] DEBUG:colcon.colcon_core.verb:Building package 'bringup_robot' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/bringup_robot', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/bringup_robot', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/bringup_robot', 'symlink_install': False, 'test_result_base': None}
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'cmake_args' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'cmake_target' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'cmake_clean_cache' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'cmake_clean_first' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'cmake_force_configure' from command line to 'False'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'ament_cmake_args' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'catkin_cmake_args' from command line to 'None'
+[1.242s] Level 5:colcon.colcon_core.verb:set package 'io_context' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.242s] DEBUG:colcon.colcon_core.verb:Building package 'io_context' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/io_context', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/io_context', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context', 'symlink_install': False, 'test_result_base': None}
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'cmake_args' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'cmake_target' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'cmake_clean_cache' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'cmake_clean_first' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'cmake_force_configure' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'ament_cmake_args' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'catkin_cmake_args' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'vesc_ackermann' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.243s] DEBUG:colcon.colcon_core.verb:Building package 'vesc_ackermann' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/vesc_ackermann', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/vesc_ackermann', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_ackermann', 'symlink_install': False, 'test_result_base': None}
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'cmake_args' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'cmake_target' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'cmake_clean_cache' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'cmake_clean_first' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'cmake_force_configure' from command line to 'False'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'ament_cmake_args' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'catkin_cmake_args' from command line to 'None'
+[1.243s] Level 5:colcon.colcon_core.verb:set package 'serial_driver' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.243s] DEBUG:colcon.colcon_core.verb:Building package 'serial_driver' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/serial_driver', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/serial_driver', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/transport_drivers/serial_driver', 'symlink_install': False, 'test_result_base': None}
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'cmake_args' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'cmake_target' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'cmake_clean_cache' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'cmake_clean_first' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'cmake_force_configure' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'ament_cmake_args' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'catkin_cmake_args' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'udp_driver' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.244s] DEBUG:colcon.colcon_core.verb:Building package 'udp_driver' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/udp_driver', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/udp_driver', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/transport_drivers/udp_driver', 'symlink_install': False, 'test_result_base': None}
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'cmake_args' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'cmake_target' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'cmake_clean_cache' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'cmake_clean_first' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'cmake_force_configure' from command line to 'False'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'ament_cmake_args' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'catkin_cmake_args' from command line to 'None'
+[1.244s] Level 5:colcon.colcon_core.verb:set package 'vesc_driver' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.245s] DEBUG:colcon.colcon_core.verb:Building package 'vesc_driver' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/vesc_driver', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/vesc_driver', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_driver', 'symlink_install': False, 'test_result_base': None}
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'cmake_args' from command line to 'None'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'cmake_target' from command line to 'None'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'cmake_clean_cache' from command line to 'False'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'cmake_clean_first' from command line to 'False'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'cmake_force_configure' from command line to 'False'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'ament_cmake_args' from command line to 'None'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'catkin_cmake_args' from command line to 'None'
+[1.245s] Level 5:colcon.colcon_core.verb:set package 'vesc' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.245s] DEBUG:colcon.colcon_core.verb:Building package 'vesc' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/rraina/wato_f1tenth/build/vesc', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/rraina/wato_f1tenth/install/vesc', 'merge_install': False, 'path': '/home/rraina/wato_f1tenth/src/robot/vesc/vesc', 'symlink_install': False, 'test_result_base': None}
+[1.246s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[1.249s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[1.250s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module' with build type 'ament_cmake'
+[1.250s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module'
+[1.272s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[1.272s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.272s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.278s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_msgs' with build type 'ament_cmake'
+[1.278s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_msgs'
+[1.279s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.280s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.286s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/gym_vis' with build type 'ament_cmake'
+[1.286s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/gym_vis'
+[1.286s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.286s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.290s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/ackermann_ekf' with build type 'ament_cmake'
+[1.290s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/ackermann_ekf'
+[1.291s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.291s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.297s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/ackermann_mux' with build type 'ament_cmake'
+[1.298s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/ackermann_mux'
+[1.298s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.299s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.305s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/action' with build type 'ament_python'
+[1.305s] Level 1:colcon.colcon_core.shell:create_environment_hook('action', 'ament_prefix_path')
+[1.306s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/action/share/action/hook/ament_prefix_path.ps1'
+[1.311s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/action/share/action/hook/ament_prefix_path.dsv'
+[1.312s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/action/share/action/hook/ament_prefix_path.sh'
+[1.314s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.314s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.319s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/costmap' with build type 'ament_cmake'
+[1.319s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/costmap'
+[1.320s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.320s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.327s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs' with build type 'ament_cmake'
+[1.327s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs'
+[1.327s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.327s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.332s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/global_planner' with build type 'ament_cmake'
+[1.333s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/global_planner'
+[1.333s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.333s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.338s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/local_planning' with build type 'ament_cmake'
+[1.339s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/local_planning'
+[1.340s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.340s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.345s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/particle_filter' with build type 'ament_python'
+[1.346s] Level 1:colcon.colcon_core.shell:create_environment_hook('particle_filter', 'ament_prefix_path')
+[1.347s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/hook/ament_prefix_path.ps1'
+[1.349s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/hook/ament_prefix_path.dsv'
+[1.349s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/hook/ament_prefix_path.sh'
+[1.350s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.350s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.354s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/pure-persuit' with build type 'ament_cmake'
+[1.355s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/pure-persuit'
+[1.355s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.356s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.362s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/safety_system' with build type 'ament_cmake'
+[1.363s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/safety_system'
+[1.364s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.364s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.371s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs' with build type 'ament_cmake'
+[1.371s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs'
+[1.371s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.372s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.376s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/teleop_utils' with build type 'ament_cmake'
+[1.376s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/teleop_utils'
+[1.376s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.376s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.384s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/transform_broadcast' with build type 'ament_cmake'
+[1.384s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/transform_broadcast'
+[1.385s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.385s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.400s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/asio_cmake_module': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/asio_cmake_module
+[1.411s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/vesc_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/vesc/vesc_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/vesc_msgs
+[1.417s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/gym_vis -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/gym_vis
+[1.424s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_ekf -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_ekf
+[1.430s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_mux': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_mux -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_mux
+[1.800s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/rraina/wato_f1tenth/src/robot/action'
+[1.800s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.800s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.813s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/costmap -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/costmap
+[1.820s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/foxglove_msgs
+[1.827s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/global_planner -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/global_planner
+[1.832s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/local_planning -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/local_planning
+[2.236s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/rraina/wato_f1tenth/src/robot/particle_filter'
+[2.236s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.237s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.251s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/pure-persuit -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/pure_persuit
+[2.256s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/safety_system -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/safety_node
+[2.266s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/sample_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/sample_msgs
+[2.274s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/teleop_utils': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/teleop_utils -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/teleop_utils
+[2.282s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/transform_broadcast': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transform_broadcast -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/transform_broadcast
+[4.108s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/src/robot/particle_filter': PYTHONPATH=/home/rraina/wato_f1tenth/build/particle_filter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/particle_filter build --build-base /home/rraina/wato_f1tenth/build/particle_filter/build install --record /home/rraina/wato_f1tenth/build/particle_filter/install.log --install-scripts $base/lib/particle_filter --single-version-externally-managed install_data
+[4.110s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/src/robot/action': PYTHONPATH=/home/rraina/wato_f1tenth/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/action build --build-base /home/rraina/wato_f1tenth/build/action/build install --record /home/rraina/wato_f1tenth/build/action/install.log --single-version-externally-managed install_data
+[6.833s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/asio_cmake_module' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/asio_cmake_module
+[6.837s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/asio_cmake_module': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/asio_cmake_module -- -j22 -l22
+[7.550s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter' for CMake module files
+[7.554s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter' for CMake config files
+[7.556s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/foxglove_msgs
+[7.565s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter/lib'
+[7.567s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter/bin'
+[7.568s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter/lib/pkgconfig/particle_filter.pc'
+[7.569s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages'
+[7.570s] Level 1:colcon.colcon_core.shell:create_environment_hook('particle_filter', 'pythonpath')
+[7.570s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/hook/pythonpath.ps1'
+[7.572s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/hook/pythonpath.dsv'
+[7.573s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/hook/pythonpath.sh'
+[7.574s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/foxglove_msgs -- -j22 -l22
+[7.575s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/particle_filter/bin'
+[7.576s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(particle_filter)
+[7.576s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/package.ps1'
+[7.577s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/src/robot/particle_filter' returned '0': PYTHONPATH=/home/rraina/wato_f1tenth/build/particle_filter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/particle_filter build --build-base /home/rraina/wato_f1tenth/build/particle_filter/build install --record /home/rraina/wato_f1tenth/build/particle_filter/install.log --install-scripts $base/lib/particle_filter --single-version-externally-managed install_data
+[7.579s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/package.dsv'
+[7.580s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/package.sh'
+[7.582s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/package.bash'
+[7.585s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/package.zsh'
+[7.587s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/particle_filter/share/colcon-core/packages/particle_filter)
+[7.590s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action' for CMake module files
+[7.593s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action' for CMake config files
+[7.594s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/src/robot/action' returned '0': PYTHONPATH=/home/rraina/wato_f1tenth/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/action build --build-base /home/rraina/wato_f1tenth/build/action/build install --record /home/rraina/wato_f1tenth/build/action/install.log --single-version-externally-managed install_data
+[7.595s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action/lib'
+[7.595s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action/bin'
+[7.595s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action/lib/pkgconfig/action.pc'
+[7.596s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages'
+[7.596s] Level 1:colcon.colcon_core.shell:create_environment_hook('action', 'pythonpath')
+[7.596s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/action/share/action/hook/pythonpath.ps1'
+[7.598s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/action/share/action/hook/pythonpath.dsv'
+[7.599s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/action/share/action/hook/pythonpath.sh'
+[7.600s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/action/bin'
+[7.600s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(action)
+[7.601s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/action/share/action/package.ps1'
+[7.602s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/action/share/action/package.dsv'
+[7.603s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/action/share/action/package.sh'
+[7.604s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/action/share/action/package.bash'
+[7.605s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/action/share/action/package.zsh'
+[7.605s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/action/share/colcon-core/packages/action)
+[7.612s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/asio_cmake_module' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/asio_cmake_module -- -j22 -l22
+[7.628s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/asio_cmake_module': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/asio_cmake_module
+[7.630s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/foxglove_msgs -- -j22 -l22
+[7.633s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/foxglove_msgs
+[7.657s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(asio_cmake_module)
+[7.657s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module' for CMake module files
+[7.659s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/asio_cmake_module' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/asio_cmake_module
+[7.661s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module' for CMake config files
+[7.666s] Level 1:colcon.colcon_core.shell:create_environment_hook('asio_cmake_module', 'cmake_prefix_path')
+[7.667s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/hook/cmake_prefix_path.ps1'
+[7.669s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/hook/cmake_prefix_path.dsv'
+[7.669s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/hook/cmake_prefix_path.sh'
+[7.670s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/bin'
+[7.670s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/lib/pkgconfig/asio_cmake_module.pc'
+[7.671s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/lib/python3.12/site-packages'
+[7.671s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/bin'
+[7.672s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.ps1'
+[7.674s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.dsv'
+[7.675s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.sh'
+[7.677s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.bash'
+[7.679s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.zsh'
+[7.680s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/asio_cmake_module/share/colcon-core/packages/asio_cmake_module)
+[7.682s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(asio_cmake_module)
+[7.682s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module' for CMake module files
+[7.683s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module' for CMake config files
+[7.684s] Level 1:colcon.colcon_core.shell:create_environment_hook('asio_cmake_module', 'cmake_prefix_path')
+[7.684s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/hook/cmake_prefix_path.ps1'
+[7.685s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/hook/cmake_prefix_path.dsv'
+[7.685s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/hook/cmake_prefix_path.sh'
+[7.686s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/bin'
+[7.687s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/lib/pkgconfig/asio_cmake_module.pc'
+[7.687s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/lib/python3.12/site-packages'
+[7.687s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/asio_cmake_module/bin'
+[7.688s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.ps1'
+[7.689s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.dsv'
+[7.690s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.sh'
+[7.691s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.bash'
+[7.692s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.zsh'
+[7.692s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/asio_cmake_module/share/colcon-core/packages/asio_cmake_module)
+[7.693s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context' with build type 'ament_cmake'
+[7.694s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context'
+[7.694s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[7.695s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[7.705s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(foxglove_msgs)
+[7.705s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs' for CMake module files
+[7.707s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/foxglove_msgs
+[7.708s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs' for CMake config files
+[7.709s] Level 1:colcon.colcon_core.shell:create_environment_hook('foxglove_msgs', 'cmake_prefix_path')
+[7.709s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.ps1'
+[7.710s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.dsv'
+[7.711s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.sh'
+[7.712s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/bin'
+[7.712s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/lib/pkgconfig/foxglove_msgs.pc'
+[7.713s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/lib/python3.12/site-packages'
+[7.714s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/bin'
+[7.714s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.ps1'
+[7.715s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.dsv'
+[7.716s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.sh'
+[7.717s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.bash'
+[7.717s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.zsh'
+[7.718s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/foxglove_msgs/share/colcon-core/packages/foxglove_msgs)
+[7.720s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(foxglove_msgs)
+[7.721s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs' for CMake module files
+[7.722s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs' for CMake config files
+[7.722s] Level 1:colcon.colcon_core.shell:create_environment_hook('foxglove_msgs', 'cmake_prefix_path')
+[7.723s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.ps1'
+[7.724s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.dsv'
+[7.725s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/hook/cmake_prefix_path.sh'
+[7.726s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/bin'
+[7.726s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/lib/pkgconfig/foxglove_msgs.pc'
+[7.726s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/lib/python3.12/site-packages'
+[7.727s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/foxglove_msgs/bin'
+[7.727s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.ps1'
+[7.728s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.dsv'
+[7.729s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.sh'
+[7.730s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.bash'
+[7.731s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.zsh'
+[7.733s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/foxglove_msgs/share/colcon-core/packages/foxglove_msgs)
+[7.821s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/io_context': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/io_context
+[8.988s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/global_planner -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/global_planner
+[8.991s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/global_planner -- -j22 -l22
+[9.664s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_ekf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_ekf -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_ekf
+[9.665s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_ekf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_ekf -- -j22 -l22
+[9.671s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/costmap -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/costmap
+[9.673s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
+[9.715s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/transform_broadcast' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transform_broadcast -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/transform_broadcast
+[9.717s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/transform_broadcast': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/transform_broadcast -- -j22 -l22
+[9.721s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/teleop_utils' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/teleop_utils -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/teleop_utils
+[9.723s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/teleop_utils': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/teleop_utils -- -j22 -l22
+[9.789s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/gym_vis -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/gym_vis
+[9.790s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/gym_vis -- -j22 -l22
+[9.924s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/safety_system -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/safety_node
+[9.926s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/safety_node -- -j22 -l22
+[10.247s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/pure_persuit' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/pure-persuit -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/pure_persuit
+[10.249s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/pure_persuit': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/pure_persuit -- -j22 -l22
+[13.638s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/vesc_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/vesc/vesc_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/vesc_msgs
+[13.643s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/vesc_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/vesc_msgs -- -j22 -l22
+[13.692s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/sample_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/sample_msgs
+[13.693s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/sample_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/sample_msgs -- -j22 -l22
+[18.503s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/local_planning' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/local_planning -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/local_planning
+[18.504s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/local_planning -- -j22 -l22
+[24.199s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/ackermann_mux' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/ackermann_mux -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/ackermann_mux
+[24.199s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/ackermann_mux': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/ackermann_mux -- -j22 -l22
+[28.177s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/global_planner -- -j22 -l22
+[28.185s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/global_planner
+[28.415s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(global_planner)
+[28.416s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/global_planner
+[28.417s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner' for CMake module files
+[28.419s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner' for CMake config files
+[28.420s] Level 1:colcon.colcon_core.shell:create_environment_hook('global_planner', 'cmake_prefix_path')
+[28.421s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/hook/cmake_prefix_path.ps1'
+[28.423s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/hook/cmake_prefix_path.dsv'
+[28.424s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/hook/cmake_prefix_path.sh'
+[28.437s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/lib'
+[28.437s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/bin'
+[28.438s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/lib/pkgconfig/global_planner.pc'
+[28.438s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/lib/python3.12/site-packages'
+[28.439s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/bin'
+[28.440s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.ps1'
+[28.441s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.dsv'
+[28.442s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.sh'
+[28.443s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.bash'
+[28.444s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.zsh'
+[28.445s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/global_planner/share/colcon-core/packages/global_planner)
+[28.457s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(global_planner)
+[28.458s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner' for CMake module files
+[28.473s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner' for CMake config files
+[28.474s] Level 1:colcon.colcon_core.shell:create_environment_hook('global_planner', 'cmake_prefix_path')
+[28.474s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/hook/cmake_prefix_path.ps1'
+[28.475s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/hook/cmake_prefix_path.dsv'
+[28.477s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/hook/cmake_prefix_path.sh'
+[28.480s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/lib'
+[28.480s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/bin'
+[28.480s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/lib/pkgconfig/global_planner.pc'
+[28.486s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/lib/python3.12/site-packages'
+[28.490s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/global_planner/bin'
+[28.491s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.ps1'
+[28.493s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.dsv'
+[28.505s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.sh'
+[28.508s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.bash'
+[28.510s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.zsh'
+[28.512s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/global_planner/share/colcon-core/packages/global_planner)
+[30.773s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/sample_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/sample_msgs -- -j22 -l22
+[30.792s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/sample_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/sample_msgs
+[31.385s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(sample_msgs)
+[31.387s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs' for CMake module files
+[31.388s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs' for CMake config files
+[31.389s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'cmake_prefix_path')
+[31.389s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.ps1'
+[31.386s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/sample_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/sample_msgs
+[31.391s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.dsv'
+[31.392s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.sh'
+[31.393s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/lib'
+[31.395s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'ld_library_path_lib')
+[31.396s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.ps1'
+[31.397s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.dsv'
+[31.398s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.sh'
+[31.403s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/bin'
+[31.404s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/lib/pkgconfig/sample_msgs.pc'
+[31.405s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/lib/python3.12/site-packages'
+[31.406s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'pythonpath')
+[31.407s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/pythonpath.ps1'
+[31.408s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/pythonpath.dsv'
+[31.409s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/pythonpath.sh'
+[31.411s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/bin'
+[31.412s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.ps1'
+[31.414s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.dsv'
+[31.417s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.sh'
+[31.420s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.bash'
+[31.425s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.zsh'
+[31.426s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/sample_msgs/share/colcon-core/packages/sample_msgs)
+[31.429s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(sample_msgs)
+[31.429s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs' for CMake module files
+[31.431s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs' for CMake config files
+[31.431s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'cmake_prefix_path')
+[31.432s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.ps1'
+[31.444s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.dsv'
+[31.445s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/cmake_prefix_path.sh'
+[31.447s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/lib'
+[31.447s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'ld_library_path_lib')
+[31.447s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.ps1'
+[31.448s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.dsv'
+[31.449s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/ld_library_path_lib.sh'
+[31.450s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/bin'
+[31.450s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/lib/pkgconfig/sample_msgs.pc'
+[31.451s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/lib/python3.12/site-packages'
+[31.451s] Level 1:colcon.colcon_core.shell:create_environment_hook('sample_msgs', 'pythonpath')
+[31.451s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/pythonpath.ps1'
+[31.452s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/pythonpath.dsv'
+[31.453s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/hook/pythonpath.sh'
+[31.456s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/sample_msgs/bin'
+[31.456s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.ps1'
+[31.458s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.dsv'
+[31.465s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.sh'
+[31.467s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.bash'
+[31.468s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/sample_msgs/share/sample_msgs/package.zsh'
+[31.469s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/sample_msgs/share/colcon-core/packages/sample_msgs)
+[35.251s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/vesc_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/vesc_msgs -- -j22 -l22
+[35.252s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/vesc_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/vesc_msgs
+[35.773s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(vesc_msgs)
+[35.773s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs' for CMake module files
+[35.775s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs' for CMake config files
+[35.776s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_msgs', 'cmake_prefix_path')
+[35.776s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/cmake_prefix_path.ps1'
+[35.777s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/cmake_prefix_path.dsv'
+[35.789s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/vesc_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/vesc_msgs
+[35.789s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/cmake_prefix_path.sh'
+[35.791s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/lib'
+[35.792s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_msgs', 'ld_library_path_lib')
+[35.793s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/ld_library_path_lib.ps1'
+[35.794s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/ld_library_path_lib.dsv'
+[35.794s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/ld_library_path_lib.sh'
+[35.802s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/bin'
+[35.803s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/lib/pkgconfig/vesc_msgs.pc'
+[35.804s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/lib/python3.12/site-packages'
+[35.805s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_msgs', 'pythonpath')
+[35.805s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/pythonpath.ps1'
+[35.808s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/pythonpath.dsv'
+[35.809s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/pythonpath.sh'
+[35.810s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/bin'
+[35.811s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.ps1'
+[35.818s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.dsv'
+[35.819s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.sh'
+[35.821s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.bash'
+[35.824s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.zsh'
+[35.825s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/vesc_msgs/share/colcon-core/packages/vesc_msgs)
+[35.829s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(vesc_msgs)
+[35.829s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs' for CMake module files
+[35.831s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs' for CMake config files
+[35.848s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_msgs', 'cmake_prefix_path')
+[35.848s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/cmake_prefix_path.ps1'
+[35.850s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/cmake_prefix_path.dsv'
+[35.851s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/cmake_prefix_path.sh'
+[35.853s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/lib'
+[35.853s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_msgs', 'ld_library_path_lib')
+[35.854s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/ld_library_path_lib.ps1'
+[35.855s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/ld_library_path_lib.dsv'
+[35.862s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/ld_library_path_lib.sh'
+[35.869s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/bin'
+[35.869s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/lib/pkgconfig/vesc_msgs.pc'
+[35.869s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/lib/python3.12/site-packages'
+[35.870s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_msgs', 'pythonpath')
+[35.870s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/pythonpath.ps1'
+[35.872s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/pythonpath.dsv'
+[35.873s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/hook/pythonpath.sh'
+[35.885s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/vesc_msgs/bin'
+[35.885s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.ps1'
+[35.887s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.dsv'
+[35.888s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.sh'
+[35.890s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.bash'
+[35.891s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/vesc_msgs/share/vesc_msgs/package.zsh'
+[35.900s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/vesc_msgs/share/colcon-core/packages/vesc_msgs)
+[35.904s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_ackermann' with build type 'ament_cmake'
+[35.905s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/rraina/wato_f1tenth/src/robot/vesc/vesc_ackermann'
+[35.905s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[35.905s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[36.656s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/rraina/wato_f1tenth/build/vesc_ackermann': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/vesc_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/vesc_msgs:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy LD_LIBRARY_PATH=/home/rraina/wato_f1tenth/install/vesc_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/rraina/wato_f1tenth/install/vesc_msgs/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/vesc/vesc_ackermann -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/vesc_ackermann
+[39.117s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/rraina/wato_f1tenth/build/io_context' returned '1': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/io_context
+[39.152s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(io_context)
+[39.152s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/io_context' for CMake module files
+[39.153s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/io_context' for CMake config files
+[39.153s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/io_context/bin'
+[39.153s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/io_context/lib/pkgconfig/io_context.pc'
+[39.154s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/io_context/lib/python3.12/site-packages'
+[39.155s] Level 1:colcon.colcon_core.environment:checking '/home/rraina/wato_f1tenth/install/io_context/bin'
+[39.156s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/io_context/share/io_context/package.ps1'
+[39.158s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/rraina/wato_f1tenth/install/io_context/share/io_context/package.dsv'
+[39.159s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/io_context/share/io_context/package.sh'
+[39.161s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/io_context/share/io_context/package.bash'
+[39.162s] INFO:colcon.colcon_core.shell:Creating package script '/home/rraina/wato_f1tenth/install/io_context/share/io_context/package.zsh'
+[39.163s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/rraina/wato_f1tenth/install/io_context/share/colcon-core/packages/io_context)
+[76.234s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[76.234s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[76.235s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '1'
+[76.235s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[76.349s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[76.349s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[76.349s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[76.349s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[76.466s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.Notifications was not provided by any .service files
+[76.467s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[76.467s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.ps1'
+[76.469s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/rraina/wato_f1tenth/install/_local_setup_util_ps1.py'
+[76.471s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.ps1'
+[76.473s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.sh'
+[76.474s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/rraina/wato_f1tenth/install/_local_setup_util_sh.py'
+[76.475s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.sh'
+[76.476s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.bash'
+[76.477s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.bash'
+[76.479s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/rraina/wato_f1tenth/install/local_setup.zsh'
+[76.480s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/rraina/wato_f1tenth/install/setup.zsh'

@@ -1,0 +1,14 @@
+source;share/local_planning/hook/cmake_prefix_path.ps1
+source;share/local_planning/hook/cmake_prefix_path.dsv
+source;share/local_planning/hook/cmake_prefix_path.sh
+source;share/local_planning/hook/ld_library_path_lib.ps1
+source;share/local_planning/hook/ld_library_path_lib.dsv
+source;share/local_planning/hook/ld_library_path_lib.sh
+source;share/local_planning/hook/pythonpath.ps1
+source;share/local_planning/hook/pythonpath.dsv
+source;share/local_planning/hook/pythonpath.sh
+source;share/local_planning/local_setup.bash
+source;share/local_planning/local_setup.dsv
+source;share/local_planning/local_setup.ps1
+source;share/local_planning/local_setup.sh
+source;share/local_planning/local_setup.zsh

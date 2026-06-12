@@ -1,0 +1,191 @@
+[0.288s] Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/local_planning -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/local_planning
+[0.523s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[0.523s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+[0.523s] -- Found rclcpp: 28.1.16 (/opt/ros/jazzy/share/rclcpp/cmake)
+[0.661s] -- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[0.674s] -- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[0.690s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.709s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.809s] -- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+[0.810s] -- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+[1.192s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[1.471s] -- Found rclcpp_action: 28.1.16 (/opt/ros/jazzy/share/rclcpp_action/cmake)
+[1.544s] -- Found nav_msgs: 5.3.6 (/opt/ros/jazzy/share/nav_msgs/cmake)
+[1.626s] -- Found visualization_msgs: 5.3.6 (/opt/ros/jazzy/share/visualization_msgs/cmake)
+[1.694s] -- Found tf2: 0.36.19 (/opt/ros/jazzy/share/tf2/cmake)
+[1.700s] -- Found tf2_ros: 0.36.19 (/opt/ros/jazzy/share/tf2_ros/cmake)
+[1.783s] -- Found tf2_geometry_msgs: 0.36.19 (/opt/ros/jazzy/share/tf2_geometry_msgs/cmake)
+[1.789s] -- Found eigen3_cmake_module: 0.3.0 (/opt/ros/jazzy/share/eigen3_cmake_module/cmake)
+[1.791s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[1.794s] -- Found rosidl_default_generators: 1.6.0 (/opt/ros/jazzy/share/rosidl_default_generators/cmake)
+[1.806s] -- Found rosidl_adapter: 4.6.7 (/opt/ros/jazzy/share/rosidl_adapter/cmake)
+[2.232s] -- Found ament_cmake_ros: 0.12.0 (/opt/ros/jazzy/share/ament_cmake_ros/cmake)
+[2.586s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.683s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.687s] -- Found python_cmake_module: 0.11.1 (/opt/ros/jazzy/share/python_cmake_module/cmake)
+[2.897s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter Development NumPy Development.Module Development.Embed 
+[2.947s] -- Configuring done (2.7s)
+[3.042s] -- Generating done (0.1s)
+[3.061s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/local_planning
+[3.070s] Invoked command in '/home/rraina/wato_f1tenth/build/local_planning' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/local_planning -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/local_planning
+[3.071s] Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/local_planning -- -j22 -l22
+[3.116s] [  2%] Built target local_planning__rosidl_generator_type_description
+[3.126s] [  6%] Built target occupancy_grid_frame_adapter_node
+[3.130s] [  6%] Built target ament_cmake_python_copy_local_planning
+[3.136s] [  8%] Built target local_planning__cpp
+[3.138s] [ 18%] Built target local_planning__rosidl_generator_c
+[3.162s] [ 25%] Built target local_planning__rosidl_typesupport_introspection_c
+[3.165s] [ 31%] Built target local_planning__rosidl_typesupport_introspection_cpp
+[3.165s] [ 37%] Built target local_planning__rosidl_typesupport_c
+[3.165s] [ 43%] Built target local_planning__rosidl_typesupport_fastrtps_cpp
+[3.165s] [ 50%] Built target local_planning__rosidl_typesupport_cpp
+[3.167s] [ 56%] Built target local_planning__rosidl_typesupport_fastrtps_c
+[3.187s] [ 56%] Built target local_planning
+[3.193s] [ 64%] Built target state_manager_node
+[3.198s] [ 81%] Built target hybrid_astar_planner_node
+[3.206s] [ 83%] Built target local_planning__py
+[3.227s] [ 87%] Built target local_planning__rosidl_generator_py
+[3.248s] [ 95%] Built target local_planning_s__rosidl_typesupport_introspection_c
+[3.249s] [ 95%] Built target local_planning_s__rosidl_typesupport_c
+[3.249s] [100%] Built target local_planning_s__rosidl_typesupport_fastrtps_c
+[3.309s] running egg_info
+[3.324s] writing local_planning.egg-info/PKG-INFO
+[3.324s] writing dependency_links to local_planning.egg-info/dependency_links.txt
+[3.324s] writing top-level names to local_planning.egg-info/top_level.txt
+[3.362s] reading manifest file 'local_planning.egg-info/SOURCES.txt'
+[3.363s] writing manifest file 'local_planning.egg-info/SOURCES.txt'
+[3.386s] [100%] Built target ament_cmake_python_build_local_planning_egg
+[3.395s] Invoked command in '/home/rraina/wato_f1tenth/build/local_planning' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/local_planning -- -j22 -l22
+[3.396s] Invoking command in '/home/rraina/wato_f1tenth/build/local_planning': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/local_planning
+[3.403s] -- Install configuration: ""
+[3.403s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/rosidl_interfaces/local_planning
+[3.403s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/action/PlanPath.json
+[3.403s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+[3.403s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+[3.403s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/plan_path.h
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__functions.h
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.h
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__functions.c
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__struct.h
+[3.404s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.c
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__description.c
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_generator_c__visibility_control.h
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/library_path.sh
+[3.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/library_path.dsv
+[3.405s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_generator_c.so
+[3.406s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+[3.406s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+[3.406s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+[3.406s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_fastrtps_c.h
+[3.407s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+[3.407s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[3.407s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_fastrtps_c.so
+[3.408s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+[3.408s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+[3.408s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+[3.408s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.hpp
+[3.408s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__builder.hpp
+[3.408s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__traits.hpp
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__struct.hpp
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/plan_path.hpp
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_generator_cpp__visibility_control.hpp
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_fastrtps_cpp.hpp
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/dds_fastrtps
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+[3.409s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[3.410s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_fastrtps_cpp.so
+[3.410s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+[3.410s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+[3.410s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+[3.410s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_introspection_c.h
+[3.410s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.c
+[3.411s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+[3.411s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[3.412s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_introspection_c.so
+[3.412s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_c.so
+[3.413s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+[3.413s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+[3.413s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+[3.413s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_introspection_cpp.hpp
+[3.413s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.cpp
+[3.414s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_introspection_cpp.so
+[3.415s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_cpp.so
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/pythonpath.sh
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/pythonpath.dsv
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info
+[3.416s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/top_level.txt
+[3.416s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/dependency_links.txt
+[3.416s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/PKG-INFO
+[3.416s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/SOURCES.txt
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/_local_planning_s.ep.rosidl_typesupport_fastrtps_c.c
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_c.so
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/_local_planning_s.ep.rosidl_typesupport_introspection_c.c
+[3.416s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_fastrtps_c.so
+[3.417s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/_local_planning_s.ep.rosidl_typesupport_c.c
+[3.417s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_introspection_c.so
+[3.417s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/__init__.py
+[3.417s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action
+[3.417s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/_plan_path_s.c
+[3.417s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/__init__.py
+[3.417s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/_plan_path.py
+[3.446s] Listing '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning'...
+[3.447s] Compiling '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/__init__.py'...
+[3.447s] Listing '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action'...
+[3.452s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_fastrtps_c.so
+[3.453s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_introspection_c.so
+[3.454s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_c.so
+[3.455s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_generator_py.so
+[3.455s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/action/PlanPath.idl
+[3.455s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/action/PlanPath.action
+[3.456s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/state_manager_node
+[3.457s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/hybrid_astar_planner_node
+[3.458s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/occupancy_grid_frame_adapter_node
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/config
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/config/hybrid_astar_planner.yaml
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/package_run_dependencies/local_planning
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/parent_prefix_path/local_planning
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/ament_prefix_path.sh
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/ament_prefix_path.dsv
+[3.459s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/path.sh
+[3.460s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/path.dsv
+[3.460s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.bash
+[3.460s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.sh
+[3.460s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.zsh
+[3.460s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.dsv
+[3.460s] -- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.dsv
+[3.460s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/packages/local_planning
+[3.461s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_cExport.cmake
+[3.461s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_cExport-noconfig.cmake
+[3.461s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cExport.cmake
+[3.461s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[3.461s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_cppExport.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cppExport.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cExport.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cExport.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cExport-noconfig.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cppExport.cmake
+[3.462s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[3.463s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cppExport.cmake
+[3.463s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cppExport-noconfig.cmake
+[3.463s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_pyExport.cmake
+[3.463s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_pyExport-noconfig.cmake
+[3.463s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/rosidl_cmake-extras.cmake
+[3.463s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_dependencies-extras.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_include_directories-extras.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_libraries-extras.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_targets-extras.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planningConfig.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planningConfig-version.cmake
+[3.464s] -- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.xml
+[3.465s] Invoked command in '/home/rraina/wato_f1tenth/build/local_planning' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/local_planning

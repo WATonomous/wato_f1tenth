@@ -1,0 +1,21 @@
+[ 50%] Building CXX object CMakeFiles/pure_persuit_node.dir/src/pure_persuit.cpp.o
+[100%] Linking CXX executable pure_persuit_node
+[100%] Built target pure_persuit_node
+-- Install configuration: ""
+-- Installing: /home/rraina/wato_f1tenth/install/pure_persuit/lib/pure_persuit/pure_persuit_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/pure_persuit/lib/pure_persuit/pure_persuit_node" to ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/ament_index/resource_index/package_run_dependencies/pure_persuit
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/ament_index/resource_index/parent_prefix_path/pure_persuit
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/ament_prefix_path.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/path.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/environment/path.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.bash
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.zsh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/ament_index/resource_index/packages/pure_persuit
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/cmake/pure_persuitConfig.cmake
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/cmake/pure_persuitConfig-version.cmake
+-- Up-to-date: /home/rraina/wato_f1tenth/install/pure_persuit/share/pure_persuit/package.xml

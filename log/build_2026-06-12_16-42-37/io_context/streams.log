@@ -1,0 +1,54 @@
+[0.085s] Invoking command in '/home/rraina/wato_f1tenth/build/io_context': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/io_context
+[0.107s] -- Found ament_cmake_auto: 2.5.5 (/opt/ros/jazzy/share/ament_cmake_auto/cmake)
+[2.378s] -- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[2.384s] -- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[2.392s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.401s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.446s] -- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+[2.447s] -- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+[2.699s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[3.850s] In this package, headers install destination is set to `include` by ament_auto_package. It is recommended to install `include/io_context` instead and will be the default behavior of ament_auto_package from ROS 2 Kilted Kaiju. On distributions before Kilted, ament_auto_package behaves the same way when you use USE_SCOPED_HEADER_INSTALL_DIR option.
+[3.857s] -- Configuring done (3.8s)
+[3.866s] -- Generating done (0.0s)
+[3.871s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/io_context
+[3.877s] Invoked command in '/home/rraina/wato_f1tenth/build/io_context' returned '0': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/io_context -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/io_context
+[3.878s] Invoking command in '/home/rraina/wato_f1tenth/build/io_context': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/io_context -- -j22 -l22
+[3.916s] [ 66%] Building CXX object CMakeFiles/io_context.dir/src/io_context.cpp.o
+[3.916s] [ 66%] Building CXX object CMakeFiles/io_context.dir/src/msg_converters/std_msgs.cpp.o
+[5.606s] [100%] Linking CXX shared library libio_context.so
+[5.813s] [100%] Built target io_context
+[5.822s] Invoked command in '/home/rraina/wato_f1tenth/build/io_context' returned '0': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/io_context -- -j22 -l22
+[5.823s] Invoking command in '/home/rraina/wato_f1tenth/build/io_context': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/io_context
+[5.829s] -- Install configuration: ""
+[5.830s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include
+[5.830s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/io_context
+[5.830s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/io_context/io_context.hpp
+[5.830s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/io_context/common.hpp
+[5.830s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters
+[5.831s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/converters.hpp
+[5.831s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/udp_msgs.hpp
+[5.831s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/std_msgs.hpp
+[5.831s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/library_path.sh
+[5.831s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/library_path.dsv
+[5.831s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/lib/libio_context.so
+[5.832s] -- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/io_context/lib/libio_context.so" to ""
+[5.832s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/ament_index/resource_index/package_run_dependencies/io_context
+[5.833s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/ament_index/resource_index/parent_prefix_path/io_context
+[5.833s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/ament_prefix_path.sh
+[5.833s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/ament_prefix_path.dsv
+[5.833s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/path.sh
+[5.833s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/path.dsv
+[5.834s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.bash
+[5.834s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.sh
+[5.834s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.zsh
+[5.834s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.dsv
+[5.834s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/package.dsv
+[5.835s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/ament_index/resource_index/packages/io_context
+[5.835s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/ament_cmake_export_dependencies-extras.cmake
+[5.835s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/ament_cmake_export_include_directories-extras.cmake
+[5.836s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/ament_cmake_export_libraries-extras.cmake
+[5.836s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/io_context-extras.cmake
+[5.836s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/io_contextConfig.cmake
+[5.836s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/io_contextConfig-version.cmake
+[5.836s] -- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/package.xml
+[5.838s] Invoked command in '/home/rraina/wato_f1tenth/build/io_context' returned '0': AMENT_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/rraina/wato_f1tenth/install/asio_cmake_module:/opt/ros/jazzy/opt/gz_sim_vendor:/opt/ros/jazzy/opt/gz_sensors_vendor:/opt/ros/jazzy/opt/gz_physics_vendor:/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_gui_vendor:/opt/ros/jazzy/opt/gz_transport_vendor:/opt/ros/jazzy/opt/gz_rendering_vendor:/opt/ros/jazzy/opt/gz_plugin_vendor:/opt/ros/jazzy/opt/gz_fuel_tools_vendor:/opt/ros/jazzy/opt/gz_msgs_vendor:/opt/ros/jazzy/opt/gz_common_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_ogre_next_vendor:/opt/ros/jazzy/opt/gz_dartsim_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/io_context

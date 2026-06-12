@@ -1,0 +1,25 @@
+[0.028s] Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
+[0.246s] [100%] Built target costmap_node
+[0.288s] Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/costmap -- -j22 -l22
+[0.295s] Invoking command in '/home/rraina/wato_f1tenth/build/costmap': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/costmap
+[0.309s] -- Install configuration: ""
+[0.309s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/config
+[0.310s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/config/params.yaml
+[0.312s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/lib/costmap/costmap_node
+[0.348s] -- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/costmap/lib/costmap/costmap_node" to ""
+[0.349s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/package_run_dependencies/costmap
+[0.351s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/parent_prefix_path/costmap
+[0.353s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/ament_prefix_path.sh
+[0.354s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/ament_prefix_path.dsv
+[0.355s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/path.sh
+[0.356s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/path.dsv
+[0.358s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.bash
+[0.359s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.sh
+[0.360s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.zsh
+[0.362s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.dsv
+[0.363s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/package.dsv
+[0.364s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/packages/costmap
+[0.364s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/cmake/costmapConfig.cmake
+[0.364s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/cmake/costmapConfig-version.cmake
+[0.366s] -- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/package.xml
+[0.371s] Invoked command in '/home/rraina/wato_f1tenth/build/costmap' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/costmap

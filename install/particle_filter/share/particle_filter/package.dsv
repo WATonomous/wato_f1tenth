@@ -1,0 +1,6 @@
+source;share/particle_filter/hook/pythonpath.ps1
+source;share/particle_filter/hook/pythonpath.dsv
+source;share/particle_filter/hook/pythonpath.sh
+source;share/particle_filter/hook/ament_prefix_path.ps1
+source;share/particle_filter/hook/ament_prefix_path.dsv
+source;share/particle_filter/hook/ament_prefix_path.sh

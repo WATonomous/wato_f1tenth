@@ -1,0 +1,6 @@
+{
+  "package_name": "local_planning",
+  "non_idl_tuples": [
+    "/home/rraina/wato_f1tenth/src/robot/local_planning:action/PlanPath.action"
+  ]
+}

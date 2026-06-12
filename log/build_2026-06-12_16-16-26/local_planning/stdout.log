@@ -1,0 +1,173 @@
+[  2%] Built target local_planning__rosidl_generator_type_description
+[  6%] Built target occupancy_grid_frame_adapter_node
+[  6%] Built target ament_cmake_python_copy_local_planning
+[  8%] Built target local_planning__cpp
+[ 18%] Built target local_planning__rosidl_generator_c
+[ 27%] Built target local_planning__rosidl_typesupport_introspection_c
+[ 31%] Built target local_planning__rosidl_typesupport_c
+[ 37%] Built target local_planning__rosidl_typesupport_cpp
+[ 43%] Built target local_planning__rosidl_typesupport_introspection_cpp
+[ 50%] Built target local_planning__rosidl_typesupport_fastrtps_cpp
+[ 56%] Built target local_planning__rosidl_typesupport_fastrtps_c
+[ 56%] Built target local_planning
+[ 64%] Built target state_manager_node
+[ 81%] Built target hybrid_astar_planner_node
+[ 83%] Built target local_planning__py
+[ 87%] Built target local_planning__rosidl_generator_py
+[ 91%] Built target local_planning_s__rosidl_typesupport_introspection_c
+[ 95%] Built target local_planning_s__rosidl_typesupport_fastrtps_c
+[100%] Built target local_planning_s__rosidl_typesupport_c
+running egg_info
+writing local_planning.egg-info/PKG-INFO
+writing dependency_links to local_planning.egg-info/dependency_links.txt
+writing top-level names to local_planning.egg-info/top_level.txt
+reading manifest file 'local_planning.egg-info/SOURCES.txt'
+writing manifest file 'local_planning.egg-info/SOURCES.txt'
+[100%] Built target ament_cmake_python_build_local_planning_egg
+-- Install configuration: ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/rosidl_interfaces/local_planning
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/action/PlanPath.json
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/plan_path.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__functions.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__functions.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__struct.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__description.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_generator_c__visibility_control.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/library_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/library_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_generator_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_generator_c.so" to ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_fastrtps_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_fastrtps_c.so" to ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__builder.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__traits.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__struct.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/plan_path.hpp
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/dds_fastrtps
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_fastrtps_cpp.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_introspection_c.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.c
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_introspection_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_c.so" to ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action
+-- Up-to-date: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/include/local_planning/local_planning/action/detail/plan_path__type_support.cpp
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_introspection_cpp.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_cpp.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_typesupport_cpp.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/pythonpath.sh
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/pythonpath.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/top_level.txt
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/dependency_links.txt
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/PKG-INFO
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning-0.0.0-py3.12.egg-info/SOURCES.txt
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/_local_planning_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_c.so
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/_local_planning_s.ep.rosidl_typesupport_introspection_c.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_fastrtps_c.so
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/_local_planning_s.ep.rosidl_typesupport_c.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_introspection_c.so
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/__init__.py
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/_plan_path_s.c
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/__init__.py
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/_plan_path.py
+Listing '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning'...
+Compiling '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/__init__.py'...
+Listing '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action'...
+Compiling '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/__init__.py'...
+Compiling '/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/action/_plan_path.py'...
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_fastrtps_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_fastrtps_c.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_introspection_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_c.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/python3.12/site-packages/local_planning/local_planning_s__rosidl_typesupport_c.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_generator_py.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/liblocal_planning__rosidl_generator_py.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/action/PlanPath.idl
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/action/PlanPath.action
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/state_manager_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/state_manager_node" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/hybrid_astar_planner_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/hybrid_astar_planner_node" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/occupancy_grid_frame_adapter_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/local_planning/lib/local_planning/occupancy_grid_frame_adapter_node" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/config
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/config/hybrid_astar_planner.yaml
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/package_run_dependencies/local_planning
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/parent_prefix_path/local_planning
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/ament_prefix_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/ament_prefix_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/environment/path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.bash
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.sh
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.zsh
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/ament_index/resource_index/packages/local_planning
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_cExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_cExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_cppExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cppExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planning__rosidl_typesupport_cppExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_pyExport.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/export_local_planning__rosidl_generator_pyExport-noconfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/rosidl_cmake-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/ament_cmake_export_targets-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planningConfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/cmake/local_planningConfig-version.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/local_planning/share/local_planning/package.xml

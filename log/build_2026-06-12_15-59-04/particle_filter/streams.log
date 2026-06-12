@@ -1,0 +1,66 @@
+[2.762s] Invoking command in '/home/rraina/wato_f1tenth/src/robot/particle_filter': PYTHONPATH=/home/rraina/wato_f1tenth/build/particle_filter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/particle_filter build --build-base /home/rraina/wato_f1tenth/build/particle_filter/build install --record /home/rraina/wato_f1tenth/build/particle_filter/install.log --install-scripts $base/lib/particle_filter --single-version-externally-managed install_data
+[6.171s] running egg_info
+[6.175s] creating ../../../build/particle_filter/particle_filter.egg-info
+[6.175s] writing ../../../build/particle_filter/particle_filter.egg-info/PKG-INFO
+[6.175s] writing dependency_links to ../../../build/particle_filter/particle_filter.egg-info/dependency_links.txt
+[6.176s] writing entry points to ../../../build/particle_filter/particle_filter.egg-info/entry_points.txt
+[6.177s] writing requirements to ../../../build/particle_filter/particle_filter.egg-info/requires.txt
+[6.178s] writing top-level names to ../../../build/particle_filter/particle_filter.egg-info/top_level.txt
+[6.178s] writing manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+[6.178s] reading manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+[6.179s] writing manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+[6.179s] running build
+[6.180s] running build_py
+[6.181s] creating /home/rraina/wato_f1tenth/build/particle_filter/build
+[6.182s] creating /home/rraina/wato_f1tenth/build/particle_filter/build/lib
+[6.183s] creating /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+[6.185s] copying particle_filter/particle_filter.py -> /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+[6.185s] copying particle_filter/utils.py -> /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+[6.186s] copying particle_filter/__init__.py -> /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+[6.187s] running install
+[6.188s] running install_lib
+[6.188s] creating /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+[6.189s] copying /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter/particle_filter.py -> /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+[6.189s] copying /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter/utils.py -> /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+[6.190s] copying /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter/__init__.py -> /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+[6.190s] byte-compiling /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter/particle_filter.py to particle_filter.cpython-312.pyc
+[6.190s] byte-compiling /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter/utils.py to utils.cpython-312.pyc
+[6.190s] byte-compiling /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter/__init__.py to __init__.cpython-312.pyc
+[6.190s] running install_data
+[6.191s] creating /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index
+[6.191s] creating /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index/resource_index
+[6.191s] creating /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index/resource_index/packages
+[6.192s] copying resource/particle_filter -> /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index/resource_index/packages
+[6.193s] copying package.xml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter
+[6.194s] creating /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.194s] copying maps/porto.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.194s] copying maps/basement_fixed.map.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.194s] copying maps/basement_fixed.png -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.195s] copying maps/porto.pgm -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.195s] copying maps/levine.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.196s] copying maps/levine.pgm -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+[6.196s] creating /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/launch
+[6.197s] copying launch/localize_launch.py -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/launch
+[6.197s] creating /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/config
+[6.197s] copying config/localize.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/config
+[6.198s] running install_egg_info
+[6.198s] Copying ../../../build/particle_filter/particle_filter.egg-info to /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter-0.2.0-py3.12.egg-info
+[6.198s] running install_scripts
+[6.198s] Installing particle_filter script to /home/rraina/wato_f1tenth/install/particle_filter/lib/particle_filter
+[6.199s] writing list of installed files to '/home/rraina/wato_f1tenth/build/particle_filter/install.log'
+[6.199s] /usr/lib/python3/dist-packages/setuptools/dist.py:744: SetuptoolsDeprecationWarning: Invalid dash-separated options
+[6.200s] !!
+[6.200s] 
+[6.200s]         ********************************************************************************
+[6.201s]         Usage of dash-separated 'script-dir' will not be supported in future
+[6.201s]         versions. Please use the underscore name 'script_dir' instead.
+[6.202s] 
+[6.203s]         This deprecation is overdue, please update your project and remove deprecated
+[6.205s]         calls to avoid build errors in the future.
+[6.206s] 
+[6.206s]         See https://setuptools.pypa.io/en/latest/userguide/declarative_config.html for details.
+[6.207s]         ********************************************************************************
+[6.208s] 
+[6.209s] !!
+[6.210s]   opt = self.warn_dash_deprecation(opt, section)
+[6.231s] Invoked command in '/home/rraina/wato_f1tenth/src/robot/particle_filter' returned '0': PYTHONPATH=/home/rraina/wato_f1tenth/build/particle_filter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/particle_filter build --build-base /home/rraina/wato_f1tenth/build/particle_filter/build install --record /home/rraina/wato_f1tenth/build/particle_filter/install.log --install-scripts $base/lib/particle_filter --single-version-externally-managed install_data

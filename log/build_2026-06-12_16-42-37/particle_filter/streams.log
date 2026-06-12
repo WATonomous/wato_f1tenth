@@ -1,0 +1,36 @@
+[1.762s] Invoking command in '/home/rraina/wato_f1tenth/src/robot/particle_filter': PYTHONPATH=/home/rraina/wato_f1tenth/build/particle_filter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/particle_filter build --build-base /home/rraina/wato_f1tenth/build/particle_filter/build install --record /home/rraina/wato_f1tenth/build/particle_filter/install.log --install-scripts $base/lib/particle_filter --single-version-externally-managed install_data
+[1.932s] /usr/lib/python3/dist-packages/setuptools/dist.py:744: SetuptoolsDeprecationWarning: Invalid dash-separated options
+[1.932s] !!
+[1.932s] 
+[1.932s]         ********************************************************************************
+[1.933s]         Usage of dash-separated 'script-dir' will not be supported in future
+[1.933s]         versions. Please use the underscore name 'script_dir' instead.
+[1.933s] 
+[1.933s]         This deprecation is overdue, please update your project and remove deprecated
+[1.933s]         calls to avoid build errors in the future.
+[1.933s] 
+[1.933s]         See https://setuptools.pypa.io/en/latest/userguide/declarative_config.html for details.
+[1.934s]         ********************************************************************************
+[1.934s] 
+[1.934s] !!
+[1.934s]   opt = self.warn_dash_deprecation(opt, section)
+[2.119s] running egg_info
+[2.127s] writing ../../../build/particle_filter/particle_filter.egg-info/PKG-INFO
+[2.128s] writing dependency_links to ../../../build/particle_filter/particle_filter.egg-info/dependency_links.txt
+[2.128s] writing entry points to ../../../build/particle_filter/particle_filter.egg-info/entry_points.txt
+[2.128s] writing requirements to ../../../build/particle_filter/particle_filter.egg-info/requires.txt
+[2.129s] writing top-level names to ../../../build/particle_filter/particle_filter.egg-info/top_level.txt
+[2.175s] reading manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+[2.177s] writing manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+[2.177s] running build
+[2.177s] running build_py
+[2.177s] running install
+[2.183s] running install_lib
+[2.227s] running install_data
+[2.229s] running install_egg_info
+[2.235s] removing '/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter-0.2.0-py3.12.egg-info' (and everything under it)
+[2.235s] Copying ../../../build/particle_filter/particle_filter.egg-info to /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter-0.2.0-py3.12.egg-info
+[2.238s] running install_scripts
+[2.403s] Installing particle_filter script to /home/rraina/wato_f1tenth/install/particle_filter/lib/particle_filter
+[2.421s] writing list of installed files to '/home/rraina/wato_f1tenth/build/particle_filter/install.log'
+[2.449s] Invoked command in '/home/rraina/wato_f1tenth/src/robot/particle_filter' returned '0': PYTHONPATH=/home/rraina/wato_f1tenth/build/particle_filter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/particle_filter build --build-base /home/rraina/wato_f1tenth/build/particle_filter/build install --record /home/rraina/wato_f1tenth/build/particle_filter/install.log --install-scripts $base/lib/particle_filter --single-version-externally-managed install_data

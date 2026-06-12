@@ -1,0 +1,31 @@
+[0.518s] Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/global_planner -- -j22 -l22
+[0.974s] [100%] Built target global_planner_node
+[1.033s] Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/global_planner -- -j22 -l22
+[1.038s] Invoking command in '/home/rraina/wato_f1tenth/build/global_planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/global_planner
+[1.381s] -- Install configuration: ""
+[1.382s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets
+[1.382s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/autoDriveRaceline_with_vel.csv
+[1.382s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/MexicoCity_centerline.csv
+[1.382s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/e7_fifth_v3_centerline.csv
+[1.382s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/e7_fifth_v3_optimal.csv
+[1.383s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/MexicoCity_raceline.csv
+[1.383s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/optmial_clean_map.csv
+[1.384s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/autodrive.csv
+[1.387s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/assets/my_map_clean.csv
+[1.389s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/lib/global_planner/global_planner_node
+[1.390s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/ament_index/resource_index/package_run_dependencies/global_planner
+[1.392s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/ament_index/resource_index/parent_prefix_path/global_planner
+[1.392s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/environment/ament_prefix_path.sh
+[1.393s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/environment/ament_prefix_path.dsv
+[1.394s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/environment/path.sh
+[1.394s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/environment/path.dsv
+[1.395s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/local_setup.bash
+[1.395s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/local_setup.sh
+[1.396s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/local_setup.zsh
+[1.399s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/local_setup.dsv
+[1.399s] -- Installing: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.dsv
+[1.401s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/ament_index/resource_index/packages/global_planner
+[1.404s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/cmake/global_plannerConfig.cmake
+[1.406s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/cmake/global_plannerConfig-version.cmake
+[1.406s] -- Up-to-date: /home/rraina/wato_f1tenth/install/global_planner/share/global_planner/package.xml
+[1.466s] Invoked command in '/home/rraina/wato_f1tenth/build/global_planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/global_planner

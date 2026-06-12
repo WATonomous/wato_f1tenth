@@ -1,0 +1,16 @@
+{
+  "package_name": "local_planning",
+  "output_dir": "/home/rraina/wato_f1tenth/build/local_planning/rosidl_generator_type_description/local_planning",
+  "idl_tuples": [
+    "/home/rraina/wato_f1tenth/build/local_planning/rosidl_adapter/local_planning:action/PlanPath.idl"
+  ],
+  "include_paths": [
+    "nav_msgs:/opt/ros/jazzy/share/nav_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces",
+    "geometry_msgs:/opt/ros/jazzy/share/geometry_msgs",
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "service_msgs:/opt/ros/jazzy/share/service_msgs",
+    "action_msgs:/opt/ros/jazzy/share/action_msgs",
+    "unique_identifier_msgs:/opt/ros/jazzy/share/unique_identifier_msgs"
+  ]
+}

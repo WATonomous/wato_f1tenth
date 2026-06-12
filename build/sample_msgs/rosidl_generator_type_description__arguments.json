@@ -1,0 +1,14 @@
+{
+  "package_name": "sample_msgs",
+  "output_dir": "/home/rraina/wato_f1tenth/build/sample_msgs/rosidl_generator_type_description/sample_msgs",
+  "idl_tuples": [
+    "/home/rraina/wato_f1tenth/build/sample_msgs/rosidl_adapter/sample_msgs:msg/Filtered.idl",
+    "/home/rraina/wato_f1tenth/build/sample_msgs/rosidl_adapter/sample_msgs:msg/FilteredArray.idl",
+    "/home/rraina/wato_f1tenth/build/sample_msgs/rosidl_adapter/sample_msgs:msg/Unfiltered.idl",
+    "/home/rraina/wato_f1tenth/build/sample_msgs/rosidl_adapter/sample_msgs:msg/Metadata.idl"
+  ],
+  "include_paths": [
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces"
+  ]
+}

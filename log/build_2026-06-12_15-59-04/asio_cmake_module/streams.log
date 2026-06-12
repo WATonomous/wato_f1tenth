@@ -1,0 +1,47 @@
+[0.149s] Invoking command in '/home/rraina/wato_f1tenth/build/asio_cmake_module': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/asio_cmake_module
+[1.038s] -- The C compiler identification is GNU 13.3.0
+[2.026s] -- The CXX compiler identification is GNU 13.3.0
+[3.184s] -- Detecting C compiler ABI info
+[3.839s] -- Detecting C compiler ABI info - done
+[3.857s] -- Check for working C compiler: /usr/bin/cc - skipped
+[3.857s] -- Detecting C compile features
+[3.858s] -- Detecting C compile features - done
+[4.026s] -- Detecting CXX compiler ABI info
+[4.555s] -- Detecting CXX compiler ABI info - done
+[4.574s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[4.575s] -- Detecting CXX compile features
+[4.575s] -- Detecting CXX compile features - done
+[4.622s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[4.938s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+[5.238s] -- Found ament_lint_auto: 0.17.4 (/opt/ros/jazzy/share/ament_lint_auto/cmake)
+[5.525s] -- Added test 'copyright' to check source files copyright and LICENSE
+[5.533s] -- Added test 'lint_cmake' to check CMake code style
+[5.537s] -- Added test 'xmllint' to check XML markup files
+[5.544s] -- Configuring done (5.3s)
+[5.560s] -- Generating done (0.0s)
+[5.568s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/asio_cmake_module
+[5.582s] Invoked command in '/home/rraina/wato_f1tenth/build/asio_cmake_module' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/transport_drivers/asio_cmake_module -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/asio_cmake_module
+[5.586s] Invoking command in '/home/rraina/wato_f1tenth/build/asio_cmake_module': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/asio_cmake_module -- -j22 -l22
+[6.361s] Invoked command in '/home/rraina/wato_f1tenth/build/asio_cmake_module' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/asio_cmake_module -- -j22 -l22
+[6.376s] Invoking command in '/home/rraina/wato_f1tenth/build/asio_cmake_module': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/asio_cmake_module
+[6.392s] -- Install configuration: ""
+[6.393s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/ament_index/resource_index/package_run_dependencies/asio_cmake_module
+[6.395s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/ament_index/resource_index/parent_prefix_path/asio_cmake_module
+[6.396s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/environment/ament_prefix_path.sh
+[6.396s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/environment/ament_prefix_path.dsv
+[6.397s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/environment/path.sh
+[6.397s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/environment/path.dsv
+[6.397s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/local_setup.bash
+[6.398s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/local_setup.sh
+[6.398s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/local_setup.zsh
+[6.398s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/local_setup.dsv
+[6.398s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.dsv
+[6.399s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/ament_index/resource_index/packages/asio_cmake_module
+[6.399s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake/asio_cmake_module-extras.cmake
+[6.399s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake/asio_cmake_moduleConfig.cmake
+[6.400s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake/asio_cmake_moduleConfig-version.cmake
+[6.400s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/package.xml
+[6.402s] -- Up-to-date: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake
+[6.402s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake/Modules
+[6.402s] -- Installing: /home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake/Modules/FindASIO.cmake
+[6.407s] Invoked command in '/home/rraina/wato_f1tenth/build/asio_cmake_module' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/asio_cmake_module

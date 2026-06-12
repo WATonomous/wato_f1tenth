@@ -1,0 +1,48 @@
+-- Found ament_cmake_auto: 2.5.5 (/opt/ros/jazzy/share/ament_cmake_auto/cmake)
+-- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+-- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+In this package, headers install destination is set to `include` by ament_auto_package. It is recommended to install `include/io_context` instead and will be the default behavior of ament_auto_package from ROS 2 Kilted Kaiju. On distributions before Kilted, ament_auto_package behaves the same way when you use USE_SCOPED_HEADER_INSTALL_DIR option.
+-- Configuring done (3.8s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/rraina/wato_f1tenth/build/io_context
+[ 66%] Building CXX object CMakeFiles/io_context.dir/src/io_context.cpp.o
+[ 66%] Building CXX object CMakeFiles/io_context.dir/src/msg_converters/std_msgs.cpp.o
+[100%] Linking CXX shared library libio_context.so
+[100%] Built target io_context
+-- Install configuration: ""
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/io_context
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/io_context/io_context.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/io_context/common.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/converters.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/udp_msgs.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/std_msgs.hpp
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/library_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/library_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/lib/libio_context.so
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/io_context/lib/libio_context.so" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/ament_index/resource_index/package_run_dependencies/io_context
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/ament_index/resource_index/parent_prefix_path/io_context
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/ament_prefix_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/ament_prefix_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/environment/path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.bash
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.sh
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.zsh
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/package.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/ament_index/resource_index/packages/io_context
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/io_context-extras.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/io_contextConfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/cmake/io_contextConfig-version.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/io_context/share/io_context/package.xml

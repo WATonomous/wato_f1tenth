@@ -1,0 +1,49 @@
+running egg_info
+creating ../../../build/particle_filter/particle_filter.egg-info
+writing ../../../build/particle_filter/particle_filter.egg-info/PKG-INFO
+writing dependency_links to ../../../build/particle_filter/particle_filter.egg-info/dependency_links.txt
+writing entry points to ../../../build/particle_filter/particle_filter.egg-info/entry_points.txt
+writing requirements to ../../../build/particle_filter/particle_filter.egg-info/requires.txt
+writing top-level names to ../../../build/particle_filter/particle_filter.egg-info/top_level.txt
+writing manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+reading manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+writing manifest file '../../../build/particle_filter/particle_filter.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/rraina/wato_f1tenth/build/particle_filter/build
+creating /home/rraina/wato_f1tenth/build/particle_filter/build/lib
+creating /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+copying particle_filter/particle_filter.py -> /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+copying particle_filter/utils.py -> /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+copying particle_filter/__init__.py -> /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter
+running install
+running install_lib
+creating /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+copying /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter/particle_filter.py -> /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+copying /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter/utils.py -> /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+copying /home/rraina/wato_f1tenth/build/particle_filter/build/lib/particle_filter/__init__.py -> /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter
+byte-compiling /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter/particle_filter.py to particle_filter.cpython-312.pyc
+byte-compiling /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter/utils.py to utils.cpython-312.pyc
+byte-compiling /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter/__init__.py to __init__.cpython-312.pyc
+running install_data
+creating /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index
+creating /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index/resource_index
+creating /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index/resource_index/packages
+copying resource/particle_filter -> /home/rraina/wato_f1tenth/install/particle_filter/share/ament_index/resource_index/packages
+copying package.xml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter
+creating /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+copying maps/porto.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+copying maps/basement_fixed.map.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+copying maps/basement_fixed.png -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+copying maps/porto.pgm -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+copying maps/levine.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+copying maps/levine.pgm -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/maps
+creating /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/launch
+copying launch/localize_launch.py -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/launch
+creating /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/config
+copying config/localize.yaml -> /home/rraina/wato_f1tenth/install/particle_filter/share/particle_filter/config
+running install_egg_info
+Copying ../../../build/particle_filter/particle_filter.egg-info to /home/rraina/wato_f1tenth/install/particle_filter/lib/python3.12/site-packages/particle_filter-0.2.0-py3.12.egg-info
+running install_scripts
+Installing particle_filter script to /home/rraina/wato_f1tenth/install/particle_filter/lib/particle_filter
+writing list of installed files to '/home/rraina/wato_f1tenth/build/particle_filter/install.log'

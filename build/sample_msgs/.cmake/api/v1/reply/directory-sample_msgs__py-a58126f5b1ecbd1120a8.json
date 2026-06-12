@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "sample_msgs__py",
+		"source" : "/home/rraina/wato_f1tenth/build/sample_msgs/sample_msgs__py"
+	}
+}

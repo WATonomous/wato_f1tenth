@@ -1,0 +1,21 @@
+[100%] Built target costmap_node
+-- Install configuration: ""
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/config
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/config/params.yaml
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/lib/costmap/costmap_node
+-- Set non-toolchain portion of runtime path of "/home/rraina/wato_f1tenth/install/costmap/lib/costmap/costmap_node" to ""
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/package_run_dependencies/costmap
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/parent_prefix_path/costmap
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/ament_prefix_path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/ament_prefix_path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/path.sh
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/path.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.bash
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.sh
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.zsh
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/package.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/packages/costmap
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/cmake/costmapConfig.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/cmake/costmapConfig-version.cmake
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/package.xml

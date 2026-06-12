@@ -1,0 +1,24 @@
+[0.112s] Invoking command in '/home/rraina/wato_f1tenth/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/gym_vis -- -j22 -l22
+[1.019s] [100%] Built target gym_vis_node
+[1.044s] Invoked command in '/home/rraina/wato_f1tenth/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/gym_vis -- -j22 -l22
+[1.050s] Invoking command in '/home/rraina/wato_f1tenth/build/gym_vis': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/gym_vis
+[1.138s] -- Install configuration: ""
+[1.138s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/assets
+[1.138s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/assets/f1tenth_car.stl
+[1.138s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/lib/gym_vis/gym_vis_node
+[1.139s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/ament_index/resource_index/package_run_dependencies/gym_vis
+[1.139s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/ament_index/resource_index/parent_prefix_path/gym_vis
+[1.139s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/environment/ament_prefix_path.sh
+[1.139s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/environment/ament_prefix_path.dsv
+[1.140s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/environment/path.sh
+[1.140s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/environment/path.dsv
+[1.140s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/local_setup.bash
+[1.140s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/local_setup.sh
+[1.141s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/local_setup.zsh
+[1.149s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/local_setup.dsv
+[1.150s] -- Installing: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.dsv
+[1.150s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/ament_index/resource_index/packages/gym_vis
+[1.150s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/cmake/gym_visConfig.cmake
+[1.150s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/cmake/gym_visConfig-version.cmake
+[1.151s] -- Up-to-date: /home/rraina/wato_f1tenth/install/gym_vis/share/gym_vis/package.xml
+[1.204s] Invoked command in '/home/rraina/wato_f1tenth/build/gym_vis' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/gym_vis

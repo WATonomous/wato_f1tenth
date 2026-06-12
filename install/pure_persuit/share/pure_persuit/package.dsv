@@ -1,0 +1,8 @@
+source;share/pure_persuit/hook/cmake_prefix_path.ps1
+source;share/pure_persuit/hook/cmake_prefix_path.dsv
+source;share/pure_persuit/hook/cmake_prefix_path.sh
+source;share/pure_persuit/local_setup.bash
+source;share/pure_persuit/local_setup.dsv
+source;share/pure_persuit/local_setup.ps1
+source;share/pure_persuit/local_setup.sh
+source;share/pure_persuit/local_setup.zsh

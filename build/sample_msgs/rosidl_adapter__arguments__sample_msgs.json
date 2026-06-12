@@ -1,0 +1,9 @@
+{
+  "package_name": "sample_msgs",
+  "non_idl_tuples": [
+    "/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs:msg/Filtered.msg",
+    "/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs:msg/FilteredArray.msg",
+    "/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs:msg/Unfiltered.msg",
+    "/home/rraina/wato_f1tenth/src/wato_msgs/sample_msgs:msg/Metadata.msg"
+  ]
+}

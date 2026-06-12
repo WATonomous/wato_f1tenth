@@ -1,0 +1,20 @@
+[100%] Built target costmap_node
+-- Install configuration: ""
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/config
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/config/params.yaml
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/lib/costmap/costmap_node
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/package_run_dependencies/costmap
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/parent_prefix_path/costmap
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/ament_prefix_path.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/path.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/environment/path.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.bash
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.sh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.zsh
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/local_setup.dsv
+-- Installing: /home/rraina/wato_f1tenth/install/costmap/share/costmap/package.dsv
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/ament_index/resource_index/packages/costmap
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/cmake/costmapConfig.cmake
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/cmake/costmapConfig-version.cmake
+-- Up-to-date: /home/rraina/wato_f1tenth/install/costmap/share/costmap/package.xml

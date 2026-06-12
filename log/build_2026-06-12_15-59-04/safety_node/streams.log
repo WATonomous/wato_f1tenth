@@ -1,0 +1,53 @@
+[0.894s] Invoking command in '/home/rraina/wato_f1tenth/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/safety_system -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/safety_node
+[1.185s] -- The C compiler identification is GNU 13.3.0
+[2.470s] -- The CXX compiler identification is GNU 13.3.0
+[3.538s] -- Detecting C compiler ABI info
+[4.099s] -- Detecting C compiler ABI info - done
+[4.116s] -- Check for working C compiler: /usr/bin/cc - skipped
+[4.117s] -- Detecting C compile features
+[4.117s] -- Detecting C compile features - done
+[4.317s] -- Detecting CXX compiler ABI info
+[4.879s] -- Detecting CXX compiler ABI info - done
+[4.897s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[4.897s] -- Detecting CXX compile features
+[4.898s] -- Detecting CXX compile features - done
+[4.910s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[5.244s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+[5.502s] -- Found rclcpp: 28.1.16 (/opt/ros/jazzy/share/rclcpp/cmake)
+[5.962s] -- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[5.991s] -- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[6.025s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[6.067s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[6.249s] -- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+[6.256s] -- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+[6.419s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+[6.851s] -- Found FastRTPS: /opt/ros/jazzy/include (Required is at least version "2.13") 
+[7.087s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[7.458s] -- Found std_msgs: 5.3.6 (/opt/ros/jazzy/share/std_msgs/cmake)
+[7.492s] -- Found nav_msgs: 5.3.6 (/opt/ros/jazzy/share/nav_msgs/cmake)
+[7.584s] -- Found visualization_msgs: 5.3.6 (/opt/ros/jazzy/share/visualization_msgs/cmake)
+[7.691s] -- Found ackermann_msgs: 2.0.2 (/opt/ros/jazzy/share/ackermann_msgs/cmake)
+[7.721s] -- Found tf2_ros: 0.36.19 (/opt/ros/jazzy/share/tf2_ros/cmake)
+[8.012s] -- Found tf2_geometry_msgs: 0.36.19 (/opt/ros/jazzy/share/tf2_geometry_msgs/cmake)
+[8.153s] -- Found eigen3_cmake_module: 0.3.0 (/opt/ros/jazzy/share/eigen3_cmake_module/cmake)
+[8.155s] -- Found Eigen3: TRUE (found version "3.4.0") 
+[8.155s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[8.165s] -- Found ament_lint_auto: 0.17.4 (/opt/ros/jazzy/share/ament_lint_auto/cmake)
+[8.437s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[8.437s] -- Configured cppcheck include dirs: /home/rraina/wato_f1tenth/src/robot/safety_system/include
+[8.438s] -- Configured cppcheck exclude dirs and/or files: 
+[8.438s] -- Added test 'lint_cmake' to check CMake code style
+[8.440s] -- Added test 'uncrustify' to check C / C++ code style
+[8.441s] -- Configured uncrustify additional arguments: 
+[8.443s] -- Added test 'xmllint' to check XML markup files
+[8.450s] -- Configuring done (7.5s)
+[8.523s] -- Generating done (0.0s)
+[8.540s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/safety_node
+[8.561s] Invoked command in '/home/rraina/wato_f1tenth/build/safety_node' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/robot/safety_system -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/safety_node
+[8.564s] Invoking command in '/home/rraina/wato_f1tenth/build/safety_node': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/safety_node -- -j22 -l22
+[8.698s] [ 25%] [32mBuilding CXX object CMakeFiles/safety_node.dir/src/safety_system_node.cpp.o[0m
+[8.699s] [ 50%] [32mBuilding CXX object CMakeFiles/ebreak.dir/src/ebreak.cpp.o[0m
+[55.495s] [ 75%] [32m[1mLinking CXX executable safety_node[0m
+[56.704s] [100%] [32m[1mLinking CXX executable ebreak[0m
+[56.971s] [100%] Built target safety_node
+[57.926s] [100%] Built target ebreak

@@ -1,0 +1,115 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-000c89f2ba9a1cef6c2c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "udp_driver",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_bridge_node_exe::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_bridge_node_exe-b4c6458f2e7d1872eaee.json",
+					"name" : "udp_bridge_node_exe",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_driver::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_driver-b1c9adb7be32ccb291a0.json",
+					"name" : "udp_driver",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_driver_nodes::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_driver_nodes-42dbc95413e80150db01.json",
+					"name" : "udp_driver_nodes",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_driver_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_driver_uninstall-2a411c3816ce0aaad039.json",
+					"name" : "udp_driver_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_receiver_node_exe::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_receiver_node_exe-c9cfd78f53d51b31c69d.json",
+					"name" : "udp_receiver_node_exe",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_sender_node_exe::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_sender_node_exe-4ceb632b209ced71ea05.json",
+					"name" : "udp_sender_node_exe",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-ff35a5c386eccfca5594.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/rraina/wato_f1tenth/build/udp_driver",
+		"source" : "/home/rraina/wato_f1tenth/src/robot/transport_drivers/udp_driver"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

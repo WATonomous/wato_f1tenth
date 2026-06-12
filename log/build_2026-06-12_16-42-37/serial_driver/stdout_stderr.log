@@ -1,0 +1,48 @@
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake_auto: 2.5.5 (/opt/ros/jazzy/share/ament_cmake_auto/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+-- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 8.4.3 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+-- Found FastRTPS: /opt/ros/jazzy/include (Required is at least version "2.13") 
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Found asio_cmake_module: 1.2.0 (/home/rraina/wato_f1tenth/install/asio_cmake_module/share/asio_cmake_module/cmake)
+-- Found ASIO: /usr/include  
+In this package, headers install destination is set to `include` by ament_auto_package. It is recommended to install `include/serial_driver` instead and will be the default behavior of ament_auto_package from ROS 2 Kilted Kaiju. On distributions before Kilted, ament_auto_package behaves the same way when you use USE_SCOPED_HEADER_INSTALL_DIR option.
+-- Configuring done (3.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/rraina/wato_f1tenth/build/serial_driver
+[ 14%] Building CXX object CMakeFiles/serial_driver.dir/src/serial_port.cpp.o
+[ 28%] Building CXX object CMakeFiles/serial_bridge.dir/rclcpp_components/node_main_serial_bridge.cpp.o
+[ 42%] Building CXX object CMakeFiles/serial_driver.dir/src/serial_driver.cpp.o
+[ 57%] Linking CXX shared library libserial_driver.so
+[ 57%] Built target serial_driver
+[ 71%] Building CXX object CMakeFiles/serial_driver_nodes.dir/src/serial_bridge_node.cpp.o
+In file included from /home/rraina/wato_f1tenth/install/io_context/include/msg_converters/converters.hpp:21,
+                 from /home/rraina/wato_f1tenth/src/robot/transport_drivers/serial_driver/include/serial_driver/serial_bridge_node.hpp:29,
+                 from /home/rraina/wato_f1tenth/src/robot/transport_drivers/serial_driver/src/serial_bridge_node.cpp:15:
+/home/rraina/wato_f1tenth/install/io_context/include/msg_converters/udp_msgs.hpp:20:10: fatal error: udp_msgs/msg/udp_packet.hpp: No such file or directory
+   20 | #include <udp_msgs/msg/udp_packet.hpp>
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+gmake[2]: *** [CMakeFiles/serial_driver_nodes.dir/build.make:76: CMakeFiles/serial_driver_nodes.dir/src/serial_bridge_node.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:167: CMakeFiles/serial_driver_nodes.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+[ 85%] Linking CXX executable serial_bridge
+[ 85%] Built target serial_bridge
+gmake: *** [Makefile:146: all] Error 2

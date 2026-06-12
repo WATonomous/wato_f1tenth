@@ -1,0 +1,20 @@
+[2.753s] Invoking command in '/home/rraina/wato_f1tenth/src/robot/action': PYTHONPATH=/home/rraina/wato_f1tenth/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/action build --build-base /home/rraina/wato_f1tenth/build/action/build install --record /home/rraina/wato_f1tenth/build/action/install.log --single-version-externally-managed install_data
+[3.315s] running egg_info
+[3.348s] writing ../../../build/action/action.egg-info/PKG-INFO
+[3.348s] writing dependency_links to ../../../build/action/action.egg-info/dependency_links.txt
+[3.350s] writing requirements to ../../../build/action/action.egg-info/requires.txt
+[3.351s] writing top-level names to ../../../build/action/action.egg-info/top_level.txt
+[3.430s] reading manifest file '../../../build/action/action.egg-info/SOURCES.txt'
+[3.431s] adding license file 'LICENSE'
+[3.434s] writing manifest file '../../../build/action/action.egg-info/SOURCES.txt'
+[3.434s] running build
+[3.434s] running build_py
+[3.435s] running install
+[3.446s] running install_lib
+[3.486s] running install_data
+[3.486s] running install_egg_info
+[3.526s] removing '/home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages/action-0.0.0-py3.12.egg-info' (and everything under it)
+[3.527s] Copying ../../../build/action/action.egg-info to /home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages/action-0.0.0-py3.12.egg-info
+[3.529s] running install_scripts
+[3.775s] writing list of installed files to '/home/rraina/wato_f1tenth/build/action/install.log'
+[3.830s] Invoked command in '/home/rraina/wato_f1tenth/src/robot/action' returned '0': PYTHONPATH=/home/rraina/wato_f1tenth/build/action/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rraina/wato_f1tenth/install/action/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/action build --build-base /home/rraina/wato_f1tenth/build/action/build install --record /home/rraina/wato_f1tenth/build/action/install.log --single-version-externally-managed install_data

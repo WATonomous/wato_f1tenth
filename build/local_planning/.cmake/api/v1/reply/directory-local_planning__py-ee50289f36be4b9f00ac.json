@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "local_planning__py",
+		"source" : "/home/rraina/wato_f1tenth/build/local_planning/local_planning__py"
+	}
+}

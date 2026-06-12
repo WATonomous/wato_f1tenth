@@ -94,7 +94,7 @@ private:
     std::string overtake_ready_topic, dead_man_active_topic;
     std::string ackermann_control_topic, odom_topic;
     std::string speed_topic;
-    bool overtaking_enable, speed_limit_enable;
+    bool overtaking_enable, force_overtake_ready, speed_limit_enable;
     double look_ahead_distance, speed_limit, wheel_base, max_steering_angle;
     double kp_gain;
     double max_lookahead, min_lookahead, lookahead_ratio;

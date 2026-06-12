@@ -1,0 +1,45 @@
+[0.493s] Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/foxglove_msgs
+[0.979s] -- The C compiler identification is GNU 13.3.0
+[2.030s] -- The CXX compiler identification is GNU 13.3.0
+[3.170s] -- Detecting C compiler ABI info
+[3.786s] -- Detecting C compiler ABI info - done
+[3.806s] -- Check for working C compiler: /usr/bin/cc - skipped
+[3.807s] -- Detecting C compile features
+[3.808s] -- Detecting C compile features - done
+[3.970s] -- Detecting CXX compiler ABI info
+[4.480s] -- Detecting CXX compiler ABI info - done
+[4.498s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[4.498s] -- Detecting CXX compile features
+[4.499s] -- Detecting CXX compile features - done
+[4.545s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[4.856s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+[5.158s] -- Found std_msgs: 5.3.6 (/opt/ros/jazzy/share/std_msgs/cmake)
+[5.543s] -- Found rosidl_generator_c: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+[5.582s] -- Found rosidl_generator_cpp: 4.6.7 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+[5.636s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[5.692s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[5.803s] -- Found nav_msgs: 5.3.6 (/opt/ros/jazzy/share/nav_msgs/cmake)
+[6.153s] -- Configuring done (5.6s)
+[6.169s] -- Generating done (0.0s)
+[6.175s] -- Build files have been written to: /home/rraina/wato_f1tenth/build/foxglove_msgs
+[6.228s] Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /home/rraina/wato_f1tenth/src/wato_msgs/foxglove_msgs -DCMAKE_INSTALL_PREFIX=/home/rraina/wato_f1tenth/install/foxglove_msgs
+[6.246s] Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/foxglove_msgs -- -j22 -l22
+[6.303s] Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /home/rraina/wato_f1tenth/build/foxglove_msgs -- -j22 -l22
+[6.306s] Invoking command in '/home/rraina/wato_f1tenth/build/foxglove_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/foxglove_msgs
+[6.333s] -- Install configuration: ""
+[6.333s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/ament_index/resource_index/package_run_dependencies/foxglove_msgs
+[6.334s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/ament_index/resource_index/parent_prefix_path/foxglove_msgs
+[6.335s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/ament_prefix_path.sh
+[6.335s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/ament_prefix_path.dsv
+[6.336s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/path.sh
+[6.336s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/environment/path.dsv
+[6.337s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.bash
+[6.337s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.sh
+[6.338s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.zsh
+[6.338s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/local_setup.dsv
+[6.338s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.dsv
+[6.339s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/ament_index/resource_index/packages/foxglove_msgs
+[6.340s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/cmake/foxglove_msgsConfig.cmake
+[6.341s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/cmake/foxglove_msgsConfig-version.cmake
+[6.341s] -- Installing: /home/rraina/wato_f1tenth/install/foxglove_msgs/share/foxglove_msgs/package.xml
+[6.379s] Invoked command in '/home/rraina/wato_f1tenth/build/foxglove_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /home/rraina/wato_f1tenth/build/foxglove_msgs
