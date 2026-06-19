@@ -1,0 +1,9 @@
+# Goal
+geometry_msgs/PointStamped goal_position
+---
+# Result
+nav_msgs/Path path
+bool success
+---
+# Feedback
+int32 layers_expanded
