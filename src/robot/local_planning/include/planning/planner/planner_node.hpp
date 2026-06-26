@@ -48,9 +48,9 @@ private:
 
   void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
   void occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+  void racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg);
 
   // utility
-  void loadRacingLine();
   void publishPlannerViz(const LocalFrenetPlan & plan);
   LocalPlannerIntent intentFromAction(uint8_t intent) const;
 
@@ -70,6 +70,7 @@ private:
   // subs
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr racing_line_sub_;
 
   // pubs
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
@@ -93,10 +94,10 @@ private:
   std::atomic_bool planner_busy_{false};
 
   // racing line
-  std::vector<local_planning::Point> racing_line_;
+  std::shared_ptr<const std::vector<local_planning::Point>> racing_line_;
 
   // parameters
-  std::string racing_line_file_;
+  std::string racing_line_topic_;
   LocalFrenetPlannerConfig planner_config_;
   LocalPlannerIntent default_intent_;
   double planner_runtime_budget_ms_ = 100.0;
