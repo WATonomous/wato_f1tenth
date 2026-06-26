@@ -7,6 +7,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <local_planning/action/plan_path.hpp>
 
@@ -31,13 +32,13 @@ private:
 
   void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
   void occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+  void racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg);
 
   void stateTimerCallback();
   void planningTimerCallback();
   void scheduleNextPlanGoal();
 
   //utility
-  void loadRacingLine();
   void publishState();
   void sendPlanGoal(RacingState state);
   PlanPath::Goal buildPlanGoal(RacingState state) const;
@@ -53,11 +54,11 @@ private:
   local_planning::Odometry rosToOdometry(const nav_msgs::msg::Odometry::SharedPtr & msg);
   local_planning::OccupancyGrid rosToOccupancyGrid(
     const nav_msgs::msg::OccupancyGrid::SharedPtr & msg);
-  std::vector<local_planning::Point> loadRacingLineFromFile(const std::string & filename);
 
   // subs
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr racing_line_sub_;
 
   // pubs
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr state_pub_;
@@ -80,7 +81,7 @@ private:
   std::vector<local_planning::Point> racing_line_;
 
   // parameters
-  std::string racing_line_file_;
+  std::string racing_line_topic_;
   double state_update_rate_;
   double planning_trigger_rate_;
   double overtake_start_distance_m_;

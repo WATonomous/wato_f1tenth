@@ -8,8 +8,6 @@
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include <fstream>
-#include <sstream>
 #include <thread>
 #include <functional>
 #include <algorithm>
@@ -65,7 +63,7 @@ PlannerNode::PlannerNode()
 : Node("hybrid_astar_planner_node")
 {
   // parameters check yaml for explanation
-  this->declare_parameter<std::string>("racing_line_file", "racing_line.csv");
+  this->declare_parameter<std::string>("racing_line_topic", "/global_planner/path");
   this->declare_parameter<int>(
     "default_intent",
     static_cast<int>(LocalPlannerIntent::FOLLOW_RACING_LINE));
@@ -102,7 +100,7 @@ PlannerNode::PlannerNode()
   this->declare_parameter<std::string>("controller_path_frame", "base_link");
   this->declare_parameter<std::string>("debug_path_topic", "/local_path_map");
 
-  racing_line_file_ = this->get_parameter("racing_line_file").as_string();
+  racing_line_topic_ = this->get_parameter("racing_line_topic").as_string();
   switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
     case 1:
       default_intent_ = LocalPlannerIntent::OVERTAKE;
@@ -184,6 +182,10 @@ PlannerNode::PlannerNode()
     "/occupancy_grid", 10,
     std::bind(&PlannerNode::occupancyGridCallback, this, _1));
 
+  racing_line_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+    racing_line_topic_, rclcpp::QoS(1).transient_local().reliable(),
+    std::bind(&PlannerNode::racingLineCallback, this, _1));
+
   // publishers
   path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/path", 10);
   debug_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(debug_path_topic_, 10);
@@ -197,8 +199,6 @@ PlannerNode::PlannerNode()
     std::bind(&PlannerNode::handleGoal, this, _1, _2),
     std::bind(&PlannerNode::handleCancel, this, _1),
     std::bind(&PlannerNode::handleAccepted, this, _1));
-
-  loadRacingLine();
 
 }
 //mutex this to prevent races
@@ -216,6 +216,28 @@ void PlannerNode::occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::Shar
   std::lock_guard<std::mutex> lock(input_mutex_);
   current_occupancy_grid_ = std::move(grid);
   has_current_occupancy_grid_ = true;
+}
+
+void PlannerNode::racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg)
+{
+  if (msg->poses.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Ignoring empty racing line message on %s", racing_line_topic_.c_str());
+    return;
+  }
+
+  auto racing_line = std::make_shared<std::vector<local_planning::Point>>();
+  racing_line->reserve(msg->poses.size());
+  for (const auto & pose : msg->poses) {
+    racing_line->emplace_back(
+      pose.pose.position.x,
+      pose.pose.position.y,
+      pose.pose.position.z);
+  }
+
+  std::shared_ptr<const std::vector<local_planning::Point>> racing_line_snapshot = racing_line;
+  std::atomic_store(&racing_line_, racing_line_snapshot);
 }
 
 rclcpp_action::GoalResponse PlannerNode::handleGoal(
@@ -339,6 +361,16 @@ try
       }
     };
 
+  const auto racing_line = std::atomic_load(&racing_line_);
+  if (!racing_line || racing_line->empty()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Missing racing line on %s, cannot plan", racing_line_topic_.c_str());
+    result->success = false;
+    finish_succeeded(result);
+    return;
+  }
+
   nav_msgs::msg::Odometry::SharedPtr odom_msg;
   local_planning::OccupancyGrid occupancy_grid;
   bool has_occupancy_grid = false;
@@ -374,6 +406,7 @@ try
     return;
   }
 
+  planner_->setRacingLine(*racing_line);
   LocalFrenetPlan plan = planner_->plan(odom.position, odom.heading, occupancy_grid, intent);
 
   if (!ros_active()) {
@@ -472,38 +505,6 @@ catch (...)
   if (rclcpp::ok()) {
     RCLCPP_WARN(this->get_logger(), "Planner action thread exited after unknown exception");
   }
-}
-
-void PlannerNode::loadRacingLine()
-{
-  std::ifstream file(racing_line_file_);
-  if (!file.is_open()) {
-    RCLCPP_ERROR(
-      this->get_logger(), "Failed to open racing line file: %s",
-      racing_line_file_.c_str());
-    return;
-  }
-
-  racing_line_.clear();
-  std::string line;
-  while (std::getline(file, line)) {
-    if (line.empty() || line[0] == '#') {
-      continue;
-    }
-    std::istringstream ss(line);
-    double x, y, v;
-    char comma;
-    if (ss >> x >> comma >> y >> comma >> v) {
-      racing_line_.emplace_back(x, y, v);
-    }
-  }
-
-  if (racing_line_.empty()) {
-    RCLCPP_WARN(this->get_logger(), "Racing line is empty");
-    return;
-  }
-
-  planner_->setRacingLine(racing_line_);
 }
 
 LocalPlannerIntent PlannerNode::intentFromAction(uint8_t intent) const

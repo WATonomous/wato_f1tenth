@@ -4,8 +4,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <algorithm>
-#include <fstream>
-#include <sstream>
 #include <functional>
 #include <chrono>
 
@@ -18,7 +16,7 @@ StateManagerNode::StateManagerNode()
 : Node("state_manager_node")
 {
   // parameters
-  this->declare_parameter<std::string>("racing_line_file", "racing_line.csv");
+  this->declare_parameter<std::string>("racing_line_topic", "/global_planner/path");
   this->declare_parameter<double>("state_update_rate", 50.0);
   this->declare_parameter<double>("planning_trigger_rate", 50.0);
   this->declare_parameter<double>("overtake_start_distance_m", 3.0);
@@ -27,7 +25,7 @@ StateManagerNode::StateManagerNode()
   this->declare_parameter<double>("merge_done_gap_m", 2.0);
   this->declare_parameter<double>("merge_done_d_m", 0.25);
 
-  racing_line_file_ = this->get_parameter("racing_line_file").as_string();
+  racing_line_topic_ = this->get_parameter("racing_line_topic").as_string();
   state_update_rate_ = this->get_parameter("state_update_rate").as_double();
   planning_trigger_rate_ = this->get_parameter("planning_trigger_rate").as_double();
   overtake_start_distance_m_ = this->get_parameter("overtake_start_distance_m").as_double();
@@ -54,6 +52,10 @@ StateManagerNode::StateManagerNode()
     "/occupancy_grid", 10,
     std::bind(&StateManagerNode::occupancyGridCallback, this, _1));
 
+  racing_line_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+    racing_line_topic_, rclcpp::QoS(1).transient_local().reliable(),
+    std::bind(&StateManagerNode::racingLineCallback, this, _1));
+
   // publishers
   state_pub_ = this->create_publisher<std_msgs::msg::UInt8>("/racing_state", 10);
 
@@ -74,7 +76,6 @@ StateManagerNode::StateManagerNode()
     planning_period_,
     std::bind(&StateManagerNode::planningTimerCallback, this));
 
-  loadRacingLine();
 }
 
 void StateManagerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -87,9 +88,38 @@ void StateManagerNode::occupancyGridCallback(const nav_msgs::msg::OccupancyGrid:
   current_occupancy_grid_ = msg;
 }
 
+void StateManagerNode::racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg)
+{
+  if (msg->poses.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Ignoring empty racing line message on %s", racing_line_topic_.c_str());
+    return;
+  }
+
+  std::vector<local_planning::Point> racing_line;
+  racing_line.reserve(msg->poses.size());
+  for (const auto & pose : msg->poses) {
+    racing_line.emplace_back(
+      pose.pose.position.x,
+      pose.pose.position.y,
+      pose.pose.position.z);
+  }
+
+  racing_line_ = std::move(racing_line);
+  state_machine_->setRacingLine(racing_line_);
+}
+
 void StateManagerNode::stateTimerCallback()
 {
   if (!current_odom_ || !current_occupancy_grid_) {
+    return;
+  }
+
+  if (racing_line_.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Missing racing line on %s, skipping state update", racing_line_topic_.c_str());
     return;
   }
 
@@ -106,6 +136,13 @@ void StateManagerNode::stateTimerCallback()
 void StateManagerNode::planningTimerCallback()
 {
   if (!current_odom_ || !current_occupancy_grid_) {
+    return;
+  }
+
+  if (racing_line_.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Missing racing line on %s, skipping plan trigger", racing_line_topic_.c_str());
     return;
   }
 
@@ -144,20 +181,6 @@ void StateManagerNode::scheduleNextPlanGoal()
       }
       planningTimerCallback();
     });
-}
-
-void StateManagerNode::loadRacingLine()
-{
-  racing_line_ = loadRacingLineFromFile(racing_line_file_);
-
-  if (racing_line_.empty()) {
-    RCLCPP_ERROR(
-      this->get_logger(), "Failed to load racing line from: %s",
-      racing_line_file_.c_str());
-    return;
-  }
-
-  state_machine_->setRacingLine(racing_line_);
 }
 
 void StateManagerNode::publishState()
@@ -334,34 +357,6 @@ void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & resu
   }
 
   scheduleNextPlanGoal();
-}
-
-std::vector<local_planning::Point> StateManagerNode::loadRacingLineFromFile(
-  const std::string & filename)
-{
-  std::vector<local_planning::Point> points;
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    RCLCPP_ERROR(
-      this->get_logger(), "Failed to open racing line file: %s",
-      filename.c_str());
-    return points;
-  }
-
-  std::string line;
-  while (std::getline(file, line)) {
-    if (line.empty() || line[0] == '#') {
-      continue;
-    }
-    std::istringstream ss(line);
-    double x, y, v;
-    char comma;
-    if (ss >> x >> comma >> y >> comma >> v) {
-      points.emplace_back(x, y, v);
-    }
-  }
-
-  return points;
 }
 
 local_planning::Odometry StateManagerNode::rosToOdometry(
