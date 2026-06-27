@@ -242,11 +242,10 @@ void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
 {
   const uint64_t sequence = ++latest_plan_sequence_;
   auto self = shared_from_this();
-  auto goal_handle_holder = new std::shared_ptr<GoalHandle>(goal_handle);
   std::thread(
-    [this, self, goal_handle_holder, sequence]() {
+    [this, self, goal_handle, sequence]() {
       try {
-        executePlan(*goal_handle_holder, sequence);
+        executePlan(goal_handle, sequence);
       } catch (const std::exception & ex) {
         planner_busy_.store(false);
         if (rclcpp::ok()) {
@@ -258,17 +257,6 @@ void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
         if (rclcpp::ok()) {
           RCLCPP_WARN(this->get_logger(), "Planner action worker exited after unknown exception");
         }
-      }
-
-      bool release_goal_handle = rclcpp::ok();
-      try {
-        release_goal_handle = release_goal_handle && !(*goal_handle_holder)->is_active();
-      } catch (...) {
-        release_goal_handle = false;
-      }
-
-      if (release_goal_handle) {
-        delete goal_handle_holder;
       }
     }).detach();
 }
