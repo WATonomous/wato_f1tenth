@@ -60,7 +60,7 @@ double elapsedMs(SteadyClock::time_point start)
 } // namespace
 
 PlannerNode::PlannerNode()
-: Node("hybrid_astar_planner_node")
+: Node("local_frenet_lattice_planner_node")
 {
   // parameters check yaml for explanation
   this->declare_parameter<std::string>("racing_line_topic", "/global_planner/path");
@@ -71,16 +71,9 @@ PlannerNode::PlannerNode()
   this->declare_parameter<double>("layer_spacing_m", 0.5);
   this->declare_parameter<double>("lane_spacing_m", 0.1);
   this->declare_parameter<double>("max_lateral_offset_m", 1.8);
-  this->declare_parameter<int>("max_lane_jump_per_layer", 3);
   this->declare_parameter<double>("max_path_angle_deg", 50.0);
   this->declare_parameter<double>("sample_spacing_m", 0.1);
   this->declare_parameter<double>("max_runtime_ms", 50.0);
-  this->declare_parameter<double>("heuristic_weight", 1.0);
-  this->declare_parameter<std::vector<double>>(
-    "heading_buckets_deg", std::vector<double>{-10.0, -5.0, 0.0, 5.0, 10.0});
-  this->declare_parameter<int>("max_heading_jump_per_layer", 1);
-  this->declare_parameter<double>("max_heading_mismatch_deg", 25.0);
-  this->declare_parameter<int>("heuristic_sample_count", 8);
   this->declare_parameter<double>("collision_circle_radius_m", 0.20);
   this->declare_parameter<double>("front_collision_circle_offset_m", 0.26);
   this->declare_parameter<double>("soft_inflation_distance_m", 0.18);
@@ -117,19 +110,9 @@ PlannerNode::PlannerNode()
   planner_config_.layer_spacing_m = this->get_parameter("layer_spacing_m").as_double();
   planner_config_.lane_spacing_m = this->get_parameter("lane_spacing_m").as_double();
   planner_config_.max_lateral_offset_m = this->get_parameter("max_lateral_offset_m").as_double();
-  planner_config_.max_lane_jump_per_layer = this->get_parameter(
-    "max_lane_jump_per_layer").as_int();
   planner_config_.max_path_angle_deg = this->get_parameter("max_path_angle_deg").as_double();
   planner_config_.sample_spacing_m = this->get_parameter("sample_spacing_m").as_double();
   planner_config_.max_runtime_ms = this->get_parameter("max_runtime_ms").as_double();
-  planner_config_.heuristic_weight = this->get_parameter("heuristic_weight").as_double();
-  planner_config_.heading_buckets_deg =
-    this->get_parameter("heading_buckets_deg").as_double_array();
-  planner_config_.max_heading_jump_per_layer = this->get_parameter(
-    "max_heading_jump_per_layer").as_int();
-  planner_config_.max_heading_mismatch_deg = this->get_parameter(
-    "max_heading_mismatch_deg").as_double();
-  planner_config_.heuristic_sample_count = this->get_parameter("heuristic_sample_count").as_int();
   planner_config_.collision_circle_radius_m = this->get_parameter(
     "collision_circle_radius_m").as_double();
   planner_config_.front_collision_circle_offset_m = this->get_parameter(

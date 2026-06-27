@@ -19,7 +19,7 @@ def generate_launch_description():
     pure_persuit_config = os.path.join(
         bringup_share, 'config', 'pure_persuit', 'pure_persuit.yaml')
     planner_config = os.path.join(
-        local_planning_share, 'config', 'hybrid_astar_planner.yaml')
+        local_planning_share, 'config', 'local_frenet_lattice_planner.yaml')
     racing_line_file = os.path.join(
         global_planner_share, 'assets', 'optmial_clean_map.csv')
     costmap_param_file = os.path.join(costmap_share, 'config', 'params.yaml')
@@ -81,8 +81,8 @@ def generate_launch_description():
 
     local_planner = Node(
         package='local_planning',
-        executable='hybrid_astar_planner_node',
-        name='hybrid_astar_planner_node',
+        executable='local_frenet_lattice_planner_node',
+        name='local_frenet_lattice_planner_node',
         output='screen',
         parameters=[
             LaunchConfiguration('planner_config'),
