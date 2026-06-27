@@ -34,6 +34,7 @@ add_executable(state_manager_node
   src/state_manager/state_manager_node.cpp
   src/state_manager/state_manager_code.cpp
   src/frenet_converter.cpp
+  src/ros_adapters.cpp
 )
 target_include_directories(state_manager_node PUBLIC include)
 ament_target_dependencies(state_manager_node rclcpp rclcpp_action nav_msgs std_msgs geometry_msgs tf2 tf2_geometry_msgs)
@@ -48,6 +49,7 @@ set(LOCAL_FRENET_LATTICE_PLANNER_SOURCES
   src/planner/collision_checker.cpp
   src/planner/planner_costs.cpp
   src/frenet_converter.cpp
+  src/ros_adapters.cpp
 )
 
 set(LOCAL_FRENET_LATTICE_PLANNER_DEPS

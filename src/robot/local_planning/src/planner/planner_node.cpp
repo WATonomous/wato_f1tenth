@@ -1,11 +1,11 @@
 #include "planning/planner/planner_node.hpp"
 
 #include "planning/planner/local_frenet_lattice_planner.hpp"
+#include "planning/ros_adapters.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/exceptions.h>
 #include <tf2/time.h>
-#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <thread>
@@ -193,7 +193,7 @@ void PlannerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
 void PlannerNode::occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
-  local_planning::OccupancyGrid grid = rosToOccupancyGrid(msg);
+  local_planning::OccupancyGrid grid = rosToOccupancyGrid(*msg);
   buildClearanceMasks(grid);
 
   std::lock_guard<std::mutex> lock(input_mutex_);
@@ -210,14 +210,8 @@ void PlannerNode::racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg)
     return;
   }
 
-  auto racing_line = std::make_shared<std::vector<local_planning::Point>>();
-  racing_line->reserve(msg->poses.size());
-  for (const auto & pose : msg->poses) {
-    racing_line->emplace_back(
-      pose.pose.position.x,
-      pose.pose.position.y,
-      pose.pose.position.z);
-  }
+  auto racing_line = std::make_shared<std::vector<local_planning::Point>>(
+    rosPathToRacingLine(*msg));
 
   std::shared_ptr<const std::vector<local_planning::Point>> racing_line_snapshot = racing_line;
   std::atomic_store(&racing_line_, racing_line_snapshot);
@@ -381,7 +375,7 @@ try
     return;
   }
 
-  local_planning::Odometry odom = rosToOdometry(odom_msg);
+  local_planning::Odometry odom = rosToOdometry(*odom_msg);
 
   if (action_budget_expired()) {
     result->success = false;
@@ -543,29 +537,6 @@ void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
   viz_pub_->publish(markers);
 }
 
-local_planning::Odometry PlannerNode::rosToOdometry(
-  const nav_msgs::msg::Odometry::SharedPtr & msg)
-{
-  local_planning::Odometry odom;
-  odom.position.x = msg->pose.pose.position.x;
-  odom.position.y = msg->pose.pose.position.y;
-  odom.velocity = msg->twist.twist.linear.x;
-  odom.heading = tf2::getYaw(msg->pose.pose.orientation);
-  return odom;
-}
-
-local_planning::OccupancyGrid PlannerNode::rosToOccupancyGrid(
-  const nav_msgs::msg::OccupancyGrid::SharedPtr & msg)
-{
-  local_planning::OccupancyGrid grid;
-  grid.width = static_cast<int>(msg->info.width);
-  grid.height = static_cast<int>(msg->info.height);
-  grid.resolution = msg->info.resolution;
-  grid.origin.x = msg->info.origin.position.x;
-  grid.origin.y = msg->info.origin.position.y;
-  grid.data.assign(msg->data.begin(), msg->data.end());
-  return grid;
-}
 
 void PlannerNode::buildClearanceMasks(local_planning::OccupancyGrid & grid) const
 {

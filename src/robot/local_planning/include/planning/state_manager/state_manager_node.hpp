@@ -50,11 +50,6 @@ private:
   // action result callback
   void planResultCallback(const GoalHandle::WrappedResult & result);
 
-  // conversions
-  local_planning::Odometry rosToOdometry(const nav_msgs::msg::Odometry::SharedPtr & msg);
-  local_planning::OccupancyGrid rosToOccupancyGrid(
-    const nav_msgs::msg::OccupancyGrid::SharedPtr & msg);
-
   // subs
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
