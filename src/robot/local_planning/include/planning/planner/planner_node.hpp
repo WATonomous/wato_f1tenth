@@ -55,7 +55,6 @@ private:
   LocalPlannerIntent intentFromAction(uint8_t intent) const;
 
   // conversions
-  void buildClearanceMasks(local_planning::OccupancyGrid & grid) const;
   nav_msgs::msg::Path pathToRosPath(
     const std::vector<local_planning::Point> & path, const std::string & frame_id);
   bool transformPathToControllerFrame(
