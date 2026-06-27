@@ -20,6 +20,8 @@ class CollisionChecker
 public:
   explicit CollisionChecker(const LocalFrenetPlannerConfig & config);
 
+  void buildClearanceCache(OccupancyGrid & grid) const;
+
   CollisionStatus collisionStatus(
     const Point & p,
     double heading,

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace local_planning
 {
@@ -16,6 +18,81 @@ constexpr double kEpsilon = 1e-6;
 CollisionChecker::CollisionChecker(const LocalFrenetPlannerConfig & config)
 : config_(config)
 {
+}
+
+void CollisionChecker::buildClearanceCache(OccupancyGrid & grid) const
+{
+  if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= kEpsilon) {
+    grid.definitely_blocked_mask.clear();
+    grid.needs_exact_check_mask.clear();
+    grid.has_clearance_cache = false;
+    return;
+  }
+
+  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
+  grid.definitely_blocked_mask.assign(cell_count, 0);
+  grid.needs_exact_check_mask.assign(cell_count, 0);
+
+  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
+  const double blocked_radius = std::max(
+    0.0, config_.collision_circle_radius_m - cell_half_diagonal);
+  const double exact_check_radius = std::max(
+    blocked_radius,
+    config_.collision_circle_radius_m +
+    config_.soft_inflation_distance_m + cell_half_diagonal);
+
+  auto makeDiskOffsets = [&](double radius_m) {
+      std::vector<std::pair<int, int>> offsets;
+      const int max_cells = std::max(
+        0, static_cast<int>(std::ceil(radius_m / grid.resolution)));
+      const double radius_sq = radius_m * radius_m;
+      for (int dr = -max_cells; dr <= max_cells; ++dr) {
+        for (int dc = -max_cells; dc <= max_cells; ++dc) {
+          const double dx = static_cast<double>(dc) * grid.resolution;
+          const double dy = static_cast<double>(dr) * grid.resolution;
+          if (dx * dx + dy * dy <= radius_sq) {
+            offsets.emplace_back(dr, dc);
+          }
+        }
+      }
+      return offsets;
+    };
+
+  const std::vector<std::pair<int, int>> blocked_offsets = makeDiskOffsets(blocked_radius);
+  const std::vector<std::pair<int, int>> exact_offsets = makeDiskOffsets(exact_check_radius);
+
+  for (int row = 0; row < grid.height; ++row) {
+    for (int col = 0; col < grid.width; ++col) {
+      const size_t source_index = static_cast<size_t>(row * grid.width + col);
+      if (grid.data[source_index] < config_.occupied_threshold) {
+        continue;
+      }
+
+      for (const auto & offset : blocked_offsets) {
+        const int masked_row = row + offset.first;
+        const int masked_col = col + offset.second;
+        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
+          continue;
+        }
+
+        grid.definitely_blocked_mask[
+          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
+      }
+
+      for (const auto & offset : exact_offsets) {
+        const int masked_row = row + offset.first;
+        const int masked_col = col + offset.second;
+        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
+          continue;
+        }
+
+        grid.needs_exact_check_mask[
+          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
+      }
+    }
+  }
+
+  grid.has_clearance_cache = true;
 }
 
 CollisionStatus CollisionChecker::collisionStatus(

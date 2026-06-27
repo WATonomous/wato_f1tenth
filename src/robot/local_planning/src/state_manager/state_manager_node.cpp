@@ -1,7 +1,6 @@
 #include "planning/state_manager/state_manager_node.hpp"
 
-#include <tf2/utils.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "planning/ros_adapters.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -97,14 +96,7 @@ void StateManagerNode::racingLineCallback(const nav_msgs::msg::Path::SharedPtr m
     return;
   }
 
-  std::vector<local_planning::Point> racing_line;
-  racing_line.reserve(msg->poses.size());
-  for (const auto & pose : msg->poses) {
-    racing_line.emplace_back(
-      pose.pose.position.x,
-      pose.pose.position.y,
-      pose.pose.position.z);
-  }
+  std::vector<local_planning::Point> racing_line = rosPathToRacingLine(*msg);
 
   racing_line_ = std::move(racing_line);
   state_machine_->setRacingLine(racing_line_);
@@ -123,8 +115,8 @@ void StateManagerNode::stateTimerCallback()
     return;
   }
 
-  local_planning::Odometry odom = rosToOdometry(current_odom_);
-  local_planning::OccupancyGrid grid = rosToOccupancyGrid(current_occupancy_grid_);
+  local_planning::Odometry odom = rosToOdometry(*current_odom_);
+  local_planning::OccupancyGrid grid = rosToOccupancyGrid(*current_occupancy_grid_);
 
   bool state_changed = state_machine_->update(odom, grid);
 
@@ -359,29 +351,6 @@ void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & resu
   scheduleNextPlanGoal();
 }
 
-local_planning::Odometry StateManagerNode::rosToOdometry(
-  const nav_msgs::msg::Odometry::SharedPtr & msg)
-{
-  local_planning::Odometry odom;
-  odom.position.x = msg->pose.pose.position.x;
-  odom.position.y = msg->pose.pose.position.y;
-  odom.velocity = msg->twist.twist.linear.x;
-  odom.heading = tf2::getYaw(msg->pose.pose.orientation);
-  return odom;
-}
-
-local_planning::OccupancyGrid StateManagerNode::rosToOccupancyGrid(
-  const nav_msgs::msg::OccupancyGrid::SharedPtr & msg)
-{
-  local_planning::OccupancyGrid grid;
-  grid.width = static_cast<int>(msg->info.width);
-  grid.height = static_cast<int>(msg->info.height);
-  grid.resolution = msg->info.resolution;
-  grid.origin.x = msg->info.origin.position.x;
-  grid.origin.y = msg->info.origin.position.y;
-  grid.data.assign(msg->data.begin(), msg->data.end());
-  return grid;
-}
 
 } // namespace local_planning
 

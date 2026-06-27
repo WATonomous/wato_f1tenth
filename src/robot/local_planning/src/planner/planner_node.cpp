@@ -1,11 +1,12 @@
 #include "planning/planner/planner_node.hpp"
 
+#include "planning/planner/collision_checker.hpp"
 #include "planning/planner/local_frenet_lattice_planner.hpp"
+#include "planning/ros_adapters.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/exceptions.h>
 #include <tf2/time.h>
-#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <thread>
@@ -60,7 +61,7 @@ double elapsedMs(SteadyClock::time_point start)
 } // namespace
 
 PlannerNode::PlannerNode()
-: Node("hybrid_astar_planner_node")
+: Node("local_frenet_lattice_planner_node")
 {
   // parameters check yaml for explanation
   this->declare_parameter<std::string>("racing_line_topic", "/global_planner/path");
@@ -71,16 +72,9 @@ PlannerNode::PlannerNode()
   this->declare_parameter<double>("layer_spacing_m", 0.5);
   this->declare_parameter<double>("lane_spacing_m", 0.1);
   this->declare_parameter<double>("max_lateral_offset_m", 1.8);
-  this->declare_parameter<int>("max_lane_jump_per_layer", 3);
   this->declare_parameter<double>("max_path_angle_deg", 50.0);
   this->declare_parameter<double>("sample_spacing_m", 0.1);
   this->declare_parameter<double>("max_runtime_ms", 50.0);
-  this->declare_parameter<double>("heuristic_weight", 1.0);
-  this->declare_parameter<std::vector<double>>(
-    "heading_buckets_deg", std::vector<double>{-10.0, -5.0, 0.0, 5.0, 10.0});
-  this->declare_parameter<int>("max_heading_jump_per_layer", 1);
-  this->declare_parameter<double>("max_heading_mismatch_deg", 25.0);
-  this->declare_parameter<int>("heuristic_sample_count", 8);
   this->declare_parameter<double>("collision_circle_radius_m", 0.20);
   this->declare_parameter<double>("front_collision_circle_offset_m", 0.26);
   this->declare_parameter<double>("soft_inflation_distance_m", 0.18);
@@ -117,19 +111,9 @@ PlannerNode::PlannerNode()
   planner_config_.layer_spacing_m = this->get_parameter("layer_spacing_m").as_double();
   planner_config_.lane_spacing_m = this->get_parameter("lane_spacing_m").as_double();
   planner_config_.max_lateral_offset_m = this->get_parameter("max_lateral_offset_m").as_double();
-  planner_config_.max_lane_jump_per_layer = this->get_parameter(
-    "max_lane_jump_per_layer").as_int();
   planner_config_.max_path_angle_deg = this->get_parameter("max_path_angle_deg").as_double();
   planner_config_.sample_spacing_m = this->get_parameter("sample_spacing_m").as_double();
   planner_config_.max_runtime_ms = this->get_parameter("max_runtime_ms").as_double();
-  planner_config_.heuristic_weight = this->get_parameter("heuristic_weight").as_double();
-  planner_config_.heading_buckets_deg =
-    this->get_parameter("heading_buckets_deg").as_double_array();
-  planner_config_.max_heading_jump_per_layer = this->get_parameter(
-    "max_heading_jump_per_layer").as_int();
-  planner_config_.max_heading_mismatch_deg = this->get_parameter(
-    "max_heading_mismatch_deg").as_double();
-  planner_config_.heuristic_sample_count = this->get_parameter("heuristic_sample_count").as_int();
   planner_config_.collision_circle_radius_m = this->get_parameter(
     "collision_circle_radius_m").as_double();
   planner_config_.front_collision_circle_offset_m = this->get_parameter(
@@ -210,8 +194,8 @@ void PlannerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
 void PlannerNode::occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
-  local_planning::OccupancyGrid grid = rosToOccupancyGrid(msg);
-  buildClearanceMasks(grid);
+  local_planning::OccupancyGrid grid = rosToOccupancyGrid(*msg);
+  CollisionChecker(planner_config_).buildClearanceCache(grid);
 
   std::lock_guard<std::mutex> lock(input_mutex_);
   current_occupancy_grid_ = std::move(grid);
@@ -227,14 +211,8 @@ void PlannerNode::racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg)
     return;
   }
 
-  auto racing_line = std::make_shared<std::vector<local_planning::Point>>();
-  racing_line->reserve(msg->poses.size());
-  for (const auto & pose : msg->poses) {
-    racing_line->emplace_back(
-      pose.pose.position.x,
-      pose.pose.position.y,
-      pose.pose.position.z);
-  }
+  auto racing_line = std::make_shared<std::vector<local_planning::Point>>(
+    rosPathToRacingLine(*msg));
 
   std::shared_ptr<const std::vector<local_planning::Point>> racing_line_snapshot = racing_line;
   std::atomic_store(&racing_line_, racing_line_snapshot);
@@ -265,11 +243,10 @@ void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
 {
   const uint64_t sequence = ++latest_plan_sequence_;
   auto self = shared_from_this();
-  auto goal_handle_holder = new std::shared_ptr<GoalHandle>(goal_handle);
   std::thread(
-    [this, self, goal_handle_holder, sequence]() {
+    [this, self, goal_handle, sequence]() {
       try {
-        executePlan(*goal_handle_holder, sequence);
+        executePlan(goal_handle, sequence);
       } catch (const std::exception & ex) {
         planner_busy_.store(false);
         if (rclcpp::ok()) {
@@ -281,17 +258,6 @@ void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
         if (rclcpp::ok()) {
           RCLCPP_WARN(this->get_logger(), "Planner action worker exited after unknown exception");
         }
-      }
-
-      bool release_goal_handle = rclcpp::ok();
-      try {
-        release_goal_handle = release_goal_handle && !(*goal_handle_holder)->is_active();
-      } catch (...) {
-        release_goal_handle = false;
-      }
-
-      if (release_goal_handle) {
-        delete goal_handle_holder;
       }
     }).detach();
 }
@@ -398,7 +364,7 @@ try
     return;
   }
 
-  local_planning::Odometry odom = rosToOdometry(odom_msg);
+  local_planning::Odometry odom = rosToOdometry(*odom_msg);
 
   if (action_budget_expired()) {
     result->success = false;
@@ -560,104 +526,6 @@ void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
   viz_pub_->publish(markers);
 }
 
-local_planning::Odometry PlannerNode::rosToOdometry(
-  const nav_msgs::msg::Odometry::SharedPtr & msg)
-{
-  local_planning::Odometry odom;
-  odom.position.x = msg->pose.pose.position.x;
-  odom.position.y = msg->pose.pose.position.y;
-  odom.velocity = msg->twist.twist.linear.x;
-  odom.heading = tf2::getYaw(msg->pose.pose.orientation);
-  return odom;
-}
-
-local_planning::OccupancyGrid PlannerNode::rosToOccupancyGrid(
-  const nav_msgs::msg::OccupancyGrid::SharedPtr & msg)
-{
-  local_planning::OccupancyGrid grid;
-  grid.width = static_cast<int>(msg->info.width);
-  grid.height = static_cast<int>(msg->info.height);
-  grid.resolution = msg->info.resolution;
-  grid.origin.x = msg->info.origin.position.x;
-  grid.origin.y = msg->info.origin.position.y;
-  grid.data.assign(msg->data.begin(), msg->data.end());
-  return grid;
-}
-
-void PlannerNode::buildClearanceMasks(local_planning::OccupancyGrid & grid) const
-{
-  if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= 1e-6) {
-    grid.definitely_blocked_mask.clear();
-    grid.needs_exact_check_mask.clear();
-    grid.has_clearance_cache = false;
-    return;
-  }
-
-  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
-  grid.definitely_blocked_mask.assign(cell_count, 0);
-  grid.needs_exact_check_mask.assign(cell_count, 0);
-
-  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
-  const double blocked_radius = std::max(
-    0.0, planner_config_.collision_circle_radius_m - cell_half_diagonal);
-  const double exact_check_radius = std::max(
-    blocked_radius,
-    planner_config_.collision_circle_radius_m +
-    planner_config_.soft_inflation_distance_m + cell_half_diagonal);
-
-  auto makeDiskOffsets = [&](double radius_m) {
-      std::vector<std::pair<int, int>> offsets;
-      const int max_cells = std::max(
-        0, static_cast<int>(std::ceil(radius_m / grid.resolution)));
-      const double radius_sq = radius_m * radius_m;
-      for (int dr = -max_cells; dr <= max_cells; ++dr) {
-        for (int dc = -max_cells; dc <= max_cells; ++dc) {
-          const double dx = static_cast<double>(dc) * grid.resolution;
-          const double dy = static_cast<double>(dr) * grid.resolution;
-          if (dx * dx + dy * dy <= radius_sq) {
-            offsets.emplace_back(dr, dc);
-          }
-        }
-      }
-      return offsets;
-    };
-
-  const std::vector<std::pair<int, int>> blocked_offsets = makeDiskOffsets(blocked_radius);
-  const std::vector<std::pair<int, int>> exact_offsets = makeDiskOffsets(exact_check_radius);
-
-  for (int row = 0; row < grid.height; ++row) {
-    for (int col = 0; col < grid.width; ++col) {
-      const size_t source_index = static_cast<size_t>(row * grid.width + col);
-      if (grid.data[source_index] < planner_config_.occupied_threshold) {
-        continue;
-      }
-
-      for (const auto & offset : blocked_offsets) {
-        const int masked_row = row + offset.first;
-        const int masked_col = col + offset.second;
-        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
-          continue;
-        }
-
-        grid.definitely_blocked_mask[
-          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
-      }
-
-      for (const auto & offset : exact_offsets) {
-        const int masked_row = row + offset.first;
-        const int masked_col = col + offset.second;
-        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
-          continue;
-        }
-
-        grid.needs_exact_check_mask[
-          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
-      }
-    }
-  }
-
-  grid.has_clearance_cache = true;
-}
 
 nav_msgs::msg::Path PlannerNode::pathToRosPath(
   const std::vector<local_planning::Point> & path, const std::string & frame_id)

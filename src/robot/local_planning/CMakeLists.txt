@@ -34,14 +34,14 @@ add_executable(state_manager_node
   src/state_manager/state_manager_node.cpp
   src/state_manager/state_manager_code.cpp
   src/frenet_converter.cpp
+  src/ros_adapters.cpp
 )
 target_include_directories(state_manager_node PUBLIC include)
 ament_target_dependencies(state_manager_node rclcpp rclcpp_action nav_msgs std_msgs geometry_msgs tf2 tf2_geometry_msgs)
 rosidl_get_typesupport_target(state_manager_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(state_manager_node ${state_manager_typesupport})
 
-# local Frenet lattice planner node. The executable name is kept for launch compatibility.
-add_executable(hybrid_astar_planner_node
+set(LOCAL_FRENET_LATTICE_PLANNER_SOURCES
   src/planner/planner_node.cpp
   src/planner/local_frenet_lattice_planner.cpp
   src/planner/quintic_polynomial.cpp
@@ -49,9 +49,10 @@ add_executable(hybrid_astar_planner_node
   src/planner/collision_checker.cpp
   src/planner/planner_costs.cpp
   src/frenet_converter.cpp
+  src/ros_adapters.cpp
 )
-target_include_directories(hybrid_astar_planner_node PUBLIC include)
-ament_target_dependencies(hybrid_astar_planner_node
+
+set(LOCAL_FRENET_LATTICE_PLANNER_DEPS
   rclcpp
   rclcpp_action
   nav_msgs
@@ -62,8 +63,17 @@ ament_target_dependencies(hybrid_astar_planner_node
   tf2_ros
   tf2_geometry_msgs
 )
+
+# local Frenet lattice planner node.
+add_executable(local_frenet_lattice_planner_node
+  ${LOCAL_FRENET_LATTICE_PLANNER_SOURCES}
+)
+target_include_directories(local_frenet_lattice_planner_node PUBLIC include)
+ament_target_dependencies(local_frenet_lattice_planner_node
+  ${LOCAL_FRENET_LATTICE_PLANNER_DEPS}
+)
 rosidl_get_typesupport_target(planner_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)
-target_link_libraries(hybrid_astar_planner_node ${planner_typesupport})
+target_link_libraries(local_frenet_lattice_planner_node ${planner_typesupport})
 
 add_executable(occupancy_grid_frame_adapter_node src/occupancy_grid_frame_adapter.cpp)
 target_include_directories(occupancy_grid_frame_adapter_node PUBLIC include)
@@ -71,7 +81,7 @@ ament_target_dependencies(occupancy_grid_frame_adapter_node rclcpp nav_msgs geom
 
 install(TARGETS
   state_manager_node
-  hybrid_astar_planner_node
+  local_frenet_lattice_planner_node
   occupancy_grid_frame_adapter_node
   DESTINATION lib/${PROJECT_NAME}
 )

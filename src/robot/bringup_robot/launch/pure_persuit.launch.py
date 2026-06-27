@@ -22,7 +22,7 @@ def generate_launch_description():
     local_planning_config = os.path.join(
         get_package_share_directory('local_planning'),
         'config',
-        'hybrid_astar_planner.yaml'
+        'local_frenet_lattice_planner.yaml'
     )
 
     racing_line_file = os.path.join(
@@ -85,8 +85,8 @@ def generate_launch_description():
 
     local_planning = Node(
         package='local_planning',
-        executable='hybrid_astar_planner_node',
-        name='hybrid_astar_planner_node',
+        executable='local_frenet_lattice_planner_node',
+        name='local_frenet_lattice_planner_node',
         parameters=[
             LaunchConfiguration('local_planning_config'),
             {'racing_line_file': LaunchConfiguration('racing_line_file')},

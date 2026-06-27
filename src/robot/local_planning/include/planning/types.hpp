@@ -59,15 +59,9 @@ struct LocalFrenetPlannerConfig
   double layer_spacing_m = 0.5;
   double lane_spacing_m = 0.1;
   double max_lateral_offset_m = 1.8;
-  int max_lane_jump_per_layer = 3;
   double max_path_angle_deg = 50.0;
   double sample_spacing_m = 0.1;
   double max_runtime_ms = 25.0;
-  double heuristic_weight = 1.0;
-  std::vector<double> heading_buckets_deg{-10.0, -5.0, 0.0, 5.0, 10.0};
-  int max_heading_jump_per_layer = 1;
-  double max_heading_mismatch_deg = 25.0;
-  int heuristic_sample_count = 8;
   double collision_circle_radius_m = 0.20;
   double front_collision_circle_offset_m = 0.26;
   double soft_inflation_distance_m = 0.18;

@@ -55,10 +55,6 @@ private:
   LocalPlannerIntent intentFromAction(uint8_t intent) const;
 
   // conversions
-  local_planning::Odometry rosToOdometry(const nav_msgs::msg::Odometry::SharedPtr & msg);
-  local_planning::OccupancyGrid rosToOccupancyGrid(
-    const nav_msgs::msg::OccupancyGrid::SharedPtr & msg);
-  void buildClearanceMasks(local_planning::OccupancyGrid & grid) const;
   nav_msgs::msg::Path pathToRosPath(
     const std::vector<local_planning::Point> & path, const std::string & frame_id);
   bool transformPathToControllerFrame(
