@@ -112,7 +112,9 @@ void Pure_Persuit_Node::control_timer_callback() {
 
     //don't apply any control if the controler is not active, stop everything
     if (controller_state == state_::INACTIVE) {
-        RCLCPP_WARN(this->get_logger(), "Dead Man switch is off");
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), 10000,
+            "Dead Man switch is off");
         controls_pub_->publish(Pure_Persuit_Node::dead_stop());
         return;
     } 

@@ -45,6 +45,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     config_.max_path_angle_deg <= 0.0 ||
     config_.max_path_angle_deg >= 90.0)
   {
+    result.debug_reason = "invalid planner config or racing line";
     return result;
   }
 
@@ -57,6 +58,13 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   const double heading_error = normalizeHeadingError(
     start_heading - frenet_converter_.getRacingLineHeading(start.s));
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
+
+  result.start_lane = start_lane;
+  result.start_s = start.s;
+  result.start_d = start.d;
+  result.heading_error_rad = heading_error;
+  result.layers = layer_count;
+  result.lanes = lane_count;
 
   std::vector<std::vector<DpState>> states(
     static_cast<size_t>(layer_count + 1),
@@ -99,19 +107,28 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
         const double d_end = lanes[static_cast<size_t>(to_lane)];
         if (std::abs(d_end - d0) / config_.layer_spacing_m > max_slope) {
+          ++result.rejected_slope;
           continue;
         }
 
+        ++result.edges_considered;
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
           s0, d0, slope0, d_end, 0.0, intent, grid, edge_scratch);
 
-        if (edge.collision_status == CollisionStatus::COLLISION ||
-          edge.collision_status == CollisionStatus::OUT_OF_GRID ||
-          edge.collision_status == CollisionStatus::GEOMETRY_CONSTRAINT)
-        {
+        if (edge.collision_status == CollisionStatus::COLLISION) {
+          ++result.rejected_collision;
+          continue;
+        }
+        if (edge.collision_status == CollisionStatus::OUT_OF_GRID) {
+          ++result.rejected_out_of_grid;
+          continue;
+        }
+        if (edge.collision_status == CollisionStatus::GEOMETRY_CONSTRAINT) {
+          ++result.rejected_geometry;
           continue;
         }
 
+        ++result.edges_accepted;
         DpState & to_state = states[static_cast<size_t>(next_layer)][static_cast<size_t>(to_lane)];
         const double new_total_cost = from_state.total_cost + edge.total_cost;
         const bool improves = !to_state.reachable ||
@@ -150,6 +167,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     if (!state.reachable) {
       continue;
     }
+    ++result.final_reachable_lanes;
 
     const double final_d = lanes[static_cast<size_t>(lane)];
     double total_cost = state.total_cost;
@@ -173,10 +191,14 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   if (best_lane < 0) {
+    result.debug_reason = "no reachable final lane";
     return result;
   }
 
   result.path = reconstructPath(states, best_lane);
+  if (result.path.empty()) {
+    result.debug_reason = "path reconstruction failed";
+  }
   return result;
 }
 

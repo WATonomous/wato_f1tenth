@@ -7,3 +7,9 @@ watod-config.local.sh
 build/
 install/
 log/
+
+# ROS bag recordings
+*.bag
+*.db3
+*.mcap
+src/robot/bringup_robot/bags/run_*/

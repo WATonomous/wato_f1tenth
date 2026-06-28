@@ -106,9 +106,11 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     float range = scan->ranges[i];
     bool marks_obstacle = true;
 
-    // Positive infinity means the laser saw no obstacle within its range.
-    // Trace the ray to range_max so that observed space is still marked free.
-    if (std::isinf(range) && range > 0.0f) {
+    // Some lidars report a no-return ray as +inf, while others report a
+    // finite value beyond range_max. Trace those rays to range_max as free
+    // space, but do not mark a fake obstacle at the endpoint.
+    if ((std::isinf(range) && range > 0.0f) ||
+        (std::isfinite(range) && range > scan->range_max)) {
       range = scan->range_max;
       marks_obstacle = false;
     }

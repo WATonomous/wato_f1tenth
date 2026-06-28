@@ -252,11 +252,6 @@ void StateManagerNode::dispatchPlanGoal(const PlanPath::Goal & goal_msg)
       }
 
       current_goal_handle_ = goal_handle;
-      if (!hasActivePlanGoal()) {
-        if (!promoteBufferedPlanGoal()) {
-          scheduleNextPlanGoal();
-        }
-      }
     };
   send_goal_options.result_callback =
     std::bind(&StateManagerNode::planResultCallback, this, _1);
@@ -274,29 +269,7 @@ void StateManagerNode::bufferPlanGoal(const PlanPath::Goal & goal_msg)
 
 bool StateManagerNode::hasActivePlanGoal()
 {
-  if (!current_goal_handle_) {
-    return false;
-  }
-
-  try {
-    const int8_t status = current_goal_handle_->get_status();
-    if (status == action_msgs::msg::GoalStatus::STATUS_ACCEPTED ||
-      status == action_msgs::msg::GoalStatus::STATUS_EXECUTING ||
-      status == action_msgs::msg::GoalStatus::STATUS_CANCELING)
-    {
-      return true;
-    }
-  } catch (const std::exception & ex) {
-    RCLCPP_WARN(
-      this->get_logger(), "Could not inspect current plan goal state: %s", ex.what());
-    return true;
-  } catch (...) {
-    RCLCPP_WARN(this->get_logger(), "Could not inspect current plan goal state");
-    return true;
-  }
-
-  current_goal_handle_ = nullptr;
-  return false;
+  return current_goal_handle_ != nullptr;
 }
 
 bool StateManagerNode::promoteBufferedPlanGoal()

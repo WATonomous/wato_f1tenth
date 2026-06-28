@@ -25,12 +25,6 @@ def generate_launch_description():
         'local_frenet_lattice_planner.yaml'
     )
 
-    racing_line_file = os.path.join(
-        get_package_share_directory('global_planner'),
-        'assets',
-        'e7_fifth_v3_optimal.csv'
-    )
-
     pure_persuit_la = DeclareLaunchArgument(
         'pure_persuit_config',
         default_value=pure_persuit_config,
@@ -41,12 +35,6 @@ def generate_launch_description():
         'local_planning_config',
         default_value=local_planning_config,
         description='Local planning configuration file'
-    )
-
-    racing_line_la = DeclareLaunchArgument(
-        'racing_line_file',
-        default_value=racing_line_file,
-        description='CSV racing line used by state manager and local planner'
     )
 
     pure_persuit = Node(
@@ -75,7 +63,6 @@ def generate_launch_description():
         name='state_manager_node',
         parameters=[
             LaunchConfiguration('local_planning_config'),
-            {'racing_line_file': LaunchConfiguration('racing_line_file')},
         ],
         remappings=[
             ('/odom', '/pf/pose/odom'),
@@ -89,7 +76,6 @@ def generate_launch_description():
         name='local_frenet_lattice_planner_node',
         parameters=[
             LaunchConfiguration('local_planning_config'),
-            {'racing_line_file': LaunchConfiguration('racing_line_file')},
         ],
         remappings=[
             ('/odom', '/pf/pose/odom'),
@@ -101,7 +87,6 @@ def generate_launch_description():
     return LaunchDescription([
         pure_persuit_la,
         local_planning_la,
-        racing_line_la,
         occupancy_grid_frame_adapter,
         state_manager,
         local_planning,

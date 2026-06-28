@@ -81,6 +81,20 @@ struct LocalFrenetPlannerConfig
 struct LocalFrenetPlan
 {
   std::vector<Point> path;
+  std::string debug_reason;
+  int start_lane = -1;
+  double start_s = 0.0;
+  double start_d = 0.0;
+  double heading_error_rad = 0.0;
+  int layers = 0;
+  int lanes = 0;
+  int edges_considered = 0;
+  int edges_accepted = 0;
+  int rejected_slope = 0;
+  int rejected_geometry = 0;
+  int rejected_collision = 0;
+  int rejected_out_of_grid = 0;
+  int final_reachable_lanes = 0;
 };
 
 } // namespace local_planning

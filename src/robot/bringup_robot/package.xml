@@ -9,6 +9,11 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>costmap</exec_depend>
+  <exec_depend>global_planner</exec_depend>
+  <exec_depend>local_planning</exec_depend>
+  <exec_depend>pure_persuit</exec_depend>
+
   <depend>gym_vis</depend>
   <depend>urg_node</depend>
 
