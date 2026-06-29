@@ -14,6 +14,10 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   this->declare_parameter<int>("obstacle_value", 100);
   this->declare_parameter<int>("free_value", 0);
   this->declare_parameter<int>("unknown_value", -1);
+  this->declare_parameter<bool>("self_filter_enabled", true);
+  this->declare_parameter<double>("self_filter_min_x_m", -0.15);
+  this->declare_parameter<double>("self_filter_max_x_m", 0.45);
+  this->declare_parameter<double>("self_filter_half_width_m", 0.20);
 
   // Read parameters
   grid_width_ = this->get_parameter("grid_width").as_double();
@@ -25,6 +29,10 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   obstacle_value_ = static_cast<int8_t>(this->get_parameter("obstacle_value").as_int());
   free_value_ = static_cast<int8_t>(this->get_parameter("free_value").as_int());
   unknown_value_ = static_cast<int8_t>(this->get_parameter("unknown_value").as_int());
+  self_filter_enabled_ = this->get_parameter("self_filter_enabled").as_bool();
+  self_filter_min_x_m_ = this->get_parameter("self_filter_min_x_m").as_double();
+  self_filter_max_x_m_ = this->get_parameter("self_filter_max_x_m").as_double();
+  self_filter_half_width_m_ = this->get_parameter("self_filter_half_width_m").as_double();
 
   // Compute grid dimensions in cells
   grid_cols_ = static_cast<uint32_t>(grid_width_ / resolution_);
@@ -148,7 +156,7 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     if (x1 >= 0 && x1 < static_cast<int>(grid_cols_) &&
         y1 >= 0 && y1 < static_cast<int>(grid_rows_)) {
       size_t idx = y1 * grid_cols_ + x1;
-      if (marks_obstacle) {
+      if (marks_obstacle && !is_in_self_filter_footprint(hit_x, hit_y)) {
         grid_msg.data[idx] = obstacle_value_;
       } else if (grid_msg.data[idx] == unknown_value_) {
         grid_msg.data[idx] = free_value_;
@@ -194,6 +202,18 @@ void CostmapNode::bresenham(int x0, int y0, int x1, int y1,
       y0 += sy;
     }
   }
+}
+
+bool CostmapNode::is_in_self_filter_footprint(double x, double y) const
+{
+  if (!self_filter_enabled_) {
+    return false;
+  }
+
+  return x >= self_filter_min_x_m_ &&
+         x <= self_filter_max_x_m_ &&
+         y >= -self_filter_half_width_m_ &&
+         y <= self_filter_half_width_m_;
 }
 
 int main(int argc, char *argv[])
