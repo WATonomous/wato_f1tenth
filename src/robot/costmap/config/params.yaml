@@ -16,3 +16,9 @@ occupancy_grid_generator:
     obstacle_value: 100     # value for occupied cells (0-100)
     free_value: 0           # value for free cells (0-100)
     unknown_value: -1       # value for unknown cells
+
+    # Endpoints inside this base_link rectangle are excluded
+    self_filter_enabled: true
+    self_filter_min_x_m: -0.10 # distance behind base_link
+    self_filter_max_x_m: 0.42 # distance ahead of base_link
+    self_filter_half_width_m: 0.18 # distance to left and right of base_link

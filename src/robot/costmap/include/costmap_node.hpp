@@ -30,6 +30,7 @@
 #define COSTMAP_NODE_HPP_
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <cmath>
@@ -56,6 +57,10 @@ private:
   int8_t obstacle_value_;
   int8_t free_value_;
   int8_t unknown_value_;
+  bool self_filter_enabled_;
+  double self_filter_min_x_m_;
+  double self_filter_max_x_m_;
+  double self_filter_half_width_m_;
   uint32_t grid_cols_;
   uint32_t grid_rows_;
 
@@ -71,6 +76,7 @@ private:
   void publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan);
   void bresenham(int x0, int y0, int x1, int y1,
                  std::vector<int8_t> &grid_data);
+  bool is_in_self_filter_footprint(double x, double y) const;
 };
 
 #endif
