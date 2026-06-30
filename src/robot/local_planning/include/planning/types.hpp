@@ -78,6 +78,15 @@ struct LocalFrenetPlannerConfig
   double merge_terminal_d_weight = 0.0;
 };
 
+struct PathPostProcessorConfig
+{
+  bool angle_smoothing_enabled = false;
+
+  bool velocity_smoothing_enabled = false;
+  double velocity_smoothing_max_accel_mps2 = 3.0;
+  double velocity_smoothing_max_decel_mps2 = 5.0;
+};
+
 struct LocalFrenetPlan
 {
   std::vector<Point> path;

@@ -93,6 +93,10 @@ PlannerNode::PlannerNode()
   this->declare_parameter<std::string>("planner_path_frame", "map");
   this->declare_parameter<std::string>("controller_path_frame", "base_link");
   this->declare_parameter<std::string>("debug_path_topic", "/local_path_map");
+  this->declare_parameter<bool>("angle_smoothing_enabled", false);
+  this->declare_parameter<bool>("velocity_smoothing_enabled", false);
+  this->declare_parameter<double>("velocity_smoothing_max_accel_mps2", 3.0);
+  this->declare_parameter<double>("velocity_smoothing_max_decel_mps2", 5.0);
 
   racing_line_topic_ = this->get_parameter("racing_line_topic").as_string();
   switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
@@ -138,6 +142,14 @@ PlannerNode::PlannerNode()
   planner_path_frame_ = this->get_parameter("planner_path_frame").as_string();
   controller_path_frame_ = this->get_parameter("controller_path_frame").as_string();
   debug_path_topic_ = this->get_parameter("debug_path_topic").as_string();
+  post_processor_config_.angle_smoothing_enabled =
+    this->get_parameter("angle_smoothing_enabled").as_bool();
+  post_processor_config_.velocity_smoothing_enabled =
+    this->get_parameter("velocity_smoothing_enabled").as_bool();
+  post_processor_config_.velocity_smoothing_max_accel_mps2 =
+    this->get_parameter("velocity_smoothing_max_accel_mps2").as_double();
+  post_processor_config_.velocity_smoothing_max_decel_mps2 =
+    this->get_parameter("velocity_smoothing_max_decel_mps2").as_double();
 
   const double max_search_budget_ms = std::max(
     kMinimumPlannerBudgetMs, planner_runtime_budget_ms_ - kSearchBudgetReserveMs);
@@ -152,6 +164,7 @@ PlannerNode::PlannerNode()
   // planner
   planner_ = std::make_unique<LocalFrenetLatticePlanner>();
   planner_->setConfig(planner_config_);
+  path_post_processor_.setConfig(post_processor_config_);
 
   // tf2
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -378,6 +391,8 @@ try
   if (!ros_active()) {
     return;
   }
+
+  path_post_processor_.process(plan.path, odom, occupancy_grid, planner_config_);
 
   const nav_msgs::msg::Path planner_path = pathToRosPath(plan.path, planner_path_frame_);
 

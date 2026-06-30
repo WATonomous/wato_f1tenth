@@ -1,6 +1,7 @@
 #ifndef PLANNING_PLANNER_PLANNER_NODE_HPP
 #define PLANNING_PLANNER_PLANNER_NODE_HPP
 
+#include "planning/path_post_processor.hpp"
 #include "planning/planner/local_planner.hpp"
 #include "planning/types.hpp"
 
@@ -79,6 +80,7 @@ private:
 
   // planner
   std::unique_ptr<LocalPlanner> planner_;
+  PathPostProcessor path_post_processor_;
 
   // cached messages
   nav_msgs::msg::Odometry::SharedPtr current_odom_;
@@ -95,6 +97,7 @@ private:
   // parameters
   std::string racing_line_topic_;
   LocalFrenetPlannerConfig planner_config_;
+  PathPostProcessorConfig post_processor_config_;
   LocalPlannerIntent default_intent_;
   double planner_runtime_budget_ms_ = 100.0;
   std::string planner_path_frame_;
