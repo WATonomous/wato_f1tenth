@@ -20,6 +20,11 @@ public:
     const LocalFrenetPlannerConfig & planner_config) const;
 
 private:
+  void smoothVelocities(
+    std::vector<Point> & path,
+    const Odometry & odom,
+    const LocalFrenetPlannerConfig & planner_config) const;
+
   PathPostProcessorConfig config_;
 };
 

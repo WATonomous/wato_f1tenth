@@ -95,8 +95,8 @@ PlannerNode::PlannerNode()
   this->declare_parameter<std::string>("debug_path_topic", "/local_path_map");
   this->declare_parameter<bool>("angle_smoothing_enabled", false);
   this->declare_parameter<bool>("velocity_smoothing_enabled", false);
-  this->declare_parameter<double>("velocity_smoothing_max_accel_mps2", 3.0);
-  this->declare_parameter<double>("velocity_smoothing_max_decel_mps2", 5.0);
+  this->declare_parameter<double>("velocity_smoothing_max_accel_mps2", 2.5);
+  this->declare_parameter<double>("velocity_smoothing_max_decel_mps2", 2.5);
 
   racing_line_topic_ = this->get_parameter("racing_line_topic").as_string();
   switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
