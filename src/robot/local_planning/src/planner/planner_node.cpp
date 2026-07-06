@@ -142,13 +142,13 @@ PlannerNode::PlannerNode()
   planner_path_frame_ = this->get_parameter("planner_path_frame").as_string();
   controller_path_frame_ = this->get_parameter("controller_path_frame").as_string();
   debug_path_topic_ = this->get_parameter("debug_path_topic").as_string();
-  post_processor_config_.angle_smoothing_enabled =
+  planner_config_.angle_smoothing_enabled =
     this->get_parameter("angle_smoothing_enabled").as_bool();
-  post_processor_config_.velocity_smoothing_enabled =
+  planner_config_.velocity_smoothing_enabled =
     this->get_parameter("velocity_smoothing_enabled").as_bool();
-  post_processor_config_.velocity_smoothing_max_accel_mps2 =
+  planner_config_.velocity_smoothing_max_accel_mps2 =
     this->get_parameter("velocity_smoothing_max_accel_mps2").as_double();
-  post_processor_config_.velocity_smoothing_max_decel_mps2 =
+  planner_config_.velocity_smoothing_max_decel_mps2 =
     this->get_parameter("velocity_smoothing_max_decel_mps2").as_double();
 
   const double max_search_budget_ms = std::max(
@@ -164,7 +164,6 @@ PlannerNode::PlannerNode()
   // planner
   planner_ = std::make_unique<LocalFrenetLatticePlanner>();
   planner_->setConfig(planner_config_);
-  path_post_processor_.setConfig(post_processor_config_);
 
   // tf2
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -296,6 +295,26 @@ try
       return rclcpp::ok();
     };
 
+  double search_elapsed_ms = 0.0;
+  double transform_elapsed_ms = 0.0;
+  auto log_failure = [&](const char * reason, std::size_t path_points) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "Planner failed: %s (intent=%s, total=%.2f ms, search=%.2f ms, tf=%.2f ms, "
+        "budget=%.2f ms, path_points=%zu, sequence=%lu)",
+        reason, intentToString(intent).c_str(), elapsedMs(total_start), search_elapsed_ms,
+        transform_elapsed_ms, planner_runtime_budget_ms_, path_points, sequence);
+    };
+
+  auto log_success = [&](std::size_t path_points) {
+      RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "Planner succeeded (intent=%s, total=%.2f ms, search=%.2f ms, tf=%.2f ms, "
+        "budget=%.2f ms, path_points=%zu, sequence=%lu)",
+        intentToString(intent).c_str(), elapsedMs(total_start), search_elapsed_ms,
+        transform_elapsed_ms, planner_runtime_budget_ms_, path_points, sequence);
+    };
+
   auto finish_succeeded = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
       if (!ros_active()) {
         return;
@@ -346,6 +365,7 @@ try
       this->get_logger(), *this->get_clock(), 2000,
       "Missing racing line on %s, cannot plan", racing_line_topic_.c_str());
     result->success = false;
+    log_failure("missing racing line", 0);
     finish_succeeded(result);
     return;
   }
@@ -367,12 +387,14 @@ try
       this->get_logger(), *this->get_clock(), 2000,
       "Missing odom or occupancy grid, cannot plan");
     result->success = false;
+    log_failure("missing odom or occupancy grid", 0);
     finish_succeeded(result);
     return;
   }
 
   if (goal_handle->is_canceling()) {
     result->success = false;
+    log_failure("goal canceled before planning", 0);
     finish_canceled(result);
     return;
   }
@@ -381,18 +403,19 @@ try
 
   if (action_budget_expired()) {
     result->success = false;
+    log_failure("action budget expired before search", 0);
     finish_succeeded(result);
     return;
   }
 
   planner_->setRacingLine(*racing_line);
-  LocalFrenetPlan plan = planner_->plan(odom.position, odom.heading, occupancy_grid, intent);
+  const auto search_start = SteadyClock::now();
+  LocalFrenetPlan plan = planner_->plan(odom, occupancy_grid, intent);
+  search_elapsed_ms = elapsedMs(search_start);
 
   if (!ros_active()) {
     return;
   }
-
-  path_post_processor_.process(plan.path, odom, occupancy_grid, planner_config_);
 
   const nav_msgs::msg::Path planner_path = pathToRosPath(plan.path, planner_path_frame_);
 
@@ -400,6 +423,13 @@ try
   const bool over_budget = action_budget_expired();
   if (stale_plan || goal_handle->is_canceling() || over_budget) {
     result->success = false;
+    if (stale_plan) {
+      log_failure("stale plan superseded by newer request", plan.path.size());
+    } else if (goal_handle->is_canceling()) {
+      log_failure("goal canceled after search", plan.path.size());
+    } else {
+      log_failure("action budget expired after search", plan.path.size());
+    }
     if (goal_handle->is_canceling()) {
       finish_canceled(result);
     } else {
@@ -413,11 +443,16 @@ try
       this->get_logger(), *this->get_clock(), 2000,
       "Planner returned empty path");
     result->success = false;
+    log_failure("empty path", 0);
     result->path = pathToRosPath(plan.path, controller_path_frame_);
     std::lock_guard<std::mutex> lock(publish_mutex_);
     const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
       goal_handle->is_canceling();
     if (stale_or_canceling) {
+      log_failure(
+        goal_handle->is_canceling() ? "goal canceled before empty-path publish" :
+        "empty path superseded before publish",
+        0);
       if (goal_handle->is_canceling()) {
         finish_canceled(result);
       } else {
@@ -436,12 +471,16 @@ try
   }
 
   nav_msgs::msg::Path controller_path;
+  const auto transform_start = SteadyClock::now();
   if (!transformPathToControllerFrame(planner_path, controller_path)) {
+    transform_elapsed_ms = elapsedMs(transform_start);
     result->success = false;
     result->path = pathToRosPath({}, controller_path_frame_);
+    log_failure("path transform failed", plan.path.size());
     finish_succeeded(result);
     return;
   }
+  transform_elapsed_ms = elapsedMs(transform_start);
 
   result->path = controller_path;
   result->success = true;
@@ -451,6 +490,14 @@ try
     goal_handle->is_canceling();
   if (stale_or_canceling || action_budget_expired()) {
     result->success = false;
+    if (stale_or_canceling) {
+      log_failure(
+        goal_handle->is_canceling() ? "goal canceled before publish" :
+        "plan superseded before publish",
+        plan.path.size());
+    } else {
+      log_failure("action budget expired before publish", plan.path.size());
+    }
     if (goal_handle->is_canceling()) {
       finish_canceled(result);
     } else {
@@ -471,6 +518,11 @@ try
   }
 
   result->success = !action_budget_expired();
+  if (result->success) {
+    log_success(plan.path.size());
+  } else {
+    log_failure("action budget expired after publish", plan.path.size());
+  }
   finish_succeeded(result);
 }
 catch (const std::exception & ex)
@@ -578,20 +630,13 @@ bool PlannerNode::transformPathToControllerFrame(
   try {
     transform = tf_buffer_->lookupTransform(
       controller_path_frame_, planner_path.header.frame_id,
-      rclcpp::Time(planner_path.header.stamp), tf2::durationFromSec(0.1));
-  } catch (const tf2::TransformException & stamped_ex) {
-    try {
-      transform = tf_buffer_->lookupTransform(
-        controller_path_frame_, planner_path.header.frame_id,
-        tf2::TimePointZero, tf2::durationFromSec(0.1));
-    } catch (const tf2::TransformException & latest_ex) {
-      RCLCPP_WARN_THROTTLE(
-        this->get_logger(), *this->get_clock(), 2000,
-        "Cannot transform local path from '%s' to '%s': %s; latest TF fallback also failed: %s",
-        planner_path.header.frame_id.c_str(), controller_path_frame_.c_str(),
-        stamped_ex.what(), latest_ex.what());
-      return false;
-    }
+      tf2::TimePointZero, tf2::durationFromSec(0.001));
+  } catch (const tf2::TransformException & ex) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Cannot transform local path from '%s' to '%s' using latest TF within 1 ms: %s",
+      planner_path.header.frame_id.c_str(), controller_path_frame_.c_str(), ex.what());
+    return false;
   }
 
   tf2::Transform planner_to_controller;

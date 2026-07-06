@@ -36,7 +36,7 @@ local_frenet_lattice_planner_node:
     planner_path_frame: "map"
     controller_path_frame: "base_link"
     debug_path_topic: "/local_path_map"
-    angle_smoothing_enabled: false
-    velocity_smoothing_enabled: false
+    angle_smoothing_enabled: true
+    velocity_smoothing_enabled: true
     velocity_smoothing_max_accel_mps2: 2.5
     velocity_smoothing_max_decel_mps2: 2.5

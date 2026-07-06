@@ -17,8 +17,7 @@ public:
   virtual void setRacingLine(const std::vector<Point> & racing_line) = 0;
 
   virtual LocalFrenetPlan plan(
-    const Point & start_position,
-    double start_heading,
+    const Odometry & odom,
     const OccupancyGrid & grid,
     LocalPlannerIntent intent) = 0;
 };

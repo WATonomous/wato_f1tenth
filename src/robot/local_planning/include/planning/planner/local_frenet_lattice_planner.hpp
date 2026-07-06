@@ -17,8 +17,7 @@ public:
   void setRacingLine(const std::vector<Point> & racing_line) override;
 
   LocalFrenetPlan plan(
-    const Point & start_position,
-    double start_heading,
+    const Odometry & odom,
     const OccupancyGrid & grid,
     LocalPlannerIntent intent) override;
 
@@ -32,11 +31,20 @@ private:
     std::vector<Point> edge_samples;     //x,y points along the corresponding edge
   };
 
+  struct SelectedLatticePath
+  {
+    std::vector<Point> path;
+    std::vector<FrenetPoint> anchors;
+  };
+
   std::vector<double> generateLaneOffsets() const;
   int nearestLaneIndex(double d, const std::vector<double> & lanes) const;
-  std::vector<Point> reconstructPath(
+  SelectedLatticePath reconstructSelectedPath(
     const std::vector<std::vector<DpState>> & states,
-    int final_lane) const;
+    int final_lane,
+    const std::vector<double> & lanes,
+    const FrenetPoint & start) const;
+  void assignVelocityLimitsFromGeometry(std::vector<Point> & path) const;
 
   FrenetConverter frenet_converter_;
   LocalFrenetPlannerConfig config_;

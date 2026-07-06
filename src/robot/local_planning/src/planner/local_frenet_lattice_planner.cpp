@@ -2,6 +2,7 @@
 
 #include "planning/planner/collision_checker.hpp"
 #include "planning/planner/edge_evaluator.hpp"
+#include "planning/planner/path_processing.hpp"
 #include "planning/planner/planner_costs.hpp"
 
 #include <algorithm>
@@ -31,8 +32,7 @@ void LocalFrenetLatticePlanner::setRacingLine(const std::vector<Point> & racing_
 }
 
 LocalFrenetPlan LocalFrenetLatticePlanner::plan(
-  const Point & start_position,
-  double start_heading,
+  const Odometry & odom,
   const OccupancyGrid & grid,
   LocalPlannerIntent intent)
 {
@@ -48,15 +48,16 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     return result;
   }
 
-  const FrenetPoint start = frenet_converter_.cartesianToFrenet(start_position);
+  FrenetPoint start = frenet_converter_.cartesianToFrenet(odom.position);
   const std::vector<double> lanes = generateLaneOffsets();
   const int layer_count =
     std::max(1, static_cast<int>(std::ceil(config_.horizon_m / config_.layer_spacing_m)));
   const int lane_count = static_cast<int>(lanes.size());
   const int start_lane = nearestLaneIndex(start.d, lanes);
   const double heading_error = normalizeHeadingError(
-    start_heading - frenet_converter_.getRacingLineHeading(start.s));
+    odom.heading - frenet_converter_.getRacingLineHeading(start.s));
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
+  start.slope = start_slope;
 
   std::vector<std::vector<DpState>> states(
     static_cast<size_t>(layer_count + 1),
@@ -73,7 +74,6 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   i could defo make this clearer and use better practice
   its just harder for me to see on my screen if i nest a bunch of if's and get rid of the continues
   TODO: do that^
-  but also im gonna rewrite a bunch of this when i start bucketting a bunch of angles anyway
 
   nodes: layer (s), lane (d)
   edges: only forward one layer with quintics connecting each hop
@@ -176,7 +176,21 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     return result;
   }
 
-  result.path = reconstructPath(states, best_lane);
+  const SelectedLatticePath selected_path = reconstructSelectedPath(
+2    states, best_lane, lanes, start);
+  result.path = selected_path.path;
+
+  if (config_.angle_smoothing_enabled) {
+    bool used_smoothed_path = false;
+    result.path = smoothFrenetAnglesOrFallback(
+      selected_path.anchors, selected_path.path, frenet_converter_, collision_checker, grid,
+      config_, used_smoothed_path);
+    if (used_smoothed_path) {
+      assignVelocityLimitsFromGeometry(result.path);
+    }
+  }
+
+  smoothVelocityProfile(result.path, odom.velocity, config_);
   return result;
 }
 
@@ -209,37 +223,89 @@ int LocalFrenetLatticePlanner::nearestLaneIndex(double d, const std::vector<doub
   return best_index;
 }
 
-std::vector<Point> LocalFrenetLatticePlanner::reconstructPath(
+LocalFrenetLatticePlanner::SelectedLatticePath
+LocalFrenetLatticePlanner::reconstructSelectedPath(
   const std::vector<std::vector<DpState>> & states,
-  int final_lane) const
+  int final_lane,
+  const std::vector<double> & lanes,
+  const FrenetPoint & start) const
 {
+  SelectedLatticePath selected_path;
+  if (states.size() < 2 || final_lane < 0) {
+    return selected_path;
+  }
+
   std::vector<const std::vector<Point> *> segments;
   segments.reserve(states.size() - 1);
   size_t path_capacity = 0;
+  std::vector<int> lane_by_layer(states.size(), -1);
   int lane = final_lane;
   for (int layer = static_cast<int>(states.size()) - 1; layer > 0; --layer) {
+    if (lane < 0 || lane >= static_cast<int>(lanes.size())) {
+      return {};
+    }
+
     const DpState & state = states[static_cast<size_t>(layer)][static_cast<size_t>(lane)];
     if (!state.reachable) {
       return {};
     }
+
     segments.push_back(&state.edge_samples);
     path_capacity += state.edge_samples.size();
+    lane_by_layer[static_cast<size_t>(layer)] = lane;
     lane = state.parent_lane;
     if (lane < 0) {
       return {};
     }
   }
 
-  std::vector<Point> path;
-  path.reserve(path_capacity);
+  selected_path.path.reserve(path_capacity);
   for (auto segment_it = segments.rbegin(); segment_it != segments.rend(); ++segment_it) {
     const std::vector<Point> & segment = **segment_it;
-    const size_t start_index = path.empty() ? 0 : 1;
+    const size_t start_index = selected_path.path.empty() ? 0 : 1;
     for (size_t i = start_index; i < segment.size(); ++i) {
-      path.push_back(segment[i]);
+      selected_path.path.push_back(segment[i]);
     }
   }
-  return path;
+
+  selected_path.anchors.reserve(states.size());
+  selected_path.anchors.push_back(start);
+  for (std::size_t layer = 1; layer < states.size(); ++layer) {
+    const int layer_lane = lane_by_layer[layer];
+    if (layer_lane < 0 || layer_lane >= static_cast<int>(lanes.size())) {
+      return {};
+    }
+
+    selected_path.anchors.push_back(
+      {
+        start.s + static_cast<double>(layer) * config_.layer_spacing_m,
+        lanes[static_cast<size_t>(layer_lane)],
+        0.0
+      });
+  }
+
+  return selected_path;
+}
+
+void LocalFrenetLatticePlanner::assignVelocityLimitsFromGeometry(std::vector<Point> & path) const
+{
+  if (path.empty()) {
+    return;
+  }
+
+  std::vector<double> curvatures(path.size(), 0.0);
+  for (std::size_t i = 1; i + 1 < path.size(); ++i) {
+    curvatures[i] = computeCurvature(path[i - 1], path[i], path[i + 1]);
+  }
+  if (path.size() > 2) {
+    curvatures.front() = curvatures[1];
+    curvatures.back() = curvatures[path.size() - 2];
+  }
+
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    const double s = frenet_converter_.cartesianToFrenet(path[i]).s;
+    path[i].velocity = computeVelocity(s, curvatures[i], frenet_converter_, config_);
+  }
 }
 
 } // namespace local_planning

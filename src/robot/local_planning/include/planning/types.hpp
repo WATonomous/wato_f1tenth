@@ -20,8 +20,9 @@ struct Point
 
 struct FrenetPoint
 {
-  double s;
-  double d;
+  double s = 0.0;
+  double d = 0.0;
+  double slope = 0.0;
 };
 
 struct Odometry
@@ -76,12 +77,7 @@ struct LocalFrenetPlannerConfig
   double overtake_d_weight = 0.02;
   double merge_d_weight = 0.20;
   double merge_terminal_d_weight = 0.0;
-};
-
-struct PathPostProcessorConfig
-{
   bool angle_smoothing_enabled = false;
-
   bool velocity_smoothing_enabled = false;
   double velocity_smoothing_max_accel_mps2 = 2.5;
   double velocity_smoothing_max_decel_mps2 = 2.5;
