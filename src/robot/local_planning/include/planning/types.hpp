@@ -20,8 +20,9 @@ struct Point
 
 struct FrenetPoint
 {
-  double s;
-  double d;
+  double s = 0.0;
+  double d = 0.0;
+  double slope = 0.0;
 };
 
 struct Odometry
@@ -56,6 +57,7 @@ std::string intentToString(LocalPlannerIntent intent);
 struct LocalFrenetPlannerConfig
 {
   double horizon_m = 6.0;
+  double min_path_horizon_m = 2.0;
   double layer_spacing_m = 0.5;
   double lane_spacing_m = 0.1;
   double max_lateral_offset_m = 1.8;
@@ -76,25 +78,16 @@ struct LocalFrenetPlannerConfig
   double overtake_d_weight = 0.02;
   double merge_d_weight = 0.20;
   double merge_terminal_d_weight = 0.0;
+  bool angle_smoothing_enabled = false;
+  bool velocity_smoothing_enabled = false;
+  double velocity_smoothing_max_accel_mps2 = 2.5;
+  double velocity_smoothing_max_decel_mps2 = 2.5;
 };
 
 struct LocalFrenetPlan
 {
   std::vector<Point> path;
-  std::string debug_reason;
-  int start_lane = -1;
-  double start_s = 0.0;
-  double start_d = 0.0;
-  double heading_error_rad = 0.0;
-  int layers = 0;
-  int lanes = 0;
-  int edges_considered = 0;
-  int edges_accepted = 0;
-  int rejected_slope = 0;
-  int rejected_geometry = 0;
-  int rejected_collision = 0;
-  int rejected_out_of_grid = 0;
-  int final_reachable_lanes = 0;
+  std::vector<std::vector<Point>> debug_lattice_lanes;
 };
 
 } // namespace local_planning

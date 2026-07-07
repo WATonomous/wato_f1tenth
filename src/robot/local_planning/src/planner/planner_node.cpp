@@ -31,6 +31,23 @@ constexpr double kMinimumPlannerBudgetMs = 1.0;
 constexpr double kSearchBudgetReserveMs = 20.0;
 constexpr double kVizDeadlineReserveMs = 5.0;
 
+class ScopedPlannerBusyFlag
+{
+public:
+  explicit ScopedPlannerBusyFlag(std::atomic_bool & flag)
+  : flag_(flag)
+  {
+  }
+
+  ~ScopedPlannerBusyFlag()
+  {
+    flag_.store(false);
+  }
+
+private:
+  std::atomic_bool & flag_;
+};
+
 double elapsedMs(SteadyClock::time_point start, SteadyClock::time_point end)
 {
   return std::chrono::duration<double, std::milli>(end - start).count();
@@ -52,6 +69,7 @@ PlannerNode::PlannerNode()
     "default_intent",
     static_cast<int>(LocalPlannerIntent::FOLLOW_RACING_LINE));
   this->declare_parameter<double>("horizon_m", 6.0);
+  this->declare_parameter<double>("min_path_horizon_m", 2.0);
   this->declare_parameter<double>("layer_spacing_m", 0.5);
   this->declare_parameter<double>("lane_spacing_m", 0.1);
   this->declare_parameter<double>("max_lateral_offset_m", 1.8);
@@ -76,6 +94,10 @@ PlannerNode::PlannerNode()
   this->declare_parameter<std::string>("planner_path_frame", "map");
   this->declare_parameter<std::string>("controller_path_frame", "base_link");
   this->declare_parameter<std::string>("debug_path_topic", "/local_path_map");
+  this->declare_parameter<bool>("angle_smoothing_enabled", false);
+  this->declare_parameter<bool>("velocity_smoothing_enabled", false);
+  this->declare_parameter<double>("velocity_smoothing_max_accel_mps2", 2.5);
+  this->declare_parameter<double>("velocity_smoothing_max_decel_mps2", 2.5);
 
   racing_line_topic_ = this->get_parameter("racing_line_topic").as_string();
   switch (std::clamp(static_cast<int>(this->get_parameter("default_intent").as_int()), 0, 2)) {
@@ -91,6 +113,7 @@ PlannerNode::PlannerNode()
       break;
   }
   planner_config_.horizon_m = this->get_parameter("horizon_m").as_double();
+  planner_config_.min_path_horizon_m = this->get_parameter("min_path_horizon_m").as_double();
   planner_config_.layer_spacing_m = this->get_parameter("layer_spacing_m").as_double();
   planner_config_.lane_spacing_m = this->get_parameter("lane_spacing_m").as_double();
   planner_config_.max_lateral_offset_m = this->get_parameter("max_lateral_offset_m").as_double();
@@ -121,16 +144,14 @@ PlannerNode::PlannerNode()
   planner_path_frame_ = this->get_parameter("planner_path_frame").as_string();
   controller_path_frame_ = this->get_parameter("controller_path_frame").as_string();
   debug_path_topic_ = this->get_parameter("debug_path_topic").as_string();
-
-  RCLCPP_WARN(
-    this->get_logger(),
-    "Local planner diagnostics active: trigger config loaded, horizon=%.2fm layer=%.2fm "
-    "lane=%.2fm max_angle=%.1fdeg radius=%.2fm front_offset=%.2fm soft=%.2fm "
-    "search_budget=%.1fms action_budget=%.1fms",
-    planner_config_.horizon_m, planner_config_.layer_spacing_m, planner_config_.lane_spacing_m,
-    planner_config_.max_path_angle_deg, planner_config_.collision_circle_radius_m,
-    planner_config_.front_collision_circle_offset_m, planner_config_.soft_inflation_distance_m,
-    planner_config_.max_runtime_ms, planner_runtime_budget_ms_);
+  planner_config_.angle_smoothing_enabled =
+    this->get_parameter("angle_smoothing_enabled").as_bool();
+  planner_config_.velocity_smoothing_enabled =
+    this->get_parameter("velocity_smoothing_enabled").as_bool();
+  planner_config_.velocity_smoothing_max_accel_mps2 =
+    this->get_parameter("velocity_smoothing_max_accel_mps2").as_double();
+  planner_config_.velocity_smoothing_max_decel_mps2 =
+    this->get_parameter("velocity_smoothing_max_decel_mps2").as_double();
 
   const double max_search_budget_ms = std::max(
     kMinimumPlannerBudgetMs, planner_runtime_budget_ms_ - kSearchBudgetReserveMs);
@@ -258,24 +279,12 @@ void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
 void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uint64_t sequence)
 try
 {
+  ScopedPlannerBusyFlag clear_busy(planner_busy_);
   const auto total_start = SteadyClock::now();
   auto result = std::make_shared<PlanPath::Result>();
 
   auto goal = goal_handle->get_goal();
   const LocalPlannerIntent intent = intentFromAction(goal->intent);
-
-  RCLCPP_WARN(
-    this->get_logger(), "plan worker: start sequence=%lu intent=%s",
-    static_cast<unsigned long>(sequence), intentToString(intent).c_str());
-
-  auto clear_planner_busy = [&]() {
-      const bool was_busy = planner_busy_.exchange(false);
-      if (was_busy) {
-        RCLCPP_WARN(
-          this->get_logger(), "plan worker: busy clear sequence=%lu elapsed=%.1fms",
-          static_cast<unsigned long>(sequence), elapsedMs(total_start));
-      }
-    };
 
   auto action_budget_expired = [&]() {
       return elapsedMs(total_start) >= planner_runtime_budget_ms_;
@@ -286,6 +295,26 @@ try
 
   auto ros_active = []() {
       return rclcpp::ok();
+    };
+
+  double search_elapsed_ms = 0.0;
+  double transform_elapsed_ms = 0.0;
+  auto log_failure = [&](const char * reason, std::size_t path_points) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "Planner failed: %s (intent=%s, total=%.2f ms, search=%.2f ms, tf=%.2f ms, "
+        "budget=%.2f ms, path_points=%zu, sequence=%lu)",
+        reason, intentToString(intent).c_str(), elapsedMs(total_start), search_elapsed_ms,
+        transform_elapsed_ms, planner_runtime_budget_ms_, path_points, sequence);
+    };
+
+  auto log_success = [&](std::size_t path_points) {
+      RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "Planner succeeded (intent=%s, total=%.2f ms, search=%.2f ms, tf=%.2f ms, "
+        "budget=%.2f ms, path_points=%zu, sequence=%lu)",
+        intentToString(intent).c_str(), elapsedMs(total_start), search_elapsed_ms,
+        transform_elapsed_ms, planner_runtime_budget_ms_, path_points, sequence);
     };
 
   auto finish_succeeded = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
@@ -332,36 +361,14 @@ try
       }
     };
 
-  auto finish_success_logged = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
-      RCLCPP_WARN(
-        this->get_logger(),
-        "plan worker: result publish start sequence=%lu success=%s poses=%zu",
-        static_cast<unsigned long>(sequence), result_msg->success ? "true" : "false",
-        result_msg->path.poses.size());
-      finish_succeeded(result_msg);
-      RCLCPP_WARN(
-        this->get_logger(), "plan worker: result publish done sequence=%lu elapsed=%.1fms",
-        static_cast<unsigned long>(sequence), elapsedMs(total_start));
-    };
-
-  auto finish_cancel_logged = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
-      RCLCPP_WARN(
-        this->get_logger(), "plan worker: cancel publish start sequence=%lu poses=%zu",
-        static_cast<unsigned long>(sequence), result_msg->path.poses.size());
-      finish_canceled(result_msg);
-      RCLCPP_WARN(
-        this->get_logger(), "plan worker: cancel publish done sequence=%lu elapsed=%.1fms",
-        static_cast<unsigned long>(sequence), elapsedMs(total_start));
-    };
-
   const auto racing_line = std::atomic_load(&racing_line_);
   if (!racing_line || racing_line->empty()) {
     RCLCPP_WARN_THROTTLE(
       this->get_logger(), *this->get_clock(), 2000,
       "Missing racing line on %s, cannot plan", racing_line_topic_.c_str());
     result->success = false;
-    clear_planner_busy();
-    finish_success_logged(result);
+    log_failure("missing racing line", 0);
+    finish_succeeded(result);
     return;
   }
 
@@ -376,26 +383,21 @@ try
       has_occupancy_grid = true;
     }
   }
-  RCLCPP_WARN(
-    this->get_logger(),
-    "plan worker: inputs copied sequence=%lu racing_points=%zu has_odom=%s has_grid=%s",
-    static_cast<unsigned long>(sequence), racing_line->size(), odom_msg ? "true" : "false",
-    has_occupancy_grid ? "true" : "false");
 
   if (!odom_msg || !has_occupancy_grid) {
     RCLCPP_WARN_THROTTLE(
       this->get_logger(), *this->get_clock(), 2000,
       "Missing odom or occupancy grid, cannot plan");
     result->success = false;
-    clear_planner_busy();
-    finish_success_logged(result);
+    log_failure("missing odom or occupancy grid", 0);
+    finish_succeeded(result);
     return;
   }
 
   if (goal_handle->is_canceling()) {
     result->success = false;
-    clear_planner_busy();
-    finish_cancel_logged(result);
+    log_failure("goal canceled before planning", 0);
+    finish_canceled(result);
     return;
   }
 
@@ -403,25 +405,15 @@ try
 
   if (action_budget_expired()) {
     result->success = false;
-    clear_planner_busy();
-    finish_success_logged(result);
+    log_failure("action budget expired before search", 0);
+    finish_succeeded(result);
     return;
   }
 
-  RCLCPP_WARN(
-    this->get_logger(), "plan worker: planner start sequence=%lu",
-    static_cast<unsigned long>(sequence));
   planner_->setRacingLine(*racing_line);
-  LocalFrenetPlan plan = planner_->plan(odom.position, odom.heading, occupancy_grid, intent);
-  const double plan_elapsed_ms = elapsedMs(total_start);
-  RCLCPP_WARN(
-    this->get_logger(),
-    "plan worker: planner done sequence=%lu elapsed=%.1fms poses=%zu edges=%d accepted=%d "
-    "collision=%d out_of_grid=%d",
-    static_cast<unsigned long>(sequence), plan_elapsed_ms, plan.path.size(),
-    plan.edges_considered, plan.edges_accepted, plan.rejected_collision,
-    plan.rejected_out_of_grid);
-  clear_planner_busy();
+  const auto search_start = SteadyClock::now();
+  LocalFrenetPlan plan = planner_->plan(odom, occupancy_grid, intent);
+  search_elapsed_ms = elapsedMs(search_start);
 
   if (!ros_active()) {
     return;
@@ -431,98 +423,66 @@ try
 
   const bool stale_plan = sequence != latest_plan_sequence_.load();
   const bool over_budget = action_budget_expired();
+  if (stale_plan || goal_handle->is_canceling() || over_budget) {
+    result->success = false;
+    if (stale_plan) {
+      log_failure("stale plan superseded by newer request", plan.path.size());
+    } else if (goal_handle->is_canceling()) {
+      log_failure("goal canceled after search", plan.path.size());
+    } else {
+      log_failure("action budget expired after search", plan.path.size());
+    }
+    if (goal_handle->is_canceling()) {
+      finish_canceled(result);
+    } else {
+      finish_succeeded(result);
+    }
+    return;
+  }
 
   if (plan.path.empty()) {
     RCLCPP_WARN_THROTTLE(
       this->get_logger(), *this->get_clock(), 2000,
-      "Planner returned empty path: %s start_s=%.2f start_d=%.2f heading_err=%.2fdeg "
-      "layers=%d lanes=%d final_reachable=%d edges considered=%d accepted=%d "
-      "rejected slope=%d geometry=%d collision=%d out_of_grid=%d elapsed=%.1fms budget=%.1fms",
-      plan.debug_reason.c_str(), plan.start_s, plan.start_d,
-      plan.heading_error_rad * 180.0 / 3.14159265358979323846,
-      plan.layers, plan.lanes, plan.final_reachable_lanes, plan.edges_considered,
-      plan.edges_accepted, plan.rejected_slope, plan.rejected_geometry,
-      plan.rejected_collision, plan.rejected_out_of_grid,
-      plan_elapsed_ms, planner_runtime_budget_ms_);
+      "Planner returned empty path");
     result->success = false;
+    log_failure("empty path", 0);
     result->path = pathToRosPath(plan.path, controller_path_frame_);
-
-    if (stale_plan || goal_handle->is_canceling() || over_budget) {
-      if (over_budget) {
-        RCLCPP_WARN_THROTTLE(
-          this->get_logger(), *this->get_clock(), 2000,
-          "Planner empty-path result skipped publishing because it exceeded the action budget "
-          "(elapsed=%.1fms budget=%.1fms)",
-          plan_elapsed_ms, planner_runtime_budget_ms_);
-      }
-      if (goal_handle->is_canceling()) {
-        finish_cancel_logged(result);
-      } else {
-        finish_success_logged(result);
-      }
-      return;
-    }
-
     std::lock_guard<std::mutex> lock(publish_mutex_);
     const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
       goal_handle->is_canceling();
     if (stale_or_canceling) {
+      log_failure(
+        goal_handle->is_canceling() ? "goal canceled before empty-path publish" :
+        "empty path superseded before publish",
+        0);
       if (goal_handle->is_canceling()) {
-        finish_cancel_logged(result);
+        finish_canceled(result);
       } else {
-        finish_success_logged(result);
+        finish_succeeded(result);
       }
       return;
     }
 
-    RCLCPP_WARN(
-      this->get_logger(), "plan worker: publish start sequence=%lu empty_path=true",
-      static_cast<unsigned long>(sequence));
     path_pub_->publish(result->path);
     debug_path_pub_->publish(planner_path);
     if (has_budget_for_viz()) {
       publishPlannerViz(plan);
     }
-    RCLCPP_WARN(
-      this->get_logger(), "plan worker: publish done sequence=%lu elapsed=%.1fms",
-      static_cast<unsigned long>(sequence), elapsedMs(total_start));
-    finish_success_logged(result);
-    return;
-  }
-
-  if (stale_plan || goal_handle->is_canceling() || over_budget) {
-    result->success = false;
-    if (over_budget) {
-      RCLCPP_WARN_THROTTLE(
-        this->get_logger(), *this->get_clock(), 2000,
-        "Planner returned a non-empty path after the action budget expired "
-        "(poses=%zu elapsed=%.1fms budget=%.1fms); reporting failure",
-        plan.path.size(), plan_elapsed_ms, planner_runtime_budget_ms_);
-    }
-    if (goal_handle->is_canceling()) {
-      finish_cancel_logged(result);
-    } else {
-      finish_success_logged(result);
-    }
+    finish_succeeded(result);
     return;
   }
 
   nav_msgs::msg::Path controller_path;
-  RCLCPP_WARN(
-    this->get_logger(), "plan worker: transform start sequence=%lu poses=%zu",
-    static_cast<unsigned long>(sequence), planner_path.poses.size());
+  const auto transform_start = SteadyClock::now();
   if (!transformPathToControllerFrame(planner_path, controller_path)) {
-    RCLCPP_WARN(
-      this->get_logger(), "plan worker: transform failed sequence=%lu elapsed=%.1fms",
-      static_cast<unsigned long>(sequence), elapsedMs(total_start));
+    transform_elapsed_ms = elapsedMs(transform_start);
     result->success = false;
     result->path = pathToRosPath({}, controller_path_frame_);
-    finish_success_logged(result);
+    log_failure("path transform failed", plan.path.size());
+    finish_succeeded(result);
     return;
   }
-  RCLCPP_WARN(
-    this->get_logger(), "plan worker: transform done sequence=%lu elapsed=%.1fms",
-    static_cast<unsigned long>(sequence), elapsedMs(total_start));
+  transform_elapsed_ms = elapsedMs(transform_start);
 
   result->path = controller_path;
   result->success = true;
@@ -532,10 +492,18 @@ try
     goal_handle->is_canceling();
   if (stale_or_canceling || action_budget_expired()) {
     result->success = false;
-    if (goal_handle->is_canceling()) {
-      finish_cancel_logged(result);
+    if (stale_or_canceling) {
+      log_failure(
+        goal_handle->is_canceling() ? "goal canceled before publish" :
+        "plan superseded before publish",
+        plan.path.size());
     } else {
-      finish_success_logged(result);
+      log_failure("action budget expired before publish", plan.path.size());
+    }
+    if (goal_handle->is_canceling()) {
+      finish_canceled(result);
+    } else {
+      finish_succeeded(result);
     }
     return;
   }
@@ -544,21 +512,20 @@ try
     return;
   }
 
-  RCLCPP_WARN(
-    this->get_logger(), "plan worker: publish start sequence=%lu empty_path=false poses=%zu",
-    static_cast<unsigned long>(sequence), result->path.poses.size());
   path_pub_->publish(result->path);
   debug_path_pub_->publish(planner_path);
 
   if (has_budget_for_viz()) {
     publishPlannerViz(plan);
   }
-  RCLCPP_WARN(
-    this->get_logger(), "plan worker: publish done sequence=%lu elapsed=%.1fms",
-    static_cast<unsigned long>(sequence), elapsedMs(total_start));
 
   result->success = !action_budget_expired();
-  finish_success_logged(result);
+  if (result->success) {
+    log_success(plan.path.size());
+  } else {
+    log_failure("action budget expired after publish", plan.path.size());
+  }
+  finish_succeeded(result);
 }
 catch (const std::exception & ex)
 {
@@ -602,6 +569,32 @@ void PlannerNode::publishPlannerViz(const LocalFrenetPlan & plan)
   clear.header.stamp = this->now();
   clear.action = visualization_msgs::msg::Marker::DELETEALL;
   markers.markers.push_back(clear);
+
+  const std::size_t center_lane_index = plan.debug_lattice_lanes.size() / 2;
+  for (std::size_t lane_index = 0; lane_index < plan.debug_lattice_lanes.size(); ++lane_index) {
+    visualization_msgs::msg::Marker lane_strip;
+    lane_strip.header.frame_id = "map";
+    lane_strip.header.stamp = this->now();
+    lane_strip.ns = "lattice_lanes";
+    lane_strip.id = static_cast<int>(lane_index);
+    lane_strip.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    lane_strip.action = visualization_msgs::msg::Marker::ADD;
+    lane_strip.scale.x = lane_index == center_lane_index ? 0.035 : 0.02;
+    lane_strip.color.r = lane_index == center_lane_index ? 1.0 : 0.25;
+    lane_strip.color.g = lane_index == center_lane_index ? 0.95 : 0.65;
+    lane_strip.color.b = lane_index == center_lane_index ? 0.25 : 1.0;
+    lane_strip.color.a = lane_index == center_lane_index ? 0.55 : 0.22;
+
+    for (const auto & p : plan.debug_lattice_lanes[lane_index]) {
+      geometry_msgs::msg::Point pt;
+      pt.x = p.x;
+      pt.y = p.y;
+      pt.z = 0.02;
+      lane_strip.points.push_back(pt);
+    }
+
+    markers.markers.push_back(lane_strip);
+  }
 
   visualization_msgs::msg::Marker line_strip;
   line_strip.header.frame_id = "map";
@@ -665,20 +658,13 @@ bool PlannerNode::transformPathToControllerFrame(
   try {
     transform = tf_buffer_->lookupTransform(
       controller_path_frame_, planner_path.header.frame_id,
-      rclcpp::Time(planner_path.header.stamp), tf2::durationFromSec(0.1));
-  } catch (const tf2::TransformException & stamped_ex) {
-    try {
-      transform = tf_buffer_->lookupTransform(
-        controller_path_frame_, planner_path.header.frame_id,
-        tf2::TimePointZero, tf2::durationFromSec(0.1));
-    } catch (const tf2::TransformException & latest_ex) {
-      RCLCPP_WARN_THROTTLE(
-        this->get_logger(), *this->get_clock(), 2000,
-        "Cannot transform local path from '%s' to '%s': %s; latest TF fallback also failed: %s",
-        planner_path.header.frame_id.c_str(), controller_path_frame_.c_str(),
-        stamped_ex.what(), latest_ex.what());
-      return false;
-    }
+      tf2::TimePointZero, tf2::durationFromSec(0.001));
+  } catch (const tf2::TransformException & ex) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "Cannot transform local path from '%s' to '%s' using latest TF within 1 ms: %s",
+      planner_path.header.frame_id.c_str(), controller_path_frame_.c_str(), ex.what());
+    return false;
   }
 
   tf2::Transform planner_to_controller;

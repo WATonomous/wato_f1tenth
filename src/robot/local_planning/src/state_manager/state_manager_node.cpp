@@ -11,6 +11,25 @@ namespace local_planning
 
 using namespace std::placeholders;
 
+namespace
+{
+
+const char * planIntentName(uint8_t intent)
+{
+  switch (intent) {
+    case local_planning::action::PlanPath::Goal::OVERTAKE:
+      return "OVERTAKE";
+    case local_planning::action::PlanPath::Goal::MERGE:
+      return "MERGE";
+    case local_planning::action::PlanPath::Goal::FOLLOW_RACING_LINE:
+      return "FOLLOW_RACING_LINE";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+} // namespace
+
 StateManagerNode::StateManagerNode()
 : Node("state_manager_node")
 {
@@ -188,6 +207,10 @@ void StateManagerNode::sendPlanGoal(RacingState state)
   PlanPath::Goal goal_msg = buildPlanGoal(state);
 
   if (hasActivePlanGoal() || goal_request_pending_) {
+    RCLCPP_INFO_THROTTLE(
+      this->get_logger(), *this->get_clock(), 1000,
+      "Buffering plan goal while previous goal is active or pending (intent=%s, pending=%s)",
+      planIntentName(goal_msg.intent), goal_request_pending_ ? "true" : "false");
     bufferPlanGoal(goal_msg);
     return;
   }
@@ -239,12 +262,15 @@ void StateManagerNode::dispatchPlanGoal(const PlanPath::Goal & goal_msg)
   }
 
   auto send_goal_options = rclcpp_action::Client<PlanPath>::SendGoalOptions();
+  const uint8_t requested_intent = goal_msg.intent;
   send_goal_options.goal_response_callback =
-    [this](const GoalHandle::SharedPtr & goal_handle) {
+    [this, requested_intent](const GoalHandle::SharedPtr & goal_handle) {
       goal_request_pending_ = false;
 
       if (!goal_handle) {
-        RCLCPP_WARN(this->get_logger(), "Plan goal was rejected");
+        RCLCPP_WARN(
+          this->get_logger(), "Plan goal was rejected (intent=%s, buffered=%s)",
+          planIntentName(requested_intent), buffered_plan_goal_ ? "true" : "false");
         if (!promoteBufferedPlanGoal()) {
           scheduleNextPlanGoal();
         }
@@ -252,9 +278,22 @@ void StateManagerNode::dispatchPlanGoal(const PlanPath::Goal & goal_msg)
       }
 
       current_goal_handle_ = goal_handle;
+      RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "Plan goal accepted (intent=%s)", planIntentName(requested_intent));
+      if (!hasActivePlanGoal()) {
+        if (!promoteBufferedPlanGoal()) {
+          scheduleNextPlanGoal();
+        }
+      }
     };
   send_goal_options.result_callback =
     std::bind(&StateManagerNode::planResultCallback, this, _1);
+
+  RCLCPP_INFO_THROTTLE(
+    this->get_logger(), *this->get_clock(), 1000,
+    "Dispatching plan goal (intent=%s, buffered=%s)",
+    planIntentName(goal_msg.intent), buffered_plan_goal_ ? "true" : "false");
 
   goal_request_pending_ = true;
   last_plan_goal_sent_ = std::chrono::steady_clock::now();
@@ -264,12 +303,39 @@ void StateManagerNode::dispatchPlanGoal(const PlanPath::Goal & goal_msg)
 
 void StateManagerNode::bufferPlanGoal(const PlanPath::Goal & goal_msg)
 {
+  const bool replaced_existing_goal = buffered_plan_goal_.has_value();
   buffered_plan_goal_ = goal_msg;
+  RCLCPP_INFO_THROTTLE(
+    this->get_logger(), *this->get_clock(), 1000,
+    "Buffered plan goal (intent=%s, replaced_existing=%s)",
+    planIntentName(goal_msg.intent), replaced_existing_goal ? "true" : "false");
 }
 
 bool StateManagerNode::hasActivePlanGoal()
 {
-  return current_goal_handle_ != nullptr;
+  if (!current_goal_handle_) {
+    return false;
+  }
+
+  try {
+    const int8_t status = current_goal_handle_->get_status();
+    if (status == action_msgs::msg::GoalStatus::STATUS_ACCEPTED ||
+      status == action_msgs::msg::GoalStatus::STATUS_EXECUTING ||
+      status == action_msgs::msg::GoalStatus::STATUS_CANCELING)
+    {
+      return true;
+    }
+  } catch (const std::exception & ex) {
+    RCLCPP_WARN(
+      this->get_logger(), "Could not inspect current plan goal state: %s", ex.what());
+    return true;
+  } catch (...) {
+    RCLCPP_WARN(this->get_logger(), "Could not inspect current plan goal state");
+    return true;
+  }
+
+  current_goal_handle_ = nullptr;
+  return false;
 }
 
 bool StateManagerNode::promoteBufferedPlanGoal()
@@ -293,6 +359,9 @@ bool StateManagerNode::promoteBufferedPlanGoal()
     }
   }
 
+  RCLCPP_INFO_THROTTLE(
+    this->get_logger(), *this->get_clock(), 1000,
+    "Promoting buffered plan goal (intent=%s)", planIntentName(next_goal.intent));
   dispatchPlanGoal(next_goal);
   return true;
 }
@@ -304,7 +373,15 @@ void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & resu
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED:
       if (!result.result->success) {
-        RCLCPP_WARN(this->get_logger(), "Planner returned failure");
+        RCLCPP_WARN_THROTTLE(
+          this->get_logger(), *this->get_clock(), 1000,
+          "Planner returned failure (path_points=%zu, buffered=%s)",
+          result.result->path.poses.size(), buffered_plan_goal_ ? "true" : "false");
+      } else {
+        RCLCPP_INFO_THROTTLE(
+          this->get_logger(), *this->get_clock(), 1000,
+          "Planner returned success (path_points=%zu, buffered=%s)",
+          result.result->path.poses.size(), buffered_plan_goal_ ? "true" : "false");
       }
       break;
     case rclcpp_action::ResultCode::ABORTED:

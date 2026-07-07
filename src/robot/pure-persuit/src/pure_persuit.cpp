@@ -127,7 +127,9 @@ void Pure_Persuit_Node::control_timer_callback() {
         p = Pure_Persuit_Node::get_local_waypoint();
 
     if (!p.has_value()) {
-        RCLCPP_ERROR(this->get_logger(), "no look ahead point returned, stopping car");
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), 1000,
+            "no look ahead point returned, stopping car");
         controls_pub_->publish(Pure_Persuit_Node::dead_stop());
         return;
     }
@@ -366,7 +368,9 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
 
     if (current_local_path.poses.empty()) {
 
-        RCLCPP_WARN(this->get_logger(), "no waypoints in local path while in LOCAL_FOLLOW state");
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), 1000,
+            "no waypoints in local path while in LOCAL_FOLLOW state");
         return std::nullopt;
 
     }

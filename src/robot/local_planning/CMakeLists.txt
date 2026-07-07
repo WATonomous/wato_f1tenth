@@ -48,6 +48,7 @@ set(LOCAL_FRENET_LATTICE_PLANNER_SOURCES
   src/planner/edge_evaluator.cpp
   src/planner/collision_checker.cpp
   src/planner/planner_costs.cpp
+  src/planner/path_processing.cpp
   src/frenet_converter.cpp
   src/ros_adapters.cpp
 )
