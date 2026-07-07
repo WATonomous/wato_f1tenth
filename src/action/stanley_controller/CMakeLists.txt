@@ -15,6 +15,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -31,7 +33,8 @@ endif()
 include_directories(include)
 
 add_executable(stanley_controller src/stanley_controller.cpp)
-ament_target_dependencies(stanley_controller rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs ackermann_msgs tf2 tf2_ros)
+ament_target_dependencies(stanley_controller rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs ackermann_msgs tf2 tf2_ros tf2_geometry_msgs
+  visualization_msgs)
 
 install(TARGETS stanley_controller
   DESTINATION lib/${PROJECT_NAME})

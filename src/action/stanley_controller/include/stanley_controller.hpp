@@ -23,9 +23,13 @@
     - No major difference in laptime compared to pure pursuit at current speed limits
 
 
+
+
+    - autosim trouble if not in focus
+
 */
 
-#ifndef STANLEY_CONTROLLER_HPP_
+#ifndef STANLEY_CONTROLLER_HPP_ 
 #define STANLEY_CONTROLLER_HPP_
 
 #include <chrono>
@@ -53,6 +57,9 @@
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 
+#include "visualization_msgs/msg/marker_array.hpp"
+
+
 enum stanley_state_ {
     INACTIVE,
     GLOBAL_FOLLOW
@@ -65,12 +72,19 @@ public:
 private:
     //publishers
     rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_markers_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cte_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr heading_err_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr heading_term_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cte_term_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr delta_pub_;
 
     //subscriptions
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dead_man_sub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
+  
 
     //timer
     rclcpp::TimerBase::SharedPtr control_loop_timer;
@@ -87,12 +101,24 @@ private:
     size_t find_closest_point(double x, double y);
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
+    void publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
+                       size_t closest_idx,
+                       double cross_track_error,
+                       double heading_error,
+                       double heading_term,
+                       double cte_term,
+                       double steering_cmd,
+                       double velocity);
+
     //parameters
-    std::string global_path_topic;
+    std::string global_path_topic;  
     std::string dead_man_active_topic;
     std::string ackermann_control_topic;
     std::string odom_topic;
     std::string speed_topic;
+
+    std::string global_frame_id;
+    std::string local_frame_id;
 
     bool speed_limit_enable;
     double speed_limit;
@@ -101,6 +127,16 @@ private:
     double k_h;        // heading error gain
     double wheelbase;  // distance between front and rear axles
     double current_velocity;
+    bool enable_debug_vis;
+
+    size_t last_closest_idx_;
+    double last_cross_track_error_;
+    double last_heading_error_;
+    double last_heading_term_;
+    double last_cte_term_;
+    double last_steering_cmd_;
+    
+
 
     //internal state and variables
     stanley_state_ controller_state;
