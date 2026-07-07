@@ -44,7 +44,7 @@ private:
 
   void handleAccepted(const std::shared_ptr<GoalHandle> goal_handle);
 
-  void executePlan(const std::shared_ptr<GoalHandle> goal_handle, uint64_t sequence);
+  void executePlan(const std::shared_ptr<GoalHandle> goal_handle);
 
   void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
   void occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
@@ -85,8 +85,6 @@ private:
   local_planning::OccupancyGrid current_occupancy_grid_;
   bool has_current_occupancy_grid_ = false;
   std::mutex input_mutex_;
-  std::mutex publish_mutex_;
-  std::atomic<uint64_t> latest_plan_sequence_{0};
   std::atomic_bool planner_busy_{false};
 
   // racing line

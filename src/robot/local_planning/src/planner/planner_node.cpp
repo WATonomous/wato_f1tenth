@@ -31,15 +31,15 @@ constexpr double kMinimumPlannerBudgetMs = 1.0;
 constexpr double kSearchBudgetReserveMs = 20.0;
 constexpr double kVizDeadlineReserveMs = 5.0;
 
-class ScopedPlannerBusyFlag
+class PlannerBusyReleaser
 {
 public:
-  explicit ScopedPlannerBusyFlag(std::atomic_bool & flag)
+  explicit PlannerBusyReleaser(std::atomic_bool & flag)
   : flag_(flag)
   {
   }
 
-  ~ScopedPlannerBusyFlag()
+  ~PlannerBusyReleaser()
   {
     flag_.store(false);
   }
@@ -255,31 +255,42 @@ rclcpp_action::CancelResponse PlannerNode::handleCancel(
 
 void PlannerNode::handleAccepted(const std::shared_ptr<GoalHandle> goal_handle)
 {
-  const uint64_t sequence = ++latest_plan_sequence_;
   auto self = shared_from_this();
-  std::thread(
-    [this, self, goal_handle, sequence]() {
+  try {
+    std::thread(
+      [this, self, goal_handle]() {
+        PlannerBusyReleaser clear_busy(planner_busy_);
+        try {
+          executePlan(goal_handle);
+        } catch (const std::exception & ex) {
+          if (rclcpp::ok()) {
+            RCLCPP_WARN(
+              this->get_logger(), "Planner action worker exited after exception: %s", ex.what());
+          }
+        } catch (...) {
+          if (rclcpp::ok()) {
+            RCLCPP_WARN(this->get_logger(), "Planner action worker exited after unknown exception");
+          }
+        }
+      }).detach();
+  } catch (const std::system_error & ex) {
+    planner_busy_.store(false);
+    if (rclcpp::ok()) {
+      RCLCPP_WARN(
+        this->get_logger(), "Could not start planner worker thread: %s", ex.what());
       try {
-        executePlan(goal_handle, sequence);
-      } catch (const std::exception & ex) {
-        planner_busy_.store(false);
-        if (rclcpp::ok()) {
-          RCLCPP_WARN(
-            this->get_logger(), "Planner action worker exited after exception: %s", ex.what());
-        }
+        auto result = std::make_shared<PlanPath::Result>();
+        result->success = false;
+        goal_handle->abort(result);
       } catch (...) {
-        planner_busy_.store(false);
-        if (rclcpp::ok()) {
-          RCLCPP_WARN(this->get_logger(), "Planner action worker exited after unknown exception");
-        }
+        RCLCPP_WARN(this->get_logger(), "Could not abort goal after worker thread failure");
       }
-    }).detach();
+    }
+  }
 }
 
-void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle, uint64_t sequence)
-try
+void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle)
 {
-  ScopedPlannerBusyFlag clear_busy(planner_busy_);
   const auto total_start = SteadyClock::now();
   auto result = std::make_shared<PlanPath::Result>();
 
@@ -303,18 +314,18 @@ try
       RCLCPP_WARN_THROTTLE(
         this->get_logger(), *this->get_clock(), 1000,
         "Planner failed: %s (intent=%s, total=%.2f ms, search=%.2f ms, tf=%.2f ms, "
-        "budget=%.2f ms, path_points=%zu, sequence=%lu)",
+        "budget=%.2f ms, path_points=%zu)",
         reason, intentToString(intent).c_str(), elapsedMs(total_start), search_elapsed_ms,
-        transform_elapsed_ms, planner_runtime_budget_ms_, path_points, sequence);
+        transform_elapsed_ms, planner_runtime_budget_ms_, path_points);
     };
 
   auto log_success = [&](std::size_t path_points) {
       RCLCPP_INFO_THROTTLE(
         this->get_logger(), *this->get_clock(), 1000,
         "Planner succeeded (intent=%s, total=%.2f ms, search=%.2f ms, tf=%.2f ms, "
-        "budget=%.2f ms, path_points=%zu, sequence=%lu)",
+        "budget=%.2f ms, path_points=%zu)",
         intentToString(intent).c_str(), elapsedMs(total_start), search_elapsed_ms,
-        transform_elapsed_ms, planner_runtime_budget_ms_, path_points, sequence);
+        transform_elapsed_ms, planner_runtime_budget_ms_, path_points);
     };
 
   auto finish_succeeded = [&](const std::shared_ptr<PlanPath::Result> & result_msg) {
@@ -421,13 +432,10 @@ try
 
   const nav_msgs::msg::Path planner_path = pathToRosPath(plan.path, planner_path_frame_);
 
-  const bool stale_plan = sequence != latest_plan_sequence_.load();
   const bool over_budget = action_budget_expired();
-  if (stale_plan || goal_handle->is_canceling() || over_budget) {
+  if (goal_handle->is_canceling() || over_budget) {
     result->success = false;
-    if (stale_plan) {
-      log_failure("stale plan superseded by newer request", plan.path.size());
-    } else if (goal_handle->is_canceling()) {
+    if (goal_handle->is_canceling()) {
       log_failure("goal canceled after search", plan.path.size());
     } else {
       log_failure("action budget expired after search", plan.path.size());
@@ -447,19 +455,9 @@ try
     result->success = false;
     log_failure("empty path", 0);
     result->path = pathToRosPath(plan.path, controller_path_frame_);
-    std::lock_guard<std::mutex> lock(publish_mutex_);
-    const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
-      goal_handle->is_canceling();
-    if (stale_or_canceling) {
-      log_failure(
-        goal_handle->is_canceling() ? "goal canceled before empty-path publish" :
-        "empty path superseded before publish",
-        0);
-      if (goal_handle->is_canceling()) {
-        finish_canceled(result);
-      } else {
-        finish_succeeded(result);
-      }
+    if (goal_handle->is_canceling()) {
+      log_failure("goal canceled before empty-path publish", 0);
+      finish_canceled(result);
       return;
     }
 
@@ -487,22 +485,13 @@ try
   result->path = controller_path;
   result->success = true;
 
-  std::lock_guard<std::mutex> lock(publish_mutex_);
-  const bool stale_or_canceling = sequence != latest_plan_sequence_.load() ||
-    goal_handle->is_canceling();
-  if (stale_or_canceling || action_budget_expired()) {
+  if (goal_handle->is_canceling() || action_budget_expired()) {
     result->success = false;
-    if (stale_or_canceling) {
-      log_failure(
-        goal_handle->is_canceling() ? "goal canceled before publish" :
-        "plan superseded before publish",
-        plan.path.size());
-    } else {
-      log_failure("action budget expired before publish", plan.path.size());
-    }
     if (goal_handle->is_canceling()) {
+      log_failure("goal canceled before publish", plan.path.size());
       finish_canceled(result);
     } else {
+      log_failure("action budget expired before publish", plan.path.size());
       finish_succeeded(result);
     }
     return;
@@ -526,20 +515,6 @@ try
     log_failure("action budget expired after publish", plan.path.size());
   }
   finish_succeeded(result);
-}
-catch (const std::exception & ex)
-{
-  planner_busy_.store(false);
-  if (rclcpp::ok()) {
-    RCLCPP_WARN(this->get_logger(), "Planner action thread exited after exception: %s", ex.what());
-  }
-}
-catch (...)
-{
-  planner_busy_.store(false);
-  if (rclcpp::ok()) {
-    RCLCPP_WARN(this->get_logger(), "Planner action thread exited after unknown exception");
-  }
 }
 
 LocalPlannerIntent PlannerNode::intentFromAction(uint8_t intent) const

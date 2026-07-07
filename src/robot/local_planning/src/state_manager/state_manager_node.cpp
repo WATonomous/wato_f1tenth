@@ -313,6 +313,20 @@ void StateManagerNode::bufferPlanGoal(const PlanPath::Goal & goal_msg)
 
 bool StateManagerNode::hasActivePlanGoal()
 {
+  if (!current_goal_handle_ && !goal_request_pending_) {
+    return false;
+  }
+
+  // if the planner died mid-goal the result callback never fires
+  // so an in-flight goal eventually is presumed lost.
+  const auto goal_age = std::chrono::steady_clock::now() - last_plan_goal_sent_;
+  if (goal_age > 3 * planning_period_) {
+    current_goal_handle_ = nullptr;
+    goal_request_pending_ = false;
+    plan_action_server_ready_ = false;
+    return false;
+  }
+
   if (!current_goal_handle_) {
     return false;
   }
@@ -368,6 +382,9 @@ bool StateManagerNode::promoteBufferedPlanGoal()
 
 void StateManagerNode::planResultCallback(const GoalHandle::WrappedResult & result)
 {
+  if (current_goal_handle_ && result.goal_id != current_goal_handle_->get_goal_id()) {
+    return;
+  }
   current_goal_handle_ = nullptr;
 
   switch (result.code) {
