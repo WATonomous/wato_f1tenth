@@ -177,7 +177,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   const SelectedLatticePath selected_path = reconstructSelectedPath(
-2    states, best_lane, lanes, start);
+    states, best_lane, lanes, start);
   result.path = selected_path.path;
 
   if (config_.angle_smoothing_enabled) {
