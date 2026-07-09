@@ -420,7 +420,11 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle)
     return;
   }
 
-  planner_->setRacingLine(*racing_line);
+  // Avoid rebuilding the O(N) Frenet cache for the same immutable snapshot.
+  if (racing_line != frenet_cache_racing_line_guard_) {
+    planner_->setRacingLine(*racing_line);
+    frenet_cache_racing_line_guard_ = racing_line;
+  }
   const auto search_start = SteadyClock::now();
   LocalFrenetPlan plan = planner_->plan(odom, occupancy_grid, intent);
   search_elapsed_ms = elapsedMs(search_start);
