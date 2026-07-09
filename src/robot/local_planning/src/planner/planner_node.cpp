@@ -206,12 +206,12 @@ void PlannerNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
 void PlannerNode::occupancyGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
-  local_planning::OccupancyGrid grid = rosToOccupancyGrid(*msg);
-  CollisionChecker(planner_config_).buildClearanceCache(grid);
+  auto grid = std::make_shared<local_planning::OccupancyGrid>(
+    rosToOccupancyGrid(*msg));
+  CollisionChecker(planner_config_).buildClearanceCache(*grid);
 
   std::lock_guard<std::mutex> lock(input_mutex_);
   current_occupancy_grid_ = std::move(grid);
-  has_current_occupancy_grid_ = true;
 }
 
 void PlannerNode::racingLineCallback(const nav_msgs::msg::Path::SharedPtr msg)
@@ -383,18 +383,14 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle)
   }
 
   nav_msgs::msg::Odometry::SharedPtr odom_msg;
-  local_planning::OccupancyGrid occupancy_grid;
-  bool has_occupancy_grid = false;
+  std::shared_ptr<const local_planning::OccupancyGrid> occupancy_grid;
   {
     std::lock_guard<std::mutex> lock(input_mutex_);
     odom_msg = current_odom_;
-    if (has_current_occupancy_grid_) {
-      occupancy_grid = current_occupancy_grid_;
-      has_occupancy_grid = true;
-    }
+    occupancy_grid = current_occupancy_grid_;
   }
 
-  if (!odom_msg || !has_occupancy_grid) {
+  if (!odom_msg || !occupancy_grid) {
     RCLCPP_WARN_THROTTLE(
       this->get_logger(), *this->get_clock(), 2000,
       "Missing odom or occupancy grid, cannot plan");
@@ -426,7 +422,7 @@ void PlannerNode::executePlan(const std::shared_ptr<GoalHandle> goal_handle)
     frenet_cache_racing_line_guard_ = racing_line;
   }
   const auto search_start = SteadyClock::now();
-  LocalFrenetPlan plan = planner_->plan(odom, occupancy_grid, intent);
+  LocalFrenetPlan plan = planner_->plan(odom, *occupancy_grid, intent);
   search_elapsed_ms = elapsedMs(search_start);
 
   if (!ros_active()) {
