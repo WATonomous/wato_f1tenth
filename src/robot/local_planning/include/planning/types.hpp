@@ -39,8 +39,7 @@ struct OccupancyGrid
   int height;
   double resolution;
   Point origin;
-  std::vector<uint8_t> definitely_blocked_mask;
-  std::vector<uint8_t> needs_exact_check_mask;
+  std::vector<float> obstacle_distance_m;
   bool has_clearance_cache = false;
 };
 

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <utility>
+#include <limits>
 #include <vector>
 
 namespace local_planning
@@ -12,6 +12,83 @@ namespace
 {
 
 constexpr double kEpsilon = 1e-6;
+constexpr double kInfDistanceSqCells = 1.0e20;
+
+int gridIndex(int row, int col, int width)
+{
+  return row * width + col;
+}
+
+bool pointToGridCell(const Point & p, const OccupancyGrid & grid, int & row, int & col)
+{
+  col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
+  row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
+  return col >= 0 && col < grid.width && row >= 0 && row < grid.height;
+}
+
+// https://hellorob.org/files/lectures/fast_euclidean_dt.pdf
+void distanceTransform1d(
+  const std::vector<double> & source_distance_sq,
+  std::vector<double> & transformed_distance_sq)
+{
+  const int sample_count = static_cast<int>(source_distance_sq.size());
+  transformed_distance_sq.assign(source_distance_sq.size(), kInfDistanceSqCells);
+
+  std::vector<int> envelope_sources(static_cast<size_t>(sample_count), 0);
+  std::vector<double> envelope_start_positions(static_cast<size_t>(sample_count) + 1, 0.0);
+  int envelope_back = -1;
+
+  for (int source_index = 0; source_index < sample_count; ++source_index) {
+    const bool has_source =
+      source_distance_sq[static_cast<size_t>(source_index)] < kInfDistanceSqCells;
+
+    if (has_source) {
+      double new_start_position = -std::numeric_limits<double>::infinity();
+      bool source_fits_envelope = false;
+      while (envelope_back >= 0 && !source_fits_envelope) {
+        const int previous_source = envelope_sources[static_cast<size_t>(envelope_back)];
+        const double source_sq =
+          static_cast<double>(source_index) * static_cast<double>(source_index);
+        const double previous_source_sq =
+          static_cast<double>(previous_source) * static_cast<double>(previous_source);
+        new_start_position =
+          ((source_distance_sq[static_cast<size_t>(source_index)] + source_sq) -
+          (source_distance_sq[static_cast<size_t>(previous_source)] + previous_source_sq)) /
+          (2.0 * static_cast<double>(source_index - previous_source));
+
+        source_fits_envelope =
+          new_start_position > envelope_start_positions[static_cast<size_t>(envelope_back)];
+        if (!source_fits_envelope) {
+          --envelope_back;
+        }
+      }
+
+      ++envelope_back;
+      envelope_sources[static_cast<size_t>(envelope_back)] = source_index;
+      envelope_start_positions[static_cast<size_t>(envelope_back)] = new_start_position;
+      envelope_start_positions[static_cast<size_t>(envelope_back + 1)] =
+        std::numeric_limits<double>::infinity();
+    }
+  }
+
+  if (envelope_back < 0) {
+    return;
+  }
+
+  int envelope_index = 0;
+  for (int query_index = 0; query_index < sample_count; ++query_index) {
+    while (envelope_start_positions[static_cast<size_t>(envelope_index + 1)] <
+      static_cast<double>(query_index))
+    {
+      ++envelope_index;
+    }
+    const int source_index = envelope_sources[static_cast<size_t>(envelope_index)];
+    const int dx = query_index - source_index;
+    const double dx_sq = static_cast<double>(dx) * static_cast<double>(dx);
+    transformed_distance_sq[static_cast<size_t>(query_index)] =
+      dx_sq + source_distance_sq[static_cast<size_t>(source_index)];
+  }
+}
 
 } // namespace
 
@@ -23,75 +100,63 @@ CollisionChecker::CollisionChecker(const LocalFrenetPlannerConfig & config)
 void CollisionChecker::buildClearanceCache(OccupancyGrid & grid) const
 {
   if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= kEpsilon) {
-    grid.definitely_blocked_mask.clear();
-    grid.needs_exact_check_mask.clear();
+    grid.obstacle_distance_m.clear();
     grid.has_clearance_cache = false;
     return;
   }
 
   const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
-  grid.definitely_blocked_mask.assign(cell_count, 0);
-  grid.needs_exact_check_mask.assign(cell_count, 0);
+  if (grid.data.size() < cell_count) {
+    grid.obstacle_distance_m.clear();
+    grid.has_clearance_cache = false;
+    return;
+  }
 
-  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
-  const double blocked_radius = std::max(
-    0.0, config_.collision_circle_radius_m - cell_half_diagonal);
-  const double exact_check_radius = std::max(
-    blocked_radius,
-    config_.collision_circle_radius_m +
-    config_.soft_inflation_distance_m + cell_half_diagonal);
-
-  auto makeDiskOffsets = [&](double radius_m) {
-      std::vector<std::pair<int, int>> offsets;
-      const int max_cells = std::max(
-        0, static_cast<int>(std::ceil(radius_m / grid.resolution)));
-      const double radius_sq = radius_m * radius_m;
-      for (int dr = -max_cells; dr <= max_cells; ++dr) {
-        for (int dc = -max_cells; dc <= max_cells; ++dc) {
-          const double dx = static_cast<double>(dc) * grid.resolution;
-          const double dy = static_cast<double>(dr) * grid.resolution;
-          if (dx * dx + dy * dy <= radius_sq) {
-            offsets.emplace_back(dr, dc);
-          }
-        }
-      }
-      return offsets;
-    };
-
-  const std::vector<std::pair<int, int>> blocked_offsets = makeDiskOffsets(blocked_radius);
-  const std::vector<std::pair<int, int>> exact_offsets = makeDiskOffsets(exact_check_radius);
+  std::vector<double> row_distance_sq(cell_count, kInfDistanceSqCells);
+  std::vector<double> distance_sq(cell_count, kInfDistanceSqCells);
+  std::vector<double> f(static_cast<size_t>(std::max(grid.width, grid.height)));
+  std::vector<double> d;
 
   for (int row = 0; row < grid.height; ++row) {
     for (int col = 0; col < grid.width; ++col) {
-      const size_t source_index = static_cast<size_t>(row * grid.width + col);
-      if (grid.data[source_index] < config_.occupied_threshold) {
-        continue;
-      }
+      const int index = gridIndex(row, col, grid.width);
+      f[static_cast<size_t>(col)] =
+        grid.data[static_cast<size_t>(index)] >= config_.occupied_threshold ?
+        0.0 : kInfDistanceSqCells;
+    }
 
-      for (const auto & offset : blocked_offsets) {
-        const int masked_row = row + offset.first;
-        const int masked_col = col + offset.second;
-        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
-          continue;
-        }
+    f.resize(static_cast<size_t>(grid.width));
+    distanceTransform1d(f, d);
+    for (int col = 0; col < grid.width; ++col) {
+      row_distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))] =
+        d[static_cast<size_t>(col)];
+    }
+    f.resize(static_cast<size_t>(std::max(grid.width, grid.height)));
+  }
 
-        grid.definitely_blocked_mask[
-          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
-      }
+  f.resize(static_cast<size_t>(grid.height));
+  for (int col = 0; col < grid.width; ++col) {
+    for (int row = 0; row < grid.height; ++row) {
+      f[static_cast<size_t>(row)] =
+        row_distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))];
+    }
 
-      for (const auto & offset : exact_offsets) {
-        const int masked_row = row + offset.first;
-        const int masked_col = col + offset.second;
-        if (masked_row < 0 || masked_row >= grid.height || masked_col < 0 || masked_col >= grid.width) {
-          continue;
-        }
-
-        grid.needs_exact_check_mask[
-          static_cast<size_t>(masked_row * grid.width + masked_col)] = 1;
-      }
+    distanceTransform1d(f, d);
+    for (int row = 0; row < grid.height; ++row) {
+      distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))] =
+        d[static_cast<size_t>(row)];
     }
   }
 
+  grid.obstacle_distance_m.resize(cell_count);
+  for (size_t i = 0; i < cell_count; ++i) {
+    if (distance_sq[i] >= kInfDistanceSqCells) {
+      grid.obstacle_distance_m[i] = std::numeric_limits<float>::infinity();
+    } else {
+      grid.obstacle_distance_m[i] =
+        static_cast<float>(std::sqrt(distance_sq[i]) * grid.resolution);
+    }
+  }
   grid.has_clearance_cache = true;
 }
 
@@ -126,42 +191,39 @@ CollisionStatus CollisionChecker::collisionStatus(
     }
   };
 
-  if (grid.has_clearance_cache) {
-    bool needs_exact_check = false;
+  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
+  if (grid.has_clearance_cache && grid.obstacle_distance_m.size() >= cell_count) {
+    const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
+    bool has_soft_inflation = false;
     for (const Point & center : circle_centers) {
-      const int center_col = static_cast<int>((center.x - grid.origin.x) / grid.resolution);
-      const int center_row = static_cast<int>((center.y - grid.origin.y) / grid.resolution);
-      if (center_col < 0 || center_col >= grid.width || center_row < 0 || center_row >= grid.height) {
+      int center_row = 0;
+      int center_col = 0;
+      if (!pointToGridCell(center, grid, center_row, center_col)) {
         return CollisionStatus::OUT_OF_GRID;
       }
 
-      const size_t center_index = static_cast<size_t>(center_row * grid.width + center_col);
-      if (center_index >= grid.definitely_blocked_mask.size() ||
-        center_index >= grid.needs_exact_check_mask.size())
-      {
-        needs_exact_check = true;
-        continue;
-      }
-
-      if (grid.definitely_blocked_mask[center_index] != 0) {
+      const size_t center_index = static_cast<size_t>(
+        gridIndex(center_row, center_col, grid.width));
+      const double clearance_m =
+        static_cast<double>(grid.obstacle_distance_m[center_index]) -
+        cell_half_diagonal - collision_radius_m;
+      if (clearance_m <= 0.0) {
         return CollisionStatus::COLLISION;
       }
 
-      if (grid.needs_exact_check_mask[center_index] != 0) {
-        needs_exact_check = true;
+      if (clearance_m <= soft_inflation_distance_m) {
+        has_soft_inflation = true;
       }
     }
 
-    if (!needs_exact_check) {
-      return CollisionStatus::FREE;
-    }
+    return has_soft_inflation ? CollisionStatus::SOFT_INFLATION : CollisionStatus::FREE;
   }
 
-  // Check hard collision first (smaller bounding box, immediate exit)
+  // Check hard collision first (smaller bounding box so an immediate exit)
   for (const Point & center : circle_centers) {
-    const int center_col = static_cast<int>((center.x - grid.origin.x) / grid.resolution);
-    const int center_row = static_cast<int>((center.y - grid.origin.y) / grid.resolution);
-    if (center_col < 0 || center_col >= grid.width || center_row < 0 || center_row >= grid.height) {
+    int center_row = 0;
+    int center_col = 0;
+    if (!pointToGridCell(center, grid, center_row, center_col)) {
       return CollisionStatus::OUT_OF_GRID;
     }
 
@@ -194,11 +256,11 @@ CollisionStatus CollisionChecker::collisionStatus(
     return CollisionStatus::FREE;
   }
 
-  // If no hard collision was found, quickly scan the outer bounding box for soft inflation
+  // If no hard collision was found, scan the outer bounding box for soft inflation
   for (const Point & center : circle_centers) {
-    const int center_col = static_cast<int>((center.x - grid.origin.x) / grid.resolution);
-    const int center_row = static_cast<int>((center.y - grid.origin.y) / grid.resolution);
-    if (center_col < 0 || center_col >= grid.width || center_row < 0 || center_row >= grid.height) {
+    int center_row = 0;
+    int center_col = 0;
+    if (!pointToGridCell(center, grid, center_row, center_col)) {
       return CollisionStatus::OUT_OF_GRID;
     }
 
