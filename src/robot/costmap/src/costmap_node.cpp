@@ -1,12 +1,16 @@
 #include "costmap_node.hpp"
 
+#include <limits>
+#include <stdexcept>
+
 using namespace std::chrono_literals;
 
 CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
 {
   // Declare parameters
-  this->declare_parameter<double>("grid_width", 20.0);
-  this->declare_parameter<double>("grid_height", 20.0);
+  this->declare_parameter<double>("forward_distance", 8.0);
+  this->declare_parameter<double>("behind_distance", 1.0);
+  this->declare_parameter<double>("lateral_half_width", 8.0);
   this->declare_parameter<double>("resolution", 0.1);
   this->declare_parameter<std::string>("robot_frame", "base_link");
   this->declare_parameter<std::string>("scan_topic", "/scan");
@@ -16,8 +20,9 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   this->declare_parameter<int>("unknown_value", -1);
 
   // Read parameters
-  grid_width_ = this->get_parameter("grid_width").as_double();
-  grid_height_ = this->get_parameter("grid_height").as_double();
+  forward_distance_ = this->get_parameter("forward_distance").as_double();
+  behind_distance_ = this->get_parameter("behind_distance").as_double();
+  lateral_half_width_ = this->get_parameter("lateral_half_width").as_double();
   resolution_ = this->get_parameter("resolution").as_double();
   robot_frame_ = this->get_parameter("robot_frame").as_string();
   std::string scan_topic = this->get_parameter("scan_topic").as_string();
@@ -26,9 +31,26 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   free_value_ = static_cast<int8_t>(this->get_parameter("free_value").as_int());
   unknown_value_ = static_cast<int8_t>(this->get_parameter("unknown_value").as_int());
 
-  // Compute grid dimensions in cells
-  grid_cols_ = static_cast<uint32_t>(grid_width_ / resolution_);
-  grid_rows_ = static_cast<uint32_t>(grid_height_ / resolution_);
+  if (forward_distance_ <= 0.0 || behind_distance_ <= 0.0 ||
+      lateral_half_width_ <= 0.0 || resolution_ <= 0.0) {
+    throw std::invalid_argument(
+      "forward_distance, behind_distance, lateral_half_width, and resolution must be positive");
+  }
+
+  const double longitudinal_size = forward_distance_ + behind_distance_;
+  const double lateral_size = 2.0 * lateral_half_width_;
+  const double max_grid_dimension = static_cast<double>(std::numeric_limits<uint32_t>::max());
+  const double longitudinal_cells = std::ceil(longitudinal_size / resolution_);
+  const double lateral_cells = std::ceil(lateral_size / resolution_);
+
+  if (longitudinal_cells > max_grid_dimension || lateral_cells > max_grid_dimension) {
+    throw std::invalid_argument("configured costmap dimensions exceed the supported cell limit");
+  }
+
+  // The grid's x axis is the robot's longitudinal axis and its y axis is lateral.
+  // Use ceil so the requested physical extents are not truncated by resolution.
+  grid_cols_ = static_cast<uint32_t>(longitudinal_cells);
+  grid_rows_ = static_cast<uint32_t>(lateral_cells);
 
   // TF2
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -43,8 +65,10 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
       std::bind(&CostmapNode::scan_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(this->get_logger(),
-              "Costmap node initialized: %.1fm x %.1fm grid, %.2fm resolution (%u x %u cells)",
-              grid_width_, grid_height_, resolution_, grid_cols_, grid_rows_);
+              "Costmap node initialized: %.1fm forward, %.1fm behind, %.1fm lateral each side, "
+              "%.2fm resolution (%u x %u cells)",
+              forward_distance_, behind_distance_, lateral_half_width_, resolution_,
+              grid_cols_, grid_rows_);
 }
 
 void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
@@ -54,9 +78,11 @@ void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg
 
 void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan)
 {
-  // Grid origin: centered on base_link (0,0), offset by half the grid size
-  double origin_x = -grid_width_ / 2.0;
-  double origin_y = -grid_height_ / 2.0;
+  // Grid origin is the lower-left corner relative to base_link. Positive x is
+  // forward and positive y is left, so the grid spans from behind the robot
+  // to in front of it and symmetrically across its lateral axis.
+  double origin_x = -behind_distance_;
+  double origin_y = -lateral_half_width_;
 
   // Initialize the occupancy grid message
   nav_msgs::msg::OccupancyGrid grid_msg;
