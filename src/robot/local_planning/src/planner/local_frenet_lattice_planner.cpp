@@ -128,7 +128,6 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         to_state.curvature_change_cost = from_state.curvature_change_cost +
           edge.curvature_change_cost;
         to_state.parent_lane = from_lane;
-        to_state.edge_samples.assign(edge_scratch.samples.begin(), edge_scratch.samples.end());
       }
     }
   }
@@ -177,7 +176,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   const SelectedLatticePath selected_path = reconstructSelectedPath(
-    states, best_lane, lanes, start);
+    states, best_lane, lanes, start, intent, grid, edge_evaluator);
   result.path = selected_path.path;
 
   if (config_.angle_smoothing_enabled) {
@@ -228,16 +227,16 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
   const std::vector<std::vector<DpState>> & states,
   int final_lane,
   const std::vector<double> & lanes,
-  const FrenetPoint & start) const
+  const FrenetPoint & start,
+  LocalPlannerIntent intent,
+  const OccupancyGrid & grid,
+  const FrenetEdgeEvaluator & edge_evaluator) const
 {
   SelectedLatticePath selected_path;
   if (states.size() < 2 || final_lane < 0) {
     return selected_path;
   }
 
-  std::vector<const std::vector<Point> *> segments;
-  segments.reserve(states.size() - 1);
-  size_t path_capacity = 0;
   std::vector<int> lane_by_layer(states.size(), -1);
   int lane = final_lane;
   for (int layer = static_cast<int>(states.size()) - 1; layer > 0; --layer) {
@@ -250,21 +249,10 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       return {};
     }
 
-    segments.push_back(&state.edge_samples);
-    path_capacity += state.edge_samples.size();
     lane_by_layer[static_cast<size_t>(layer)] = lane;
     lane = state.parent_lane;
     if (lane < 0) {
       return {};
-    }
-  }
-
-  selected_path.path.reserve(path_capacity);
-  for (auto segment_it = segments.rbegin(); segment_it != segments.rend(); ++segment_it) {
-    const std::vector<Point> & segment = **segment_it;
-    const size_t start_index = selected_path.path.empty() ? 0 : 1;
-    for (size_t i = start_index; i < segment.size(); ++i) {
-      selected_path.path.push_back(segment[i]);
     }
   }
 
@@ -282,6 +270,36 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
         lanes[static_cast<size_t>(layer_lane)],
         0.0
       });
+  }
+
+  const size_t samples_per_edge = static_cast<size_t>(
+    std::max(
+      2, static_cast<int>(std::ceil(
+        config_.layer_spacing_m / config_.sample_spacing_m)) + 1));
+  selected_path.path.reserve(
+    1 + (selected_path.anchors.size() - 1) * (samples_per_edge - 1));
+
+  EdgeEvaluationScratch edge_scratch;
+  for (size_t layer = 0; layer + 1 < selected_path.anchors.size(); ++layer) {
+    const FrenetPoint & from = selected_path.anchors[layer];
+    const FrenetPoint & to = selected_path.anchors[layer + 1];
+    const EdgeEvaluation edge = edge_evaluator.evaluateEdge(
+      from.s,
+      from.d,
+      from.slope,
+      to.d,
+      to.slope,
+      intent,
+      grid,
+      edge_scratch);
+    if (edge.collision_status != CollisionStatus::FREE) {
+      return {};
+    }
+
+    const size_t start_index = selected_path.path.empty() ? 0 : 1;
+    for (size_t i = start_index; i < edge_scratch.samples.size(); ++i) {
+      selected_path.path.push_back(edge_scratch.samples[i]);
+    }
   }
 
   return selected_path;

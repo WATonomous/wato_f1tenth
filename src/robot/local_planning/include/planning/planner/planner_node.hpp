@@ -82,13 +82,13 @@ private:
 
   // cached messages
   nav_msgs::msg::Odometry::SharedPtr current_odom_;
-  local_planning::OccupancyGrid current_occupancy_grid_;
-  bool has_current_occupancy_grid_ = false;
+  std::shared_ptr<const local_planning::OccupancyGrid> current_occupancy_grid_;
   std::mutex input_mutex_;
   std::atomic_bool planner_busy_{false};
 
   // racing line
   std::shared_ptr<const std::vector<local_planning::Point>> racing_line_;
+  std::shared_ptr<const std::vector<local_planning::Point>> frenet_cache_racing_line_guard_;
 
   // parameters
   std::string racing_line_topic_;

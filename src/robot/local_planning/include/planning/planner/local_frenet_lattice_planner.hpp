@@ -10,6 +10,8 @@
 namespace local_planning
 {
 
+class FrenetEdgeEvaluator;
+
 class LocalFrenetLatticePlanner : public LocalPlanner
 {
 public:
@@ -28,7 +30,6 @@ private:
     double total_cost = 0.0;
     double curvature_change_cost = 0.0;
     int parent_lane = -1;
-    std::vector<Point> edge_samples;     //x,y points along the corresponding edge
   };
 
   struct SelectedLatticePath
@@ -43,7 +44,10 @@ private:
     const std::vector<std::vector<DpState>> & states,
     int final_lane,
     const std::vector<double> & lanes,
-    const FrenetPoint & start) const;
+    const FrenetPoint & start,
+    LocalPlannerIntent intent,
+    const OccupancyGrid & grid,
+    const FrenetEdgeEvaluator & edge_evaluator) const;
   void assignVelocityLimitsFromGeometry(std::vector<Point> & path) const;
 
   FrenetConverter frenet_converter_;
