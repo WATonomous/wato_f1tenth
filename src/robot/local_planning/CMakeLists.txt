@@ -7,7 +7,6 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -18,8 +17,9 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/PlanPath.action"
-  DEPENDENCIES nav_msgs std_msgs
+  "msg/PlannerIntent.msg"
+  "msg/PlannerStatus.msg"
+  DEPENDENCIES builtin_interfaces std_msgs
 )
 
 if(BUILD_TESTING)
@@ -37,7 +37,7 @@ add_executable(state_manager_node
   src/ros_adapters.cpp
 )
 target_include_directories(state_manager_node PUBLIC include)
-ament_target_dependencies(state_manager_node rclcpp rclcpp_action nav_msgs std_msgs geometry_msgs tf2 tf2_geometry_msgs)
+ament_target_dependencies(state_manager_node rclcpp nav_msgs std_msgs geometry_msgs tf2 tf2_geometry_msgs)
 rosidl_get_typesupport_target(state_manager_typesupport ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(state_manager_node ${state_manager_typesupport})
 
@@ -55,7 +55,6 @@ set(LOCAL_FRENET_LATTICE_PLANNER_SOURCES
 
 set(LOCAL_FRENET_LATTICE_PLANNER_DEPS
   rclcpp
-  rclcpp_action
   nav_msgs
   std_msgs
   geometry_msgs

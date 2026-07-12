@@ -4,6 +4,7 @@
 #include "planning/types.hpp"
 
 #include <vector>
+#include <chrono>
 
 namespace local_planning
 {
@@ -19,7 +20,8 @@ public:
   virtual LocalFrenetPlan plan(
     const Odometry & odom,
     const OccupancyGrid & grid,
-    LocalPlannerIntent intent) = 0;
+    LocalPlannerIntent intent,
+    std::chrono::steady_clock::time_point deadline) = 0;
 };
 
 } // namespace local_planning

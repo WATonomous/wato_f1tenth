@@ -1,7 +1,6 @@
 state_manager_node:
   ros__parameters:
     state_update_rate: 50.0 # hz the state machine runs grid scan, and state transitions
-    planning_trigger_rate: 50.0 # hz the planner runs
     overtake_start_distance_m: 3.0 # distance from opponent to start overtake
     side_by_side_distance_m: 0.5 # within 0.5m of the back of the opponent
     merge_start_gap_m: 1.0 # distance from opponent to start merge
@@ -16,7 +15,8 @@ local_frenet_lattice_planner_node:
     max_lateral_offset_m: 1.8
     max_path_angle_deg: 50.0 # max heading deviation from raceline for sampled edge geometry
     sample_spacing_m: 0.1 #basically the resolution of the path
-    max_runtime_ms: 50.0
+    planner_rate_hz: 100.0 # maximum completion-driven attempt rate
+    max_runtime_ms: 9.0 # soft deadline checked immediately after the DP loop
     collision_circle_radius_m: 0.20
     front_collision_circle_offset_m: 0.26
     soft_inflation_distance_m: 0.18
@@ -31,8 +31,6 @@ local_frenet_lattice_planner_node:
     overtake_d_weight: 0.02 # pull towards racing line in overtake mode
     merge_d_weight: 0.20 # pull towards racing line in merge mode
     merge_terminal_d_weight: 0.0 # punish merge paths that dont return to racing line
-    default_intent: 0
-    planner_runtime_budget_ms: 100.0
     planner_path_frame: "map"
     controller_path_frame: "base_link"
     debug_path_topic: "/local_path_map"

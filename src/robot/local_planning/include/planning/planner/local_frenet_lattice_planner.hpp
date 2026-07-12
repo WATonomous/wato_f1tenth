@@ -21,7 +21,8 @@ public:
   LocalFrenetPlan plan(
     const Odometry & odom,
     const OccupancyGrid & grid,
-    LocalPlannerIntent intent) override;
+    LocalPlannerIntent intent,
+    std::chrono::steady_clock::time_point deadline) override;
 
 private:
   struct DpState

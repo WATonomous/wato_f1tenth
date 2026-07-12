@@ -2,6 +2,7 @@
 #define PLANNING_TYPES_HPP
 
 #include <cstdint>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -84,7 +85,16 @@ struct LocalFrenetPlannerConfig
 
 struct LocalFrenetPlan
 {
+  enum class Status : uint8_t
+  {
+    SUCCESS,
+    INVALID_REFERENCE,
+    NO_PATH,
+    DEADLINE_EXCEEDED
+  };
+
   std::vector<Point> path;
+  Status status = Status::NO_PATH;
 };
 
 } // namespace local_planning

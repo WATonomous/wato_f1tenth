@@ -34,7 +34,8 @@ void LocalFrenetLatticePlanner::setRacingLine(const std::vector<Point> & racing_
 LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   const Odometry & odom,
   const OccupancyGrid & grid,
-  LocalPlannerIntent intent)
+  LocalPlannerIntent intent,
+  std::chrono::steady_clock::time_point deadline)
 {
   LocalFrenetPlan result;
 
@@ -45,9 +46,9 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     config_.max_path_angle_deg <= 0.0 ||
     config_.max_path_angle_deg >= 90.0)
   {
+    result.status = LocalFrenetPlan::Status::INVALID_REFERENCE;
     return result;
   }
-
   FrenetPoint start = frenet_converter_.cartesianToFrenet(odom.position);
   const std::vector<double> lanes = generateLaneOffsets();
   const int layer_count =
@@ -131,6 +132,10 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       }
     }
   }
+  if (std::chrono::steady_clock::now() >= deadline) {
+    result.status = LocalFrenetPlan::Status::DEADLINE_EXCEEDED;
+    return result;
+  }
   //at this point the dp table is actually filled
   /*
   what happens next you ask...
@@ -172,6 +177,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   if (best_lane < 0) {
+    result.status = LocalFrenetPlan::Status::NO_PATH;
     return result;
   }
 
@@ -190,6 +196,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   smoothVelocityProfile(result.path, odom.velocity, config_);
+  result.status = result.path.empty() ? LocalFrenetPlan::Status::NO_PATH :
+    LocalFrenetPlan::Status::SUCCESS;
   return result;
 }
 
