@@ -15,9 +15,9 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   this->declare_parameter<int>("free_value", 0);
   this->declare_parameter<int>("unknown_value", -1);
   this->declare_parameter<bool>("self_filter_enabled", true);
-  this->declare_parameter<double>("self_filter_min_x_m", -0.10);
-  this->declare_parameter<double>("self_filter_max_x_m", 0.42);
-  this->declare_parameter<double>("self_filter_half_width_m", 0.18);
+  this->declare_parameter<double>("self_filter_min_x_m", -0.50);
+  this->declare_parameter<double>("self_filter_max_x_m", 0.15);
+  this->declare_parameter<double>("self_filter_half_width_m", 0.20);
 
   // Read parameters
   grid_width_ = this->get_parameter("grid_width").as_double();
@@ -96,6 +96,9 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     return;
   }
 
+  // Shift the costmap's reference point 0.27m forward of base_link along its x-axis.
+  transform_stamped.transform.translation.x += 0.27;
+
   // Get laser origin in base_link frame
   geometry_msgs::msg::PointStamped laser_origin_in_laser;
   laser_origin_in_laser.header = scan->header;
@@ -158,7 +161,9 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     if (x1 >= 0 && x1 < static_cast<int>(grid_cols_) &&
         y1 >= 0 && y1 < static_cast<int>(grid_rows_)) {
       size_t idx = y1 * grid_cols_ + x1;
-      if (marks_obstacle && !is_in_self_filter_footprint(hit_x, hit_y)) {
+      // Self-filter is defined in the lidar frame, so test the pre-transform point.
+      if (marks_obstacle &&
+          !is_in_self_filter_footprint(hit_in_laser.point.x, hit_in_laser.point.y)) {
         grid_msg.data[idx] = obstacle_value_;
       } else if (grid_msg.data[idx] == unknown_value_) {
         grid_msg.data[idx] = free_value_;

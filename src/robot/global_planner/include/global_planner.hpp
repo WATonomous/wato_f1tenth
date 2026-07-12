@@ -27,18 +27,22 @@ private:
     //publishers
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr velocity_pub;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr centerline_pub;
     //rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr vis_pub;
 
     //helper functions
     void publish_data ();
     void retrieve_data (std::ifstream &file);
+    void retrieve_centerline_data (std::ifstream &file);
 
     //helper variabels
     nav_msgs::msg::Path waypoints;
+    nav_msgs::msg::Path centerline_waypoints;
     //visualization_msgs::msg::Marker vis_path;
 
     //parameters
     std::string path_pub_topic, vis_pub_topic, file_directory;
+    std::string centerline_pub_topic, centerline_file_directory;
     std::string waypoint_frame_id;
     
 };

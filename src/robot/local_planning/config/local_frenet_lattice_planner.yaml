@@ -15,22 +15,22 @@ local_frenet_lattice_planner_node:
     layer_spacing_m: 0.5
     lane_spacing_m: 0.1
     max_lateral_offset_m: 1.8
-    max_path_angle_deg: 50.0 # max heading deviation from raceline for sampled edge geometry
+    max_path_angle_deg: 75.0 # max heading deviation from raceline for sampled edge geometry
     sample_spacing_m: 0.1 #basically the resolution of the path
     max_runtime_ms: 50.0
     collision_circle_radius_m: 0.20
     front_collision_circle_offset_m: 0.26
-    soft_inflation_distance_m: 0.18
+    soft_inflation_distance_m: 0.15
     soft_inflation_cost: 100.0
     occupied_threshold: 50
     friction_coeff: 0.3 #yeah this number is completely made up
-    min_velocity_mps: 0.5 # ill probably make this 0 at some point
+    min_velocity_mps: 0.1 # ill probably make this 0 at some point
     max_velocity_mps: 10.0 # the dream i guess
     time_weight: 1.0 # how much we value optimizing time
     curvature_change_weight: 0.7 # how much we value physics
-    follow_d_weight: 2.0 # pull towards racing line in follow mode
+    follow_d_weight: 10.0 # pull towards racing line in follow mode
     overtake_d_weight: 0.02 # pull towards racing line in overtake mode
-    merge_d_weight: 2.0 # pull towards racing line in merge mode
+    merge_d_weight: 20.0 # pull towards racing line in merge mode
     merge_terminal_d_weight: 0.0 # punish merge paths that dont return to racing line
     default_intent: 0
     planner_runtime_budget_ms: 100.0

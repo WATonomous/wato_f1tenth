@@ -27,6 +27,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 import yaml
 import os
@@ -266,6 +267,18 @@ def generate_launch_description():
         parameters=[LaunchConfiguration('costmap_param_file')],
     )
 
+    # Intel RealSense camera: include the wrapper's own launch file
+    # (equivalent to: ros2 launch realsense2_camera rs_launch.py)
+    realsense_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory('realsense2_camera'),
+                'launch',
+                'rs_launch.py'
+            )
+        )
+    )
+
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -283,8 +296,10 @@ def generate_launch_description():
     ld.add_action(pf_node)
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
-    ld.add_action(ekf)
+    #ld.add_action(ekf)
     ld.add_action(costmap_node)
     ld.add_action(global_planner)
+    #realsense camera
+    ld.add_action(realsense_launch)
     
     return ld

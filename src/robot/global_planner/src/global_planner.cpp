@@ -4,13 +4,17 @@ GlobalPlanner::GlobalPlanner () : Node ("global_planner_node") {
 
     //parameters
     this->declare_parameter<std::string>("file_directory", "/assets/e7_fifth_v3_optimal.csv");
+    this->declare_parameter<std::string>("centerline_file_directory", "/assets/e7_fifth_v3_centerline.csv");
     this->declare_parameter<std::string>("vis_topic", "/global_planner/vis");
     this->declare_parameter<std::string>("path_topic", "/global_planner/path");
+    this->declare_parameter<std::string>("centerline_topic", "/global_planner/centerline");
     this->declare_parameter<std::string>("waypoint_frame_id","map");
 
     //init pub and subs
     file_directory = this->get_parameter("file_directory").as_string();
+    centerline_file_directory = this->get_parameter("centerline_file_directory").as_string();
     path_pub_topic = this->get_parameter("path_topic").as_string();
+    centerline_pub_topic = this->get_parameter("centerline_topic").as_string();
     vis_pub_topic = this->get_parameter("vis_topic").as_string();
     waypoint_frame_id = this->get_parameter("waypoint_frame_id").as_string();
 
@@ -19,6 +23,7 @@ GlobalPlanner::GlobalPlanner () : Node ("global_planner_node") {
     auto qos = rclcpp::QoS(1).transient_local().reliable();
 
     path_pub = this->create_publisher<nav_msgs::msg::Path>(path_pub_topic,qos);
+    centerline_pub = this->create_publisher<nav_msgs::msg::Path>(centerline_pub_topic,qos);
 
     //vis_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>(vis_pub_topic,10);
 
@@ -41,6 +46,24 @@ GlobalPlanner::GlobalPlanner () : Node ("global_planner_node") {
     GlobalPlanner::retrieve_data(file);
 
     RCLCPP_INFO(this->get_logger(),"number of waypoints : %zu \n", waypoints.poses.size());
+
+    //check if the centerline file is valid (non fatal, the raceline still publishes)
+    const auto centerline_file_path = ament_index_cpp::get_package_share_directory("global_planner") + centerline_file_directory;
+    std::ifstream centerline_file (centerline_file_path);
+    if (!centerline_file.is_open()) {
+        RCLCPP_ERROR(this->get_logger(), "could not open the centerline file %s, skipping centerline", centerline_file_path.c_str());
+    } else {
+        RCLCPP_INFO(this->get_logger(), "the centerline csv file %s opended correctly", centerline_file_path.c_str());
+
+        //init some of the data
+        centerline_waypoints.header.frame_id = waypoint_frame_id;
+        centerline_waypoints.header.stamp = this->now();
+
+        //populate the correct data
+        GlobalPlanner::retrieve_centerline_data(centerline_file);
+
+        RCLCPP_INFO(this->get_logger(),"number of centerline waypoints : %zu \n", centerline_waypoints.poses.size());
+    }
 
     //publish the data
     GlobalPlanner::publish_data();
@@ -98,8 +121,59 @@ void GlobalPlanner::retrieve_data(std::ifstream &file) {
     file.close();
 }
 
+void GlobalPlanner::retrieve_centerline_data(std::ifstream &file) {
+
+    std::string line;
+
+    //skip the header (# x_m,y_m,w_tr_right_m,w_tr_left_m)
+    std::getline(file, line);
+
+    while (std::getline(file, line)) {
+
+       //convert line to string stream
+       std::stringstream ss(line);
+       std::string x_str, y_str;
+
+       //break string stream into parts (only the first two are used, the track widths are discarded)
+       std::getline(ss, x_str, ',');
+       std::getline(ss, y_str, ',');
+
+       //convert to double
+       double x,y;
+       try {
+            x = std::stod(x_str);
+            y = std::stod(y_str);
+       } catch (const std::invalid_argument &e){
+            RCLCPP_WARN(get_logger(), "Skipping invalid line: %s", line.c_str());
+            continue;
+       }
+
+       //package the waypoint
+       geometry_msgs::msg::PoseStamped current_waypoint;
+       current_waypoint.header.frame_id = waypoint_frame_id;
+       current_waypoint.header.stamp = this->now();
+
+       current_waypoint.pose.position.x = x;
+       current_waypoint.pose.position.y = y;
+
+       //no velocity for the centerline
+       current_waypoint.pose.position.z = 0.0;
+
+       centerline_waypoints.poses.push_back(current_waypoint);
+
+    }
+
+    //close the file
+    file.close();
+}
+
 void GlobalPlanner::publish_data () {
     path_pub->publish(waypoints);
+
+    //only publish the centerline if it was populated
+    if (!centerline_waypoints.poses.empty()) {
+        centerline_pub->publish(centerline_waypoints);
+    }
 }
 
 int main(int argc, char * argv[]) {
