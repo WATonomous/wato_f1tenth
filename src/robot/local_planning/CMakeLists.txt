@@ -10,6 +10,7 @@ find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -58,6 +59,7 @@ set(LOCAL_FRENET_LATTICE_PLANNER_DEPS
   nav_msgs
   std_msgs
   geometry_msgs
+  ackermann_msgs
   visualization_msgs
   tf2
   tf2_ros

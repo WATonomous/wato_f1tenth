@@ -35,11 +35,13 @@ public:
     const CollisionChecker & collision_checker);
 
   EdgeEvaluation evaluateEdge(
-    double s_start,
-    double d_start,
-    double slope_start,
-    double d_end,
-    double slope_end,
+  double s_start,
+  double d_start,
+  double slope_start,
+  double second_derivative_start,
+  double d_end,
+  double slope_end,
+  double second_derivative_end,
     LocalPlannerIntent intent,
     const OccupancyGrid & grid,
     EdgeEvaluationScratch & scratch) const;

@@ -4,6 +4,7 @@
 #include "planning/planner/local_planner.hpp"
 #include "planning/types.hpp"
 
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 #include <local_planning/msg/planner_intent.hpp>
 #include <local_planning/msg/planner_status.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -15,9 +16,11 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -33,6 +36,7 @@ public:
 
 private:
   void odometryCallback(nav_msgs::msg::Odometry::SharedPtr msg);
+  void steeringCommandCallback(ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
   void occupancyGridCallback(nav_msgs::msg::OccupancyGrid::SharedPtr msg);
   void racingLineCallback(nav_msgs::msg::Path::SharedPtr msg);
   void intentCallback(msg::PlannerIntent::SharedPtr msg);
@@ -53,6 +57,7 @@ private:
     nav_msgs::msg::Path & controller_path);
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr steering_command_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr racing_line_sub_;
   rclcpp::Subscription<msg::PlannerIntent>::SharedPtr intent_sub_;
@@ -67,6 +72,8 @@ private:
 
   std::mutex input_mutex_;
   nav_msgs::msg::Odometry::SharedPtr current_odom_;
+  std::optional<double> current_steering_command_;
+  std::chrono::steady_clock::time_point current_steering_command_received_;
   nav_msgs::msg::OccupancyGrid::SharedPtr current_grid_msg_;
   std::shared_ptr<const OccupancyGrid> current_grid_;
   nav_msgs::msg::Path::SharedPtr current_reference_msg_;
@@ -84,6 +91,7 @@ private:
   builtin_interfaces::msg::Time last_trajectory_stamp_;
 
   std::string racing_line_topic_;
+  std::string steering_command_topic_;
   std::string planner_path_frame_;
   std::string controller_path_frame_;
   std::string debug_path_topic_;

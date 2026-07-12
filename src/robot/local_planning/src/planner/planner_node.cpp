@@ -32,6 +32,7 @@ PlannerNode::PlannerNode()
 : Node("local_frenet_lattice_planner_node")
 {
   declare_parameter<std::string>("racing_line_topic", "/global_planner/path");
+  declare_parameter<std::string>("steering_command_topic", "/drive/autonomy");
   declare_parameter<double>("planner_rate_hz", 100.0);
   declare_parameter<double>("horizon_m", 6.0);
   declare_parameter<double>("layer_spacing_m", 0.5);
@@ -61,8 +62,11 @@ PlannerNode::PlannerNode()
   declare_parameter<bool>("velocity_smoothing_enabled", false);
   declare_parameter<double>("velocity_smoothing_max_accel_mps2", 2.5);
   declare_parameter<double>("velocity_smoothing_max_decel_mps2", 2.5);
+  declare_parameter<double>("wheelbase_m", 0.33);
+  declare_parameter<double>("steering_command_timeout_s", 0.06);
 
   racing_line_topic_ = get_parameter("racing_line_topic").as_string();
+  steering_command_topic_ = get_parameter("steering_command_topic").as_string();
   planner_path_frame_ = get_parameter("planner_path_frame").as_string();
   controller_path_frame_ = get_parameter("controller_path_frame").as_string();
   debug_path_topic_ = get_parameter("debug_path_topic").as_string();
@@ -80,6 +84,7 @@ PlannerNode::PlannerNode()
   LOAD_DOUBLE(follow_d_weight); LOAD_DOUBLE(overtake_d_weight); LOAD_DOUBLE(merge_d_weight);
   LOAD_DOUBLE(merge_terminal_d_weight); LOAD_DOUBLE(velocity_smoothing_max_accel_mps2);
   LOAD_DOUBLE(velocity_smoothing_max_decel_mps2);
+  LOAD_DOUBLE(wheelbase_m); LOAD_DOUBLE(steering_command_timeout_s);
 #undef LOAD_DOUBLE
   planner_config_.occupied_threshold = get_parameter("occupied_threshold").as_int();
   planner_config_.angle_smoothing_enabled = get_parameter("angle_smoothing_enabled").as_bool();
@@ -93,6 +98,8 @@ PlannerNode::PlannerNode()
 
   odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
     "/odom", 1, std::bind(&PlannerNode::odometryCallback, this, _1));
+  steering_command_sub_ = create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+    steering_command_topic_, 10, std::bind(&PlannerNode::steeringCommandCallback, this, _1));
   occupancy_grid_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
     "/occupancy_grid", 1, std::bind(&PlannerNode::occupancyGridCallback, this, _1));
   racing_line_sub_ = create_subscription<nav_msgs::msg::Path>(
@@ -120,6 +127,14 @@ PlannerNode::~PlannerNode()
 void PlannerNode::odometryCallback(nav_msgs::msg::Odometry::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(input_mutex_); current_odom_ = std::move(msg);
+}
+
+void PlannerNode::steeringCommandCallback(
+  ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(input_mutex_);
+  current_steering_command_ = msg->drive.steering_angle;
+  current_steering_command_received_ = SteadyClock::now();
 }
 
 void PlannerNode::occupancyGridCallback(nav_msgs::msg::OccupancyGrid::SharedPtr msg)
@@ -170,6 +185,8 @@ void PlannerNode::workerLoop()
 void PlannerNode::runAttempt(SteadyClock::time_point start)
 {
   nav_msgs::msg::Odometry::SharedPtr odom_msg;
+  std::optional<double> steering_command;
+  SteadyClock::time_point steering_command_received;
   nav_msgs::msg::OccupancyGrid::SharedPtr grid_msg;
   nav_msgs::msg::Path::SharedPtr reference_msg;
   std::shared_ptr<const OccupancyGrid> grid;
@@ -179,6 +196,8 @@ void PlannerNode::runAttempt(SteadyClock::time_point start)
   {
     std::lock_guard<std::mutex> lock(input_mutex_);
     odom_msg = current_odom_; grid_msg = current_grid_msg_; grid = current_grid_;
+    steering_command = current_steering_command_;
+    steering_command_received = current_steering_command_received_;
     reference_msg = current_reference_msg_; reference = current_reference_;
     intent = current_intent_; has_intent = has_intent_;
   }
@@ -196,7 +215,14 @@ void PlannerNode::runAttempt(SteadyClock::time_point start)
   }
   const auto deadline = start + std::chrono::duration_cast<SteadyClock::duration>(
     std::chrono::duration<double, std::milli>(planner_config_.max_runtime_ms));
-  LocalFrenetPlan plan = planner_->plan(rosToOdometry(*odom_msg), *grid, intent, deadline);
+  Odometry odom = rosToOdometry(*odom_msg);
+  const auto steering_timeout = std::chrono::duration<double>(
+    std::max(0.0, planner_config_.steering_command_timeout_s));
+  if (steering_command && SteadyClock::now() - steering_command_received <= steering_timeout) {
+    odom.steering_angle = *steering_command;
+    odom.has_steering_angle = true;
+  }
+  LocalFrenetPlan plan = planner_->plan(odom, *grid, intent, deadline);
   if (plan.status == LocalFrenetPlan::Status::DEADLINE_EXCEEDED) {
     publishStatus(msg::PlannerStatus::DEADLINE_EXCEEDED, elapsedMs(start), 0,
       odom_msg, grid_msg, reference_msg, intent); return;

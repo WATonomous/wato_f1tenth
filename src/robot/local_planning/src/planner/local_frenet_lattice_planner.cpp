@@ -18,6 +18,36 @@ namespace
 constexpr double kEpsilon = 1e-6;
 constexpr double kPi = 3.14159265358979323846;
 
+double frenetSecondDerivativeForVehicleCurvature(
+  double vehicle_curvature,
+  double lateral_offset,
+  double lateral_slope,
+  double reference_curvature,
+  double reference_curvature_derivative)
+{
+  // For x(s) = r(s) + d(s)n(s), the Cartesian path curvature is:
+  // [k_ref A^2 + A d'' + k_ref' d d' + 2 k_ref d'^2] /
+  // (A^2 + d'^2)^(3/2), where A = 1 - k_ref d.
+  // Solve this expression for d'' so the first lattice edge continues the
+  // curvature implied by the current steering angle.
+  const double tangent_scale = 1.0 - reference_curvature * lateral_offset;
+  if (std::abs(tangent_scale) <= kEpsilon) {
+    // The Frenet chart is singular here.  Preserve the previous small-angle
+    // conversion instead of amplifying numerical error.
+    return vehicle_curvature - reference_curvature;
+  }
+
+  const double tangent_norm_squared =
+    tangent_scale * tangent_scale + lateral_slope * lateral_slope;
+  const double tangent_norm_cubed =
+    tangent_norm_squared * std::sqrt(tangent_norm_squared);
+  return (
+    vehicle_curvature * tangent_norm_cubed -
+    reference_curvature * tangent_scale * tangent_scale -
+    reference_curvature_derivative * lateral_offset * lateral_slope -
+    2.0 * reference_curvature * lateral_slope * lateral_slope) /
+    tangent_scale;
+}
 
 } // namespace
 
@@ -59,6 +89,15 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     odom.heading - frenet_converter_.getRacingLineHeading(start.s));
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
   start.slope = start_slope;
+  if (odom.has_steering_angle && config_.wheelbase_m > kEpsilon) {
+    const double vehicle_curvature = std::tan(odom.steering_angle) / config_.wheelbase_m;
+    start.second_derivative = frenetSecondDerivativeForVehicleCurvature(
+      vehicle_curvature,
+      start.d,
+      start.slope,
+      frenet_converter_.getRacingLineCurvature(start.s),
+      frenet_converter_.getRacingLineCurvatureDerivative(start.s));
+  }
 
   std::vector<std::vector<DpState>> states(
     static_cast<size_t>(layer_count + 1),
@@ -95,6 +134,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
 
       const double d0 = (layer == 0) ? start.d : lanes[static_cast<size_t>(from_lane)];
       const double slope0 = (layer == 0) ? start_slope : 0.0;
+      const double second_derivative0 =
+        (layer == 0) ? start.second_derivative : 0.0;
       const double max_slope = std::tan(config_.max_path_angle_deg * kPi / 180.0);
 
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
@@ -104,7 +145,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         }
 
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, d_end, 0.0, intent, grid, edge_scratch);
+          s0, d0, slope0, second_derivative0, d_end, 0.0, 0.0,
+          intent, grid, edge_scratch);
 
         if (edge.collision_status == CollisionStatus::COLLISION ||
           edge.collision_status == CollisionStatus::OUT_OF_GRID ||
@@ -276,6 +318,7 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       {
         start.s + static_cast<double>(layer) * config_.layer_spacing_m,
         lanes[static_cast<size_t>(layer_lane)],
+        0.0,
         0.0
       });
   }
@@ -295,8 +338,10 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       from.s,
       from.d,
       from.slope,
+      from.second_derivative,
       to.d,
       to.slope,
+      to.second_derivative,
       intent,
       grid,
       edge_scratch);

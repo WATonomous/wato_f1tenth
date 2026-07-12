@@ -22,7 +22,7 @@ local_frenet_lattice_planner_node:
     soft_inflation_distance_m: 0.18
     soft_inflation_cost: 100.0
     occupied_threshold: 50
-    friction_coeff: 0.3 #yeah this number is completely made up
+    friction_coeff: 1.0 #yeah this number is completely made up
     min_velocity_mps: 0.5 # ill probably make this 0 at some point
     max_velocity_mps: 10.0 # the dream i guess
     time_weight: 1.0 # how much we value optimizing time
@@ -36,5 +36,8 @@ local_frenet_lattice_planner_node:
     debug_path_topic: "/local_path_map"
     angle_smoothing_enabled: true
     velocity_smoothing_enabled: true
-    velocity_smoothing_max_accel_mps2: 2.5
-    velocity_smoothing_max_decel_mps2: 2.5
+    velocity_smoothing_max_accel_mps2: 5.0
+    velocity_smoothing_max_decel_mps2: 5.0
+    steering_command_topic: "/drive/autonomy" # latest pure-pursuit steering command
+    steering_command_timeout_s: 0.06 # pure pursuit publishes every 50 ms; allow 10 ms scheduling margin
+    wheelbase_m: 0.33 # axle-to-axle distance; calibrate for the physical car

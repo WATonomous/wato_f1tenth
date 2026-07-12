@@ -24,6 +24,8 @@ struct FrenetPoint
   double s = 0.0;
   double d = 0.0;
   double slope = 0.0;
+  // d²d/ds².  This is the quintic boundary curvature in Frenet coordinates.
+  double second_derivative = 0.0;
 };
 
 struct Odometry
@@ -31,6 +33,8 @@ struct Odometry
   Point position;
   double velocity;
   double heading;
+  double steering_angle = 0.0;
+  bool has_steering_angle = false;
 };
 
 struct OccupancyGrid
@@ -81,6 +85,8 @@ struct LocalFrenetPlannerConfig
   bool velocity_smoothing_enabled = false;
   double velocity_smoothing_max_accel_mps2 = 2.5;
   double velocity_smoothing_max_decel_mps2 = 2.5;
+  double wheelbase_m = 0.33;
+  double steering_command_timeout_s = 0.06;
 };
 
 struct LocalFrenetPlan

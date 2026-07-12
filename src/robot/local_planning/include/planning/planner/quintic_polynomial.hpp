@@ -17,8 +17,10 @@ struct QuinticPolynomial
 QuinticPolynomial computeQuintic(
   double d_start,
   double slope_start,
+  double second_derivative_start,
   double d_end,
   double slope_end,
+  double second_derivative_end,
   double delta_s);
 
 } // namespace local_planning
