@@ -250,7 +250,14 @@ double FrenetConverter::getRacingLineVelocity(double s) const
   i = std::clamp(i, 0, n - 1);
   int j = (i + 1) % n;
 
-  return std::min(racing_line_[i].velocity, racing_line_[j].velocity);
+  const double seg_len = (j == 0) ?
+    total_length_ - distance_prefix_sum_[i] :
+    distance_prefix_sum_[j] - distance_prefix_sum_[i];
+  const double t = seg_len > 1e-12 ?
+    std::clamp((s - distance_prefix_sum_[i]) / seg_len, 0.0, 1.0) : 0.0;
+
+  return racing_line_[i].velocity + t *
+    (racing_line_[j].velocity - racing_line_[i].velocity);
 }
 
 double FrenetConverter::getRacingLineCurvature(double s) const
