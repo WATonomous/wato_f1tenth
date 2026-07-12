@@ -57,11 +57,11 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   // Publishers
-  costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(output_topic, 10);
+  costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(output_topic, 1);
 
   // Subscribers — publish a new grid on every incoming scan
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      scan_topic, 5,
+      scan_topic, 1,
       std::bind(&CostmapNode::scan_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(this->get_logger(),

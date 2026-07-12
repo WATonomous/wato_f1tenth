@@ -63,11 +63,11 @@ StateManagerNode::StateManagerNode()
 
   // subscribers
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "/odom", 10,
+    "/odom", 1,
     std::bind(&StateManagerNode::odometryCallback, this, _1));
 
   occupancy_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    "/occupancy_grid", 10,
+    "/occupancy_grid", 1,
     std::bind(&StateManagerNode::occupancyGridCallback, this, _1));
 
   racing_line_sub_ = this->create_subscription<nav_msgs::msg::Path>(

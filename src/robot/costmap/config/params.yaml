@@ -4,7 +4,7 @@ occupancy_grid_generator:
     forward_distance: 8.0       # meters in front of base_link
     behind_distance: 1.0        # meters behind base_link
     lateral_half_width: 6.1     # meters to both the left and right
-    resolution: 0.05         # meters per cell
+    resolution: 0.10         # meters per cell
 
     # Frame IDs
     robot_frame: "base_link"

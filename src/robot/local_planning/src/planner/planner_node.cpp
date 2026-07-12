@@ -171,11 +171,11 @@ PlannerNode::PlannerNode()
 
   // subscribers
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "/odom", 10,
+    "/odom", 1,
     std::bind(&PlannerNode::odometryCallback, this, _1));
 
   occupancy_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    "/occupancy_grid", 10,
+    "/occupancy_grid", 1,
     std::bind(&PlannerNode::occupancyGridCallback, this, _1));
 
   racing_line_sub_ = this->create_subscription<nav_msgs::msg::Path>(
