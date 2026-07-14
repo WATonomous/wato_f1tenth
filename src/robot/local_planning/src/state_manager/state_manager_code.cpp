@@ -109,7 +109,9 @@ bool RacingStateMachine::shouldAttemptOvertake(
          signed_gap_m > 0.0 &&
          signed_gap_m < overtake_start_distance_m_;
 }
-
+/*
+this can just use the frenet frame too lowkey i should return to this and think harder
+*/
 bool RacingStateMachine::detectOpponentOnRacingLine(
   const OccupancyGrid & occupancy_grid,
   const Point & ego_position)
@@ -152,6 +154,8 @@ bool RacingStateMachine::detectOpponentOnRacingLine(
       occupancy_grid.resolution);
 
     // check 3x3 neighborhood around this waypoint (15 cm square basically)
+    //this should be changed to use the size of the square because we might change
+    //the dimensions of the costmap and it would fuck this part completely
     for (int dr = -1; dr <= 1; ++dr) {
       for (int dc = -1; dc <= 1; ++dc) {
         int r = row + dr;

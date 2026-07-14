@@ -175,6 +175,52 @@ FrenetPoint FrenetConverter::cartesianToFrenet(const Point & p) const
   return {wrapS(best_s), best_d};
 }
 
+ReferenceGeometrySample FrenetConverter::sampleAtS(double s) const
+{
+  ReferenceGeometrySample sample;
+  sample.s = s;
+  if (racing_line_.size() < 2 || total_length_ <= 1e-12) {
+    return sample;
+  }
+
+  const int n = static_cast<int>(racing_line_.size());
+  sample.s_wrapped = wrapS(s);
+
+  auto upper = std::upper_bound(
+    distance_prefix_sum_.begin(), distance_prefix_sum_.end(), sample.s_wrapped);
+  int i = static_cast<int>(std::distance(distance_prefix_sum_.begin(), upper)) - 1;
+  i = std::clamp(i, 0, n - 1);
+  const int j = (i + 1) % n;
+  sample.segment_index = i;
+
+  const double seg_start = distance_prefix_sum_[i];
+  const double abx = racing_line_[j].x - racing_line_[i].x;
+  const double aby = racing_line_[j].y - racing_line_[i].y;
+  const double seg_len = (j == 0) ?
+    total_length_ - distance_prefix_sum_[i] :
+    distance_prefix_sum_[j] - distance_prefix_sum_[i];
+
+  double t = 0.0;
+  if (seg_len > 1e-12) {
+    t = std::clamp((sample.s_wrapped - seg_start) / seg_len, 0.0, 1.0);
+    sample.tangent_x = abx / seg_len;
+    sample.tangent_y = aby / seg_len;
+    sample.normal_x = -sample.tangent_y;
+    sample.normal_y = sample.tangent_x;
+  }
+
+  sample.x = racing_line_[i].x + t * abx;
+  sample.y = racing_line_[i].y + t * aby;
+  sample.heading = std::atan2(aby, abx);
+  sample.velocity = racing_line_[i].velocity + t *
+    (racing_line_[j].velocity - racing_line_[i].velocity);
+  if (!waypoint_curvatures_.empty()) {
+    sample.curvature = waypoint_curvatures_[i] + t *
+      (waypoint_curvatures_[j] - waypoint_curvatures_[i]);
+  }
+  return sample;
+}
+
 Point FrenetConverter::frenetToCartesian(const FrenetPoint & fp) const
 {
   if (racing_line_.size() < 2 || total_length_ <= 1e-12) {
@@ -217,68 +263,61 @@ Point FrenetConverter::frenetToCartesian(const FrenetPoint & fp) const
   return {cx + fp.d * nx, cy + fp.d * ny, velocity};
 }
 
+Point FrenetConverter::frenetToCartesian(const ReferenceGeometrySample & ref, double d)
+{
+  return {ref.x + d * ref.normal_x, ref.y + d * ref.normal_y, ref.velocity};
+}
+
 double FrenetConverter::getRacingLineHeading(double s) const
 {
-  if (racing_line_.size() < 2 || total_length_ <= 1e-12) {
-    return 0.0;
-  }
-
-  int n = static_cast<int>(racing_line_.size());
-  s = wrapS(s);
-
-  auto upper = std::upper_bound(distance_prefix_sum_.begin(), distance_prefix_sum_.end(), s);
-  int i = static_cast<int>(std::distance(distance_prefix_sum_.begin(), upper)) - 1;
-  i = std::clamp(i, 0, n - 1);
-  int j = (i + 1) % n;
-
-  double dx = racing_line_[j].x - racing_line_[i].x;
-  double dy = racing_line_[j].y - racing_line_[i].y;
-  return std::atan2(dy, dx);
+  return sampleAtS(s).heading;
 }
 
 double FrenetConverter::getRacingLineVelocity(double s) const
 {
-  if (racing_line_.size() < 2 || total_length_ <= 1e-12) {
-    return 0.0;
-  }
-
-  int n = static_cast<int>(racing_line_.size());
-  s = wrapS(s);
-
-  auto upper = std::upper_bound(distance_prefix_sum_.begin(), distance_prefix_sum_.end(), s);
-  int i = static_cast<int>(std::distance(distance_prefix_sum_.begin(), upper)) - 1;
-  i = std::clamp(i, 0, n - 1);
-  int j = (i + 1) % n;
-
-  return std::min(racing_line_[i].velocity, racing_line_[j].velocity);
+  return sampleAtS(s).velocity;
 }
 
 double FrenetConverter::getRacingLineCurvature(double s) const
 {
-  if (racing_line_.size() < 2 || total_length_ <= 1e-12 || waypoint_curvatures_.empty()) {
-    return 0.0;
+  return sampleAtS(s).curvature;
+}
+
+void FrenetConverter::fillReferenceGeometryTable(
+  const std::vector<double> & s_values,
+  std::vector<ReferenceGeometrySample> & out) const
+{
+  const std::size_t needed = s_values.size();
+  out.resize(needed);
+
+  for (std::size_t i = 0; i < needed; ++i) {
+    out[i] = sampleAtS(s_values[i]);
+  }
+}
+
+void FrenetConverter::fillUniformReferenceGeometryTable(
+  double s_start,
+  int layer_count,
+  double layer_spacing_m,
+  int sample_count,
+  std::vector<ReferenceGeometrySample> & out) const
+{
+  if (layer_count <= 0 || sample_count < 2 || layer_spacing_m <= 0.0) {
+    out.clear();
+    return;
   }
 
-  int n = static_cast<int>(racing_line_.size());
-  s = wrapS(s);
-
-  auto upper = std::upper_bound(distance_prefix_sum_.begin(), distance_prefix_sum_.end(), s);
-  int i = static_cast<int>(std::distance(distance_prefix_sum_.begin(), upper)) - 1;
-  i = std::clamp(i, 0, n - 1);
-  int j = (i + 1) % n;
-
-  double seg_len;
-  if (j == 0) {
-    seg_len = total_length_ - distance_prefix_sum_[i];
-  } else {
-    seg_len = distance_prefix_sum_[j] - distance_prefix_sum_[i];
+  out.resize(
+    static_cast<std::size_t>(layer_count) * static_cast<std::size_t>(sample_count));
+  const double denom = static_cast<double>(sample_count - 1);
+  for (int layer = 0; layer < layer_count; ++layer) {
+    const double layer_s0 = s_start + static_cast<double>(layer) * layer_spacing_m;
+    for (int i = 0; i < sample_count; ++i) {
+      const double s = layer_s0 + (static_cast<double>(i) / denom) * layer_spacing_m;
+      out[static_cast<std::size_t>(layer) * static_cast<std::size_t>(sample_count) +
+        static_cast<std::size_t>(i)] = sampleAtS(s);
+    }
   }
-
-  double t = 0.0;
-  if (seg_len > 1e-12) {
-    t = (s - distance_prefix_sum_[i]) / seg_len;
-  }
-  return waypoint_curvatures_[i] + t * (waypoint_curvatures_[j] - waypoint_curvatures_[i]);
 }
 
 double FrenetConverter::getRacingLineCurvatureDerivative(double s) const

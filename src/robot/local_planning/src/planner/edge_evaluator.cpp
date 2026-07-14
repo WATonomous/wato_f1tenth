@@ -18,10 +18,8 @@ constexpr double kPi = 3.14159265358979323846;
 
 FrenetEdgeEvaluator::FrenetEdgeEvaluator(
   const LocalFrenetPlannerConfig & config,
-  const FrenetConverter & frenet_converter,
   const CollisionChecker & collision_checker)
 : config_(config),
-  frenet_converter_(frenet_converter),
   collision_checker_(collision_checker)
 {
 }
@@ -40,22 +38,34 @@ FrenetEdgeEvaluator::FrenetEdgeEvaluator(
 
 */
 EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
-  double s_start,
   double d_start,
   double slope_start,
+  double second_derivative_start,
   double d_end,
   double slope_end,
+  double second_derivative_end,
   LocalPlannerIntent intent,
   const OccupancyGrid & grid,
+  const ReferenceGeometrySample * ref_samples,
+  int sample_count,
   EdgeEvaluationScratch & scratch) const
 {
   EdgeEvaluation edge;
+  if (ref_samples == nullptr || sample_count < 2) {
+    edge.collision_status = CollisionStatus::GEOMETRY_CONSTRAINT;
+    return edge;
+  }
+
+  const double s0 = ref_samples[0].s;
+  const double delta_s = ref_samples[sample_count - 1].s - s0;
+  if (delta_s <= 1e-12) {
+    edge.collision_status = CollisionStatus::GEOMETRY_CONSTRAINT;
+    return edge;
+  }
+
   const QuinticPolynomial curve = computeQuintic(
-    d_start, slope_start, d_end, slope_end, config_.layer_spacing_m);
-  const int sample_count =
-    std::max(
-    2, static_cast<int>(std::ceil(
-      config_.layer_spacing_m / config_.sample_spacing_m)) + 1);
+    d_start, slope_start, second_derivative_start,
+    d_end, slope_end, second_derivative_end, delta_s);
   const double max_path_angle_rad = config_.max_path_angle_deg * kPi / 180.0;
 
   scratch.samples.clear();
@@ -65,10 +75,10 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   std::vector<double> & curvatures = scratch.curvatures;
   //get samples along quintic
   for (int i = 0; i < sample_count; ++i) {
-    const double t = static_cast<double>(i) / static_cast<double>(sample_count - 1);
-    const double s = s_start + t * config_.layer_spacing_m;
+    const ReferenceGeometrySample & ref = ref_samples[i];
+    const double t = (ref.s - s0) / delta_s;
     const double d = curve.evaluate(t);
-    Point p = frenet_converter_.frenetToCartesian({s, d});
+    Point p = FrenetConverter::frenetToCartesian(ref, d);
 
     const double path_slope = curve.evaluateDerivative(t) / curve.delta_s;
     const double path_angle = std::atan(path_slope);
@@ -77,7 +87,7 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
       return edge;
     }
 
-    const double path_heading = frenet_converter_.getRacingLineHeading(s) + path_angle;
+    const double path_heading = ref.heading + path_angle;
     const CollisionStatus status = collision_checker_.collisionStatus(p, path_heading, grid);
     if (status == CollisionStatus::SOFT_INFLATION) {
       edge.obstacle_proximity_cost = config_.soft_inflation_cost;
@@ -102,10 +112,8 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   }
   //get velocities across the samples
   for (int i = 0; i < sample_count; ++i) {
-    const double s = s_start + (static_cast<double>(i) / static_cast<double>(sample_count - 1)) *
-      config_.layer_spacing_m;
     samples[static_cast<size_t>(i)].velocity =
-      computeVelocity(s, curvatures[static_cast<size_t>(i)], frenet_converter_, config_);
+      computeVelocity(ref_samples[i].velocity, curvatures[static_cast<size_t>(i)], config_);
   }
   /*
   the stuff below is just adding together a bunch of subcosts for the samples

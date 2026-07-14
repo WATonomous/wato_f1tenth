@@ -5,8 +5,9 @@
  * Occupancy Grid Generator Node
  *
  * This node subscribes to LiDAR LaserScan messages and produces a 2D
- * occupancy grid (nav_msgs/OccupancyGrid) centered on the robot's base_link
- * frame. Each incoming scan triggers a fresh grid publication so the costmap
+ * occupancy grid (nav_msgs/OccupancyGrid) in the robot's base_link frame. The
+ * grid extents relative to the robot are configurable, and each incoming scan
+ * triggers a fresh grid publication so the costmap
  * stays in sync with sensor data at full LiDAR rate.
  *
  * Implementation overview:
@@ -50,8 +51,9 @@ public:
 
 private:
   // Parameters
-  double grid_width_;
-  double grid_height_;
+  double forward_distance_;
+  double behind_distance_;
+  double lateral_half_width_;
   double resolution_;
   std::string robot_frame_;
   int8_t obstacle_value_;

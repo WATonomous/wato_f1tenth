@@ -56,12 +56,11 @@ double computeCurvature(const Point & prev, const Point & curr, const Point & ne
 
 //take min of raceline and physics limited, then clamp it between min and max from yaml
 double computeVelocity(
-  double s,
+  double reference_velocity,
   double curvature,
-  const FrenetConverter & frenet_converter,
   const LocalFrenetPlannerConfig & config)
 {
-  double velocity = std::max(config.min_velocity_mps, frenet_converter.getRacingLineVelocity(s));
+  double velocity = std::max(config.min_velocity_mps, reference_velocity);
   if (std::abs(curvature) > kEpsilon) {
     velocity =
       std::min(velocity, std::sqrt(config.friction_coeff * kGravity / std::abs(curvature)));
@@ -70,6 +69,15 @@ double computeVelocity(
     velocity = std::min(velocity, config.max_velocity_mps);
   }
   return std::max(config.min_velocity_mps, velocity);
+}
+
+double computeVelocity(
+  double s,
+  double curvature,
+  const FrenetConverter & frenet_converter,
+  const LocalFrenetPlannerConfig & config)
+{
+  return computeVelocity(frenet_converter.getRacingLineVelocity(s), curvature, config);
 }
 
 //basically depending on the mode we punish the deviation from the racing line accordingly

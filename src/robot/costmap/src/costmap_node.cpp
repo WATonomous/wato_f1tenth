@@ -1,12 +1,16 @@
 #include "costmap_node.hpp"
 
+#include <limits>
+#include <stdexcept>
+
 using namespace std::chrono_literals;
 
 CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
 {
   // Declare parameters
-  this->declare_parameter<double>("grid_width", 20.0);
-  this->declare_parameter<double>("grid_height", 20.0);
+  this->declare_parameter<double>("forward_distance", 8.0);
+  this->declare_parameter<double>("behind_distance", 1.0);
+  this->declare_parameter<double>("lateral_half_width", 8.0);
   this->declare_parameter<double>("resolution", 0.1);
   this->declare_parameter<std::string>("robot_frame", "base_link");
   this->declare_parameter<std::string>("scan_topic", "/scan");
@@ -15,13 +19,14 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   this->declare_parameter<int>("free_value", 0);
   this->declare_parameter<int>("unknown_value", -1);
   this->declare_parameter<bool>("self_filter_enabled", true);
-  this->declare_parameter<double>("self_filter_min_x_m", -0.50);
-  this->declare_parameter<double>("self_filter_max_x_m", 0.15);
+  this->declare_parameter<double>("self_filter_min_x_m", -0.15);
+  this->declare_parameter<double>("self_filter_max_x_m", 0.45);
   this->declare_parameter<double>("self_filter_half_width_m", 0.20);
 
   // Read parameters
-  grid_width_ = this->get_parameter("grid_width").as_double();
-  grid_height_ = this->get_parameter("grid_height").as_double();
+  forward_distance_ = this->get_parameter("forward_distance").as_double();
+  behind_distance_ = this->get_parameter("behind_distance").as_double();
+  lateral_half_width_ = this->get_parameter("lateral_half_width").as_double();
   resolution_ = this->get_parameter("resolution").as_double();
   robot_frame_ = this->get_parameter("robot_frame").as_string();
   std::string scan_topic = this->get_parameter("scan_topic").as_string();
@@ -34,25 +39,44 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   self_filter_max_x_m_ = this->get_parameter("self_filter_max_x_m").as_double();
   self_filter_half_width_m_ = this->get_parameter("self_filter_half_width_m").as_double();
 
-  // Compute grid dimensions in cells
-  grid_cols_ = static_cast<uint32_t>(grid_width_ / resolution_);
-  grid_rows_ = static_cast<uint32_t>(grid_height_ / resolution_);
+  if (forward_distance_ <= 0.0 || behind_distance_ <= 0.0 ||
+      lateral_half_width_ <= 0.0 || resolution_ <= 0.0) {
+    throw std::invalid_argument(
+      "forward_distance, behind_distance, lateral_half_width, and resolution must be positive");
+  }
+
+  const double longitudinal_size = forward_distance_ + behind_distance_;
+  const double lateral_size = 2.0 * lateral_half_width_;
+  const double max_grid_dimension = static_cast<double>(std::numeric_limits<uint32_t>::max());
+  const double longitudinal_cells = std::ceil(longitudinal_size / resolution_);
+  const double lateral_cells = std::ceil(lateral_size / resolution_);
+
+  if (longitudinal_cells > max_grid_dimension || lateral_cells > max_grid_dimension) {
+    throw std::invalid_argument("configured costmap dimensions exceed the supported cell limit");
+  }
+
+  // The grid's x axis is the robot's longitudinal axis and its y axis is lateral.
+  // Use ceil so the requested physical extents are not truncated by resolution.
+  grid_cols_ = static_cast<uint32_t>(longitudinal_cells);
+  grid_rows_ = static_cast<uint32_t>(lateral_cells);
 
   // TF2
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   // Publishers
-  costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(output_topic, 10);
+  costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(output_topic, 1);
 
   // Subscribers — publish a new grid on every incoming scan
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      scan_topic, 5,
+      scan_topic, 1,
       std::bind(&CostmapNode::scan_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(this->get_logger(),
-              "Costmap node initialized: %.1fm x %.1fm grid, %.2fm resolution (%u x %u cells)",
-              grid_width_, grid_height_, resolution_, grid_cols_, grid_rows_);
+              "Costmap node initialized: %.1fm forward, %.1fm behind, %.1fm lateral each side, "
+              "%.2fm resolution (%u x %u cells)",
+              forward_distance_, behind_distance_, lateral_half_width_, resolution_,
+              grid_cols_, grid_rows_);
 }
 
 void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
@@ -62,9 +86,11 @@ void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg
 
 void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan)
 {
-  // Grid origin: centered on base_link (0,0), offset by half the grid size
-  double origin_x = -grid_width_ / 2.0;
-  double origin_y = -grid_height_ / 2.0;
+  // Grid origin is the lower-left corner relative to base_link. Positive x is
+  // forward and positive y is left, so the grid spans from behind the robot
+  // to in front of it and symmetrically across its lateral axis.
+  double origin_x = -behind_distance_;
+  double origin_y = -lateral_half_width_;
 
   // Initialize the occupancy grid message
   nav_msgs::msg::OccupancyGrid grid_msg;
@@ -96,9 +122,6 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     return;
   }
 
-  // Shift the costmap's reference point 0.27m forward of base_link along its x-axis.
-  transform_stamped.transform.translation.x += 0.27;
-
   // Get laser origin in base_link frame
   geometry_msgs::msg::PointStamped laser_origin_in_laser;
   laser_origin_in_laser.header = scan->header;
@@ -117,11 +140,9 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     float range = scan->ranges[i];
     bool marks_obstacle = true;
 
-    // Some lidars report a no-return ray as +inf, while others report a
-    // finite value beyond range_max. Trace those rays to range_max as free
-    // space, but do not mark a fake obstacle at the endpoint.
-    if ((std::isinf(range) && range > 0.0f) ||
-        (std::isfinite(range) && range > scan->range_max)) {
+    // Positive infinity means the laser saw no obstacle within its range.
+    // Trace the ray to range_max so that observed space is still marked free.
+    if (std::isinf(range) && range > 0.0f) {
       range = scan->range_max;
       marks_obstacle = false;
     }
@@ -161,9 +182,7 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     if (x1 >= 0 && x1 < static_cast<int>(grid_cols_) &&
         y1 >= 0 && y1 < static_cast<int>(grid_rows_)) {
       size_t idx = y1 * grid_cols_ + x1;
-      // Self-filter is defined in the lidar frame, so test the pre-transform point.
-      if (marks_obstacle &&
-          !is_in_self_filter_footprint(hit_in_laser.point.x, hit_in_laser.point.y)) {
+      if (marks_obstacle && !is_in_self_filter_footprint(hit_x, hit_y)) {
         grid_msg.data[idx] = obstacle_value_;
       } else if (grid_msg.data[idx] == unknown_value_) {
         grid_msg.data[idx] = free_value_;

@@ -18,6 +18,36 @@ namespace
 constexpr double kEpsilon = 1e-6;
 constexpr double kPi = 3.14159265358979323846;
 
+double frenetSecondDerivativeForVehicleCurvature(
+  double vehicle_curvature,
+  double lateral_offset,
+  double lateral_slope,
+  double reference_curvature,
+  double reference_curvature_derivative)
+{
+  // For x(s) = r(s) + d(s)n(s), the Cartesian path curvature is:
+  // [k_ref A^2 + A d'' + k_ref' d d' + 2 k_ref d'^2] /
+  // (A^2 + d'^2)^(3/2), where A = 1 - k_ref d.
+  // Solve this expression for d'' so the first lattice edge continues the
+  // curvature implied by the current steering angle.
+  const double tangent_scale = 1.0 - reference_curvature * lateral_offset;
+  if (std::abs(tangent_scale) <= kEpsilon) {
+    // The Frenet chart is singular here.  Preserve the previous small-angle
+    // conversion instead of amplifying numerical error.
+    return vehicle_curvature - reference_curvature;
+  }
+
+  const double tangent_norm_squared =
+    tangent_scale * tangent_scale + lateral_slope * lateral_slope;
+  const double tangent_norm_cubed =
+    tangent_norm_squared * std::sqrt(tangent_norm_squared);
+  return (
+    vehicle_curvature * tangent_norm_cubed -
+    reference_curvature * tangent_scale * tangent_scale -
+    reference_curvature_derivative * lateral_offset * lateral_slope -
+    2.0 * reference_curvature * lateral_slope * lateral_slope) /
+    tangent_scale;
+}
 
 } // namespace
 
@@ -34,7 +64,8 @@ void LocalFrenetLatticePlanner::setRacingLine(const std::vector<Point> & racing_
 LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   const Odometry & odom,
   const OccupancyGrid & grid,
-  LocalPlannerIntent intent)
+  LocalPlannerIntent intent,
+  std::chrono::steady_clock::time_point deadline)
 {
   LocalFrenetPlan result;
 
@@ -45,20 +76,35 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
     config_.max_path_angle_deg <= 0.0 ||
     config_.max_path_angle_deg >= 90.0)
   {
+    result.status = LocalFrenetPlan::Status::INVALID_REFERENCE;
     return result;
   }
-
   FrenetPoint start = frenet_converter_.cartesianToFrenet(odom.position);
   const std::vector<double> lanes = generateLaneOffsets();
-  result.debug_lattice_lanes = generateDebugLatticeLanes(start, lanes);
   const int layer_count =
     std::max(1, static_cast<int>(std::ceil(config_.horizon_m / config_.layer_spacing_m)));
+  const int sample_count =
+    std::max(
+    2, static_cast<int>(std::ceil(
+      config_.layer_spacing_m / config_.sample_spacing_m)) + 1);
   const int lane_count = static_cast<int>(lanes.size());
   const int start_lane = nearestLaneIndex(start.d, lanes);
-  const double heading_error = normalizeHeadingError(
-    odom.heading - frenet_converter_.getRacingLineHeading(start.s));
+  const ReferenceGeometrySample start_ref = frenet_converter_.sampleAtS(start.s);
+  const double heading_error = normalizeHeadingError(odom.heading - start_ref.heading);
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
   start.slope = start_slope;
+  if (odom.has_steering_angle && config_.wheelbase_m > kEpsilon) {
+    const double vehicle_curvature = std::tan(odom.steering_angle) / config_.wheelbase_m;
+    start.second_derivative = frenetSecondDerivativeForVehicleCurvature(
+      vehicle_curvature,
+      start.d,
+      start.slope,
+      start_ref.curvature,
+      frenet_converter_.getRacingLineCurvatureDerivative(start.s));
+  }
+
+  frenet_converter_.fillUniformReferenceGeometryTable(
+    start.s, layer_count, config_.layer_spacing_m, sample_count, reference_geometry_table_);
 
   std::vector<std::vector<DpState>> states(
     static_cast<size_t>(layer_count + 1),
@@ -68,7 +114,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   states[0][static_cast<size_t>(start_lane)].total_cost = 0.0;
 
   CollisionChecker collision_checker(config_);
-  FrenetEdgeEvaluator edge_evaluator(config_, frenet_converter_, collision_checker);
+  FrenetEdgeEvaluator edge_evaluator(config_, collision_checker);
   EdgeEvaluationScratch edge_scratch;
 
   /*
@@ -83,8 +129,10 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   time complexity is O(layers * lanes * samples * inflation_cells^2) i think
   */
   for (int layer = 0; layer < layer_count; ++layer) {
-    const double s0 = start.s + static_cast<double>(layer) * config_.layer_spacing_m;
     const int next_layer = layer + 1;
+    const ReferenceGeometrySample * layer_ref =
+      reference_geometry_table_.data() +
+      static_cast<std::size_t>(layer) * static_cast<std::size_t>(sample_count);
 
     for (int from_lane = 0; from_lane < lane_count; ++from_lane) {
       const DpState & from_state =
@@ -95,6 +143,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
 
       const double d0 = (layer == 0) ? start.d : lanes[static_cast<size_t>(from_lane)];
       const double slope0 = (layer == 0) ? start_slope : 0.0;
+      const double second_derivative0 =
+        (layer == 0) ? start.second_derivative : 0.0;
       const double max_slope = std::tan(config_.max_path_angle_deg * kPi / 180.0);
 
       for (int to_lane = 0; to_lane < lane_count; ++to_lane) {
@@ -104,7 +154,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         }
 
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, d_end, 0.0, intent, grid, edge_scratch);
+          d0, slope0, second_derivative0, d_end, 0.0, 0.0,
+          intent, grid, layer_ref, sample_count, edge_scratch);
 
         if (edge.collision_status == CollisionStatus::COLLISION ||
           edge.collision_status == CollisionStatus::OUT_OF_GRID ||
@@ -129,9 +180,12 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         to_state.curvature_change_cost = from_state.curvature_change_cost +
           edge.curvature_change_cost;
         to_state.parent_lane = from_lane;
-        to_state.edge_samples.assign(edge_scratch.samples.begin(), edge_scratch.samples.end());
       }
     }
+  }
+  if (std::chrono::steady_clock::now() >= deadline) {
+    result.status = LocalFrenetPlan::Status::DEADLINE_EXCEEDED;
+    return result;
   }
   //at this point the dp table is actually filled
   /*
@@ -139,31 +193,47 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   1.  pick goal cell by scanning last layer and choose the lane with the lowest cost
       if we are in the merge state add the extra cost of merge_terminal_d_weight * d^2
   2.  if we need to tie break base it off of cost then curvature
-  3.  if the last layer is blocked (obstacle or grid edge cut the lattice short)
-      fall back to the deepest reachable layer, as long as the partial path is at
-      least min_path_horizon_m long
-  4.  and then yeah just reconstruct the path and return
+  3.  and then yeah just reconstruct the path and return
   */
 
-  const int min_goal_layer = std::max(
-    1, static_cast<int>(std::ceil(config_.min_path_horizon_m / config_.layer_spacing_m)));
-
-  int goal_layer = -1;
   int best_lane = -1;
-  for (int layer = layer_count; layer >= min_goal_layer; --layer) {
-    best_lane = selectBestLane(states, layer, lanes, intent);
-    if (best_lane >= 0) {
-      goal_layer = layer;
-      break;
+  double best_cost = std::numeric_limits<double>::infinity();
+  double best_curvature_change = std::numeric_limits<double>::infinity();
+  double best_intent_tie = std::numeric_limits<double>::infinity();
+  for (int lane = 0; lane < lane_count; ++lane) {
+    const DpState & state = states[static_cast<size_t>(layer_count)][static_cast<size_t>(lane)];
+    if (!state.reachable) {
+      continue;
+    }
+
+    const double final_d = lanes[static_cast<size_t>(lane)];
+    double total_cost = state.total_cost;
+    if (intent == LocalPlannerIntent::MERGE) {
+      total_cost += config_.merge_terminal_d_weight * final_d * final_d;
+    }
+
+    const double intent_tie = intentBias(final_d, intent, config_);
+    const bool better = total_cost < best_cost - 1e-9 ||
+      (std::abs(total_cost - best_cost) < 1e-9 &&
+      (state.curvature_change_cost < best_curvature_change - 1e-9 ||
+      (std::abs(state.curvature_change_cost - best_curvature_change) < 1e-9 &&
+      intent_tie < best_intent_tie - 1e-9)));
+
+    if (better) {
+      best_lane = lane;
+      best_cost = total_cost;
+      best_curvature_change = state.curvature_change_cost;
+      best_intent_tie = intent_tie;
     }
   }
 
-  if (best_lane < 0 || goal_layer < 0) {
+  if (best_lane < 0) {
+    result.status = LocalFrenetPlan::Status::NO_PATH;
     return result;
   }
 
   const SelectedLatticePath selected_path = reconstructSelectedPath(
-    states, goal_layer, best_lane, lanes, start);
+    states, best_lane, lanes, start, intent, grid, edge_evaluator, sample_count);
   result.path = selected_path.path;
 
   if (config_.angle_smoothing_enabled) {
@@ -177,6 +247,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   smoothVelocityProfile(result.path, odom.velocity, config_);
+  result.status = result.path.empty() ? LocalFrenetPlan::Status::NO_PATH :
+    LocalFrenetPlan::Status::SUCCESS;
   return result;
 }
 
@@ -209,97 +281,25 @@ int LocalFrenetLatticePlanner::nearestLaneIndex(double d, const std::vector<doub
   return best_index;
 }
 
-int LocalFrenetLatticePlanner::selectBestLane(
-  const std::vector<std::vector<DpState>> & states,
-  int layer,
-  const std::vector<double> & lanes,
-  LocalPlannerIntent intent) const
-{
-  int best_lane = -1;
-  double best_cost = std::numeric_limits<double>::infinity();
-  double best_curvature_change = std::numeric_limits<double>::infinity();
-  double best_intent_tie = std::numeric_limits<double>::infinity();
-  for (int lane = 0; lane < static_cast<int>(lanes.size()); ++lane) {
-    const DpState & state = states[static_cast<size_t>(layer)][static_cast<size_t>(lane)];
-    if (!state.reachable) {
-      continue;
-    }
-
-    const double final_d = lanes[static_cast<size_t>(lane)];
-    double total_cost = state.total_cost;
-    if (intent == LocalPlannerIntent::MERGE) {
-      total_cost += config_.merge_terminal_d_weight * final_d * final_d;
-    }
-
-    const double intent_tie = intentBias(final_d, intent, config_);
-    const bool better = total_cost < best_cost - 1e-9 ||
-      (std::abs(total_cost - best_cost) < 1e-9 &&
-      (state.curvature_change_cost < best_curvature_change - 1e-9 ||
-      (std::abs(state.curvature_change_cost - best_curvature_change) < 1e-9 &&
-      intent_tie < best_intent_tie - 1e-9)));
-
-    if (better) {
-      best_lane = lane;
-      best_cost = total_cost;
-      best_curvature_change = state.curvature_change_cost;
-      best_intent_tie = intent_tie;
-    }
-  }
-
-  return best_lane;
-}
-
-std::vector<std::vector<Point>> LocalFrenetLatticePlanner::generateDebugLatticeLanes(
-  const FrenetPoint & start,
-  const std::vector<double> & lanes) const
-{
-  std::vector<std::vector<Point>> lattice_lanes;
-  if (lanes.empty() || config_.horizon_m <= kEpsilon || config_.layer_spacing_m <= kEpsilon) {
-    return lattice_lanes;
-  }
-
-  const int sample_count = std::max(
-    2, static_cast<int>(std::ceil(config_.horizon_m / config_.layer_spacing_m)) + 1);
-  lattice_lanes.reserve(lanes.size());
-
-  for (const double d : lanes) {
-    std::vector<Point> lane;
-    lane.reserve(static_cast<std::size_t>(sample_count));
-
-    for (int sample_index = 0; sample_index < sample_count; ++sample_index) {
-      const double s = std::min(
-        start.s + static_cast<double>(sample_index) * config_.layer_spacing_m,
-        start.s + config_.horizon_m);
-      lane.push_back(frenet_converter_.frenetToCartesian({s, d, 0.0}));
-    }
-
-    lattice_lanes.push_back(std::move(lane));
-  }
-
-  return lattice_lanes;
-}
-
 LocalFrenetLatticePlanner::SelectedLatticePath
 LocalFrenetLatticePlanner::reconstructSelectedPath(
   const std::vector<std::vector<DpState>> & states,
-  int final_layer,
   int final_lane,
   const std::vector<double> & lanes,
-  const FrenetPoint & start) const
+  const FrenetPoint & start,
+  LocalPlannerIntent intent,
+  const OccupancyGrid & grid,
+  const FrenetEdgeEvaluator & edge_evaluator,
+  int sample_count) const
 {
   SelectedLatticePath selected_path;
-  if (states.size() < 2 || final_lane < 0 ||
-    final_layer < 1 || final_layer >= static_cast<int>(states.size()))
-  {
+  if (states.size() < 2 || final_lane < 0 || sample_count < 2) {
     return selected_path;
   }
 
-  std::vector<const std::vector<Point> *> segments;
-  segments.reserve(static_cast<size_t>(final_layer));
-  size_t path_capacity = 0;
   std::vector<int> lane_by_layer(states.size(), -1);
   int lane = final_lane;
-  for (int layer = final_layer; layer > 0; --layer) {
+  for (int layer = static_cast<int>(states.size()) - 1; layer > 0; --layer) {
     if (lane < 0 || lane >= static_cast<int>(lanes.size())) {
       return {};
     }
@@ -309,8 +309,6 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       return {};
     }
 
-    segments.push_back(&state.edge_samples);
-    path_capacity += state.edge_samples.size();
     lane_by_layer[static_cast<size_t>(layer)] = lane;
     lane = state.parent_lane;
     if (lane < 0) {
@@ -318,18 +316,9 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
     }
   }
 
-  selected_path.path.reserve(path_capacity);
-  for (auto segment_it = segments.rbegin(); segment_it != segments.rend(); ++segment_it) {
-    const std::vector<Point> & segment = **segment_it;
-    const size_t start_index = selected_path.path.empty() ? 0 : 1;
-    for (size_t i = start_index; i < segment.size(); ++i) {
-      selected_path.path.push_back(segment[i]);
-    }
-  }
-
-  selected_path.anchors.reserve(static_cast<size_t>(final_layer) + 1);
+  selected_path.anchors.reserve(states.size());
   selected_path.anchors.push_back(start);
-  for (std::size_t layer = 1; layer <= static_cast<std::size_t>(final_layer); ++layer) {
+  for (std::size_t layer = 1; layer < states.size(); ++layer) {
     const int layer_lane = lane_by_layer[layer];
     if (layer_lane < 0 || layer_lane >= static_cast<int>(lanes.size())) {
       return {};
@@ -339,8 +328,47 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       {
         start.s + static_cast<double>(layer) * config_.layer_spacing_m,
         lanes[static_cast<size_t>(layer_lane)],
+        0.0,
         0.0
       });
+  }
+
+  selected_path.path.reserve(
+    1 + (selected_path.anchors.size() - 1) * static_cast<size_t>(sample_count - 1));
+
+  EdgeEvaluationScratch edge_scratch;
+  for (size_t layer = 0; layer + 1 < selected_path.anchors.size(); ++layer) {
+    const FrenetPoint & from = selected_path.anchors[layer];
+    const FrenetPoint & to = selected_path.anchors[layer + 1];
+    const std::size_t table_offset =
+      layer * static_cast<std::size_t>(sample_count);
+    if (table_offset + static_cast<std::size_t>(sample_count) >
+      reference_geometry_table_.size())
+    {
+      return {};
+    }
+    const ReferenceGeometrySample * layer_ref =
+      reference_geometry_table_.data() + table_offset;
+    const EdgeEvaluation edge = edge_evaluator.evaluateEdge(
+      from.d,
+      from.slope,
+      from.second_derivative,
+      to.d,
+      to.slope,
+      to.second_derivative,
+      intent,
+      grid,
+      layer_ref,
+      sample_count,
+      edge_scratch);
+    if (edge.collision_status != CollisionStatus::FREE) {
+      return {};
+    }
+
+    const size_t start_index = selected_path.path.empty() ? 0 : 1;
+    for (size_t i = start_index; i < edge_scratch.samples.size(); ++i) {
+      selected_path.path.push_back(edge_scratch.samples[i]);
+    }
   }
 
   return selected_path;

@@ -86,7 +86,8 @@ std::vector<Point> smoothFrenetAnglesOrFallback(
     }
 
     const QuinticPolynomial curve = computeQuintic(
-      start.d, start.slope, end.d, end.slope, delta_s);
+      start.d, start.slope, start.second_derivative,
+      end.d, end.slope, end.second_derivative, delta_s);
     const int sample_count = std::max(
       2, static_cast<int>(std::ceil(delta_s / config.sample_spacing_m)) + 1);
 

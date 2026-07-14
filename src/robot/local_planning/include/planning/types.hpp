@@ -2,6 +2,7 @@
 #define PLANNING_TYPES_HPP
 
 #include <cstdint>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -23,6 +24,24 @@ struct FrenetPoint
   double s = 0.0;
   double d = 0.0;
   double slope = 0.0;
+  // d²d/ds².  This is the quintic boundary curvature in Frenet coordinates.
+  double second_derivative = 0.0;
+};
+
+struct ReferenceGeometrySample
+{
+  double s = 0.0;
+  double s_wrapped = 0.0;
+  double x = 0.0;
+  double y = 0.0;
+  double tangent_x = 0.0;
+  double tangent_y = 0.0;
+  double normal_x = 0.0;
+  double normal_y = 0.0;
+  double heading = 0.0;
+  double curvature = 0.0;
+  double velocity = 0.0;
+  int segment_index = 0;
 };
 
 struct Odometry
@@ -30,6 +49,8 @@ struct Odometry
   Point position;
   double velocity;
   double heading;
+  double steering_angle = 0.0;
+  bool has_steering_angle = false;
 };
 
 struct OccupancyGrid
@@ -39,8 +60,7 @@ struct OccupancyGrid
   int height;
   double resolution;
   Point origin;
-  std::vector<uint8_t> definitely_blocked_mask;
-  std::vector<uint8_t> needs_exact_check_mask;
+  std::vector<float> obstacle_distance_m;
   bool has_clearance_cache = false;
 };
 
@@ -57,7 +77,6 @@ std::string intentToString(LocalPlannerIntent intent);
 struct LocalFrenetPlannerConfig
 {
   double horizon_m = 6.0;
-  double min_path_horizon_m = 2.0;
   double layer_spacing_m = 0.5;
   double lane_spacing_m = 0.1;
   double max_lateral_offset_m = 1.8;
@@ -82,12 +101,22 @@ struct LocalFrenetPlannerConfig
   bool velocity_smoothing_enabled = false;
   double velocity_smoothing_max_accel_mps2 = 2.5;
   double velocity_smoothing_max_decel_mps2 = 2.5;
+  double wheelbase_m = 0.33;
+  double steering_command_timeout_s = 0.06;
 };
 
 struct LocalFrenetPlan
 {
+  enum class Status : uint8_t
+  {
+    SUCCESS,
+    INVALID_REFERENCE,
+    NO_PATH,
+    DEADLINE_EXCEEDED
+  };
+
   std::vector<Point> path;
-  std::vector<std::vector<Point>> debug_lattice_lanes;
+  Status status = Status::NO_PATH;
 };
 
 } // namespace local_planning
