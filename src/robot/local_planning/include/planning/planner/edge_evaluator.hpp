@@ -31,24 +31,23 @@ class FrenetEdgeEvaluator
 public:
   FrenetEdgeEvaluator(
     const LocalFrenetPlannerConfig & config,
-    const FrenetConverter & frenet_converter,
     const CollisionChecker & collision_checker);
 
   EdgeEvaluation evaluateEdge(
-  double s_start,
-  double d_start,
-  double slope_start,
-  double second_derivative_start,
-  double d_end,
-  double slope_end,
-  double second_derivative_end,
+    double d_start,
+    double slope_start,
+    double second_derivative_start,
+    double d_end,
+    double slope_end,
+    double second_derivative_end,
     LocalPlannerIntent intent,
     const OccupancyGrid & grid,
+    const ReferenceGeometrySample * ref_samples,
+    int sample_count,
     EdgeEvaluationScratch & scratch) const;
 
 private:
   const LocalFrenetPlannerConfig & config_;
-  const FrenetConverter & frenet_converter_;
   const CollisionChecker & collision_checker_;
 };
 

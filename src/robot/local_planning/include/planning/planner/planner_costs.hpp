@@ -15,6 +15,11 @@ double computeCurvature(
   const Point & next);
 
 double computeVelocity(
+  double reference_velocity,
+  double curvature,
+  const LocalFrenetPlannerConfig & config);
+
+double computeVelocity(
   double s,
   double curvature,
   const FrenetConverter & frenet_converter,

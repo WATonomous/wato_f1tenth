@@ -83,10 +83,14 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   const std::vector<double> lanes = generateLaneOffsets();
   const int layer_count =
     std::max(1, static_cast<int>(std::ceil(config_.horizon_m / config_.layer_spacing_m)));
+  const int sample_count =
+    std::max(
+    2, static_cast<int>(std::ceil(
+      config_.layer_spacing_m / config_.sample_spacing_m)) + 1);
   const int lane_count = static_cast<int>(lanes.size());
   const int start_lane = nearestLaneIndex(start.d, lanes);
-  const double heading_error = normalizeHeadingError(
-    odom.heading - frenet_converter_.getRacingLineHeading(start.s));
+  const ReferenceGeometrySample start_ref = frenet_converter_.sampleAtS(start.s);
+  const double heading_error = normalizeHeadingError(odom.heading - start_ref.heading);
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
   start.slope = start_slope;
   if (odom.has_steering_angle && config_.wheelbase_m > kEpsilon) {
@@ -95,9 +99,12 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
       vehicle_curvature,
       start.d,
       start.slope,
-      frenet_converter_.getRacingLineCurvature(start.s),
+      start_ref.curvature,
       frenet_converter_.getRacingLineCurvatureDerivative(start.s));
   }
+
+  frenet_converter_.fillUniformReferenceGeometryTable(
+    start.s, layer_count, config_.layer_spacing_m, sample_count, reference_geometry_table_);
 
   std::vector<std::vector<DpState>> states(
     static_cast<size_t>(layer_count + 1),
@@ -107,7 +114,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   states[0][static_cast<size_t>(start_lane)].total_cost = 0.0;
 
   CollisionChecker collision_checker(config_);
-  FrenetEdgeEvaluator edge_evaluator(config_, frenet_converter_, collision_checker);
+  FrenetEdgeEvaluator edge_evaluator(config_, collision_checker);
   EdgeEvaluationScratch edge_scratch;
 
   /*
@@ -122,8 +129,10 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   time complexity is O(layers * lanes * samples * inflation_cells^2) i think
   */
   for (int layer = 0; layer < layer_count; ++layer) {
-    const double s0 = start.s + static_cast<double>(layer) * config_.layer_spacing_m;
     const int next_layer = layer + 1;
+    const ReferenceGeometrySample * layer_ref =
+      reference_geometry_table_.data() +
+      static_cast<std::size_t>(layer) * static_cast<std::size_t>(sample_count);
 
     for (int from_lane = 0; from_lane < lane_count; ++from_lane) {
       const DpState & from_state =
@@ -145,8 +154,8 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
         }
 
         EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-          s0, d0, slope0, second_derivative0, d_end, 0.0, 0.0,
-          intent, grid, edge_scratch);
+          d0, slope0, second_derivative0, d_end, 0.0, 0.0,
+          intent, grid, layer_ref, sample_count, edge_scratch);
 
         if (edge.collision_status == CollisionStatus::COLLISION ||
           edge.collision_status == CollisionStatus::OUT_OF_GRID ||
@@ -224,7 +233,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   }
 
   const SelectedLatticePath selected_path = reconstructSelectedPath(
-    states, best_lane, lanes, start, intent, grid, edge_evaluator);
+    states, best_lane, lanes, start, intent, grid, edge_evaluator, sample_count);
   result.path = selected_path.path;
 
   if (config_.angle_smoothing_enabled) {
@@ -280,10 +289,11 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
   const FrenetPoint & start,
   LocalPlannerIntent intent,
   const OccupancyGrid & grid,
-  const FrenetEdgeEvaluator & edge_evaluator) const
+  const FrenetEdgeEvaluator & edge_evaluator,
+  int sample_count) const
 {
   SelectedLatticePath selected_path;
-  if (states.size() < 2 || final_lane < 0) {
+  if (states.size() < 2 || final_lane < 0 || sample_count < 2) {
     return selected_path;
   }
 
@@ -323,19 +333,23 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       });
   }
 
-  const size_t samples_per_edge = static_cast<size_t>(
-    std::max(
-      2, static_cast<int>(std::ceil(
-        config_.layer_spacing_m / config_.sample_spacing_m)) + 1));
   selected_path.path.reserve(
-    1 + (selected_path.anchors.size() - 1) * (samples_per_edge - 1));
+    1 + (selected_path.anchors.size() - 1) * static_cast<size_t>(sample_count - 1));
 
   EdgeEvaluationScratch edge_scratch;
   for (size_t layer = 0; layer + 1 < selected_path.anchors.size(); ++layer) {
     const FrenetPoint & from = selected_path.anchors[layer];
     const FrenetPoint & to = selected_path.anchors[layer + 1];
+    const std::size_t table_offset =
+      layer * static_cast<std::size_t>(sample_count);
+    if (table_offset + static_cast<std::size_t>(sample_count) >
+      reference_geometry_table_.size())
+    {
+      return {};
+    }
+    const ReferenceGeometrySample * layer_ref =
+      reference_geometry_table_.data() + table_offset;
     const EdgeEvaluation edge = edge_evaluator.evaluateEdge(
-      from.s,
       from.d,
       from.slope,
       from.second_derivative,
@@ -344,6 +358,8 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
       to.second_derivative,
       intent,
       grid,
+      layer_ref,
+      sample_count,
       edge_scratch);
     if (edge.collision_status != CollisionStatus::FREE) {
       return {};

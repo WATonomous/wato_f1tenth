@@ -28,6 +28,22 @@ struct FrenetPoint
   double second_derivative = 0.0;
 };
 
+struct ReferenceGeometrySample
+{
+  double s = 0.0;
+  double s_wrapped = 0.0;
+  double x = 0.0;
+  double y = 0.0;
+  double tangent_x = 0.0;
+  double tangent_y = 0.0;
+  double normal_x = 0.0;
+  double normal_y = 0.0;
+  double heading = 0.0;
+  double curvature = 0.0;
+  double velocity = 0.0;
+  int segment_index = 0;
+};
+
 struct Odometry
 {
   Point position;

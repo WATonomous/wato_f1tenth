@@ -48,11 +48,13 @@ private:
     const FrenetPoint & start,
     LocalPlannerIntent intent,
     const OccupancyGrid & grid,
-    const FrenetEdgeEvaluator & edge_evaluator) const;
+    const FrenetEdgeEvaluator & edge_evaluator,
+    int sample_count) const;
   void assignVelocityLimitsFromGeometry(std::vector<Point> & path) const;
 
   FrenetConverter frenet_converter_;
   LocalFrenetPlannerConfig config_;
+  std::vector<ReferenceGeometrySample> reference_geometry_table_;
 };
 
 } // namespace local_planning
