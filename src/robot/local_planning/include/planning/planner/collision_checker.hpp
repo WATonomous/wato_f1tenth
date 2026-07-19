@@ -15,12 +15,23 @@ enum class CollisionStatus
   GEOMETRY_CONSTRAINT
 };
 
+struct CollisionCheckResult
+{
+  CollisionStatus status = CollisionStatus::FREE;
+  double minimum_clearance_m = 0.0;
+};
+
 class CollisionChecker
 {
 public:
   explicit CollisionChecker(const LocalFrenetPlannerConfig & config);
 
   void buildClearanceCache(OccupancyGrid & grid) const;
+
+  CollisionCheckResult collisionCheck(
+    const Point & p,
+    double heading,
+    const OccupancyGrid & grid) const;
 
   CollisionStatus collisionStatus(
     const Point & p,

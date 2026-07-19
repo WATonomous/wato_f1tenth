@@ -199,7 +199,7 @@ CollisionStatus CollisionChecker::collisionStatus(
       int center_row = 0;
       int center_col = 0;
       if (!pointToGridCell(center, grid, center_row, center_col)) {
-        return CollisionStatus::OUT_OF_GRID;
+        return CollisionStatus::FREE;
       }
 
       const size_t center_index = static_cast<size_t>(
@@ -224,7 +224,7 @@ CollisionStatus CollisionChecker::collisionStatus(
     int center_row = 0;
     int center_col = 0;
     if (!pointToGridCell(center, grid, center_row, center_col)) {
-      return CollisionStatus::OUT_OF_GRID;
+      return CollisionStatus::FREE;
     }
 
     for (int dr = -hard_inflation_cells; dr <= hard_inflation_cells; ++dr) {
@@ -261,7 +261,7 @@ CollisionStatus CollisionChecker::collisionStatus(
     int center_row = 0;
     int center_col = 0;
     if (!pointToGridCell(center, grid, center_row, center_col)) {
-      return CollisionStatus::OUT_OF_GRID;
+      return CollisionStatus::FREE;
     }
 
     for (int dr = -inflation_cells; dr <= inflation_cells; ++dr) {
@@ -290,6 +290,70 @@ CollisionStatus CollisionChecker::collisionStatus(
   }
 
   return CollisionStatus::FREE;
+}
+
+CollisionCheckResult CollisionChecker::collisionCheck(
+  const Point & p,
+  double heading,
+  const OccupancyGrid & grid) const
+{
+  const CollisionStatus status = collisionStatus(p, heading, grid);
+  if (status == CollisionStatus::OUT_OF_GRID ||
+    status == CollisionStatus::GEOMETRY_CONSTRAINT)
+  {
+    return {status, -std::numeric_limits<double>::infinity()};
+  }
+
+  const double collision_radius_m = std::max(0.0, config_.collision_circle_radius_m);
+  const Point circle_centers[] = {
+    p,
+    {
+      p.x + config_.front_collision_circle_offset_m * std::cos(heading),
+      p.y + config_.front_collision_circle_offset_m * std::sin(heading),
+      p.velocity
+    }
+  };
+  double minimum_clearance_m = std::numeric_limits<double>::infinity();
+  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
+
+  if (grid.has_clearance_cache && grid.obstacle_distance_m.size() >= cell_count) {
+    const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
+    for (const Point & center : circle_centers) {
+      int row = 0;
+      int col = 0;
+      if (!pointToGridCell(center, grid, row, col)) {
+        continue;
+      }
+      const double clearance_m =
+        static_cast<double>(grid.obstacle_distance_m[static_cast<size_t>(
+        gridIndex(row, col, grid.width))]) - cell_half_diagonal - collision_radius_m;
+      minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
+    }
+  } else {
+    // The planner node normally supplies the distance cache. This exact fallback
+    // keeps direct users correct without adding another approximate soft cost.
+    for (const Point & center : circle_centers) {
+      for (int row = 0; row < grid.height; ++row) {
+        for (int col = 0; col < grid.width; ++col) {
+          const size_t index = static_cast<size_t>(gridIndex(row, col, grid.width));
+          if (index >= grid.data.size() ||
+            grid.data[index] < config_.occupied_threshold)
+          {
+            continue;
+          }
+          const double cell_x =
+            grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
+          const double cell_y =
+            grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
+          minimum_clearance_m = std::min(
+            minimum_clearance_m,
+            std::hypot(cell_x - center.x, cell_y - center.y) - collision_radius_m);
+        }
+      }
+    }
+  }
+
+  return {status, minimum_clearance_m};
 }
 
 } // namespace local_planning

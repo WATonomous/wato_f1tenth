@@ -1,6 +1,6 @@
 #include "planning/planner/path_processing.hpp"
 
-#include "planning/planner/quintic_polynomial.hpp"
+#include "planning/planner/frenet_polynomial.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -85,9 +85,13 @@ std::vector<Point> smoothFrenetAnglesOrFallback(
       return fallback_path;
     }
 
-    const QuinticPolynomial curve = computeQuintic(
+    // same edge model as the search: the measured-start segment is a quartic
+    // (terminal d'' free), everything after is a cubic with no d'' constraints
+    const FrenetPolynomial curve = (anchor_index == 0) ?
+      computeQuartic(
       start.d, start.slope, start.second_derivative,
-      end.d, end.slope, end.second_derivative, delta_s);
+      end.d, end.slope, delta_s) :
+      computeCubic(start.d, start.slope, end.d, end.slope, delta_s);
     const int sample_count = std::max(
       2, static_cast<int>(std::ceil(delta_s / config.sample_spacing_m)) + 1);
 

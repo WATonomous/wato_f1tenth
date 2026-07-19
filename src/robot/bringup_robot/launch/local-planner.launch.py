@@ -39,7 +39,11 @@ def generate_launch_description():
     racing_line_file_arg = DeclareLaunchArgument(
         'racing_line_file',
         default_value=racing_line_file,
-        description='CSV racing line used by global planner, state manager, and local planner')
+        description='CSV racing line used by the standalone racing-line publisher and local planner')
+    racing_line_topic_arg = DeclareLaunchArgument(
+        'racing_line_topic',
+        default_value='/racing_line',
+        description='Topic on which to publish and consume the racing line')
     costmap_param_file_arg = DeclareLaunchArgument(
         'costmap_param_file',
         default_value=costmap_param_file,
@@ -55,15 +59,23 @@ def generate_launch_description():
             'mux_config': LaunchConfiguration('mux_config'),
         }.items())
 
-    global_planner = Node(
-        package='global_planner',
-        executable='global_planner_node',
-        name='global_planner_node',
+    racing_line_publisher = Node(
+        package='local_planning',
+        executable='racing_line_publisher_node',
+        name='racing_line_publisher_node',
         output='screen',
         parameters=[{
-            'file_directory': '/assets/optmial_clean_map.csv',
+            'racing_line_file': LaunchConfiguration('racing_line_file'),
+            'racing_line_topic': LaunchConfiguration('racing_line_topic'),
             'waypoint_frame_id': 'map',
         }])
+
+    overtake_ready_publisher = Node(
+        package='local_planning',
+        executable='bool_topic_publisher_node',
+        name='overtake_ready_publisher_node',
+        output='screen',
+        parameters=[{'topic': '/overtake_ready', 'value': True, 'publish_rate_hz': 1.0}])
 
     costmap = Node(
         package='costmap',
@@ -87,6 +99,7 @@ def generate_launch_description():
         parameters=[
             LaunchConfiguration('planner_config'),
             {'racing_line_file': LaunchConfiguration('racing_line_file')},
+            {'racing_line_topic': LaunchConfiguration('racing_line_topic')},
             {'debug_path_topic': LaunchConfiguration('debug_path_topic')},
         ],
         remappings=[('/path', '/local_path')])
@@ -99,6 +112,7 @@ def generate_launch_description():
         parameters=[
             LaunchConfiguration('planner_config'),
             {'racing_line_file': LaunchConfiguration('racing_line_file')},
+            {'racing_line_topic': LaunchConfiguration('racing_line_topic')},
         ])
 
     pure_persuit = Node(
@@ -106,17 +120,23 @@ def generate_launch_description():
         executable='pure_persuit_node',
         name='pure_persuit_node',
         output='screen',
-        parameters=[LaunchConfiguration('pure_persuit_config')])
+        parameters=[
+            LaunchConfiguration('pure_persuit_config'),
+            {'global_path_topic': LaunchConfiguration('racing_line_topic')},
+            {'overtake_enable': True},
+        ])
 
     return LaunchDescription([
         mux_config_arg,
         pure_persuit_config_arg,
         planner_config_arg,
         racing_line_file_arg,
+        racing_line_topic_arg,
         costmap_param_file_arg,
         debug_path_topic_arg,
         minimum_stack,
-        global_planner,
+        racing_line_publisher,
+        overtake_ready_publisher,
         costmap,
         occupancy_grid_adapter,
         local_planner,

@@ -77,8 +77,8 @@ std::string intentToString(LocalPlannerIntent intent);
 struct LocalFrenetPlannerConfig
 {
   double horizon_m = 6.0;
-  double layer_spacing_m = 0.5;
-  double lane_spacing_m = 0.1;
+  double layer_spacing_m = 1.0;
+  double lane_spacing_m = 0.2;
   double max_lateral_offset_m = 1.8;
   double max_path_angle_deg = 50.0;
   double sample_spacing_m = 0.1;
@@ -86,13 +86,10 @@ struct LocalFrenetPlannerConfig
   double collision_circle_radius_m = 0.20;
   double front_collision_circle_offset_m = 0.26;
   double soft_inflation_distance_m = 0.18;
-  double soft_inflation_cost = 100.0;
   int occupied_threshold = 50;
   double friction_coeff = 1.0;
   double min_velocity_mps = 0.5;
   double max_velocity_mps = 10.0;
-  double time_weight = 1.0;
-  double curvature_change_weight = 0.4;
   double follow_d_weight = 0.20;
   double overtake_d_weight = 0.02;
   double merge_d_weight = 0.20;
@@ -103,6 +100,18 @@ struct LocalFrenetPlannerConfig
   double velocity_smoothing_max_decel_mps2 = 2.5;
   double wheelbase_m = 0.33;
   double steering_command_timeout_s = 0.06;
+};
+
+// Rejection counters for one family of edges (direct quartics or ordinary
+// cubics), grouped by the lattice layer the edge tried to reach.
+struct EdgeLayerDiagnostics
+{
+  int destination_layer = 0;
+  int angle_pruned = 0;
+  int geometry_rejected = 0;
+  int collided = 0;
+  int out_of_grid = 0;
+  int accepted = 0;
 };
 
 struct LocalFrenetPlan
@@ -117,6 +126,20 @@ struct LocalFrenetPlan
 
   std::vector<Point> path;
   Status status = Status::NO_PATH;
+  // Indexed by destination_layer - 1; quartics can enter every layer, cubics
+  // only layers >= 2 (their layer-1 entry stays all-zero).
+  std::vector<EdgeLayerDiagnostics> direct_quartic_diagnostics;
+  std::vector<EdgeLayerDiagnostics> cubic_edge_diagnostics;
+  // How many lanes ended up reachable at each layer (index = layer - 1).  The
+  // first zero entry is where the search chain broke.
+  std::vector<int> reachable_lanes_by_layer;
+  double direct_quartic_runtime_ms = 0.0;
+  // Layer at which the selected path's direct quartic enters the lattice.
+  int direct_entry_layer = -1;
+  // Layer the selected path ends at.  Equal to the layer count on a
+  // full-horizon path; smaller when the partial-horizon fallback selected the
+  // deepest reachable layer because the final layer had no reachable lane.
+  int selected_final_layer = -1;
 };
 
 } // namespace local_planning

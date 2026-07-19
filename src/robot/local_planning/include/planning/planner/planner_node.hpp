@@ -49,6 +49,7 @@ private:
     const nav_msgs::msg::Path::SharedPtr & reference,
     LocalPlannerIntent intent);
   void publishPlannerViz(const LocalFrenetPlan & plan);
+  void logSearchDiagnostics(const LocalFrenetPlan & plan);
   nav_msgs::msg::Path pathToRosPath(
     const std::vector<Point> & path,
     const std_msgs::msg::Header & source_header);

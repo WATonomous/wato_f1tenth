@@ -1,7 +1,7 @@
 #include "planning/planner/edge_evaluator.hpp"
 
 #include "planning/planner/planner_costs.hpp"
-#include "planning/planner/quintic_polynomial.hpp"
+#include "planning/planner/frenet_polynomial.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -26,7 +26,7 @@ FrenetEdgeEvaluator::FrenetEdgeEvaluator(
 
 /*
     make sure the hop is valid and figure out its cost
-    1.  build quintic in d over layer spacing
+    1.  take the caller's d(s) polynomial over the ref span
     2.  map it to x,y
     3.  reject if its out of grid space or collides with smth
         TODO:   it would be bad if there are tiny artifacts in the actual lidar
@@ -38,12 +38,7 @@ FrenetEdgeEvaluator::FrenetEdgeEvaluator(
 
 */
 EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
-  double d_start,
-  double slope_start,
-  double second_derivative_start,
-  double d_end,
-  double slope_end,
-  double second_derivative_end,
+  const FrenetPolynomial & curve,
   LocalPlannerIntent intent,
   const OccupancyGrid & grid,
   const ReferenceGeometrySample * ref_samples,
@@ -57,15 +52,12 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
   }
 
   const double s0 = ref_samples[0].s;
-  const double delta_s = ref_samples[sample_count - 1].s - s0;
+  const double delta_s = curve.delta_s;
   if (delta_s <= 1e-12) {
     edge.collision_status = CollisionStatus::GEOMETRY_CONSTRAINT;
     return edge;
   }
 
-  const QuinticPolynomial curve = computeQuintic(
-    d_start, slope_start, second_derivative_start,
-    d_end, slope_end, second_derivative_end, delta_s);
   const double max_path_angle_rad = config_.max_path_angle_deg * kPi / 180.0;
 
   scratch.samples.clear();
@@ -88,11 +80,14 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
     }
 
     const double path_heading = ref.heading + path_angle;
-    const CollisionStatus status = collision_checker_.collisionStatus(p, path_heading, grid);
-    if (status == CollisionStatus::SOFT_INFLATION) {
-      edge.obstacle_proximity_cost = config_.soft_inflation_cost;
-    } else if (status != CollisionStatus::FREE) {
-      edge.collision_status = status;
+    const CollisionCheckResult collision =
+      collision_checker_.collisionCheck(p, path_heading, grid);
+    edge.minimum_clearance_m = std::min(
+      edge.minimum_clearance_m, collision.minimum_clearance_m);
+    if (collision.status != CollisionStatus::FREE &&
+      collision.status != CollisionStatus::SOFT_INFLATION)
+    {
+      edge.collision_status = collision.status;
       return edge;
     }
 
@@ -124,18 +119,11 @@ EdgeEvaluation FrenetEdgeEvaluator::evaluateEdge(
     const double segment_length = distance(prev, curr);
     const double v = std::max(config_.min_velocity_mps, 0.5 * (prev.velocity + curr.velocity));
     edge.predicted_time_cost += segment_length / v;
-
-    const double dk = curvatures[static_cast<size_t>(i)] - curvatures[static_cast<size_t>(i - 1)];
-    edge.curvature_change_cost += dk * dk;
   }
 
   edge.intent_bias_cost /= static_cast<double>(samples.size());
 
-  edge.total_cost =
-    config_.time_weight * edge.predicted_time_cost +
-    config_.curvature_change_weight * edge.curvature_change_cost +
-    edge.intent_bias_cost +
-    edge.obstacle_proximity_cost;
+  edge.total_cost = edge.predicted_time_cost + edge.intent_bias_cost;
   return edge;
 }
 

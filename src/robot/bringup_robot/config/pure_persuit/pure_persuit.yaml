@@ -9,6 +9,7 @@ pure_persuit_node:
     ackermann_control_topic: "/drive/autonomy"
     odom_topic: "/odom"
     overtake_enable: true
+    control_rate_hz: 50.0
     force_dead_man_active: true
     speed_limit_active: true
     speed_limit: 10.0

@@ -45,7 +45,7 @@ target_link_libraries(state_manager_node ${state_manager_typesupport})
 set(LOCAL_FRENET_LATTICE_PLANNER_SOURCES
   src/planner/planner_node.cpp
   src/planner/local_frenet_lattice_planner.cpp
-  src/planner/quintic_polynomial.cpp
+  src/planner/frenet_polynomial.cpp
   src/planner/edge_evaluator.cpp
   src/planner/collision_checker.cpp
   src/planner/planner_costs.cpp
@@ -91,11 +91,19 @@ add_executable(occupancy_grid_frame_adapter_node src/occupancy_grid_frame_adapte
 target_include_directories(occupancy_grid_frame_adapter_node PUBLIC include)
 ament_target_dependencies(occupancy_grid_frame_adapter_node rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
 
+add_executable(racing_line_publisher_node src/racing_line_publisher_node.cpp)
+ament_target_dependencies(racing_line_publisher_node rclcpp nav_msgs std_msgs geometry_msgs)
+
+add_executable(bool_topic_publisher_node src/racing_line_publisher_node.cpp)
+ament_target_dependencies(bool_topic_publisher_node rclcpp nav_msgs std_msgs geometry_msgs)
+
 install(TARGETS
   state_manager_node
   local_frenet_lattice_planner_node
   hybrid_astar_planner_node
   occupancy_grid_frame_adapter_node
+  racing_line_publisher_node
+  bool_topic_publisher_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

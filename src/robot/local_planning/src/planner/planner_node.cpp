@@ -33,24 +33,21 @@ PlannerNode::PlannerNode()
 {
   declare_parameter<std::string>("racing_line_topic", "/global_planner/path");
   declare_parameter<std::string>("steering_command_topic", "/drive/autonomy");
-  declare_parameter<double>("planner_rate_hz", 100.0);
+  declare_parameter<double>("planner_rate_hz", 20.0);
   declare_parameter<double>("horizon_m", 6.0);
-  declare_parameter<double>("layer_spacing_m", 0.5);
-  declare_parameter<double>("lane_spacing_m", 0.1);
+  declare_parameter<double>("layer_spacing_m", 1.0);
+  declare_parameter<double>("lane_spacing_m", 0.2);
   declare_parameter<double>("max_lateral_offset_m", 1.8);
   declare_parameter<double>("max_path_angle_deg", 50.0);
   declare_parameter<double>("sample_spacing_m", 0.1);
-  declare_parameter<double>("max_runtime_ms", 9.0);
+  declare_parameter<double>("max_runtime_ms", 45.0);
   declare_parameter<double>("collision_circle_radius_m", 0.20);
   declare_parameter<double>("front_collision_circle_offset_m", 0.26);
   declare_parameter<double>("soft_inflation_distance_m", 0.18);
-  declare_parameter<double>("soft_inflation_cost", 100.0);
   declare_parameter<int>("occupied_threshold", 50);
   declare_parameter<double>("friction_coeff", 1.0);
   declare_parameter<double>("min_velocity_mps", 0.5);
   declare_parameter<double>("max_velocity_mps", 10.0);
-  declare_parameter<double>("time_weight", 1.0);
-  declare_parameter<double>("curvature_change_weight", 0.4);
   declare_parameter<double>("follow_d_weight", 0.20);
   declare_parameter<double>("overtake_d_weight", 0.02);
   declare_parameter<double>("merge_d_weight", 0.20);
@@ -79,8 +76,7 @@ PlannerNode::PlannerNode()
   LOAD_DOUBLE(max_lateral_offset_m); LOAD_DOUBLE(max_path_angle_deg); LOAD_DOUBLE(sample_spacing_m);
   LOAD_DOUBLE(max_runtime_ms); LOAD_DOUBLE(collision_circle_radius_m);
   LOAD_DOUBLE(front_collision_circle_offset_m); LOAD_DOUBLE(soft_inflation_distance_m);
-  LOAD_DOUBLE(soft_inflation_cost); LOAD_DOUBLE(friction_coeff); LOAD_DOUBLE(min_velocity_mps);
-  LOAD_DOUBLE(max_velocity_mps); LOAD_DOUBLE(time_weight); LOAD_DOUBLE(curvature_change_weight);
+  LOAD_DOUBLE(friction_coeff); LOAD_DOUBLE(min_velocity_mps); LOAD_DOUBLE(max_velocity_mps);
   LOAD_DOUBLE(follow_d_weight); LOAD_DOUBLE(overtake_d_weight); LOAD_DOUBLE(merge_d_weight);
   LOAD_DOUBLE(merge_terminal_d_weight); LOAD_DOUBLE(velocity_smoothing_max_accel_mps2);
   LOAD_DOUBLE(velocity_smoothing_max_decel_mps2);
@@ -223,6 +219,7 @@ void PlannerNode::runAttempt(SteadyClock::time_point start)
     odom.has_steering_angle = true;
   }
   LocalFrenetPlan plan = planner_->plan(odom, *grid, intent, deadline);
+  logSearchDiagnostics(plan);
   if (plan.status == LocalFrenetPlan::Status::DEADLINE_EXCEEDED) {
     publishStatus(msg::PlannerStatus::DEADLINE_EXCEEDED, elapsedMs(start), 0,
       odom_msg, grid_msg, reference_msg, intent); return;
@@ -246,6 +243,76 @@ void PlannerNode::runAttempt(SteadyClock::time_point start)
   last_trajectory_stamp_ = controller_path.header.stamp;
   publishStatus(msg::PlannerStatus::SUCCESS, elapsedMs(start), plan.path.size(),
     odom_msg, grid_msg, reference_msg, intent);
+}
+
+namespace
+{
+std::string edgeCountersToString(const EdgeLayerDiagnostics & layer)
+{
+  return "[ok:" + std::to_string(layer.accepted) +
+         " ang:" + std::to_string(layer.angle_pruned) +
+         " geo:" + std::to_string(layer.geometry_rejected) +
+         " col:" + std::to_string(layer.collided) +
+         " grid:" + std::to_string(layer.out_of_grid) + "]";
+}
+} // namespace
+
+/*
+one line per lattice layer so a broken search chain is readable at a glance:
+  reach  - lanes reachable at this layer after the whole search
+  quartic - direct car-to-layer edges (the only way into L1)
+  cubic   - ordinary edges from the previous layer (only exist from L2 on)
+the first layer with reach:0 is where every path died; its quartic/cubic
+counters say why (ang = early slope prune, geo = sampled angle limit,
+col = occupied cells incl. walls, grid = left the costmap).
+*/
+void PlannerNode::logSearchDiagnostics(const LocalFrenetPlan & plan)
+{
+  const size_t layer_count = plan.direct_quartic_diagnostics.size();
+  if (layer_count == 0) {
+    return;
+  }
+
+  int first_dead_layer = -1;
+  std::string per_layer;
+  for (size_t i = 0; i < layer_count; ++i) {
+    const int reachable = i < plan.reachable_lanes_by_layer.size() ?
+      plan.reachable_lanes_by_layer[i] : 0;
+    if (reachable == 0 && first_dead_layer < 0) {
+      first_dead_layer = static_cast<int>(i) + 1;
+    }
+    per_layer += "\n  L" + std::to_string(i + 1) +
+      " reach:" + std::to_string(reachable) +
+      "  quartic" + edgeCountersToString(plan.direct_quartic_diagnostics[i]) +
+      "  cubic" + (i < 1 || i >= plan.cubic_edge_diagnostics.size() ?
+      std::string("[n/a]") : edgeCountersToString(plan.cubic_edge_diagnostics[i]));
+  }
+
+  if (plan.status == LocalFrenetPlan::Status::NO_PATH) {
+    RCLCPP_INFO_THROTTLE(
+      get_logger(), *get_clock(), 1000,
+      "NO_PATH search diagnostics (first dead layer: %s; quartic phase %.3f ms):%s",
+      first_dead_layer < 0 ? "none, all layers reachable" :
+      ("L" + std::to_string(first_dead_layer)).c_str(),
+      plan.direct_quartic_runtime_ms, per_layer.c_str());
+    return;
+  }
+  if (plan.status == LocalFrenetPlan::Status::SUCCESS &&
+    plan.selected_final_layer > 0 &&
+    plan.selected_final_layer < static_cast<int>(layer_count))
+  {
+    RCLCPP_INFO_THROTTLE(
+      get_logger(), *get_clock(), 1000,
+      "partial-horizon path: ends at L%d of L%zu (deeper layers unreachable; "
+      "entry layer %d):%s",
+      plan.selected_final_layer, layer_count, plan.direct_entry_layer, per_layer.c_str());
+    return;
+  }
+  RCLCPP_DEBUG_THROTTLE(
+    get_logger(), *get_clock(), 1000,
+    "search diagnostics (entry layer %d, final layer %d; quartic phase %.3f ms):%s",
+    plan.direct_entry_layer, plan.selected_final_layer,
+    plan.direct_quartic_runtime_ms, per_layer.c_str());
 }
 
 void PlannerNode::publishStatus(

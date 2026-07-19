@@ -10,24 +10,21 @@ state_manager_node:
 local_frenet_lattice_planner_node:
   ros__parameters:
     horizon_m: 6.0 # length of the path
-    layer_spacing_m: 0.5
-    lane_spacing_m: 0.1
-    max_lateral_offset_m: 1.8
-    max_path_angle_deg: 50.0 # max heading deviation from raceline for sampled edge geometry
+    layer_spacing_m: 1.0
+    lane_spacing_m: 0.2
+    max_lateral_offset_m: 2.0
+    max_path_angle_deg: 60.0 # max heading deviation from raceline for sampled edge geometry
     sample_spacing_m: 0.1 #basically the resolution of the path
-    planner_rate_hz: 100.0 # maximum completion-driven attempt rate
+    planner_rate_hz: 50.0 # maximum completion-driven attempt rate
     max_runtime_ms: 9.0 # soft deadline checked immediately after the DP loop
     collision_circle_radius_m: 0.20
     front_collision_circle_offset_m: 0.26
     soft_inflation_distance_m: 0.18
-    soft_inflation_cost: 100.0
     occupied_threshold: 50
     friction_coeff: 1.0 #yeah this number is completely made up
-    min_velocity_mps: 0.5 # ill probably make this 0 at some point
-    max_velocity_mps: 10.0 # the dream i guess
-    time_weight: 1.0 # how much we value optimizing time
-    curvature_change_weight: 0.4 # how much we value physics
-    follow_d_weight: 0.20 # pull towards racing line in follow mode
+    min_velocity_mps: 0.0 # ill probably make this 0 at some point
+    max_velocity_mps: 5.0 # the dream i guess
+    follow_d_weight: 0.9 # pull towards racing line in follow mode
     overtake_d_weight: 0.02 # pull towards racing line in overtake mode
     merge_d_weight: 0.20 # pull towards racing line in merge mode
     merge_terminal_d_weight: 0.0 # punish merge paths that dont return to racing line
