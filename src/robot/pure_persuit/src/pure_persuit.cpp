@@ -315,7 +315,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
         size_t prev_idx = (i == 0) ? (n - 1) : (i - 1);
         size_t current_idx= i;
 
-        distance += Pure_Persuit_Node::find_distance(current_global_path.poses[i-1].pose, current_global_path.poses[i].pose);
+        distance += Pure_Persuit_Node::find_distance(current_global_path.poses[prev_idx].pose, current_global_path.poses[current_idx].pose);
 
         if (distance >= current_lookahead) {
 
