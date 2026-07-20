@@ -74,8 +74,8 @@ enum class LocalPlannerIntent : uint8_t
 std::string intentToString(LocalPlannerIntent intent);
 
 // Post-processing applied to the selected crude DP path before publication.
-//   NONE            - publish the crude path unchanged
-//   ANGLE_SMOOTHING - Frenet central-difference angle smoothing (legacy)
+//   NONE            - keep crude geometry; still run common velocity pipeline
+//   ANGLE_SMOOTHING - Frenet polynomial rebuild (mutually exclusive with SPLINE)
 //   SPLINE          - Cartesian quintic-start + C2 cubic spline refinement
 enum class RefinementMode : uint8_t
 {

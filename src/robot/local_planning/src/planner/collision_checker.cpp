@@ -326,7 +326,7 @@ CollisionCheckResult CollisionChecker::collisionCheck(
       }
       const double clearance_m =
         static_cast<double>(grid.obstacle_distance_m[static_cast<size_t>(
-        gridIndex(row, col, grid.width))]) - cell_half_diagonal - collision_radius_m;
+          gridIndex(row, col, grid.width))]) - cell_half_diagonal - collision_radius_m;
       minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
     }
   } else {

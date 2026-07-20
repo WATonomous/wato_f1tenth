@@ -5,7 +5,6 @@
 #include "planning/planner/frenet_polynomial.hpp"
 #include "planning/planner/path_processing.hpp"
 #include "planning/planner/planner_costs.hpp"
-#include "planning/planner/spline_refinement.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -49,7 +48,7 @@ double frenetSecondDerivativeForVehicleCurvature(
     reference_curvature * tangent_scale * tangent_scale -
     reference_curvature_derivative * lateral_offset * lateral_slope -
     2.0 * reference_curvature * lateral_slope * lateral_slope) /
-    tangent_scale;
+         tangent_scale;
 }
 
 } // namespace
@@ -313,36 +312,14 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   const SelectedLatticePath selected_path = reconstructSelectedPath(
     states, best_lane, selected_final_layer, lanes, start, intent, grid, edge_evaluator,
     sample_count);
-  result.path = selected_path.path;
   result.direct_entry_layer = selected_path.direct_entry_layer;
 
-  switch (config_.refinement_mode) {
-    case RefinementMode::ANGLE_SMOOTHING: {
-      bool used_smoothed_path = false;
-      result.path = smoothFrenetAnglesOrFallback(
-        selected_path.anchors, selected_path.path, frenet_converter_, collision_checker, grid,
-        config_, used_smoothed_path);
-      if (used_smoothed_path) {
-        assignVelocityLimitsFromGeometry(result.path);
-      }
-      break;
-    }
-    case RefinementMode::SPLINE: {
-      // The spline assigns curvature-limited velocities internally on success;
-      // on fallback the crude path keeps its reconstruction velocities.  Frenet
-      // angle smoothing is intentionally never run in this mode.
-      bool used_spline_path = false;
-      result.path = refineWithSplineOrFallback(
-        selected_path.anchors, selected_path.path, odom, frenet_converter_, collision_checker,
-        grid, config_, used_spline_path);
-      (void)used_spline_path;
-      break;
-    }
-    case RefinementMode::NONE:
-      break;
-  }
-
-  smoothVelocityProfile(result.path, odom.velocity, config_);
+  // Post-search ownership: refinement mode switch, validation/fallback,
+  // curvature-limited velocity assignment, and accel/decel smoothing.
+  const PathProcessingResult processed = processSelectedPath(
+    selected_path.path, selected_path.anchors, odom, frenet_converter_,
+    collision_checker, grid, config_);
+  result.path = processed.path;
   result.status = result.path.empty() ? LocalFrenetPlan::Status::NO_PATH :
     LocalFrenetPlan::Status::SUCCESS;
   return result;
@@ -552,27 +529,6 @@ LocalFrenetLatticePlanner::reconstructSelectedPath(
   }
 
   return selected_path;
-}
-
-void LocalFrenetLatticePlanner::assignVelocityLimitsFromGeometry(std::vector<Point> & path) const
-{
-  if (path.empty()) {
-    return;
-  }
-
-  std::vector<double> curvatures(path.size(), 0.0);
-  for (std::size_t i = 1; i + 1 < path.size(); ++i) {
-    curvatures[i] = computeCurvature(path[i - 1], path[i], path[i + 1]);
-  }
-  if (path.size() > 2) {
-    curvatures.front() = curvatures[1];
-    curvatures.back() = curvatures[path.size() - 2];
-  }
-
-  for (std::size_t i = 0; i < path.size(); ++i) {
-    const double s = frenet_converter_.cartesianToFrenet(path[i]).s;
-    path[i].velocity = computeVelocity(s, curvatures[i], frenet_converter_, config_);
-  }
 }
 
 } // namespace local_planning

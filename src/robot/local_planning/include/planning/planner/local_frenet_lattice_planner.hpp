@@ -74,7 +74,6 @@ private:
     const OccupancyGrid & grid,
     const FrenetEdgeEvaluator & edge_evaluator,
     int sample_count) const;
-  void assignVelocityLimitsFromGeometry(std::vector<Point> & path) const;
 
   FrenetConverter frenet_converter_;
   LocalFrenetPlannerConfig config_;

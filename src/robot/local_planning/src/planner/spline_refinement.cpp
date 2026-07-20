@@ -1,7 +1,5 @@
 #include "planning/planner/spline_refinement.hpp"
 
-#include "planning/planner/planner_costs.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -13,7 +11,6 @@ namespace
 {
 
 constexpr double kEpsilon = 1e-6;
-constexpr double kPi = 3.14159265358979323846;
 
 // C2 natural cubic spline of a single coordinate against a parameter u.
 // The second derivatives are pinned to zero at both ends (natural); the
@@ -149,16 +146,6 @@ struct Quintic1D
   }
 };
 
-bool hasHardCollision(
-  const Point & point,
-  double heading,
-  const CollisionChecker & collision_checker,
-  const OccupancyGrid & grid)
-{
-  const CollisionStatus status = collision_checker.collisionStatus(point, heading, grid);
-  return status == CollisionStatus::COLLISION || status == CollisionStatus::OUT_OF_GRID;
-}
-
 // Cartesian knots for the spline: measured pose + crude lattice anchors.
 std::vector<Point> buildKnots(
   const std::vector<FrenetPoint> & anchors,
@@ -188,32 +175,28 @@ std::vector<Point> buildKnots(
 
 } // namespace
 
-std::vector<Point> refineWithSplineOrFallback(
+SplineRefinementResult refineSplineGeometry(
   const std::vector<FrenetPoint> & anchors,
-  const std::vector<Point> & fallback_path,
   const Odometry & odom,
   const FrenetConverter & frenet_converter,
-  const CollisionChecker & collision_checker,
-  const OccupancyGrid & grid,
-  const LocalFrenetPlannerConfig & config,
-  bool & used_spline_path)
+  const LocalFrenetPlannerConfig & config)
 {
-  used_spline_path = false;
-  if (anchors.size() < 3 || fallback_path.empty()) {
-    return fallback_path;
+  SplineRefinementResult result;
+  if (anchors.size() < 3) {
+    return result;
   }
 
   const double sample_spacing =
     config.spline_sample_spacing_m > kEpsilon ?
     config.spline_sample_spacing_m : config.sample_spacing_m;
   if (sample_spacing <= kEpsilon) {
-    return fallback_path;
+    return result;
   }
 
   const std::vector<Point> knots =
     buildKnots(anchors, odom, frenet_converter);
   if (knots.size() < 3) {
-    return fallback_path;
+    return result;
   }
 
   // Chord-length parameter u for every knot (u[0] = 0).
@@ -225,7 +208,7 @@ std::vector<Point> refineWithSplineOrFallback(
   const double u_start = u[1];
   const double u_end = u.back();
   if (u_start <= kEpsilon || u_end - u_start <= kEpsilon) {
-    return fallback_path;
+    return result;
   }
 
   // Interior C2 natural cubic spline over knots[1 .. n] (excludes the start
@@ -242,16 +225,16 @@ std::vector<Point> refineWithSplineOrFallback(
   NaturalCubicSpline1D spline_x;
   NaturalCubicSpline1D spline_y;
   if (!spline_x.build(interior_u, interior_x) || !spline_y.build(interior_u, interior_y)) {
-    return fallback_path;
+    return result;
   }
 
   // Start clamp: unit-speed tangent from odometry heading; curvature from
   // odom.steering_angle (fresh /drive/autonomy, else 0). For a unit-speed curve
   // r''(u) = kappa * normal.
   const double theta = odom.heading;
-  const double kappa0 = config.wheelbase_m > kEpsilon
-    ? std::tan(odom.steering_angle) / config.wheelbase_m
-    : 0.0;
+  const double kappa0 = config.wheelbase_m > kEpsilon ?
+    std::tan(odom.steering_angle) / config.wheelbase_m :
+    0.0;
   const double d0x = std::cos(theta);
   const double d0y = std::sin(theta);
   const double s0x = -kappa0 * std::sin(theta);
@@ -271,8 +254,8 @@ std::vector<Point> refineWithSplineOrFallback(
   quintic_y.build(knots[0].y, d0y, s0y, knots[1].y, d1y, 0.0, u_start);
 
   // Dense sampling: quintic over [0, u_start], interior spline over
-  // [u_start, u_end].  Compute heading and curvature from the exact parametric
-  // derivatives (do not assume unit speed away from the start).
+  // [u_start, u_end]. Exact parametric derivatives supply heading (validation /
+  // cusp guard) and analytic curvature (velocity limits on success).
   struct DenseSample
   {
     double x;
@@ -315,45 +298,35 @@ std::vector<Point> refineWithSplineOrFallback(
   }
 
   if (dense.size() < 2) {
-    return fallback_path;
+    return result;
   }
 
-  // Validate from scratch and assign curvature-limited velocities.  Any
-  // failure discards the whole spline in favor of the crude path.
-  const double max_heading_error = config.max_path_angle_deg * kPi / 180.0;
-  std::vector<Point> refined;
-  refined.reserve(dense.size());
+  // Spline-only forward-progress / cusp guard: the step must not fold back on
+  // the sample's own tangent direction. Shared collision / heading validation
+  // and velocity assignment happen in path_processing.
+  result.path.reserve(dense.size());
+  result.headings.reserve(dense.size());
+  result.curvatures.reserve(dense.size());
   for (std::size_t i = 0; i < dense.size(); ++i) {
     const DenseSample & sample = dense[i];
-    const Point point(sample.x, sample.y);
-    if (hasHardCollision(point, sample.heading, collision_checker, grid)) {
-      return fallback_path;
-    }
-
-    const FrenetPoint fp = frenet_converter.cartesianToFrenet(point);
-    const double heading_error = normalizeHeadingError(
-      sample.heading - frenet_converter.getRacingLineHeading(fp.s));
-    if (std::abs(heading_error) > max_heading_error) {
-      return fallback_path;
-    }
-
-    // Reverse-progress / cusp guard: the step must not fold back on the
-    // sample's own tangent direction.
     if (i > 0) {
       const double step_x = sample.x - dense[i - 1].x;
       const double step_y = sample.y - dense[i - 1].y;
       if (step_x * std::cos(sample.heading) + step_y * std::sin(sample.heading) < 0.0) {
-        return fallback_path;
+        result.path.clear();
+        result.headings.clear();
+        result.curvatures.clear();
+        return result;
       }
     }
 
-    Point out = point;
-    out.velocity = computeVelocity(fp.s, sample.curvature, frenet_converter, config);
-    refined.push_back(out);
+    result.path.emplace_back(sample.x, sample.y);
+    result.headings.push_back(sample.heading);
+    result.curvatures.push_back(sample.curvature);
   }
 
-  used_spline_path = true;
-  return refined;
+  result.success = true;
+  return result;
 }
 
 } // namespace local_planning

@@ -10,18 +10,25 @@
 namespace local_planning
 {
 
-std::vector<Point> smoothFrenetAnglesOrFallback(
+// Post-search pipeline result: final path plus whether the requested refiner
+// succeeded or the reconstructed crude path was used as fallback.
+struct PathProcessingResult
+{
+  std::vector<Point> path;
+  bool refinement_succeeded = false;
+  bool used_crude_fallback = false;
+};
+
+// Single post-search entry point after DP reconstruction:
+// selected geometry refinement → validate or fall back to crude →
+// recompute curvature / velocity limits → accel/decel smoothing.
+PathProcessingResult processSelectedPath(
+  const std::vector<Point> & crude_path,
   const std::vector<FrenetPoint> & anchors,
-  const std::vector<Point> & fallback_path,
+  const Odometry & odom,
   const FrenetConverter & frenet_converter,
   const CollisionChecker & collision_checker,
   const OccupancyGrid & grid,
-  const LocalFrenetPlannerConfig & config,
-  bool & used_smoothed_path);
-
-void smoothVelocityProfile(
-  std::vector<Point> & path,
-  double start_velocity_mps,
   const LocalFrenetPlannerConfig & config);
 
 } // namespace local_planning

@@ -28,6 +28,31 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+
+  set(LOCAL_PLANNING_POSTPROCESS_SOURCES
+    src/planner/frenet_polynomial.cpp
+    src/planner/frenet_refinement.cpp
+    src/planner/spline_refinement.cpp
+    src/planner/path_processing.cpp
+    src/planner/velocity_smoothing.cpp
+    src/planner/planner_costs.cpp
+    src/planner/collision_checker.cpp
+    src/frenet_converter.cpp
+  )
+
+  ament_add_gtest(test_path_processing test/test_path_processing.cpp)
+  target_include_directories(test_path_processing PUBLIC include)
+  target_sources(test_path_processing PRIVATE ${LOCAL_PLANNING_POSTPROCESS_SOURCES})
+
+  ament_add_gtest(test_velocity_smoothing test/test_velocity_smoothing.cpp)
+  target_include_directories(test_velocity_smoothing PUBLIC include)
+  target_sources(test_velocity_smoothing PRIVATE
+    src/planner/velocity_smoothing.cpp
+    src/planner/planner_costs.cpp
+    src/frenet_converter.cpp
+  )
 endif()
 
 # state manager node
@@ -50,7 +75,9 @@ set(LOCAL_FRENET_LATTICE_PLANNER_SOURCES
   src/planner/collision_checker.cpp
   src/planner/planner_costs.cpp
   src/planner/path_processing.cpp
+  src/planner/frenet_refinement.cpp
   src/planner/spline_refinement.cpp
+  src/planner/velocity_smoothing.cpp
   src/frenet_converter.cpp
   src/ros_adapters.cpp
 )
