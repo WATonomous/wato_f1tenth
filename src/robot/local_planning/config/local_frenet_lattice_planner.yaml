@@ -23,7 +23,7 @@ local_frenet_lattice_planner_node:
     occupied_threshold: 50
     friction_coeff: 1.0 #yeah this number is completely made up
     min_velocity_mps: 0.0 # ill probably make this 0 at some point
-    max_velocity_mps: 5.0 # the dream i guess
+    max_velocity_mps: 10.0 # the dream i guess
     follow_d_weight: 0.9 # pull towards racing line in follow mode
     overtake_d_weight: 0.02 # pull towards racing line in overtake mode
     merge_d_weight: 0.20 # pull towards racing line in merge mode
@@ -31,7 +31,8 @@ local_frenet_lattice_planner_node:
     planner_path_frame: "map"
     controller_path_frame: "base_link"
     debug_path_topic: "/local_path_map"
-    angle_smoothing_enabled: true
+    refinement_mode: "spline" # post-processing of the crude DP path: none | angle_smoothing | spline
+    spline_sample_spacing_m: 0.1 # dense output resolution for the spline (<=0 reuses sample_spacing_m)
     velocity_smoothing_enabled: true
     velocity_smoothing_max_accel_mps2: 5.0
     velocity_smoothing_max_decel_mps2: 5.0

@@ -26,6 +26,15 @@ double elapsedMs(SteadyClock::time_point start)
 {
   return std::chrono::duration<double, std::milli>(SteadyClock::now() - start).count();
 }
+
+RefinementMode parseRefinementMode(const std::string & mode)
+{
+  if (mode == "none") {return RefinementMode::NONE;}
+  if (mode == "spline") {return RefinementMode::SPLINE;}
+  if (mode == "angle_smoothing") {return RefinementMode::ANGLE_SMOOTHING;}
+
+  return RefinementMode::ANGLE_SMOOTHING;
+}
 }
 
 PlannerNode::PlannerNode()
@@ -55,7 +64,8 @@ PlannerNode::PlannerNode()
   declare_parameter<std::string>("planner_path_frame", "map");
   declare_parameter<std::string>("controller_path_frame", "base_link");
   declare_parameter<std::string>("debug_path_topic", "/local_path_map");
-  declare_parameter<bool>("angle_smoothing_enabled", false);
+  declare_parameter<std::string>("refinement_mode", "angle_smoothing");
+  declare_parameter<double>("spline_sample_spacing_m", 0.1);
   declare_parameter<bool>("velocity_smoothing_enabled", false);
   declare_parameter<double>("velocity_smoothing_max_accel_mps2", 2.5);
   declare_parameter<double>("velocity_smoothing_max_decel_mps2", 2.5);
@@ -81,9 +91,11 @@ PlannerNode::PlannerNode()
   LOAD_DOUBLE(merge_terminal_d_weight); LOAD_DOUBLE(velocity_smoothing_max_accel_mps2);
   LOAD_DOUBLE(velocity_smoothing_max_decel_mps2);
   LOAD_DOUBLE(wheelbase_m); LOAD_DOUBLE(steering_command_timeout_s);
+  LOAD_DOUBLE(spline_sample_spacing_m);
 #undef LOAD_DOUBLE
   planner_config_.occupied_threshold = get_parameter("occupied_threshold").as_int();
-  planner_config_.angle_smoothing_enabled = get_parameter("angle_smoothing_enabled").as_bool();
+  planner_config_.refinement_mode = parseRefinementMode(
+    get_parameter("refinement_mode").as_string());
   planner_config_.velocity_smoothing_enabled =
     get_parameter("velocity_smoothing_enabled").as_bool();
 
@@ -216,8 +228,8 @@ void PlannerNode::runAttempt(SteadyClock::time_point start)
     std::max(0.0, planner_config_.steering_command_timeout_s));
   if (steering_command && SteadyClock::now() - steering_command_received <= steering_timeout) {
     odom.steering_angle = *steering_command;
-    odom.has_steering_angle = true;
   }
+  // else: odom.steering_angle stays 0 (stale or never received)
   LocalFrenetPlan plan = planner_->plan(odom, *grid, intent, deadline);
   logSearchDiagnostics(plan);
   if (plan.status == LocalFrenetPlan::Status::DEADLINE_EXCEEDED) {

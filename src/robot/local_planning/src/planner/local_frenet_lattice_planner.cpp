@@ -5,6 +5,7 @@
 #include "planning/planner/frenet_polynomial.hpp"
 #include "planning/planner/path_processing.hpp"
 #include "planning/planner/planner_costs.hpp"
+#include "planning/planner/spline_refinement.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -94,7 +95,7 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   const double heading_error = normalizeHeadingError(odom.heading - start_ref.heading);
   const double start_slope = std::clamp(std::tan(heading_error), -1.5, 1.5);
   start.slope = start_slope;
-  if (odom.has_steering_angle && config_.wheelbase_m > kEpsilon) {
+  if (config_.wheelbase_m > kEpsilon) {
     const double vehicle_curvature = std::tan(odom.steering_angle) / config_.wheelbase_m;
     start.second_derivative = frenetSecondDerivativeForVehicleCurvature(
       vehicle_curvature,
@@ -315,14 +316,30 @@ LocalFrenetPlan LocalFrenetLatticePlanner::plan(
   result.path = selected_path.path;
   result.direct_entry_layer = selected_path.direct_entry_layer;
 
-  if (config_.angle_smoothing_enabled) {
-    bool used_smoothed_path = false;
-    result.path = smoothFrenetAnglesOrFallback(
-      selected_path.anchors, selected_path.path, frenet_converter_, collision_checker, grid,
-      config_, used_smoothed_path);
-    if (used_smoothed_path) {
-      assignVelocityLimitsFromGeometry(result.path);
+  switch (config_.refinement_mode) {
+    case RefinementMode::ANGLE_SMOOTHING: {
+      bool used_smoothed_path = false;
+      result.path = smoothFrenetAnglesOrFallback(
+        selected_path.anchors, selected_path.path, frenet_converter_, collision_checker, grid,
+        config_, used_smoothed_path);
+      if (used_smoothed_path) {
+        assignVelocityLimitsFromGeometry(result.path);
+      }
+      break;
     }
+    case RefinementMode::SPLINE: {
+      // The spline assigns curvature-limited velocities internally on success;
+      // on fallback the crude path keeps its reconstruction velocities.  Frenet
+      // angle smoothing is intentionally never run in this mode.
+      bool used_spline_path = false;
+      result.path = refineWithSplineOrFallback(
+        selected_path.anchors, selected_path.path, odom, frenet_converter_, collision_checker,
+        grid, config_, used_spline_path);
+      (void)used_spline_path;
+      break;
+    }
+    case RefinementMode::NONE:
+      break;
   }
 
   smoothVelocityProfile(result.path, odom.velocity, config_);

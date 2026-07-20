@@ -52,9 +52,7 @@ std::vector<Point> smoothFrenetAnglesOrFallback(
   bool & used_smoothed_path)
 {
   used_smoothed_path = false;
-  if (!config.angle_smoothing_enabled || anchors.size() < 2 ||
-    config.sample_spacing_m <= kEpsilon)
-  {
+  if (anchors.size() < 2 || config.sample_spacing_m <= kEpsilon) {
     return fallback_path;
   }
 

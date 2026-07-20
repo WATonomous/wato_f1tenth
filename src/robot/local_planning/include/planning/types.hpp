@@ -49,8 +49,8 @@ struct Odometry
   Point position;
   double velocity;
   double heading;
+  // Last pure-pursuit command if fresh within steering_command_timeout_s; else 0.
   double steering_angle = 0.0;
-  bool has_steering_angle = false;
 };
 
 struct OccupancyGrid
@@ -73,6 +73,17 @@ enum class LocalPlannerIntent : uint8_t
 
 std::string intentToString(LocalPlannerIntent intent);
 
+// Post-processing applied to the selected crude DP path before publication.
+//   NONE            - publish the crude path unchanged
+//   ANGLE_SMOOTHING - Frenet central-difference angle smoothing (legacy)
+//   SPLINE          - Cartesian quintic-start + C2 cubic spline refinement
+enum class RefinementMode : uint8_t
+{
+  NONE = 0,
+  ANGLE_SMOOTHING = 1,
+  SPLINE = 2
+};
+
 //for explanations see the yaml
 struct LocalFrenetPlannerConfig
 {
@@ -94,7 +105,10 @@ struct LocalFrenetPlannerConfig
   double overtake_d_weight = 0.02;
   double merge_d_weight = 0.20;
   double merge_terminal_d_weight = 0.0;
-  bool angle_smoothing_enabled = false;
+  RefinementMode refinement_mode = RefinementMode::ANGLE_SMOOTHING;
+  // Dense output sample spacing for the spline; falls back to sample_spacing_m
+  // when non-positive.
+  double spline_sample_spacing_m = 0.1;
   bool velocity_smoothing_enabled = false;
   double velocity_smoothing_max_accel_mps2 = 2.5;
   double velocity_smoothing_max_decel_mps2 = 2.5;
