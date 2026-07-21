@@ -1,35 +1,14 @@
 /*
     Authors           : Jun Kim
-    Last Date of Edit : 2026-06-15
+    Last Date of Edit : 2026-07-21
 
     Stanley Controller Node
 
-    Implementation overview:
-    - A 50 ms timer drives control_timer_callback which updates the state
-      machine (INACTIVE / GLOBAL_FOLLOW) and applies the Stanley control law.
-    - The front axle position is computed from odometry using the wheelbase
-      parameter, as Stanley measures errors at the front axle, not the center of the vehicle.
-    - Cross track error is the perpendicular distance from the front axle to
-      the closest point on the global path, measured in the car frame (y value).
-    - Heading error is the difference between the car's current heading and
-      the path heading at the closest waypoint.
-    - Stanley formula: steering = (k_h * heading_error) + atan2(k_e * cte, speed)
-    - Waypoints are encoded as geometry_msgs::Point where (x, y) is the 2D
-      position and z carries the target velocity at that point.
-
-    Testing and verification:
-    - Successfully completed several laps on the track autonomously
-    - Oscillation on straights observed and tunable via k_e parameter
-    - No major difference in laptime compared to pure pursuit at current speed limits
-
-
-
-
-    - autosim trouble if not in focus
-
+    
 */
 
-#ifndef STANLEY_CONTROLLER_HPP_ 
+
+#ifndef STANLEY_CONTROLLER_HPP_
 #define STANLEY_CONTROLLER_HPP_
 
 #include <chrono>
@@ -84,7 +63,6 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
-  
 
     //timer
     rclcpp::TimerBase::SharedPtr control_loop_timer;
@@ -102,16 +80,16 @@ private:
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
     void publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
-                       size_t closest_idx,
-                       double cross_track_error,
-                       double heading_error,
-                       double heading_term,
-                       double cte_term,
-                       double steering_cmd,
-                       double velocity);
+                           size_t closest_idx,
+                           double cross_track_error,
+                           double heading_error,
+                           double heading_term,
+                           double cte_term,
+                           double steering_cmd,
+                           double velocity);
 
     //parameters
-    std::string global_path_topic;  
+    std::string global_path_topic;
     std::string dead_man_active_topic;
     std::string ackermann_control_topic;
     std::string odom_topic;
@@ -125,24 +103,30 @@ private:
     double max_steering_angle;
     double k_e;        // cross track error gain
     double k_h;        // heading error gain
+    double k_soft;     // softening constant, stops atan2 saturating at low speed
     double wheelbase;  // distance between front and rear axles
     double current_velocity;
     bool enable_debug_vis;
-
-    size_t last_closest_idx_;
-    double last_cross_track_error_;
-    double last_heading_error_;
-    double last_heading_term_;
-    double last_cte_term_;
-    double last_steering_cmd_;
-    
-
 
     //internal state and variables
     stanley_state_ controller_state;
     std_msgs::msg::Bool dead_man_active;
     nav_msgs::msg::Path current_global_path;
     nav_msgs::msg::Odometry current_pose;
+
+    //closest-point search state
+    size_t prev_closest_idx_ = 0;
+    bool   closest_idx_initialized_ = false;
+    size_t closest_point_window_ = 20;            // waypoints searched ahead each tick
+    double closest_point_recovery_dist_ = 2.0;    // metres; beyond this we re-scan the whole path
+
+    //last computed Stanley terms (for debug viz)
+    size_t last_closest_idx_       = 0;
+    double last_cross_track_error_ = 0.0;
+    double last_heading_error_     = 0.0;
+    double last_heading_term_      = 0.0;
+    double last_cte_term_          = 0.0;
+    double last_steering_cmd_      = 0.0;
 };
 
 #endif
