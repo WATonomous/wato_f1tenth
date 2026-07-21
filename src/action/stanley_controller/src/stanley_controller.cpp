@@ -3,11 +3,19 @@
 Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_node") {
 
     //parameters
-    Stanley_Controller_Node::init_parameters();
+    init_parameters();
 
-    //publisher
+    //publishers
     controls_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
         ackermann_control_topic, 10);
+
+    debug_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        "/debug/stanley_markers", 10);
+    cte_pub_          = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte", 10);
+    heading_err_pub_  = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_error", 10);
+    heading_term_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_term", 10);
+    cte_term_pub_     = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte_term", 10);
+    delta_pub_        = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/delta_cmd", 10);
 
     //subscriptions
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
@@ -23,6 +31,8 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         global_path_topic, latched_qos,
         [this](const nav_msgs::msg::Path::SharedPtr msg) {
             current_global_path = *msg;
+            //new path invalidates the cached search index
+            closest_idx_initialized_ = false;
         }
     );
 
@@ -52,36 +62,41 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
 void Stanley_Controller_Node::control_timer_callback() {
 
     //update controller state
-    Stanley_Controller_Node::update_controller_state();
+    update_controller_state();
 
-    //don't apply any control if the controller is not active, stop everything
+    const bool have_path = !current_global_path.poses.empty();
+
     if (controller_state == stanley_state_::INACTIVE) {
-        RCLCPP_WARN(this->get_logger(), "Dead Man switch is off");
-        controls_pub_->publish(Stanley_Controller_Node::dead_stop());
-        return;
+
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                             "Dead Man switch is off");
+        controls_pub_->publish(dead_stop());
+
+    } else if (!have_path) {
+
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                             "no waypoints in global path while in GLOBAL_FOLLOW state");
+        controls_pub_->publish(dead_stop());
+
+    } else {
+
+        //apply the stanley control law
+        controls_pub_->publish(calculate_control());
+
     }
 
-    if (current_global_path.poses.empty()) {
-        RCLCPP_WARN(this->get_logger(), "no waypoints in global path while in GLOBAL_FOLLOW state");
-        controls_pub_->publish(Stanley_Controller_Node::dead_stop());
-        return;
+    //publish viz every tick, not just when we're actively driving, so the
+    //markers keep tracking the car during dead-stop and sim-reset periods
+    if (enable_debug_vis && have_path) {
+        publish_debug_vis(current_pose.pose.pose,
+                          last_closest_idx_,
+                          last_cross_track_error_,
+                          last_heading_error_,
+                          last_heading_term_,
+                          last_cte_term_,
+                          last_steering_cmd_,
+                          current_velocity);
     }
-
-    //apply the stanley control law
-    ackermann_msgs::msg::AckermannDriveStamped control_command = Stanley_Controller_Node::calculate_control();
-
-   if (enable_debug_vis) {
-    publish_debug_vis(current_pose.pose.pose,
-                      last_closest_idx_,
-                      last_cross_track_error_,
-                      last_heading_error_,
-                      last_heading_term_,
-                      last_cte_term_,
-                      last_steering_cmd_,
-                      current_velocity);
-}
-    //publish control inputs
-    controls_pub_->publish(control_command);
 
 }
 
@@ -98,17 +113,17 @@ void Stanley_Controller_Node::update_controller_state() {
 ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_control() {
 
     //get current pose
-    double cx = current_pose.pose.pose.position.x;
-    double cy = current_pose.pose.pose.position.y;
-    double yaw = Stanley_Controller_Node::extractYaw(current_pose.pose.pose.orientation);
+    double cx  = current_pose.pose.pose.position.x;
+    double cy  = current_pose.pose.pose.position.y;
+    double yaw = extractYaw(current_pose.pose.pose.orientation);
 
-    //calculate front axle position
+    //calculate front axle position (stanley measures error here, not at base_link)
     double front_x = cx + wheelbase * std::cos(yaw);
     double front_y = cy + wheelbase * std::sin(yaw);
 
     //find closest waypoint to front axle
-    size_t closest_idx = Stanley_Controller_Node::find_closest_point(front_x, front_y);
-    size_t next_idx = (closest_idx + 1) % current_global_path.poses.size();
+    size_t closest_idx = find_closest_point(front_x, front_y);
+    size_t next_idx    = (closest_idx + 1) % current_global_path.poses.size();
 
     //path heading at closest point
     double path_dx = current_global_path.poses[next_idx].pose.position.x -
@@ -117,38 +132,23 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
                      current_global_path.poses[closest_idx].pose.position.y;
     double path_heading = std::atan2(path_dy, path_dx);
 
-    //current heading of car
-    double current_heading = yaw;
-    if (current_heading < 0) current_heading += 2 * M_PI;
-    if (path_heading < 0) path_heading += 2 * M_PI;
-
-    //cross track error in car frame
+    //cross track error in car frame (+ = car is right of path, - = left)
     double dx = current_global_path.poses[closest_idx].pose.position.x - front_x;
     double dy = current_global_path.poses[closest_idx].pose.position.y - front_y;
     double cross_track_error = std::cos(yaw) * dy - std::sin(yaw) * dx;
 
-    //cross track correction
-    double cross_track_correction = std::atan2(k_e * cross_track_error, current_velocity + 1e-6);
-    
-/*
-    //heading error
-    double heading_error = path_heading - current_heading;
-    if (heading_error > M_PI) heading_error -= 2 * M_PI;
-    if (heading_error < -M_PI) heading_error += 2 * M_PI;
-    heading_error *= k_h;
-
-    //stanley formula
-    double steering_angle = heading_error + cross_track_correction;
-    steering_angle = std::clamp(steering_angle, -max_steering_angle, max_steering_angle);
-*/
-    //heading error (raw, in [-pi, pi])
-    double heading_error = path_heading - current_heading;
-    if (heading_error > M_PI) heading_error -= 2 * M_PI;
+    //heading error, wrapped to [-pi, pi]
+    double heading_error = path_heading - yaw;
+    if (heading_error >  M_PI) heading_error -= 2 * M_PI;
     if (heading_error < -M_PI) heading_error += 2 * M_PI;
 
-    //stanley terms 
+    //stanley terms
+    //k_soft keeps the atan2 from saturating at ~pi/2 when the car is nearly
+    //stopped; abs() guards the denominator against rolling backward
+    double speed        = std::abs(current_velocity);
     double heading_term = k_h * heading_error;
-    double cte_term     = cross_track_correction;
+    double cte_term     = std::atan2(k_e * cross_track_error, speed + k_soft);
+
     double steering_angle = heading_term + cte_term;
     steering_angle = std::clamp(steering_angle, -max_steering_angle, max_steering_angle);
 
@@ -162,13 +162,13 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
 
     //get target speed from path z value
     double target_speed = current_global_path.poses[closest_idx].pose.position.z;
-    if (speed_limit_enable && target_speed > speed_limit) {
-        target_speed = speed_limit;
+    if (speed_limit_enable) {
+        target_speed = std::clamp(target_speed, 0.0, speed_limit);
     }
 
-    RCLCPP_INFO(this->get_logger(),
-        "heading_err=%.3f, cte=%.3f, steer=%.3f, speed=%.2f",
-        heading_error, cross_track_error, steering_angle, target_speed);
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
+        "heading_err=%.3f, cte=%.3f, steer=%.3f, speed=%.2f, idx=%zu",
+        heading_error, cross_track_error, steering_angle, target_speed, closest_idx);
 
     ackermann_msgs::msg::AckermannDrive drive;
     drive.steering_angle = steering_angle;
@@ -176,7 +176,7 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
 
     ackermann_msgs::msg::AckermannDriveStamped stamp;
     stamp.drive = drive;
-    stamp.header.frame_id = "base_link";
+    stamp.header.frame_id = local_frame_id;
     stamp.header.stamp = this->now();
 
     return stamp;
@@ -185,19 +185,55 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
 
 size_t Stanley_Controller_Node::find_closest_point(double x, double y) {
 
-    size_t closest_idx = 0;
-    double min_dist = std::numeric_limits<double>::max();
+    const size_t n = current_global_path.poses.size();
+    if (n == 0) return 0;
 
-    for (size_t i = 0; i < current_global_path.poses.size(); i++) {
+    auto dist_to = [&](size_t i) {
         double dx = x - current_global_path.poses[i].pose.position.x;
         double dy = y - current_global_path.poses[i].pose.position.y;
-        double dist = std::sqrt(dx * dx + dy * dy);
-        if (dist < min_dist) {
-            min_dist = dist;
-            closest_idx = i;
+        return std::sqrt(dx * dx + dy * dy);
+    };
+
+    auto full_scan = [&]() {
+        size_t best_idx = 0;
+        double best = std::numeric_limits<double>::max();
+        for (size_t i = 0; i < n; i++) {
+            double d = dist_to(i);
+            if (d < best) { best = d; best_idx = i; }
         }
+        return best_idx;
+    };
+
+    //first call (or after a new path arrives): full scan to locate ourselves
+    if (!closest_idx_initialized_) {
+        prev_closest_idx_ = full_scan();
+        closest_idx_initialized_ = true;
+        return prev_closest_idx_;
     }
-    return closest_idx;
+
+    //subsequent calls: only search forward from the last known index.
+    //this is what stops the search teleporting to the opposite leg of a
+    //hairpin, where a waypoint on the return leg can be geometrically closer
+    //than the correct one just ahead of us
+    size_t best_idx  = prev_closest_idx_;
+    double best_dist = std::numeric_limits<double>::max();
+
+    for (size_t k = 0; k < closest_point_window_; k++) {
+        size_t i = (prev_closest_idx_ + k) % n;   //wrap for closed loop
+        double d = dist_to(i);
+        if (d < best_dist) { best_dist = d; best_idx = i; }
+    }
+
+    //recovery: if nothing in the window is close, we've probably been
+    //teleported (sim reset after a crash). re-acquire with a full scan
+    if (best_dist > closest_point_recovery_dist_) {
+        best_idx = full_scan();
+        RCLCPP_WARN(this->get_logger(),
+            "closest point search lost track, re-acquiring (idx=%zu)", best_idx);
+    }
+
+    prev_closest_idx_ = best_idx;
+    return best_idx;
 
 }
 
@@ -219,7 +255,7 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::dead_stop() 
 
     ackermann_msgs::msg::AckermannDriveStamped stamp;
     stamp.drive = drive;
-    stamp.header.frame_id = "base_link";
+    stamp.header.frame_id = local_frame_id;
     stamp.header.stamp = this->now();
 
     return stamp;
@@ -232,47 +268,47 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<std::string>("global_path_topic", "/global_planner/path");
     this->declare_parameter<std::string>("dead_man_active_topic", "/dead_man_switch");
     this->declare_parameter<std::string>("ackermann_control_topic", "/drive/autonomy");
-    this->declare_parameter<std::string>("odom_topic", "/odom");
+    this->declare_parameter<std::string>("odom_topic", "/autodrive/roboracer_1/odom");
     this->declare_parameter<std::string>("speed_topic", "/autodrive/roboracer_1/odom");
+
+    this->declare_parameter<std::string>("global_frame_id", "map");
+    this->declare_parameter<std::string>("local_frame_id", "base_link");
 
     this->declare_parameter<bool>("speed_limit_active", true);
     this->declare_parameter<double>("speed_limit", 3.0);
     this->declare_parameter<double>("max_steering_angle", 0.52);
     this->declare_parameter<double>("k_e", 0.2);
     this->declare_parameter<double>("k_h", 0.75);
+    this->declare_parameter<double>("k_soft", 0.5);
     this->declare_parameter<double>("wheelbase", 0.324);
 
     this->declare_parameter<bool>("enable_debug_vis", true);
 
-    this->declare_parameter<std::string>("global_frame_id", "map");
-    this->declare_parameter<std::string>("local_frame_id", "base_link");
+    this->declare_parameter<int>("closest_point_window", 20);
+    this->declare_parameter<double>("closest_point_recovery_dist", 2.0);
 
     //init parameters
-    global_path_topic = this->get_parameter("global_path_topic").as_string();
-    dead_man_active_topic = this->get_parameter("dead_man_active_topic").as_string();
+    global_path_topic       = this->get_parameter("global_path_topic").as_string();
+    dead_man_active_topic   = this->get_parameter("dead_man_active_topic").as_string();
     ackermann_control_topic = this->get_parameter("ackermann_control_topic").as_string();
-    odom_topic = this->get_parameter("odom_topic").as_string();
-    speed_topic = this->get_parameter("speed_topic").as_string();
-
-    speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
-    speed_limit = this->get_parameter("speed_limit").as_double();
-    max_steering_angle = this->get_parameter("max_steering_angle").as_double();
-    k_e = this->get_parameter("k_e").as_double();
-    k_h = this->get_parameter("k_h").as_double();
-    wheelbase = this->get_parameter("wheelbase").as_double();
-
-    enable_debug_vis = this->get_parameter("enable_debug_vis").as_bool();
-
-    debug_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-    "/debug/stanley_markers", 10);
-    cte_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte", 10);
-    heading_err_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_error", 10);
-    heading_term_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_term", 10);
-    cte_term_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte_term", 10);
-    delta_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/delta_cmd", 10);
+    odom_topic              = this->get_parameter("odom_topic").as_string();
+    speed_topic             = this->get_parameter("speed_topic").as_string();
 
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id  = this->get_parameter("local_frame_id").as_string();
+
+    speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
+    speed_limit        = this->get_parameter("speed_limit").as_double();
+    max_steering_angle = this->get_parameter("max_steering_angle").as_double();
+    k_e                = this->get_parameter("k_e").as_double();
+    k_h                = this->get_parameter("k_h").as_double();
+    k_soft             = this->get_parameter("k_soft").as_double();
+    wheelbase          = this->get_parameter("wheelbase").as_double();
+
+    enable_debug_vis = this->get_parameter("enable_debug_vis").as_bool();
+
+    closest_point_window_        = static_cast<size_t>(this->get_parameter("closest_point_window").as_int());
+    closest_point_recovery_dist_ = this->get_parameter("closest_point_recovery_dist").as_double();
 
     //initialize state and internal variables
     dead_man_active.data = false;
@@ -282,13 +318,13 @@ void Stanley_Controller_Node::init_parameters() {
 }
 
 void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
-                                     size_t closest_idx,
-                                     double cross_track_error,
-                                     double heading_error,
-                                     double heading_term,
-                                     double cte_term,
-                                     double steering_cmd,
-                                     double velocity) {
+                                                size_t closest_idx,
+                                                double cross_track_error,
+                                                double heading_error,
+                                                double heading_term,
+                                                double cte_term,
+                                                double steering_cmd,
+                                                double velocity) {
 
     auto stamp = this->now();
 
@@ -301,11 +337,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
     f.data = steering_cmd;      delta_pub_->publish(f);
 
     // --- Geometry: front axle, closest point, path tangent ---
-    const double yaw = std::atan2(
-        2.0 * (base_link_pose.orientation.w * base_link_pose.orientation.z +
-               base_link_pose.orientation.x * base_link_pose.orientation.y),
-        1.0 - 2.0 * (std::pow(base_link_pose.orientation.y, 2) +
-                     std::pow(base_link_pose.orientation.z, 2)));
+    const double yaw = extractYaw(base_link_pose.orientation);
 
     const double fx = base_link_pose.position.x + wheelbase * std::cos(yaw);
     const double fy = base_link_pose.position.y + wheelbase * std::sin(yaw);
@@ -315,14 +347,11 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
     if (closest_idx < poses.size()) {
         cx = poses[closest_idx].pose.position.x;
         cy = poses[closest_idx].pose.position.y;
-        size_t next = std::min(closest_idx + 1, poses.size() - 1);
-        if (next == closest_idx && closest_idx > 0) {
-            tx = poses[closest_idx].pose.position.x - poses[closest_idx-1].pose.position.x;
-            ty = poses[closest_idx].pose.position.y - poses[closest_idx-1].pose.position.y;
-        } else {
-            tx = poses[next].pose.position.x - cx;
-            ty = poses[next].pose.position.y - cy;
-        }
+        //wrap the same way calculate_control does, so the tangent arrow
+        //matches what the controller is actually using at loop closure
+        size_t next = (closest_idx + 1) % poses.size();
+        tx = poses[next].pose.position.x - cx;
+        ty = poses[next].pose.position.y - cy;
         double n = std::hypot(tx, ty);
         if (n > 1e-6) { tx /= n; ty /= n; }
     }
@@ -354,7 +383,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 2. Front axle 
+    // 2. Front axle (yellow sphere)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "front_axle", 0, visualization_msgs::msg::Marker::SPHERE);
@@ -364,7 +393,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 3. Closest path point 
+    // 3. Closest path point (green sphere)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "closest_point", 0, visualization_msgs::msg::Marker::SPHERE);
@@ -374,7 +403,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 4. CTE line 
+    // 4. CTE line (colour by sign, intensity by magnitude)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "cte", 0, visualization_msgs::msg::Marker::LINE_STRIP);
@@ -391,7 +420,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 5. Path tangent arrow 
+    // 5. Path tangent arrow (green)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "path_tangent", 0, visualization_msgs::msg::Marker::ARROW);
@@ -404,7 +433,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 6. Vehicle heading arrow 
+    // 6. Vehicle heading arrow (orange)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "vehicle_heading", 0, visualization_msgs::msg::Marker::ARROW);
@@ -417,7 +446,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 7. Steering command arrow 
+    // 7. Steering command arrow (magenta)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "steering_cmd", 0, visualization_msgs::msg::Marker::ARROW);
@@ -451,6 +480,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
     }
 
     debug_markers_pub_->publish(arr);
+
 }
 
 int main(int argc, char ** argv) {
