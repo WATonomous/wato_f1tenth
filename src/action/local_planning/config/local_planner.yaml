@@ -1,0 +1,24 @@
+state_manager_node:
+  ros__parameters:
+    racing_line_topic: "/racing_line"
+    state_update_rate: 50.0 # hz the state machine runs grid scan, and state transitions
+    overtake_start_distance_m: 3.0 # distance from opponent to start overtake
+    side_by_side_distance_m: 0.5 # within 0.5m of the back of the opponent
+    merge_start_gap_m: 1.0 # distance from opponent to start merge
+    merge_done_gap_m: 2.0 # distance from opponent to end merge
+    merge_done_d_m: 0.25 # d-offset to end merge (as defined in frenet frame)
+
+racing_line_publisher_node:
+  ros__parameters:
+    racing_line_file: "" # absolute path to the raceline CSV: x, y, velocity
+    racing_line_topic: "/racing_line"
+    waypoint_frame_id: "map"
+
+occupancy_grid_frame_adapter_node:
+  ros__parameters:
+    raw_grid_topic: "/costmap"
+    grid_topic: "/occupancy_grid"
+    frame_id: "map"
+
+# planner_node parameters land here in Phase 5, matching LocalPlannerConfig in
+# include/local_planning/core/types.hpp.
