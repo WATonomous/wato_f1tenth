@@ -1,6 +1,5 @@
 #include "local_planning/state/racing_state_machine.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -10,34 +9,15 @@ namespace
 {
 
 constexpr double kScanDistanceM = 10.0;
-constexpr double kEpsilon = 1e-12;
 
 } // namespace
 
-void RacingStateMachine::setRacingLine(const std::vector<Point> & racing_line)
+bool RacingStateMachine::setRacingLine(const std::vector<Point> & racing_line)
 {
   racing_line_ = racing_line;
-  cumulative_s_.clear();
-  total_length_m_ = 0.0;
-
-  if (racing_line_.size() < 2) {
-    return;
-  }
-
-  cumulative_s_.resize(racing_line_.size());
-  cumulative_s_[0] = 0.0;
-  for (std::size_t i = 1; i < racing_line_.size(); ++i) {
-    cumulative_s_[i] = cumulative_s_[i - 1] +
-      std::hypot(
-      racing_line_[i].x - racing_line_[i - 1].x,
-      racing_line_[i].y - racing_line_[i - 1].y);
-  }
-
-  // Close the loop: the last waypoint back to the first.
-  total_length_m_ = cumulative_s_.back() +
-    std::hypot(
-    racing_line_.front().x - racing_line_.back().x,
-    racing_line_.front().y - racing_line_.back().y);
+  ego_seed_s_ = 0.0;
+  ego_d_ = 0.0;
+  return reference_.setRacingLine(racing_line);
 }
 
 void RacingStateMachine::setTransitionConfig(
@@ -54,54 +34,20 @@ void RacingStateMachine::setTransitionConfig(
   merge_done_d_m_ = merge_done_d_m;
 }
 
-FrenetPoint RacingStateMachine::projectToRaceline(const Point & p) const
-{
-  if (racing_line_.size() < 2 || total_length_m_ <= kEpsilon) {
-    return {};
-  }
-
-  const int n = static_cast<int>(racing_line_.size());
-  double best_dist_sq = std::numeric_limits<double>::max();
-  double best_s = 0.0;
-  double best_d = 0.0;
-
-  for (int i = 0; i < n; ++i) {
-    const int j = (i + 1) % n;
-    const double ax = racing_line_[i].x;
-    const double ay = racing_line_[i].y;
-    const double abx = racing_line_[j].x - ax;
-    const double aby = racing_line_[j].y - ay;
-    const double seg_len_sq = abx * abx + aby * aby;
-    if (seg_len_sq < kEpsilon) {
-      continue;
-    }
-
-    const double apx = p.x - ax;
-    const double apy = p.y - ay;
-    const double t = std::clamp((apx * abx + apy * aby) / seg_len_sq, 0.0, 1.0);
-    const double dx = p.x - (ax + t * abx);
-    const double dy = p.y - (ay + t * aby);
-    const double dist_sq = dx * dx + dy * dy;
-
-    if (dist_sq < best_dist_sq) {
-      const double seg_len = std::sqrt(seg_len_sq);
-      best_dist_sq = dist_sq;
-      best_s = cumulative_s_[static_cast<std::size_t>(i)] + t * seg_len;
-      best_d = dx * (-aby / seg_len) + dy * (abx / seg_len);
-    }
-  }
-
-  best_s = std::fmod(best_s, total_length_m_);
-  if (best_s < 0.0) {
-    best_s += total_length_m_;
-  }
-  return {best_s, best_d};
-}
-
 bool RacingStateMachine::update(
   const Odometry & ego_odom,
   const OccupancyGrid & occupancy_grid)
 {
+  if (!reference_.valid()) {
+    return false;
+  }
+
+  // Project ego first: its s seeds both the next cycle and the opponent search.
+  const Projection ego = reference_.project(
+    ego_odom.position, ego_odom.heading, ego_seed_s_);
+  ego_seed_s_ = ego.s;
+  ego_d_ = ego.d;
+
   previous_state_ = current_state_;
   detectOpponentOnRacingLine(occupancy_grid, ego_odom.position);
   current_state_ = computeNextState(ego_odom);
@@ -114,8 +60,7 @@ RacingState RacingStateMachine::computeNextState(const Odometry & ego_odom)
     return RacingState::STEADY_STATE;
   }
 
-  const FrenetPoint ego_frenet = projectToRaceline(ego_odom.position);
-  const double signed_gap_m = computeSignedDistanceToOpponent(ego_odom.position);
+  const double signed_gap_m = computeSignedDistanceToOpponent();
 
   switch (current_state_) {
     case RacingState::STEADY_STATE:
@@ -140,9 +85,7 @@ RacingState RacingStateMachine::computeNextState(const Odometry & ego_odom)
       return RacingState::SIDE_BY_SIDE;
 
     case RacingState::AHEAD_OPPONENT:
-      if (signed_gap_m < -merge_done_gap_m_ &&
-        std::abs(ego_frenet.d) < merge_done_d_m_)
-      {
+      if (signed_gap_m < -merge_done_gap_m_ && std::abs(ego_d_) < merge_done_d_m_) {
         return RacingState::STEADY_STATE;
       }
       return RacingState::AHEAD_OPPONENT;
@@ -222,9 +165,13 @@ bool RacingStateMachine::detectOpponentOnRacingLine(
           opponent_state_.position = Point(
             occupancy_grid.origin.x + (c + 0.5) * occupancy_grid.resolution,
             occupancy_grid.origin.y + (r + 0.5) * occupancy_grid.resolution);
-          const FrenetPoint fp = projectToRaceline(opponent_state_.position);
-          opponent_state_.s = fp.s;
-          opponent_state_.d = fp.d;
+          // A costmap cell has no heading, so the seed window rather than a
+          // tangent check is what keeps this on the right branch.  Seeding from
+          // ego is sound because the scan only reaches kScanDistanceM ahead.
+          const Projection opponent =
+            reference_.project(opponent_state_.position, ego_seed_s_);
+          opponent_state_.s = opponent.s;
+          opponent_state_.d = opponent.d;
           return true;
         }
       }
@@ -235,19 +182,10 @@ bool RacingStateMachine::detectOpponentOnRacingLine(
   return false;
 }
 
-double RacingStateMachine::computeSignedDistanceToOpponent(const Point & ego_position) const
+double RacingStateMachine::computeSignedDistanceToOpponent() const
 {
-  const FrenetPoint ego_frenet = projectToRaceline(ego_position);
-  double ds = opponent_state_.s - ego_frenet.s;
-
-  // wrap to [-total/2, total/2] so positive = opponent ahead
-  if (ds > total_length_m_ / 2.0) {
-    ds -= total_length_m_;
-  }
-  if (ds < -total_length_m_ / 2.0) {
-    ds += total_length_m_;
-  }
-  return ds;
+  // Wrap-aware and signed: positive means the opponent is ahead of ego.
+  return reference_.deltaS(ego_seed_s_, opponent_state_.s);
 }
 
 } // namespace local_planning

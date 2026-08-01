@@ -2,6 +2,7 @@
 #define LOCAL_PLANNING_STATE_RACING_STATE_MACHINE_HPP
 
 #include "local_planning/core/types.hpp"
+#include "local_planning/reference/raceline_reference.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -25,15 +26,15 @@ struct OpponentState
   Point position;
 };
 
-// Carried forward from the DP planner's state manager, with FrenetConverter
-// swapped for the local polyline projection below so nothing in this package
-// depends on the deleted converter.
+// Carried forward from the DP planner's state manager, projecting through
+// RacelineReference.  It owns the ego seed across cycles; the opponent cell is
+// projected with the heading-free overload seeded from ego, since a costmap
+// cell has no orientation of its own.
 //
 // Phase 6 rewrites the transition logic against PRD 5: the four-intent output
 // (FOLLOW / OVERTAKE / PASS / MERGE), the last-observation presence timeout,
 // the merge completion dwell latch, and a detector that searches beside and
-// behind ego rather than scanning only forward.  The projection here becomes a
-// RacelineReference call once Phase 1 lands.
+// behind ego rather than scanning only forward.
 class RacingStateMachine
 {
 public:
@@ -56,7 +57,8 @@ public:
     const OpponentState & opponent_state,
     double signed_gap_m) const;
 
-  void setRacingLine(const std::vector<Point> & racing_line);
+  // Returns false if the point list is too degenerate to build a reference.
+  bool setRacingLine(const std::vector<Point> & racing_line);
   void setTransitionConfig(
     double overtake_start_distance_m,
     double side_by_side_distance_m,
@@ -69,22 +71,19 @@ private:
     const OccupancyGrid & occupancy_grid,
     const Point & ego_position);
 
-  // Globally-nearest projection onto the closed raceline polyline.  Known to
-  // be branch-unsafe at a hairpin; PRD 24 replaces it with the locally-seeded,
-  // tangent-checked RacelineReference projection in Phase 1.
-  FrenetPoint projectToRaceline(const Point & p) const;
-
   // Signed distance along the raceline, positive when the opponent is ahead.
-  double computeSignedDistanceToOpponent(const Point & ego_position) const;
+  double computeSignedDistanceToOpponent() const;
 
   RacingState current_state_ = RacingState::STEADY_STATE;
   RacingState previous_state_ = RacingState::STEADY_STATE;
   OpponentState opponent_state_;
 
   std::vector<Point> racing_line_;
-  // cumulative_s_[i] is the polyline arc length from waypoint 0 to waypoint i.
-  std::vector<double> cumulative_s_;
-  double total_length_m_ = 0.0;
+  RacelineReference reference_;
+  // Ego's projection seed, carried between cycles.  Stale-seed recovery inside
+  // RacelineReference handles startup and relocalization.
+  double ego_seed_s_ = 0.0;
+  double ego_d_ = 0.0;
 
   double overtake_start_distance_m_ = 3.0;
   double side_by_side_distance_m_ = 0.5;
