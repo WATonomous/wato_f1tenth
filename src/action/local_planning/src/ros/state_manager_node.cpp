@@ -57,7 +57,11 @@ void StateManagerNode::occupancyGridCallback(nav_msgs::msg::OccupancyGrid::Share
 void StateManagerNode::racingLineCallback(nav_msgs::msg::Path::SharedPtr msg)
 {
   if (msg->poses.empty()) {return;}
-  racing_line_ = rosPathToRacingLine(*msg); state_machine_->setRacingLine(racing_line_);
+  racing_line_ = rosPathToRacingLine(*msg);
+  if (!state_machine_->setRacingLine(racing_line_)) {
+    RCLCPP_ERROR(get_logger(), "Racing line rejected: too few or degenerate waypoints");
+    racing_line_.clear();
+  }
 }
 
 void StateManagerNode::stateTimerCallback()
