@@ -37,6 +37,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_type
 # ---------------------------------------------------------------------------
 add_library(local_planning_core
   src/core/types.cpp
+  src/reference/raceline_reference.cpp
   src/collision/collision_checker.cpp
   src/speed/velocity_profile.cpp
   src/state/racing_state_machine.cpp
@@ -94,6 +95,10 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_raceline_reference test/test_raceline_reference.cpp)
+  target_link_libraries(test_raceline_reference local_planning_core)
 endif()
 
 ament_export_dependencies(rosidl_default_runtime)
