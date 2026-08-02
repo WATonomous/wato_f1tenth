@@ -1,5 +1,10 @@
 .env
 __pycache__
+
+# colcon output, at the workspace root or anywhere it gets run from
+build/
+install/
+log/
 .vscode/
 wato_env
 
