@@ -38,6 +38,9 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_type
 add_library(local_planning_core
   src/core/types.cpp
   src/reference/raceline_reference.cpp
+  src/curves/curve_connection_generator.cpp
+  src/curves/clothoids_backend.cpp
+  src/curves/upstream/clothoid_g2.cpp
   src/collision/collision_checker.cpp
   src/speed/velocity_profile.cpp
   src/state/racing_state_machine.cpp
@@ -99,6 +102,9 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_raceline_reference test/test_raceline_reference.cpp)
   target_link_libraries(test_raceline_reference local_planning_core)
+
+  ament_add_gtest(test_curve_connection_generator test/test_curve_connection_generator.cpp)
+  target_link_libraries(test_curve_connection_generator local_planning_core)
 endif()
 
 ament_export_dependencies(rosidl_default_runtime)
