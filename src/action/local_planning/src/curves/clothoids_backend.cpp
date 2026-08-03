@@ -62,7 +62,7 @@ SolveResult solveG2(
 
 
   /*
-    x,y on a clothoid is an expensive fresnel integral, so instead we use simpsons 
+    x,y on a clothoid is an expensive fresnel integral, so instead we use simpsons
     rule to interpolate which agrees strongly (sub micrometer error)
     and is 3x faster
   */

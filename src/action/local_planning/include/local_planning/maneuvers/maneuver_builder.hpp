@@ -25,7 +25,7 @@ struct ManeuverCandidate
 struct ManeuverConfig
 {
   double horizon_m = 6.0;
- 
+
   double collision_circle_radius_m = 0.20;
   std::vector<double> overtake_s_offsets_from_opponent_rear_m{0.0, 0.5, 1.0};
   std::vector<double> passing_d_magnitudes_m{0.55, 0.75};
