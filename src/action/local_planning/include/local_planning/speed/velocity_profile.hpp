@@ -2,22 +2,31 @@
 #define LOCAL_PLANNING_SPEED_VELOCITY_PROFILE_HPP
 
 #include "local_planning/core/types.hpp"
+#include "local_planning/reference/raceline_reference.hpp"
 
 #include <vector>
 
 namespace local_planning
 {
 
-// Clamps velocities, pins the start speed to measured odometry, then runs a
-// backward deceleration pass and a forward acceleration pass.
+struct VelocityProfileResult
+{
+  bool feasible = false;
+  double traversal_time_s = 0.0;
+};
 
-// Carried forward from the DP planner's velocity_smoothing.  Phase 4 grows this
-// file into the full profiler: the raceline baseline via RacelineReference, the
-// intent scale, the curvature/friction cap, the terminal speed cap in all modes
-// (PRD 12), and the predicted traversal time the selector compares on.
-void smoothVelocityProfile(
-  std::vector<Point> & path,
+// Builds a dynamically feasible speed profile on a complete candidate path.
+// Projects samples onto the raceline, applies intent-scaled raceline / vehicle /
+// friction caps, an explicit terminal speed policy, then backward deceleration
+// and forward acceleration passes.  Speeds are written to `path` only when the
+// profile is feasible.
+VelocityProfileResult assignVelocityProfile(
+  std::vector<CurveSample> & path,
   double start_velocity_mps,
+  double start_raceline_s,
+  double terminal_raceline_s,
+  PlannerIntent intent,
+  const RacelineReference & reference,
   const LocalPlannerConfig & config);
 
 } // namespace local_planning

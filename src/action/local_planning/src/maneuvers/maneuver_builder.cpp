@@ -320,8 +320,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
             }
             Path path;
             BoundaryState join;
-            if (connect(path, ego, intermediate, &join) && connect(path, join, horizon))
-            {
+            if (connect(path, ego, intermediate, &join) && connect(path, join, horizon)) {
               candidates.push_back({std::move(path), horizon_d, config_.horizon_m, 0.0});
             }
           }

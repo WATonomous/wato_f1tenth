@@ -12,6 +12,7 @@ namespace
 {
 
 constexpr double kEpsilon = 1e-6;
+constexpr double kPi = 3.14159265358979323846;
 constexpr double kInfDistanceSqCells = 1.0e20;
 
 int gridIndex(int row, int col, int width)
@@ -24,6 +25,50 @@ bool pointToGridCell(const Point & p, const OccupancyGrid & grid, int & row, int
   col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
   row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
   return col >= 0 && col < grid.width && row >= 0 && row < grid.height;
+}
+
+bool gridGeometryValid(const OccupancyGrid & grid)
+{
+  return grid.width > 0 && grid.height > 0 && grid.resolution > kEpsilon;
+}
+
+bool euclideanTransformValid(const OccupancyGrid & grid)
+{
+  if (!gridGeometryValid(grid) || !grid.has_euclidean_transform) {
+    return false;
+  }
+  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
+  return grid.data.size() >= cell_count && grid.obstacle_distance_m.size() >= cell_count;
+}
+
+double shortestAngleDiff(double from, double to)
+{
+  double delta = to - from;
+  while (delta > kPi) {
+    delta -= 2.0 * kPi;
+  }
+  while (delta < -kPi) {
+    delta += 2.0 * kPi;
+  }
+  return delta;
+}
+
+CollisionStatus worseStatus(CollisionStatus a, CollisionStatus b)
+{
+  const auto rank = [](CollisionStatus status) {
+      switch (status) {
+        case CollisionStatus::COLLISION:
+          return 3;
+        case CollisionStatus::OUT_OF_GRID:
+          return 2;
+        case CollisionStatus::SOFT_INFLATION:
+          return 1;
+        case CollisionStatus::FREE:
+          return 0;
+      }
+      return 0;
+    };
+  return rank(a) >= rank(b) ? a : b;
 }
 
 // https://hellorob.org/files/lectures/fast_euclidean_dt.pdf
@@ -97,18 +142,18 @@ CollisionChecker::CollisionChecker(const LocalPlannerConfig & config)
 {
 }
 
-void CollisionChecker::buildClearanceCache(OccupancyGrid & grid) const
+void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
 {
-  if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= kEpsilon) {
+  if (!gridGeometryValid(grid)) {
     grid.obstacle_distance_m.clear();
-    grid.has_clearance_cache = false;
+    grid.has_euclidean_transform = false;
     return;
   }
 
   const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
   if (grid.data.size() < cell_count) {
     grid.obstacle_distance_m.clear();
-    grid.has_clearance_cache = false;
+    grid.has_euclidean_transform = false;
     return;
   }
 
@@ -157,31 +202,21 @@ void CollisionChecker::buildClearanceCache(OccupancyGrid & grid) const
         static_cast<float>(std::sqrt(distance_sq[i]) * grid.resolution);
     }
   }
-  grid.has_clearance_cache = true;
+  grid.has_euclidean_transform = true;
 }
 
-CollisionStatus CollisionChecker::collisionStatus(
+CollisionCheckResult CollisionChecker::collisionCheckPose(
   const Point & p,
   double heading,
   const OccupancyGrid & grid) const
 {
-  if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= kEpsilon) {
-    return CollisionStatus::OUT_OF_GRID;
+  if (!euclideanTransformValid(grid)) {
+    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity()};
   }
 
   const double collision_radius_m = std::max(0.0, config_.collision_circle_radius_m);
   const double soft_inflation_distance_m = std::max(0.0, config_.soft_inflation_distance_m);
-  const double outer_radius_m = collision_radius_m + soft_inflation_distance_m;
-  const int inflation_cells =
-    std::max(
-    0,
-    static_cast<int>(std::ceil(outer_radius_m / grid.resolution)));
-  const int hard_inflation_cells =
-    std::max(
-    0,
-    static_cast<int>(std::ceil(collision_radius_m / grid.resolution)));
-  const double collision_radius_sq = collision_radius_m * collision_radius_m;
-  const double outer_radius_sq = outer_radius_m * outer_radius_m;
+  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
   const Point circle_centers[] = {
     p,
     {
@@ -191,167 +226,95 @@ CollisionStatus CollisionChecker::collisionStatus(
     }
   };
 
-  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
-  if (grid.has_clearance_cache && grid.obstacle_distance_m.size() >= cell_count) {
-    const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
-    bool has_soft_inflation = false;
-    for (const Point & center : circle_centers) {
-      int center_row = 0;
-      int center_col = 0;
-      if (!pointToGridCell(center, grid, center_row, center_col)) {
-        return CollisionStatus::FREE;
-      }
-
-      const size_t center_index = static_cast<size_t>(
-        gridIndex(center_row, center_col, grid.width));
-      const double clearance_m =
-        static_cast<double>(grid.obstacle_distance_m[center_index]) -
-        cell_half_diagonal - collision_radius_m;
-      if (clearance_m <= 0.0) {
-        return CollisionStatus::COLLISION;
-      }
-
-      if (clearance_m <= soft_inflation_distance_m) {
-        has_soft_inflation = true;
-      }
-    }
-
-    return has_soft_inflation ? CollisionStatus::SOFT_INFLATION : CollisionStatus::FREE;
-  }
-
-  // Check hard collision first (smaller bounding box so an immediate exit)
+  bool has_soft_inflation = false;
+  double minimum_clearance_m = std::numeric_limits<double>::infinity();
   for (const Point & center : circle_centers) {
     int center_row = 0;
     int center_col = 0;
     if (!pointToGridCell(center, grid, center_row, center_col)) {
-      return CollisionStatus::FREE;
+      return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity()};
     }
 
-    for (int dr = -hard_inflation_cells; dr <= hard_inflation_cells; ++dr) {
-      for (int dc = -hard_inflation_cells; dc <= hard_inflation_cells; ++dc) {
-        const int row = center_row + dr;
-        const int col = center_col + dc;
-        if (row < 0 || row >= grid.height || col < 0 || col >= grid.width) {
-          continue;
-        }
-
-        if (grid.data[static_cast<size_t>(row * grid.width + col)] < config_.occupied_threshold) {
-          continue;
-        }
-
-        const double cell_x = grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
-        const double cell_y = grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
-        const double distance_sq =
-          (cell_x - center.x) * (cell_x - center.x) +
-          (cell_y - center.y) * (cell_y - center.y);
-
-        if (distance_sq <= collision_radius_sq) {
-          return CollisionStatus::COLLISION;
-        }
-      }
+    const double clearance_m =
+      static_cast<double>(grid.obstacle_distance_m[static_cast<size_t>(
+        gridIndex(center_row, center_col, grid.width))]) -
+      cell_half_diagonal - collision_radius_m;
+    minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
+    if (clearance_m <= 0.0) {
+      return {CollisionStatus::COLLISION, minimum_clearance_m};
+    }
+    if (clearance_m <= soft_inflation_distance_m) {
+      has_soft_inflation = true;
     }
   }
 
-  if (soft_inflation_distance_m <= 0.0) {
-    return CollisionStatus::FREE;
-  }
-
-  // If no hard collision was found, scan the outer bounding box for soft inflation
-  for (const Point & center : circle_centers) {
-    int center_row = 0;
-    int center_col = 0;
-    if (!pointToGridCell(center, grid, center_row, center_col)) {
-      return CollisionStatus::FREE;
-    }
-
-    for (int dr = -inflation_cells; dr <= inflation_cells; ++dr) {
-      for (int dc = -inflation_cells; dc <= inflation_cells; ++dc) {
-        const int row = center_row + dr;
-        const int col = center_col + dc;
-        if (row < 0 || row >= grid.height || col < 0 || col >= grid.width) {
-          continue;
-        }
-
-        if (grid.data[static_cast<size_t>(row * grid.width + col)] < config_.occupied_threshold) {
-          continue;
-        }
-
-        const double cell_x = grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
-        const double cell_y = grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
-        const double distance_sq =
-          (cell_x - center.x) * (cell_x - center.x) +
-          (cell_y - center.y) * (cell_y - center.y);
-
-        if (distance_sq <= outer_radius_sq) {
-          return CollisionStatus::SOFT_INFLATION;
-        }
-      }
-    }
-  }
-
-  return CollisionStatus::FREE;
+  return {
+    has_soft_inflation ? CollisionStatus::SOFT_INFLATION : CollisionStatus::FREE,
+    minimum_clearance_m
+  };
 }
 
 CollisionCheckResult CollisionChecker::collisionCheck(
-  const Point & p,
-  double heading,
+  const std::vector<CurveSample> & path,
   const OccupancyGrid & grid) const
 {
-  const CollisionStatus status = collisionStatus(p, heading, grid);
-  if (status == CollisionStatus::OUT_OF_GRID) {
-    return {status, -std::numeric_limits<double>::infinity()};
+  if (!euclideanTransformValid(grid) || path.empty()) {
+    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity()};
   }
 
-  const double collision_radius_m = std::max(0.0, config_.collision_circle_radius_m);
-  const Point circle_centers[] = {
-    p,
-    {
-      p.x + config_.front_collision_circle_offset_m * std::cos(heading),
-      p.y + config_.front_collision_circle_offset_m * std::sin(heading),
-      p.velocity
-    }
-  };
+  const double max_step_m = 0.5 * grid.resolution;
+  CollisionStatus aggregated_status = CollisionStatus::FREE;
   double minimum_clearance_m = std::numeric_limits<double>::infinity();
-  const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
 
-  if (grid.has_clearance_cache && grid.obstacle_distance_m.size() >= cell_count) {
-    const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
-    for (const Point & center : circle_centers) {
-      int row = 0;
-      int col = 0;
-      if (!pointToGridCell(center, grid, row, col)) {
+  auto accumulatePose = [&](double x, double y, double heading) -> bool {
+      const CollisionCheckResult pose_result =
+        collisionCheckPose(Point(x, y), heading, grid);
+      if (pose_result.status == CollisionStatus::OUT_OF_GRID) {
+        aggregated_status = CollisionStatus::OUT_OF_GRID;
+        minimum_clearance_m = -std::numeric_limits<double>::infinity();
+        return false;
+      }
+      aggregated_status = worseStatus(aggregated_status, pose_result.status);
+      minimum_clearance_m = std::min(minimum_clearance_m, pose_result.minimum_clearance_m);
+      return true;
+    };
+
+  if (path.size() == 1) {
+    if (!accumulatePose(path.front().x, path.front().y, path.front().heading)) {
+      return {aggregated_status, minimum_clearance_m};
+    }
+    return {aggregated_status, minimum_clearance_m};
+  }
+
+  for (std::size_t i = 0; i + 1 < path.size(); ++i) {
+    const CurveSample & a = path[i];
+    const CurveSample & b = path[i + 1];
+    const double dx = b.x - a.x;
+    const double dy = b.y - a.y;
+    const double segment_length = std::hypot(dx, dy);
+    const double heading_delta = shortestAngleDiff(a.heading, b.heading);
+    const int step_count = std::max(
+      1,
+      static_cast<int>(std::ceil(segment_length / std::max(max_step_m, kEpsilon))));
+
+    // Include both endpoints of every segment so the final sample is checked.
+    for (int step = 0; step <= step_count; ++step) {
+      // Skip the shared endpoint already evaluated at the end of the previous
+      // segment, except for the first segment.
+      if (i > 0 && step == 0) {
         continue;
       }
-      const double clearance_m =
-        static_cast<double>(grid.obstacle_distance_m[static_cast<size_t>(
-          gridIndex(row, col, grid.width))]) - cell_half_diagonal - collision_radius_m;
-      minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
-    }
-  } else {
-    // The planner node normally supplies the distance cache. This exact fallback
-    // keeps direct users correct without adding another approximate soft cost.
-    for (const Point & center : circle_centers) {
-      for (int row = 0; row < grid.height; ++row) {
-        for (int col = 0; col < grid.width; ++col) {
-          const size_t index = static_cast<size_t>(gridIndex(row, col, grid.width));
-          if (index >= grid.data.size() ||
-            grid.data[index] < config_.occupied_threshold)
-          {
-            continue;
-          }
-          const double cell_x =
-            grid.origin.x + (static_cast<double>(col) + 0.5) * grid.resolution;
-          const double cell_y =
-            grid.origin.y + (static_cast<double>(row) + 0.5) * grid.resolution;
-          minimum_clearance_m = std::min(
-            minimum_clearance_m,
-            std::hypot(cell_x - center.x, cell_y - center.y) - collision_radius_m);
-        }
+      const double t = static_cast<double>(step) / static_cast<double>(step_count);
+      const double x = a.x + t * dx;
+      const double y = a.y + t * dy;
+      const double heading = a.heading + t * heading_delta;
+      if (!accumulatePose(x, y, heading)) {
+        return {aggregated_status, minimum_clearance_m};
       }
     }
   }
 
-  return {status, minimum_clearance_m};
+  return {aggregated_status, minimum_clearance_m};
 }
 
 } // namespace local_planning
