@@ -3,6 +3,8 @@
 
 #include "local_planning/core/types.hpp"
 
+#include <vector>
+
 namespace local_planning
 {
 
@@ -20,28 +22,28 @@ struct CollisionCheckResult
   double minimum_clearance_m = 0.0;
 };
 
-// Dense swept-footprint occupancy checking against the costmap.  Owns nothing
-// else: curve construction owns finite-result and curvature checks, the
-// sampler owns allowed d ranges, and the velocity module owns dynamic
-// feasibility.
+// Dense swept-footprint occupancy checking against a costmap whose Euclidean
+// distance transform has already been built via buildEuclideanTransform.
 class CollisionChecker
 {
 public:
   explicit CollisionChecker(const LocalPlannerConfig & config);
 
-  void buildClearanceCache(OccupancyGrid & grid) const;
+  // Builds the Euclidean distance transform into obstacle_distance_m.
+  // Required before collisionCheck.
+  void buildEuclideanTransform(OccupancyGrid & grid) const;
+
 
   CollisionCheckResult collisionCheck(
-    const Point & p,
-    double heading,
-    const OccupancyGrid & grid) const;
-
-  CollisionStatus collisionStatus(
-    const Point & p,
-    double heading,
+    const std::vector<CurveSample> & path,
     const OccupancyGrid & grid) const;
 
 private:
+  CollisionCheckResult collisionCheckPose(
+    const Point & p,
+    double heading,
+    const OccupancyGrid & grid) const;
+
   const LocalPlannerConfig & config_;
 };
 

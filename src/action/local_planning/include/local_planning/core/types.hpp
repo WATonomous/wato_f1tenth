@@ -56,8 +56,9 @@ struct OccupancyGrid
   int height = 0;
   double resolution = 0.0;
   Point origin;
+  // Euclidean distance transform: meters to nearest occupied cell.
   std::vector<float> obstacle_distance_m;
-  bool has_clearance_cache = false;
+  bool has_euclidean_transform = false;
 };
 
 // What the state manager asks the planner to do this cycle.  Mirrors the
@@ -124,6 +125,9 @@ struct LocalPlannerConfig
   double max_velocity_mps = 10.0;
   double max_accel_mps2 = 5.0;
   double max_decel_mps2 = 5.0;
+  // Interior/terminal racing-speed multiplier for OVERTAKE/PASS, and MERGE
+  // interiors only. MERGE's horizon terminal stays at unscaled raceline speed.
+  double overtake_speed_scale = 1.1;
 };
 
 } // namespace local_planning
