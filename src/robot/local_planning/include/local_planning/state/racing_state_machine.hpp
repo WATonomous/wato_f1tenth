@@ -89,7 +89,7 @@ private:
   double side_by_side_distance_m_ = 0.5;
   double merge_start_gap_m_ = 1.0;
   double merge_done_gap_m_ = 2.0;
-  double merge_done_d_m_ = 0.25;
+  double merge_done_d_m_ = 0.4;
 };
 
 } // namespace local_planning
