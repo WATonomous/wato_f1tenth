@@ -109,6 +109,12 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_maneuver_candidate_builder test/test_maneuver_candidate_builder.cpp)
   target_link_libraries(test_maneuver_candidate_builder local_planning_core)
+
+  ament_add_gtest(test_collision_checker test/test_collision_checker.cpp)
+  target_link_libraries(test_collision_checker local_planning_core)
+
+  ament_add_gtest(test_velocity_profile test/test_velocity_profile.cpp)
+  target_link_libraries(test_velocity_profile local_planning_core)
 endif()
 
 ament_export_dependencies(rosidl_default_runtime)
