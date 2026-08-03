@@ -62,7 +62,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dead_man_sub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
+    
 
     //timer
     rclcpp::TimerBase::SharedPtr control_loop_timer;
@@ -93,7 +93,7 @@ private:
     std::string dead_man_active_topic;
     std::string ackermann_control_topic;
     std::string odom_topic;
-    std::string speed_topic;
+    
 
     std::string global_frame_id;
     std::string local_frame_id;
@@ -118,8 +118,8 @@ private:
     size_t prev_closest_idx_ = 0;
     bool   closest_idx_initialized_ = false;
     size_t closest_point_window_ = 20;            // waypoints searched ahead each tick
-    double closest_point_recovery_dist_ = 2.0;    // metres; beyond this we re-scan the whole path
-
+    double closest_point_recovery_dist_ = 2.0;   
+    
     //last computed Stanley terms (for debug viz)
     size_t last_closest_idx_       = 0;
     double last_cross_track_error_ = 0.0;
