@@ -29,7 +29,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_type
 # ---------------------------------------------------------------------------
 # local_planning_core
 #
-# Geometry, curves, sampling, collision, speed, selection.  Deliberately links
+# Geometry, curves, maneuvers, collision, speed, selection.  Deliberately links
 # nothing from ROS: no rclcpp, no subscriptions, no declare_parameter reached
 # three layers down, no now(), no TF.  Config arrives as a plain struct and
 # time arrives as an argument.  Keeping that true costs nothing and is what
@@ -41,6 +41,7 @@ add_library(local_planning_core
   src/curves/curve_connection_generator.cpp
   src/curves/clothoids_backend.cpp
   src/curves/upstream/clothoid_g2.cpp
+  src/maneuvers/maneuver_builder.cpp
   src/collision/collision_checker.cpp
   src/speed/velocity_profile.cpp
   src/state/racing_state_machine.cpp
@@ -105,6 +106,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_curve_connection_generator test/test_curve_connection_generator.cpp)
   target_link_libraries(test_curve_connection_generator local_planning_core)
+
+  ament_add_gtest(test_maneuver_candidate_builder test/test_maneuver_candidate_builder.cpp)
+  target_link_libraries(test_maneuver_candidate_builder local_planning_core)
 endif()
 
 ament_export_dependencies(rosidl_default_runtime)

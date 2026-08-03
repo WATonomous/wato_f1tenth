@@ -1,7 +1,6 @@
 #ifndef LOCAL_PLANNING_CORE_TYPES_HPP
 #define LOCAL_PLANNING_CORE_TYPES_HPP
 
-#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -85,22 +84,14 @@ struct BoundaryState
   double speed = 0.0;      // m/s
 };
 
-// Why a candidate was thrown away.  Every stage that can reject owns a subset:
-// the curve generator owns the solver/geometry reasons, the sampler owns the
-// topology reasons, collision owns the grid reasons, velocity owns dynamics.
-// COUNT is the array size for the Phase 3 per-cycle reject counters.
+// The curve generator exposes why a requested G2 connection could not be
+// built.  Maneuver sampling simply omits an invalid path.
 enum class RejectReason : uint8_t
 {
   NONE = 0,
-  SOLVER_FAILED = 1,          // curve library did not converge
-  CURVATURE_LIMIT = 2,        // exceeds the steering limit somewhere along the arc
-  ARC_LENGTH_LIMIT = 3,       // solution loops or doubles back
-  TARGET_OUT_OF_TRACK = 4,    // sampled |d| leaves the drivable corridor
-  TARGET_WRONG_D_SIGN = 5,    // sampled target violates the intent's d topology
-  COLLISION = 6,
-  OUT_OF_GRID = 7,
-  INFEASIBLE_SPEED = 8,       // no velocity profile satisfies the accel limits
-  COUNT = 9
+  SOLVER_FAILED = 1,
+  CURVATURE_LIMIT = 2,
+  ARC_LENGTH_LIMIT = 3
 };
 
 // One dense sample of a generated curve.  The units the velocity profiler and
@@ -115,22 +106,6 @@ struct CurveSample
   double speed = 0.0;      // m/s, filled by the velocity profile
 };
 
-// One complete two-jump path.  Samples are a single run rather than two
-// vectors — collision and velocity walk the whole path — with `jump2_begin`
-// marking the shared boundary the two jumps agree on.
-struct Candidate
-{
-  int id = -1;
-  std::vector<CurveSample> samples;
-  std::size_t jump2_begin = 0;
-  bool valid = false;
-  RejectReason reject_reason = RejectReason::NONE;
-  double predicted_time_s = 0.0;
-};
-
-// Configuration reaches the core as a plain struct, never through rclcpp.
-// Fields are added by the phase that first needs them, so an unused field here
-// always means something is unfinished.
 struct LocalPlannerConfig
 {
   // Two-circle footprint, rear circle at the path point and front circle
@@ -139,6 +114,10 @@ struct LocalPlannerConfig
   double front_collision_circle_offset_m = 0.26;
   double soft_inflation_distance_m = 0.18;
   int occupied_threshold = 50;
+
+  // Lateral vehicle extent used as the shared "on the raceline" band for side
+  // commit (PASS) and merge-done checks.
+  double vehicleWidthM() const {return 2.0 * collision_circle_radius_m;}
 
   double friction_coeff = 1.0;
   double min_velocity_mps = 0.0;
