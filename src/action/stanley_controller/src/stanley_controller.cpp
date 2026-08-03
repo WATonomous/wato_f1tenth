@@ -37,18 +37,13 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
     );
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        odom_topic, 10,
-        [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
-            current_pose = *msg;
-        }
-    );
+    odom_topic, 10,
+    [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+        current_pose     = *msg;
+        current_velocity = msg->twist.twist.linear.x;
+    }
+);
 
-    speed_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        speed_topic, 10,
-        [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
-            current_velocity = msg->twist.twist.linear.x;
-        }
-    );
 
     control_loop_timer = this->create_wall_timer(
         std::chrono::milliseconds(50),
@@ -104,7 +99,9 @@ void Stanley_Controller_Node::update_controller_state() {
 
     if (dead_man_active.data) {
         controller_state = stanley_state_::GLOBAL_FOLLOW;
-    } else {
+    }
+
+    else {
         controller_state = stanley_state_::INACTIVE;
     }
 
@@ -269,7 +266,7 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<std::string>("dead_man_active_topic", "/dead_man_switch");
     this->declare_parameter<std::string>("ackermann_control_topic", "/drive/autonomy");
     this->declare_parameter<std::string>("odom_topic", "/autodrive/roboracer_1/odom");
-    this->declare_parameter<std::string>("speed_topic", "/autodrive/roboracer_1/odom");
+    
 
     this->declare_parameter<std::string>("global_frame_id", "map");
     this->declare_parameter<std::string>("local_frame_id", "base_link");
@@ -292,7 +289,7 @@ void Stanley_Controller_Node::init_parameters() {
     dead_man_active_topic   = this->get_parameter("dead_man_active_topic").as_string();
     ackermann_control_topic = this->get_parameter("ackermann_control_topic").as_string();
     odom_topic              = this->get_parameter("odom_topic").as_string();
-    speed_topic             = this->get_parameter("speed_topic").as_string();
+   
 
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id  = this->get_parameter("local_frame_id").as_string();
@@ -314,7 +311,7 @@ void Stanley_Controller_Node::init_parameters() {
     dead_man_active.data = false;
     controller_state = stanley_state_::INACTIVE;
     current_velocity = 0.0;
-
+   
 }
 
 void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
@@ -383,7 +380,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 2. Front axle (yellow sphere)
+    // 2. Front axle (yellow)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "front_axle", 0, visualization_msgs::msg::Marker::SPHERE);
@@ -393,7 +390,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 3. Closest path point (green sphere)
+    // 3. Closest path point (green)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "closest_point", 0, visualization_msgs::msg::Marker::SPHERE);
