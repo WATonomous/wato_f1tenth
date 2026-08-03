@@ -19,7 +19,7 @@ StateManagerNode::StateManagerNode()
   declare_parameter<double>("side_by_side_distance_m", 0.5);
   declare_parameter<double>("merge_start_gap_m", 1.0);
   declare_parameter<double>("merge_done_gap_m", 2.0);
-  declare_parameter<double>("merge_done_d_m", 0.25);
+  declare_parameter<double>("merge_done_d_m", 0.4);
   racing_line_topic_ = get_parameter("racing_line_topic").as_string();
 
   state_machine_ = std::make_unique<RacingStateMachine>();
