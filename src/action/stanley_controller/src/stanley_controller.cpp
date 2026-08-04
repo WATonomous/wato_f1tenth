@@ -209,9 +209,7 @@ size_t Stanley_Controller_Node::find_closest_point(double x, double y) {
     }
 
     //subsequent calls: only search forward from the last known index.
-    //this is what stops the search teleporting to the opposite leg of a
-    //hairpin, where a waypoint on the return leg can be geometrically closer
-    //than the correct one just ahead of us
+  
     size_t best_idx  = prev_closest_idx_;
     double best_dist = std::numeric_limits<double>::max();
 
@@ -275,7 +273,7 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<double>("speed_limit", 3.0);
     this->declare_parameter<double>("max_steering_angle", 0.52);
     this->declare_parameter<double>("k_e", 0.2);
-    this->declare_parameter<double>("k_h", 0.75);
+    this->declare_parameter<double>("k_h", 0.5);
     this->declare_parameter<double>("k_soft", 0.5);
     this->declare_parameter<double>("wheelbase", 0.324);
 
