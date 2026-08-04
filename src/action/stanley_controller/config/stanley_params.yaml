@@ -1,0 +1,56 @@
+# Stanley Controller parameters
+#
+# Load with:
+#   ros2 run stanley_controller stanley_controller --ros-args \
+#     --params-file <path>/stanley_params.yaml
+#
+# The node name below MUST match the node's actual name, or the params
+# are ignored silently. Confirm with: ros2 node list
+stanley_controller_node:
+  ros__parameters:
+
+    # ---- topics ----
+    global_path_topic:       "/global_planner/path"
+    dead_man_active_topic:   "/dead_man_switch"
+    ackermann_control_topic: "/drive/autonomy"
+    # On the real car these are NOT the sim topics - set them to whatever
+    # localization / the VESC actually publish. Check: ros2 topic list | grep odom
+    odom_topic:              "/autodrive/roboracer_1/odom"
+    speed_topic:             "/autodrive/roboracer_1/odom"
+
+    # ---- frames ----
+    global_frame_id: "map"        # markers + path live here
+    local_frame_id:  "base_link"  # drive command frame
+
+    # ---- speed ----
+    speed_limit_active: true
+    speed_limit:        1.0    # m/s hard cap. START LOW on the real car, raise once trusted.
+
+    # ---- steering physics ----
+    max_steering_angle: 0.52   # rad (~30 deg). Physical limit - don't raise past the car's real max.
+    wheelbase:          0.324  # m, front-to-rear axle. Verify against the actual car / URDF.
+
+    # ---- Stanley gains (the main tuning knobs) ----
+    # k_h : heading gain - how hard it corrects pointing the wrong way.
+    #        understeers / turns too late -> raise.   whips wheel too hard -> lower.
+    k_h: 0.75
+    # k_e : cross-track gain - how hard it pulls back onto the line.
+    #        drifts off and stays off -> raise.   weaves on straights -> lower.
+    k_e: 0.2
+    # k_soft : low-speed softener in the CTE term.
+    #        twitchy at crawl / just after arming -> raise (->1.0).
+    #        leave at 0.5 unless you see that specific symptom.
+    k_soft: 0.5
+
+    # ---- closest-point search ----
+    # window : waypoints searched forward each tick. Bigger for denser paths /
+    #          higher speed; too big can jump to the wrong leg of a hairpin.
+    #          20 is fine for ~100-150 waypoint tracks.
+    closest_point_window: 20
+    # recovery_dist : if nearest waypoint in the window is farther than this (m),
+    #          do a full re-scan (assumes teleport / localization jump).
+    #          Raise if it false-fires mid-corner on a sparse track.
+    closest_point_recovery_dist: 2.0
+
+    # ---- debug ----
+    enable_debug_vis: true   # set false on race day to cut publish overhead
