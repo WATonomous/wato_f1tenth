@@ -4,92 +4,81 @@
 #include "local_planning/core/types.hpp"
 #include "local_planning/reference/raceline_reference.hpp"
 
-#include <cstdint>
-#include <vector>
-
 namespace local_planning
 {
 
-enum class RacingState : uint8_t
+struct StateMachineConfig
 {
-  STEADY_STATE = 0,
-  BEHIND_OPPONENT = 1,
-  SIDE_BY_SIDE = 2,
-  AHEAD_OPPONENT = 3
+  double corridor_half_width_m = 0.25;
+
+  double overlap_gap_m = 0.80;          // BEHIND <-> OVERLAPPING
+  double clear_gap_m = 1.50;            // AHEAD_NOT_CLEAR <-> AHEAD_AND_CLEAR
+  double overtake_start_gap_m = 3.00;   // must stay below the planner's horizon_m
+
+  double compat_lateral_m = 0.40;       // keep equal to ManeuverConfig::sideDeadbandM()
+  double compat_heading_rad = 0.15;
 };
 
-struct OpponentState
+struct OpponentObservation
 {
   bool detected = false;
+  // Nearest observed station: the visible near face, and the anchor
+  // ManeuverBuilder::overtake wants.
   double s = 0.0;
-  double d = 0.0;
-  Point position;
+  double gap_m = 0.0;   // deltaS(ego_s, s); positive when the opponent is ahead
 };
 
-// Carried forward from the DP planner's state manager, projecting through
-// RacelineReference.  It owns the ego seed across cycles; the opponent cell is
-// projected with the heading-free overload seeded from ego, since a costmap
-// cell has no orientation of its own.
-//
-// Phase 6 rewrites the transition logic against PRD 5: the four-intent output
-// (FOLLOW / OVERTAKE / PASS / MERGE), the last-observation presence timeout,
-// the merge completion dwell latch, and a detector that searches beside and
-// behind ego rather than scanning only forward.
+struct TacticalState
+{
+  PlannerIntent intent = PlannerIntent::FOLLOW_RACING_LINE;
+  RelativePosition relative_position = RelativePosition::NONE;
+  OpponentObservation opponent;
+
+  // Outputs, not telemetry: the planner reads these instead of projecting again.
+  double ego_s = 0.0;
+  double ego_d = 0.0;
+};
+
+// Tactical layer: observation to intent, with no memory beyond the projection
+// seed. 
 class RacingStateMachine
 {
 public:
-  RacingStateMachine() = default;
+  // reference is borrowed and must outlive this object. Never pass a temporary.
+  RacingStateMachine(const RacelineReference & reference, StateMachineConfig config);
 
   RacingStateMachine(RacingStateMachine &&) = delete;
   RacingStateMachine(const RacingStateMachine &) = delete;
   RacingStateMachine & operator=(const RacingStateMachine &) = delete;
   RacingStateMachine & operator=(RacingStateMachine &&) = delete;
 
-  // Returns true when the state changed this update.
-  bool update(const Odometry & ego_odom, const OccupancyGrid & occupancy_grid);
+  // Must be called before state(): the ego projection is computed here.
+  void update(const Odometry & ego_odom, const OccupancyGrid & occupancy_grid);
 
-  RacingState getCurrentState() const {return current_state_;}
-  OpponentState getOpponentState() const {return opponent_state_;}
-
-  RacingState computeNextState(const Odometry & ego_odom);
-  bool shouldAttemptOvertake(
-    const Odometry & ego_odom,
-    const OpponentState & opponent_state,
-    double signed_gap_m) const;
-
-  // Returns false if the point list is too degenerate to build a reference.
-  bool setRacingLine(const std::vector<Point> & racing_line);
-  void setTransitionConfig(
-    double overtake_start_distance_m,
-    double side_by_side_distance_m,
-    double merge_start_gap_m,
-    double merge_done_gap_m,
-    double merge_done_d_m);
+  const TacticalState & state() const {return state_;}
+  const StateMachineConfig & config() const {return config_;}
 
 private:
-  bool detectOpponentOnRacingLine(
+  bool detectOpponent(
     const OccupancyGrid & occupancy_grid,
-    const Point & ego_position);
+    double ego_s,
+    OpponentObservation & out) const;
 
-  // Signed distance along the raceline, positive when the opponent is ahead.
-  double computeSignedDistanceToOpponent() const;
+  bool corridorOccupied(const OccupancyGrid & occupancy_grid, double s) const;
 
-  RacingState current_state_ = RacingState::STEADY_STATE;
-  RacingState previous_state_ = RacingState::STEADY_STATE;
-  OpponentState opponent_state_;
+  RelativePosition classify(double gap_m) const;
 
-  std::vector<Point> racing_line_;
-  RacelineReference reference_;
-  // Ego's projection seed, carried between cycles.  Stale-seed recovery inside
-  // RacelineReference handles startup and relocalization.
+  bool isRacelineCompatible(const Odometry & ego_odom, double ego_s, double ego_d) const;
+
+  PlannerIntent nextIntent(const Odometry & ego_odom) const;
+
+  const RacelineReference & reference_;
+  StateMachineConfig config_;
+  TacticalState state_;
+
+  // Carried between cycles. Stale-seed recovery inside RacelineReference handles
+  // startup and relocalization.
   double ego_seed_s_ = 0.0;
-  double ego_d_ = 0.0;
-
-  double overtake_start_distance_m_ = 3.0;
-  double side_by_side_distance_m_ = 0.5;
-  double merge_start_gap_m_ = 1.0;
-  double merge_done_gap_m_ = 2.0;
-  double merge_done_d_m_ = 0.4;
 };
 
 } // namespace local_planning
