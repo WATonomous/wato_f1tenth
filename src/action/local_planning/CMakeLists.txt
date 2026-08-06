@@ -20,11 +20,8 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/PlannerIntent.msg"
-  DEPENDENCIES builtin_interfaces std_msgs
-)
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
+# No generated interfaces right now.  The rosidl find_package and export stay so
+# Phase 6 re-adding PlannerDecision.msg is one line, not churn across two files.
 
 # ---------------------------------------------------------------------------
 # local_planning_core
@@ -58,7 +55,6 @@ add_library(local_planning_ros
 )
 target_link_libraries(local_planning_ros PUBLIC
   local_planning_core
-  ${cpp_typesupport_target}
 )
 ament_target_dependencies(local_planning_ros PUBLIC
   rclcpp
@@ -68,9 +64,6 @@ ament_target_dependencies(local_planning_ros PUBLIC
   tf2
   tf2_geometry_msgs
 )
-
-add_executable(state_manager_node src/ros/state_manager_node.cpp)
-target_link_libraries(state_manager_node local_planning_ros)
 
 add_executable(occupancy_grid_frame_adapter_node src/ros/occupancy_grid_frame_adapter_node.cpp)
 ament_target_dependencies(occupancy_grid_frame_adapter_node
@@ -84,7 +77,6 @@ install(TARGETS local_planning_core local_planning_ros
 )
 
 install(TARGETS
-  state_manager_node
   occupancy_grid_frame_adapter_node
   racing_line_publisher_node
   DESTINATION lib/${PROJECT_NAME}
@@ -115,6 +107,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_velocity_profile test/test_velocity_profile.cpp)
   target_link_libraries(test_velocity_profile local_planning_core)
+
+  ament_add_gtest(test_racing_state_machine test/test_racing_state_machine.cpp)
+  target_link_libraries(test_racing_state_machine local_planning_core)
 endif()
 
 ament_export_dependencies(rosidl_default_runtime)
