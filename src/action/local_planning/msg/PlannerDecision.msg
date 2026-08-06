@@ -1,0 +1,54 @@
+std_msgs/Header header
+
+uint8 FOLLOW_RACING_LINE=0
+uint8 OVERTAKE=1
+uint8 PASS=2
+uint8 MERGE=3
+
+uint8 RELATIVE_NONE=0
+uint8 BEHIND=1
+uint8 OVERLAPPING=2
+uint8 AHEAD_NOT_CLEAR=3
+uint8 AHEAD_AND_CLEAR=4
+
+uint8 NO_LOCAL_PATH=0
+uint8 MANEUVER=1
+uint8 BRAKING_FALLBACK=2
+uint8 BRAKING_UNAVAILABLE=3
+
+uint8 SOURCE_NONE=0
+uint8 SOURCE_OVERTAKE=1
+uint8 SOURCE_PASS_PREFERRED=2
+uint8 SOURCE_PASS_RECOVERY=3
+uint8 SOURCE_MERGE_ALIGNMENT=4
+uint8 SOURCE_MERGE=5
+uint8 SOURCE_BRAKING=6
+
+uint8 CLEARANCE_FREE=0
+uint8 CLEARANCE_SOFT_INFLATION=1
+uint8 CLEARANCE_COLLISION=2
+uint8 CLEARANCE_OUT_OF_GRID=3
+
+uint8 requested_intent
+uint8 relative_position
+bool opponent_detected
+float64 opponent_gap_m
+uint8 executed_mode
+uint8 candidate_source
+bool projection_seed_was_stale
+uint8 clearance_class
+float64 minimum_clearance_m
+float64 max_abs_curvature_inv_m
+float64 min_speed_mps
+float64 max_speed_mps
+float64 start_curvature_inv_m
+bool start_curvature_from_steering
+float64 terminal_d_m
+float64 best_cost_s
+float64 median_cost_s
+uint32 generated_count
+uint32 collision_rejected
+uint32 out_of_grid_rejected
+uint32 velocity_rejected
+uint32 valid_candidate_count
+float64 cycle_time_ms

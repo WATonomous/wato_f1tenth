@@ -40,7 +40,7 @@ struct TacticalState
 };
 
 // Tactical layer: observation to intent, with no memory beyond the projection
-// seed. 
+// seed.
 class RacingStateMachine
 {
 public:
