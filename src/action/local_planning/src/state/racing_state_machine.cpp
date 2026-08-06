@@ -1,191 +1,203 @@
 #include "local_planning/state/racing_state_machine.hpp"
 
 #include <cmath>
-#include <limits>
+#include <cstddef>
+#include <utility>
 
 namespace local_planning
 {
 namespace
 {
 
-constexpr double kScanDistanceM = 10.0;
+constexpr double kPi = 3.14159265358979323846;
+
+// Same constant and comparison as LocalPlannerConfig::occupied_threshold.
+constexpr int8_t kOccupiedThreshold = 50;
+
+double wrapAngle(double angle)
+{
+  while (angle > kPi) {
+    angle -= 2.0 * kPi;
+  }
+  while (angle < -kPi) {
+    angle += 2.0 * kPi;
+  }
+  return angle;
+}
+
+bool gridIndex(const OccupancyGrid & grid, const Point & p, std::size_t & index)
+{
+  const int col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
+  const int row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
+  if (col < 0 || col >= grid.width || row < 0 || row >= grid.height) {
+    return false;
+  }
+  index = static_cast<std::size_t>(row) * static_cast<std::size_t>(grid.width) +
+    static_cast<std::size_t>(col);
+  return index < grid.data.size();
+}
+
+bool gridUsable(const OccupancyGrid & grid)
+{
+  return grid.resolution > 0.0 && grid.width > 0 && grid.height > 0 &&
+         grid.data.size() >= static_cast<std::size_t>(grid.width) *
+         static_cast<std::size_t>(grid.height);
+}
 
 } // namespace
 
-bool RacingStateMachine::setRacingLine(const std::vector<Point> & racing_line)
+RacingStateMachine::RacingStateMachine(
+  const RacelineReference & reference,
+  StateMachineConfig config)
+: reference_(reference), config_(std::move(config))
 {
-  racing_line_ = racing_line;
-  ego_seed_s_ = 0.0;
-  ego_d_ = 0.0;
-  return reference_.setRacingLine(racing_line);
 }
 
-void RacingStateMachine::setTransitionConfig(
-  double overtake_start_distance_m,
-  double side_by_side_distance_m,
-  double merge_start_gap_m,
-  double merge_done_gap_m,
-  double merge_done_d_m)
-{
-  overtake_start_distance_m_ = overtake_start_distance_m;
-  side_by_side_distance_m_ = side_by_side_distance_m;
-  merge_start_gap_m_ = merge_start_gap_m;
-  merge_done_gap_m_ = merge_done_gap_m;
-  merge_done_d_m_ = merge_done_d_m;
-}
-
-bool RacingStateMachine::update(
+void RacingStateMachine::update(
   const Odometry & ego_odom,
   const OccupancyGrid & occupancy_grid)
 {
   if (!reference_.valid()) {
-    return false;
+    state_ = TacticalState{};
+    return;
   }
 
-  // Project ego first: its s seeds both the next cycle and the opponent search.
+  // Ego first: its s seeds the next cycle and bounds the opponent scan.
   const Projection ego = reference_.project(
     ego_odom.position, ego_odom.heading, ego_seed_s_);
   ego_seed_s_ = ego.s;
-  ego_d_ = ego.d;
+  state_.ego_s = ego.s;
+  state_.ego_d = ego.d;
 
-  previous_state_ = current_state_;
-  detectOpponentOnRacingLine(occupancy_grid, ego_odom.position);
-  current_state_ = computeNextState(ego_odom);
-  return current_state_ != previous_state_;
+  state_.relative_position = detectOpponent(occupancy_grid, ego.s, state_.opponent) ?
+    classify(state_.opponent.gap_m) :
+    RelativePosition::NONE;
+
+  state_.intent = nextIntent(ego_odom);
 }
 
-RacingState RacingStateMachine::computeNextState(const Odometry & ego_odom)
-{
-  if (!opponent_state_.detected) {
-    return RacingState::STEADY_STATE;
-  }
-
-  const double signed_gap_m = computeSignedDistanceToOpponent();
-
-  switch (current_state_) {
-    case RacingState::STEADY_STATE:
-      if (shouldAttemptOvertake(ego_odom, opponent_state_, signed_gap_m)) {
-        return RacingState::BEHIND_OPPONENT;
-      }
-      return RacingState::STEADY_STATE;
-
-    case RacingState::BEHIND_OPPONENT:
-      if (signed_gap_m < -merge_start_gap_m_) {
-        return RacingState::AHEAD_OPPONENT;
-      }
-      if (std::abs(signed_gap_m) < side_by_side_distance_m_) {
-        return RacingState::SIDE_BY_SIDE;
-      }
-      return RacingState::BEHIND_OPPONENT;
-
-    case RacingState::SIDE_BY_SIDE:
-      if (signed_gap_m < -merge_start_gap_m_) {
-        return RacingState::AHEAD_OPPONENT;
-      }
-      return RacingState::SIDE_BY_SIDE;
-
-    case RacingState::AHEAD_OPPONENT:
-      if (signed_gap_m < -merge_done_gap_m_ && std::abs(ego_d_) < merge_done_d_m_) {
-        return RacingState::STEADY_STATE;
-      }
-      return RacingState::AHEAD_OPPONENT;
-  }
-
-  return RacingState::STEADY_STATE;
-}
-
-/*
-this logic should eventually account for if we are actually gaining on the ego
-its silly to overtake if we are
-i would do it like sample a bunch of delta s values and if our s is getting closer to theirs
-switch to overtaking treat it like an extra condition
-*/
-bool RacingStateMachine::shouldAttemptOvertake(
-  const Odometry & /*ego_odom*/,
-  const OpponentState & opponent_state,
-  double signed_gap_m) const
-{
-  return opponent_state.detected &&
-         signed_gap_m > 0.0 &&
-         signed_gap_m < overtake_start_distance_m_;
-}
-
-bool RacingStateMachine::detectOpponentOnRacingLine(
+// Nearest occupied station in the raceline corridor. See PRD 5 "As built" for why
+// nearest-station is equivalent to grouping components and taking the near face.
+bool RacingStateMachine::detectOpponent(
   const OccupancyGrid & occupancy_grid,
-  const Point & ego_position)
+  double ego_s,
+  OpponentObservation & out) const
 {
-  if (racing_line_.empty()) {
-    opponent_state_.detected = false;
+  out = OpponentObservation{};
+  if (!gridUsable(occupancy_grid)) {
     return false;
   }
 
-  const int n = static_cast<int>(racing_line_.size());
+  const double step = occupancy_grid.resolution;
+  const double limit = 0.5 * reference_.totalLength();
 
-  int ego_idx = 0;
-  double best_dist_sq = std::numeric_limits<double>::max();
-  for (int i = 0; i < n; ++i) {
-    const double dx = ego_position.x - racing_line_[i].x;
-    const double dy = ego_position.y - racing_line_[i].y;
-    const double dist_sq = dx * dx + dy * dy;
-    if (dist_sq < best_dist_sq) {
-      best_dist_sq = dist_sq;
-      ego_idx = i;
-    }
-  }
+  bool found = false;
+  double nearest_offset_m = 0.0;
 
-  // scan forward along racing line
-  double accumulated = 0.0;
-  for (int step = 1; accumulated < kScanDistanceM; ++step) {
-    const int curr = (ego_idx + step) % n;
-    const int prev = (ego_idx + step - 1) % n;
+  // Forward first, so an equidistant tie resolves to the opponent ahead.
+  for (const int direction : {1, -1}) {
+    for (double offset = step; offset <= limit; offset += step) {
+      if (found && offset >= std::abs(nearest_offset_m)) {
+        break;
+      }
 
-    const double dx = racing_line_[curr].x - racing_line_[prev].x;
-    const double dy = racing_line_[curr].y - racing_line_[prev].y;
-    accumulated += std::hypot(dx, dy);
+      const double s = ego_s + direction * offset;
 
-    const int col =
-      static_cast<int>((racing_line_[curr].x - occupancy_grid.origin.x) /
-      occupancy_grid.resolution);
-    const int row =
-      static_cast<int>((racing_line_[curr].y - occupancy_grid.origin.y) /
-      occupancy_grid.resolution);
+      // Leaving the grid ends this direction: nothing further out was observable.
+      std::size_t unused = 0;
+      if (!gridIndex(occupancy_grid, reference_.toCartesian(s, 0.0), unused)) {
+        break;
+      }
 
-    // check 3x3 neighborhood around this waypoint (15 cm square basically)
-    //this should be changed to use the size of the square because we might change
-    //the dimensions of the costmap and it would fuck this part completely
-    for (int dr = -1; dr <= 1; ++dr) {
-      for (int dc = -1; dc <= 1; ++dc) {
-        const int r = row + dr;
-        const int c = col + dc;
-        if (r < 0 || r >= occupancy_grid.height || c < 0 || c >= occupancy_grid.width) {
-          continue;
-        }
-        if (occupancy_grid.data[static_cast<std::size_t>(r * occupancy_grid.width + c)] > 50) {
-          opponent_state_.detected = true;
-          opponent_state_.position = Point(
-            occupancy_grid.origin.x + (c + 0.5) * occupancy_grid.resolution,
-            occupancy_grid.origin.y + (r + 0.5) * occupancy_grid.resolution);
-          // A costmap cell has no heading, so the seed window rather than a
-          // tangent check is what keeps this on the right branch.  Seeding from
-          // ego is sound because the scan only reaches kScanDistanceM ahead.
-          const Projection opponent =
-            reference_.project(opponent_state_.position, ego_seed_s_);
-          opponent_state_.s = opponent.s;
-          opponent_state_.d = opponent.d;
-          return true;
-        }
+      if (corridorOccupied(occupancy_grid, s)) {
+        found = true;
+        nearest_offset_m = direction * offset;
+        break;
       }
     }
   }
 
-  opponent_state_.detected = false;
+  if (!found) {
+    return false;
+  }
+
+  out.detected = true;
+  out.s = reference_.wrapS(ego_s + nearest_offset_m);
+  out.gap_m = reference_.deltaS(ego_s, out.s);
+  return true;
+}
+
+bool RacingStateMachine::corridorOccupied(
+  const OccupancyGrid & occupancy_grid,
+  double s) const
+{
+  const double half_width = config_.corridor_half_width_m;
+  for (double d = -half_width; d <= half_width + 1e-9; d += occupancy_grid.resolution) {
+    std::size_t index = 0;
+    if (gridIndex(occupancy_grid, reference_.toCartesian(s, d), index) &&
+      occupancy_grid.data[index] >= kOccupiedThreshold)
+    {
+      return true;
+    }
+  }
   return false;
 }
 
-double RacingStateMachine::computeSignedDistanceToOpponent() const
+RelativePosition RacingStateMachine::classify(double gap_m) const
 {
-  // Wrap-aware and signed: positive means the opponent is ahead of ego.
-  return reference_.deltaS(ego_seed_s_, opponent_state_.s);
+  if (gap_m >= config_.overlap_gap_m) {
+    return RelativePosition::BEHIND;
+  }
+  if (gap_m > -config_.overlap_gap_m) {
+    return RelativePosition::OVERLAPPING;
+  }
+  if (gap_m > -config_.clear_gap_m) {
+    return RelativePosition::AHEAD_NOT_CLEAR;
+  }
+  return RelativePosition::AHEAD_AND_CLEAR;
+}
+
+bool RacingStateMachine::isRacelineCompatible(
+  const Odometry & ego_odom,
+  double ego_s,
+  double ego_d) const
+{
+  if (std::abs(ego_d) > config_.compat_lateral_m) {
+    return false;
+  }
+  const ReferenceGeometrySample sample = reference_.sampleAtS(ego_s);
+  return std::abs(wrapAngle(ego_odom.heading - sample.heading)) <= config_.compat_heading_rad;
+}
+
+PlannerIntent RacingStateMachine::nextIntent(const Odometry & ego_odom) const
+{
+  const bool compatible = isRacelineCompatible(ego_odom, state_.ego_s, state_.ego_d);
+
+  if (!state_.opponent.detected) {
+    return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
+  }
+
+  switch (state_.relative_position) {
+    case RelativePosition::NONE:   // unreachable; kept so the switch always returns
+      return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
+
+    // Shared intent on purpose: crossing this boundary mid-maneuver must not
+    // produce an OVERTAKE -> MERGE jump.
+    case RelativePosition::OVERLAPPING:
+    case RelativePosition::AHEAD_NOT_CLEAR:
+      return PlannerIntent::PASS;
+
+    case RelativePosition::AHEAD_AND_CLEAR:
+      return PlannerIntent::MERGE;
+
+    case RelativePosition::BEHIND:
+      if (state_.opponent.gap_m < config_.overtake_start_gap_m) {
+        return PlannerIntent::OVERTAKE;
+      }
+      return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
+  }
+
+  return PlannerIntent::MERGE;
 }
 
 } // namespace local_planning

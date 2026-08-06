@@ -18,4 +18,21 @@ std::string intentToString(PlannerIntent intent)
   return "UNKNOWN";
 }
 
+std::string relativePositionToString(RelativePosition position)
+{
+  switch (position) {
+    case RelativePosition::NONE:
+      return "NONE";
+    case RelativePosition::BEHIND:
+      return "BEHIND";
+    case RelativePosition::OVERLAPPING:
+      return "OVERLAPPING";
+    case RelativePosition::AHEAD_NOT_CLEAR:
+      return "AHEAD_NOT_CLEAR";
+    case RelativePosition::AHEAD_AND_CLEAR:
+      return "AHEAD_AND_CLEAR";
+  }
+  return "UNKNOWN";
+}
+
 } // namespace local_planning

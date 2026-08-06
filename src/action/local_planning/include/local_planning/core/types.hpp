@@ -61,8 +61,9 @@ struct OccupancyGrid
   bool has_euclidean_transform = false;
 };
 
-// What the state manager asks the planner to do this cycle.  Mirrors the
-// constants in msg/PlannerIntent.msg; keep the two in step.
+// What the tactical layer asks the planner to do this cycle.  Nothing
+// serializes it today; Phase 6 mirrors it as uint8 constants in
+// PlannerDecision.msg, and those must then be kept in step.
 enum class PlannerIntent : uint8_t
 {
   FOLLOW_RACING_LINE = 0,
@@ -72,6 +73,19 @@ enum class PlannerIntent : uint8_t
 };
 
 std::string intentToString(PlannerIntent intent);
+
+// Purely longitudinal: the boundaries are gaps measured with deltaS, and they
+// absorb both vehicles' extents rather than modelling either one.
+enum class RelativePosition : uint8_t
+{
+  NONE = 0,
+  BEHIND = 1,
+  OVERLAPPING = 2,
+  AHEAD_NOT_CLEAR = 3,
+  AHEAD_AND_CLEAR = 4
+};
+
+std::string relativePositionToString(RelativePosition position);
 
 // The complete vehicle state a curve is anchored to at one end.  Two of these
 // fully determine a G2 connection: position, tangent, and curvature agree at
