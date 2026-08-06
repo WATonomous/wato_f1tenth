@@ -1,0 +1,40 @@
+costmap_obstacle_injector_node:
+  ros__parameters:
+    enabled: true
+
+    raw_grid_topic: "/costmap"
+    injected_grid_topic: "/costmap_injected"
+    raceline_topic: "/global_planner/path"
+    marker_topic: "/injected_obstacles_viz"
+
+    map_frame: "map"
+    obstacle_value: 100
+
+    # Obstacles closer than this to base_link are skipped, so a badly placed
+    # block cannot violate the "ego is not in its own costmap" contract.
+    min_ego_distance_m: 1.0
+    clicked_obstacle_size_m: 0.30
+
+    # Only the names listed here are instantiated.  Add "cone" to switch to the
+    # static block, or list both.
+    obstacle_names: ["slow_car"]
+
+    # A slower car on the line: gives FOLLOW -> OVERTAKE -> PASS -> MERGE with a
+    # realistic closing speed.
+    slow_car:
+      kind: "raceline_mover"
+      start_s: 12.0
+      d: 0.0
+      speed_scale: 0.6     # fraction of raceline speed at its own s
+      length_m: 0.50
+      width_m: 0.30
+
+    # A fixed block on the line: gives the PASS recovery tiers and the braking
+    # fallback.  Set x/y to a point that is actually on your raceline.
+    cone:
+      kind: "static"
+      x: 3.2
+      y: -1.1
+      yaw: 0.0
+      length_m: 0.20
+      width_m: 0.20

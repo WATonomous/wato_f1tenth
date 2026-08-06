@@ -85,7 +85,7 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
     }
 
     control_loop_timer = this->create_wall_timer (
-        std::chrono::milliseconds(50), 
+        std::chrono::duration<double>(1.0 / control_rate_hz),
         [this](){
             control_timer_callback();
         }
@@ -141,7 +141,7 @@ void Pure_Persuit_Node::control_timer_callback() {
 
 void Pure_Persuit_Node::update_controller_state () {
 
-    if (dead_man_active.data) {
+    if (dead_man_active.data || force_dead_man_active) {
 
        controller_state = state_::GLOBAL_FOLLOW; 
 
@@ -590,6 +590,8 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("odom_topic","/odom");
 
     this->declare_parameter<bool>("overtake_enable",false);
+    this->declare_parameter<bool>("force_dead_man_active",false);
+    this->declare_parameter<double>("control_rate_hz", 50.0);
 
     this->declare_parameter<bool>("speed_limit_active", true);
     this->declare_parameter<double>("speed_limit", 10.0);
@@ -620,6 +622,8 @@ void Pure_Persuit_Node::init_parameters () {
     odom_topic = this->get_parameter("odom_topic").as_string();
 
     overtaking_enable = this->get_parameter("overtake_enable").as_bool();
+    force_dead_man_active = this->get_parameter("force_dead_man_active").as_bool();
+    control_rate_hz = std::max(0.1, this->get_parameter("control_rate_hz").as_double());
 
     speed_limit_enable = this->get_parameter("speed_limit_active").as_bool();
     speed_limit = this->get_parameter("speed_limit").as_double();

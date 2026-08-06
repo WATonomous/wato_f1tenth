@@ -1,0 +1,218 @@
+#include "local_planning/planning/local_planner.hpp"
+
+#include "local_planning/speed/velocity_profile.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <iterator>
+#include <limits>
+
+namespace local_planning
+{
+namespace
+{
+void appendCandidates(
+  LocalPlanResult & result,
+  std::vector<ManeuverCandidate> candidates,
+  CandidateSource source)
+{
+  const int first = static_cast<int>(result.pool.size());
+  result.pool.insert(result.pool.end(),
+    std::make_move_iterator(candidates.begin()),
+    std::make_move_iterator(candidates.end()));
+  for (int i = first; i < static_cast<int>(result.pool.size()); ++i) {
+    EvaluatedCandidate evaluated;
+    evaluated.candidate_index = i;
+    evaluated.source = source;
+    result.evaluated.push_back(evaluated);
+  }
+}
+
+void fillSelectedMetrics(
+  LocalPlanResult & result,
+  const RacelineReference & reference,
+  double ego_s)
+{
+  if (result.selected_index < 0) {return;}
+  const auto & candidate = result.pool.at(static_cast<std::size_t>(result.selected_index));
+  const auto eval = std::find_if(result.evaluated.begin(), result.evaluated.end(),
+      [&result](const auto & item) {return item.candidate_index == result.selected_index;});
+  if (eval != result.evaluated.end()) {
+    result.decision.clearance_class = eval->collision.status;
+    result.decision.minimum_clearance_m = eval->collision.minimum_clearance_m;
+    result.decision.candidate_source = eval->source;
+  }
+  if (candidate.path.empty()) {return;}
+  result.decision.min_speed_mps = std::numeric_limits<double>::infinity();
+  for (const auto & sample : candidate.path) {
+    result.decision.max_abs_curvature_inv_m = std::max(
+      result.decision.max_abs_curvature_inv_m, std::abs(sample.curvature));
+    result.decision.min_speed_mps = std::min(result.decision.min_speed_mps, sample.speed);
+    result.decision.max_speed_mps = std::max(result.decision.max_speed_mps, sample.speed);
+  }
+  const auto & end = candidate.path.back();
+  const auto projection = reference.project(Point(end.x, end.y), end.heading, ego_s);
+  result.decision.terminal_d_m = projection.d;
+  result.decision.projection_seed_was_stale |= projection.seed_was_stale;
+}
+}  // namespace
+
+LocalPlanner::LocalPlanner(
+  const RacelineReference & reference,
+  const ManeuverBuilder & builder,
+  LocalPlannerConfig config)
+: reference_(reference), builder_(builder), config_(std::move(config)),
+  collision_checker_(config_)
+{
+}
+
+void LocalPlanner::buildGridCache(OccupancyGrid & grid) const
+{
+  collision_checker_.buildEuclideanTransform(grid);
+}
+
+LocalPlanResult LocalPlanner::plan(
+  const TacticalState & state,
+  const BoundaryState & ego,
+  const OccupancyGrid & grid) const
+{
+  const auto started = std::chrono::steady_clock::now();
+  LocalPlanResult result;
+  result.decision.requested_intent = state.intent;
+  result.decision.relative_position = state.relative_position;
+  result.decision.opponent_detected = state.opponent.detected;
+  result.decision.opponent_gap_m = state.opponent.gap_m;
+  result.decision.start_curvature_inv_m = ego.curvature;
+  result.decision.start_curvature_from_steering = std::abs(ego.curvature) > 0.0;
+
+  if (state.intent == PlannerIntent::FOLLOW_RACING_LINE) {
+    result.decision.cycle_time_ms = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - started).count();
+    return result;
+  }
+
+  PlannerIntent profile_intent = state.intent;
+  if (state.intent == PlannerIntent::OVERTAKE) {
+    appendCandidates(result, builder_.overtake(
+        ego, state.ego_s, state.ego_d, state.opponent.s), CandidateSource::OVERTAKE);
+  } else if (state.intent == PlannerIntent::PASS &&
+    std::abs(state.ego_d) <= builder_.config().sideDeadbandM())
+  {
+    appendCandidates(result, builder_.merge(ego, state.ego_s), CandidateSource::MERGE_ALIGNMENT);
+    profile_intent = PlannerIntent::MERGE;
+  } else if (state.intent == PlannerIntent::PASS) {
+    appendCandidates(result, builder_.pass(ego, state.ego_s, state.ego_d),
+      CandidateSource::PASS_PREFERRED);
+  } else {
+    appendCandidates(result, builder_.merge(ego, state.ego_s), CandidateSource::MERGE);
+  }
+
+  auto evaluateFrom = [&](std::size_t first) {
+      for (std::size_t i = first; i < result.evaluated.size(); ++i) {
+        auto & evaluated = result.evaluated[i];
+        auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+        evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+        if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID &&
+          config_.treat_out_of_grid_as_free)
+        {
+          evaluated.collision.status = CollisionStatus::FREE;
+        }
+        if (evaluated.collision.status == CollisionStatus::COLLISION) {
+          ++result.decision.collision_rejected;
+          continue;
+        }
+        if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID) {
+          ++result.decision.out_of_grid_rejected;
+          continue;
+        }
+        const auto & end = candidate.path.back();
+        const auto terminal = reference_.project(Point(end.x, end.y), end.heading, state.ego_s);
+        result.decision.projection_seed_was_stale |= terminal.seed_was_stale;
+        const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
+            terminal.s, profile_intent, reference_, config_);
+        evaluated.velocity_feasible = velocity.feasible;
+        evaluated.traversal_time_s = velocity.traversal_time_s;
+        if (!velocity.feasible) {
+          ++result.decision.velocity_rejected;
+        } else {
+          ++result.decision.valid_candidate_count;
+        }
+      }
+    };
+
+  evaluateFrom(0);
+  if (state.intent == PlannerIntent::PASS && profile_intent == PlannerIntent::PASS) {
+    const int preferred = selector_.selectPass(result.pool, result.evaluated);
+    const auto eval = std::find_if(result.evaluated.begin(), result.evaluated.end(),
+        [preferred](const auto & item) {return item.candidate_index == preferred;});
+    if (preferred < 0 || eval == result.evaluated.end() ||
+      eval->collision.status != CollisionStatus::FREE)
+    {
+      const std::size_t first = result.evaluated.size();
+      appendCandidates(result, builder_.recover(ego, state.ego_s, state.ego_d),
+        CandidateSource::PASS_RECOVERY);
+      evaluateFrom(first);
+    }
+  }
+  result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
+
+  if (state.intent == PlannerIntent::OVERTAKE) {
+    result.selected_index = selector_.selectOvertake(result.pool, result.evaluated);
+  } else if (state.intent == PlannerIntent::PASS && profile_intent == PlannerIntent::PASS) {
+    result.selected_index = selector_.selectPass(result.pool, result.evaluated);
+  } else {
+    result.selected_index = selector_.selectMerge(result.pool, result.evaluated);
+  }
+
+  std::vector<double> costs;
+  for (const auto & evaluated : result.evaluated) {
+    if (evaluated.velocity_feasible) {costs.push_back(evaluated.traversal_time_s);}
+  }
+  if (!costs.empty()) {
+    std::sort(costs.begin(), costs.end());
+    result.decision.best_cost_s = costs.front();
+    result.decision.median_cost_s = costs[costs.size() / 2];
+  }
+
+  if (result.selected_index >= 0) {
+    result.decision.executed_mode = ExecutedMode::MANEUVER;
+  } else {
+    const EvaluatedCandidate * safest = nullptr;
+    for (const auto & evaluated : result.evaluated) {
+      if (evaluated.collision.status != CollisionStatus::FREE &&
+        evaluated.collision.status != CollisionStatus::SOFT_INFLATION)
+      {
+        continue;
+      }
+      if (!safest || evaluated.collision.minimum_clearance_m >
+        safest->collision.minimum_clearance_m)
+      {
+        safest = &evaluated;
+      }
+    }
+    if (safest) {
+      result.selected_index = safest->candidate_index;
+      auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
+      for (auto & sample : path) {
+        sample.speed = std::max(config_.min_velocity_mps,
+            std::sqrt(std::max(0.0, ego.speed * ego.speed -
+            2.0 * config_.max_decel_mps2 * sample.s)));
+      }
+      result.decision.executed_mode = ExecutedMode::BRAKING_FALLBACK;
+      result.decision.candidate_source = CandidateSource::BRAKING;
+    } else {
+      result.decision.executed_mode = ExecutedMode::BRAKING_UNAVAILABLE;
+    }
+  }
+
+  fillSelectedMetrics(result, reference_, state.ego_s);
+  if (result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK) {
+    result.decision.candidate_source = CandidateSource::BRAKING;
+  }
+  result.decision.cycle_time_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - started).count();
+  return result;
+}
+
+}  // namespace local_planning
