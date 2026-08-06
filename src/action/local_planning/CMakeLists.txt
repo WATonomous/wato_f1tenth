@@ -12,16 +12,19 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
-# No generated interfaces right now.  The rosidl find_package and export stay so
-# Phase 6 re-adding PlannerDecision.msg is one line, not churn across two files.
+rosidl_generate_interfaces(${PROJECT_NAME} "msg/PlannerDecision.msg"
+  DEPENDENCIES builtin_interfaces std_msgs)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
 
 # ---------------------------------------------------------------------------
 # local_planning_core
@@ -42,9 +45,12 @@ add_library(local_planning_core
   src/collision/collision_checker.cpp
   src/speed/velocity_profile.cpp
   src/state/racing_state_machine.cpp
+  src/selection/candidate_selector.cpp
+  src/planning/local_planner.cpp
 )
 target_include_directories(local_planning_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
 # ---------------------------------------------------------------------------
@@ -55,6 +61,7 @@ add_library(local_planning_ros
 )
 target_link_libraries(local_planning_ros PUBLIC
   local_planning_core
+  ${cpp_typesupport_target}
 )
 ament_target_dependencies(local_planning_ros PUBLIC
   rclcpp
@@ -72,17 +79,36 @@ ament_target_dependencies(occupancy_grid_frame_adapter_node
 add_executable(racing_line_publisher_node src/ros/racing_line_publisher_node.cpp)
 ament_target_dependencies(racing_line_publisher_node rclcpp nav_msgs geometry_msgs)
 
-install(TARGETS local_planning_core local_planning_ros
+add_executable(planner_node src/ros/planner_node.cpp)
+target_link_libraries(planner_node
+  local_planning_ros
+  local_planning_core
+  ${cpp_typesupport_target}
+)
+ament_target_dependencies(planner_node
+  rclcpp ackermann_msgs nav_msgs std_msgs geometry_msgs visualization_msgs
+  tf2 tf2_ros tf2_geometry_msgs)
+
+# Only the core is exported; costmap_test_tools links it for RacelineReference.
+install(DIRECTORY include/ DESTINATION include)
+
+install(TARGETS local_planning_core
+  EXPORT export_${PROJECT_NAME}
+  DESTINATION lib
+)
+
+install(TARGETS local_planning_ros
   DESTINATION lib
 )
 
 install(TARGETS
   occupancy_grid_frame_adapter_node
   racing_line_publisher_node
+  planner_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY config
+install(DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -110,7 +136,12 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_racing_state_machine test/test_racing_state_machine.cpp)
   target_link_libraries(test_racing_state_machine local_planning_core)
+
+  ament_add_gtest(test_candidate_selector test/test_candidate_selector.cpp)
+  target_link_libraries(test_candidate_selector local_planning_core)
 endif()
 
+ament_export_include_directories(include)
+ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(rosidl_default_runtime)
 ament_package()

@@ -142,6 +142,7 @@ struct LocalPlannerConfig
   // Interior/terminal racing-speed multiplier for OVERTAKE/PASS, and MERGE
   // interiors only. MERGE's horizon terminal stays at unscaled raceline speed.
   double overtake_speed_scale = 1.1;
+  bool treat_out_of_grid_as_free = false;
 };
 
 } // namespace local_planning

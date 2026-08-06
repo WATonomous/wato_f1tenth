@@ -13,10 +13,50 @@ occupancy_grid_frame_adapter_node:
 planner_node:
   ros__parameters:
     horizon_m: 6.0
-    collision_circle_radius_m: 0.20
+    collision_circle_radius_m: 0.14
     overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5, 1.0]
-    passing_d_magnitudes_m: [0.55, 0.75]
+    passing_d_magnitudes_m: [0.30, 0.55, 0.75]
     overtake_heading_offsets_rad: [-0.15, 0.0, 0.15]
     overtake_curvature_multipliers: [0.0, 0.5, 1.0]
     pass_transition_distances_m: [6.0, 3.0, 1.0]
     merge_completion_distances_m: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+
+    corridor_half_width_m: 0.25
+    overlap_gap_m: 0.80
+    clear_gap_m: 1.50
+    overtake_start_gap_m: 3.00
+    compat_lateral_m: 0.28
+    compat_heading_rad: 0.15
+
+    front_collision_circle_offset_m: 0.32
+    soft_inflation_distance_m: 0.10
+    occupied_threshold: 50
+    friction_coeff: 1.0
+    min_velocity_mps: 0.0
+    max_velocity_mps: 7.7 # Derived from the horizon braking envelope.
+    max_accel_mps2: 5.0
+    max_decel_mps2: 5.0
+    overtake_speed_scale: 1.1
+    treat_out_of_grid_as_free: false
+
+    sample_spacing_m: 0.1
+    max_curvature_inv_m: 1.74
+    max_arc_length_m: 12.0
+    seed_window_m: 3.0
+    tangent_tolerance_rad: 1.2
+
+    planner_rate_hz: 20.0
+    racing_line_topic: "/global_planner/path"
+    occupancy_grid_topic: "/occupancy_grid"
+    odom_topic: "/odom"
+    steering_command_topic: "/drive/autonomy"
+    steering_command_timeout_s: 0.06
+    wheelbase_m: 0.33
+    use_steering_start_curvature: true
+    map_frame: "map"
+    controller_frame: "base_link"
+    local_path_topic: "/local_path"
+    local_path_map_topic: "/local_path_map"
+    overtake_ready_topic: "/overtake_ready"
+    decision_topic: "/planner_decision"
+    visualization_topic: "/local_planner_viz"

@@ -55,6 +55,7 @@ public:
   std::vector<ManeuverCandidate> recover(
     const BoundaryState & ego, double ego_s, double ego_d) const;
   std::vector<ManeuverCandidate> merge(const BoundaryState & ego, double ego_s) const;
+  const ManeuverConfig & config() const {return config_;}
 
 private:
   bool boundary(
