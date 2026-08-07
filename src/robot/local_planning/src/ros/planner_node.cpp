@@ -7,9 +7,11 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <stdexcept>
+#include <vector>
 
 namespace local_planning
 {
@@ -31,9 +33,20 @@ PlannerNode::PlannerNode()
       [this](nav_msgs::msg::Odometry::SharedPtr msg) {odom_ = std::move(msg);});
   grid_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(config_.occupancy_grid_topic, 1,
       [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+        const auto profile_started = std::chrono::steady_clock::now();
         grid_ = rosToOccupancyGrid(*msg);
         planner_.buildGridCache(grid_);
         has_grid_ = true;
+        if (config_.profiling_enabled) {
+          const double elapsed_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - profile_started).count();
+          const auto cells = static_cast<std::size_t>(std::max(0, grid_.width)) *
+          static_cast<std::size_t>(std::max(0, grid_.height));
+          RCLCPP_INFO(get_logger(),
+            "LOCAL_PLANNER_GRID_PROFILE width=%d height=%d cells=%zu resolution=%.4f "
+            "convert_and_distance_transform_ms=%.3f",
+            grid_.width, grid_.height, cells, grid_.resolution, elapsed_ms);
+        }
       });
   racing_line_sub_ = create_subscription<nav_msgs::msg::Path>(config_.racing_line_topic, latched,
       [this](const nav_msgs::msg::Path::SharedPtr msg) {
@@ -129,6 +142,8 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.steering_command_timeout_s = declare_parameter("steering_command_timeout_s", 0.06);
   cfg.wheelbase_m = declare_parameter("wheelbase_m", 0.33);
   cfg.use_steering_start_curvature = declare_parameter("use_steering_start_curvature", true);
+  cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
+  cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
   cfg.map_frame = declare_parameter("map_frame", "map");
   cfg.controller_frame = declare_parameter("controller_frame", "base_link");
   cfg.local_path_topic = declare_parameter("local_path_topic", "/local_path");
@@ -139,20 +154,135 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   return cfg;
 }
 
-void PlannerNode::planningCycle()
+void PlannerNode::recordProfile(ProfileSample sample)
 {
-  if (!odom_ || !has_grid_ || !reference_.valid()) {
-    publishDecision(PlannerDecisionData{});
+  if (!config_.profiling_enabled) {
     return;
   }
 
+  ++profiling_cycle_count_;
+  profiling_window_.push_back(sample);
+  const std::size_t window_size = static_cast<std::size_t>(std::max(
+      1, config_.profiling_log_every_n_cycles));
+  if (profiling_window_.size() < window_size) {
+    return;
+  }
+
+  struct Summary
+  {
+    double average;
+    double p95;
+    double maximum;
+  };
+  const auto summarize = [&](auto getter) {
+      std::vector<double> values;
+      values.reserve(profiling_window_.size());
+      double sum = 0.0;
+      for (const auto & item : profiling_window_) {
+        const double value = getter(item);
+        values.push_back(value);
+        sum += value;
+      }
+      std::sort(values.begin(), values.end());
+      const std::size_t p95_index = (95 * values.size() + 99) / 100 - 1;
+      return Summary{sum / static_cast<double>(values.size()), values[p95_index], values.back()};
+    };
+  const auto format = [](const Summary & summary) {
+      // Kept as a numeric triple so the whole line can be pasted into a sheet.
+      return std::array<double, 3>{summary.average, summary.p95, summary.maximum};
+    };
+
+  const auto cycle = format(summarize([](const auto & p) {return p.cycle_ms;}));
+  const auto odom = format(summarize([](const auto & p) {return p.odom_conversion_ms;}));
+  const auto state = format(summarize([](const auto & p) {return p.state_update_ms;}));
+  const auto planner = format(summarize([](const auto & p) {return p.planner_ms;}));
+  const auto decision_pub = format(summarize([](const auto & p) {return p.decision_publish_ms;}));
+  const auto path_message = format(summarize([](const auto & p) {return p.path_message_ms;}));
+  const auto tf = format(summarize([](const auto & p) {return p.tf_ms;}));
+  const auto path_pub = format(summarize([](const auto & p) {return p.path_publish_ms;}));
+  const auto marker_pub = format(summarize([](const auto & p) {return p.marker_publish_ms;}));
+  const auto generation = format(summarize([](const auto & p) {
+        return p.candidate_generation_ms;
+  }));
+  const auto collision = format(summarize([](const auto & p) {return p.collision_check_ms;}));
+  const auto projection = format(summarize([](const auto & p) {
+        return p.terminal_projection_ms;
+  }));
+  const auto velocity = format(summarize([](const auto & p) {return p.velocity_profile_ms;}));
+  const auto selection = format(summarize([](const auto & p) {return p.selection_ms;}));
+  const auto finalization = format(summarize([](const auto & p) {return p.finalization_ms;}));
+  const auto candidates = summarize([](const auto & p) {
+        return static_cast<double>(p.candidate_count);
+  });
+  const auto samples = summarize([](const auto & p) {
+        return static_cast<double>(p.total_path_samples);
+  });
+  const auto max_samples = summarize([](const auto & p) {
+        return static_cast<double>(p.max_path_samples);
+  });
+  const auto collision_poses = summarize([](const auto & p) {
+        return static_cast<double>(p.collision_poses_checked);
+  });
+  std::size_t ready_cycles = 0;
+  for (const auto & item : profiling_window_) {
+    ready_cycles += item.inputs_ready ? 1U : 0U;
+  }
+
+  RCLCPP_INFO(get_logger(),
+    "LOCAL_PLANNER_PROFILE format=avg/p95/max window=%zu ready=%zu "
+    "cycle_ms=%.3f/%.3f/%.3f odom_ms=%.3f/%.3f/%.3f state_ms=%.3f/%.3f/%.3f "
+    "planner_ms=%.3f/%.3f/%.3f decision_pub_ms=%.3f/%.3f/%.3f "
+    "path_msg_ms=%.3f/%.3f/%.3f tf_ms=%.3f/%.3f/%.3f path_pub_ms=%.3f/%.3f/%.3f "
+    "marker_pub_ms=%.3f/%.3f/%.3f candidate_gen_ms=%.3f/%.3f/%.3f "
+    "collision_ms=%.3f/%.3f/%.3f projection_ms=%.3f/%.3f/%.3f "
+    "velocity_ms=%.3f/%.3f/%.3f selection_ms=%.3f/%.3f/%.3f "
+    "finalization_ms=%.3f/%.3f/%.3f candidates=%.1f/%.1f/%.1f "
+    "path_samples=%.1f/%.1f/%.1f max_path_samples=%.1f/%.1f/%.1f "
+    "collision_poses=%.1f/%.1f/%.1f",
+    profiling_window_.size(), ready_cycles,
+    cycle[0], cycle[1], cycle[2], odom[0], odom[1], odom[2], state[0], state[1], state[2],
+    planner[0], planner[1], planner[2], decision_pub[0], decision_pub[1], decision_pub[2],
+    path_message[0], path_message[1], path_message[2], tf[0], tf[1], tf[2],
+    path_pub[0], path_pub[1], path_pub[2], marker_pub[0], marker_pub[1], marker_pub[2],
+    generation[0], generation[1], generation[2], collision[0], collision[1], collision[2],
+    projection[0], projection[1], projection[2], velocity[0], velocity[1], velocity[2],
+    selection[0], selection[1], selection[2], finalization[0], finalization[1], finalization[2],
+    candidates.average, candidates.p95, candidates.maximum,
+    samples.average, samples.p95, samples.maximum,
+    max_samples.average, max_samples.p95, max_samples.maximum,
+    collision_poses.average, collision_poses.p95, collision_poses.maximum);
+  profiling_window_.clear();
+}
+
+void PlannerNode::planningCycle()
+{
+  const auto cycle_started = std::chrono::steady_clock::now();
+  ProfileSample profile;
+  const auto finishProfile = [&]() {
+      profile.cycle_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - cycle_started).count();
+      recordProfile(profile);
+    };
+  if (!odom_ || !has_grid_ || !reference_.valid()) {
+    publishDecision(PlannerDecisionData{});
+    finishProfile();
+    return;
+  }
+  profile.inputs_ready = true;
+
+  const auto odom_started = std::chrono::steady_clock::now();
   Odometry odom = rosToOdometry(*odom_);
   const bool steering_fresh = has_steering_ &&
     std::chrono::duration<double>(std::chrono::steady_clock::now() -
     steering_received_).count() <= config_.steering_command_timeout_s;
   if (steering_fresh) {odom.steering_angle = steering_angle_;}
+  profile.odom_conversion_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - odom_started).count();
 
+  const auto state_started = std::chrono::steady_clock::now();
   state_machine_.update(odom, grid_);
+  profile.state_update_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - state_started).count();
   BoundaryState ego;
   ego.x = odom.position.x;
   ego.y = odom.position.y;
@@ -162,32 +292,72 @@ void PlannerNode::planningCycle()
     ego.curvature = std::tan(odom.steering_angle) / config_.wheelbase_m;
   }
 
+  const auto planner_started = std::chrono::steady_clock::now();
   auto result = planner_.plan(state_machine_.state(), ego, grid_);
+  profile.planner_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - planner_started).count();
+  profile.candidate_generation_ms = result.profile.candidate_generation_ms;
+  profile.collision_check_ms = result.profile.collision_check_ms;
+  profile.terminal_projection_ms = result.profile.terminal_projection_ms;
+  profile.velocity_profile_ms = result.profile.velocity_profile_ms;
+  profile.selection_ms = result.profile.selection_ms;
+  profile.finalization_ms = result.profile.finalization_ms;
+  profile.candidate_count = result.profile.generated_count;
+  profile.total_path_samples = result.profile.total_path_samples;
+  profile.max_path_samples = result.profile.max_path_samples;
+  profile.collision_poses_checked = result.profile.collision_poses_checked;
   result.decision.start_curvature_from_steering =
     config_.use_steering_start_curvature && steering_fresh;
+  const auto decision_publish_started = std::chrono::steady_clock::now();
   publishDecision(result.decision);
+  profile.decision_publish_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - decision_publish_started).count();
 
   if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
+    const auto marker_publish_started = std::chrono::steady_clock::now();
     publishOvertakeReady(false);
+    profile.marker_publish_ms = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - marker_publish_started).count();
+    finishProfile();
     return;
   }
   if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
     RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "Braking path unavailable");
+    finishProfile();
     return;
   }
-  if (result.selected_index < 0) {return;}
+  if (result.selected_index < 0) {
+    finishProfile();
+    return;
+  }
 
+  const auto path_message_started = std::chrono::steady_clock::now();
   const auto map_path = pathMessage(
     result.pool.at(static_cast<std::size_t>(result.selected_index)).path);
+  profile.path_message_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - path_message_started).count();
   nav_msgs::msg::Path controller_path;
+  const auto tf_started = std::chrono::steady_clock::now();
   if (!transformPathToControllerFrame(map_path, controller_path)) {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Local path transform unavailable");
+    profile.tf_ms = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - tf_started).count();
+    finishProfile();
     return;
   }
+  profile.tf_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - tf_started).count();
+  const auto path_publish_started = std::chrono::steady_clock::now();
   local_path_map_pub_->publish(map_path);
   local_path_pub_->publish(controller_path);
+  profile.path_publish_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - path_publish_started).count();
+  const auto marker_publish_started = std::chrono::steady_clock::now();
   publishMarkers(result);
   publishOvertakeReady(true);
+  profile.marker_publish_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - marker_publish_started).count();
+  finishProfile();
 }
 
 nav_msgs::msg::Path PlannerNode::pathMessage(const Path & path) const
