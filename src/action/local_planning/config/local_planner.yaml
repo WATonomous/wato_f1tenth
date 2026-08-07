@@ -53,6 +53,9 @@ planner_node:
     steering_command_timeout_s: 0.06
     wheelbase_m: 0.33
     use_steering_start_curvature: true
+    # Emits one machine-readable aggregate profile line every N planner cycles.
+    profiling_enabled: true
+    profiling_log_every_n_cycles: 20
     map_frame: "map"
     controller_frame: "base_link"
     local_path_topic: "/local_path"

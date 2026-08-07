@@ -52,6 +52,22 @@ struct LocalPlanResult
   std::vector<EvaluatedCandidate> evaluated;
   int selected_index = -1;
   PlannerDecisionData decision;
+
+  // Timings are intentionally kept out of PlannerDecisionData: they are
+  // diagnostics for stdout, not part of the planner's control contract.
+  struct Profile
+  {
+    double candidate_generation_ms = 0.0;
+    double collision_check_ms = 0.0;
+    double terminal_projection_ms = 0.0;
+    double velocity_profile_ms = 0.0;
+    double selection_ms = 0.0;
+    double finalization_ms = 0.0;
+    uint32_t generated_count = 0;
+    uint32_t total_path_samples = 0;
+    uint32_t max_path_samples = 0;
+    uint32_t collision_poses_checked = 0;
+  } profile;
 };
 
 class LocalPlanner
