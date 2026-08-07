@@ -19,9 +19,11 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace local_planning
 {
@@ -43,6 +45,8 @@ private:
     double steering_command_timeout_s = 0.06;
     double wheelbase_m = 0.33;
     bool use_steering_start_curvature = true;
+    bool profiling_enabled = true;
+    int profiling_log_every_n_cycles = 20;
     std::string racing_line_topic;
     std::string occupancy_grid_topic;
     std::string odom_topic;
@@ -66,6 +70,32 @@ private:
   void publishOvertakeReady(bool ready);
   void publishMarkers(const LocalPlanResult & result);
 
+  struct ProfileSample
+  {
+    double cycle_ms = 0.0;
+    double odom_conversion_ms = 0.0;
+    double state_update_ms = 0.0;
+    double planner_ms = 0.0;
+    double decision_publish_ms = 0.0;
+    double path_message_ms = 0.0;
+    double tf_ms = 0.0;
+    double path_publish_ms = 0.0;
+    double marker_publish_ms = 0.0;
+    double candidate_generation_ms = 0.0;
+    double collision_check_ms = 0.0;
+    double terminal_projection_ms = 0.0;
+    double velocity_profile_ms = 0.0;
+    double selection_ms = 0.0;
+    double finalization_ms = 0.0;
+    uint32_t candidate_count = 0;
+    uint32_t total_path_samples = 0;
+    uint32_t max_path_samples = 0;
+    uint32_t collision_poses_checked = 0;
+    bool inputs_ready = false;
+  };
+
+  void recordProfile(ProfileSample sample);
+
   NodeConfig config_;
   RacelineReference reference_;
   CurveConnectionGenerator curve_generator_;
@@ -82,6 +112,8 @@ private:
   std::chrono::steady_clock::time_point steering_received_;
   bool has_steering_ = false;
   std::optional<bool> last_overtake_ready_;
+  uint64_t profiling_cycle_count_ = 0;
+  std::vector<ProfileSample> profiling_window_;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;

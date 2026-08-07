@@ -78,6 +78,10 @@ LocalPlanResult LocalPlanner::plan(
   const OccupancyGrid & grid) const
 {
   const auto started = std::chrono::steady_clock::now();
+  const auto elapsedMs = [](const auto begin) {
+      return std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - begin).count();
+    };
   LocalPlanResult result;
   result.decision.requested_intent = state.intent;
   result.decision.relative_position = state.relative_position;
@@ -87,32 +91,47 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.start_curvature_from_steering = std::abs(ego.curvature) > 0.0;
 
   if (state.intent == PlannerIntent::FOLLOW_RACING_LINE) {
-    result.decision.cycle_time_ms = std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - started).count();
+    result.decision.cycle_time_ms = elapsedMs(started);
     return result;
   }
 
+  auto appendGenerated = [&](CandidateSource source, auto generator) {
+      const auto generation_started = std::chrono::steady_clock::now();
+      auto candidates = generator();
+      result.profile.candidate_generation_ms += elapsedMs(generation_started);
+      appendCandidates(result, std::move(candidates), source);
+    };
+
   PlannerIntent profile_intent = state.intent;
   if (state.intent == PlannerIntent::OVERTAKE) {
-    appendCandidates(result, builder_.overtake(
-        ego, state.ego_s, state.ego_d, state.opponent.s), CandidateSource::OVERTAKE);
+    appendGenerated(CandidateSource::OVERTAKE, [&]() {
+        return builder_.overtake(ego, state.ego_s, state.ego_d, state.opponent.s);
+    });
   } else if (state.intent == PlannerIntent::PASS &&
     std::abs(state.ego_d) <= builder_.config().sideDeadbandM())
   {
-    appendCandidates(result, builder_.merge(ego, state.ego_s), CandidateSource::MERGE_ALIGNMENT);
+    appendGenerated(CandidateSource::MERGE_ALIGNMENT, [&]() {
+        return builder_.merge(ego, state.ego_s);
+    });
     profile_intent = PlannerIntent::MERGE;
   } else if (state.intent == PlannerIntent::PASS) {
-    appendCandidates(result, builder_.pass(ego, state.ego_s, state.ego_d),
-      CandidateSource::PASS_PREFERRED);
+    appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
+        return builder_.pass(ego, state.ego_s, state.ego_d);
+    });
   } else {
-    appendCandidates(result, builder_.merge(ego, state.ego_s), CandidateSource::MERGE);
+    appendGenerated(CandidateSource::MERGE, [&]() {
+        return builder_.merge(ego, state.ego_s);
+    });
   }
 
   auto evaluateFrom = [&](std::size_t first) {
       for (std::size_t i = first; i < result.evaluated.size(); ++i) {
         auto & evaluated = result.evaluated[i];
         auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+        const auto collision_started = std::chrono::steady_clock::now();
         evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+        result.profile.collision_check_ms += elapsedMs(collision_started);
+        result.profile.collision_poses_checked += evaluated.collision.checked_poses;
         if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID &&
           config_.treat_out_of_grid_as_free)
         {
@@ -127,10 +146,14 @@ LocalPlanResult LocalPlanner::plan(
           continue;
         }
         const auto & end = candidate.path.back();
+        const auto projection_started = std::chrono::steady_clock::now();
         const auto terminal = reference_.project(Point(end.x, end.y), end.heading, state.ego_s);
+        result.profile.terminal_projection_ms += elapsedMs(projection_started);
         result.decision.projection_seed_was_stale |= terminal.seed_was_stale;
+        const auto velocity_started = std::chrono::steady_clock::now();
         const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
             terminal.s, profile_intent, reference_, config_);
+        result.profile.velocity_profile_ms += elapsedMs(velocity_started);
         evaluated.velocity_feasible = velocity.feasible;
         evaluated.traversal_time_s = velocity.traversal_time_s;
         if (!velocity.feasible) {
@@ -150,13 +173,21 @@ LocalPlanResult LocalPlanner::plan(
       eval->collision.status != CollisionStatus::FREE)
     {
       const std::size_t first = result.evaluated.size();
-      appendCandidates(result, builder_.recover(ego, state.ego_s, state.ego_d),
-        CandidateSource::PASS_RECOVERY);
+      appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
+          return builder_.recover(ego, state.ego_s, state.ego_d);
+      });
       evaluateFrom(first);
     }
   }
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
+  result.profile.generated_count = result.decision.generated_count;
+  for (const auto & candidate : result.pool) {
+    const auto sample_count = static_cast<uint32_t>(candidate.path.size());
+    result.profile.total_path_samples += sample_count;
+    result.profile.max_path_samples = std::max(result.profile.max_path_samples, sample_count);
+  }
 
+  const auto selection_started = std::chrono::steady_clock::now();
   if (state.intent == PlannerIntent::OVERTAKE) {
     result.selected_index = selector_.selectOvertake(result.pool, result.evaluated);
   } else if (state.intent == PlannerIntent::PASS && profile_intent == PlannerIntent::PASS) {
@@ -174,7 +205,9 @@ LocalPlanResult LocalPlanner::plan(
     result.decision.best_cost_s = costs.front();
     result.decision.median_cost_s = costs[costs.size() / 2];
   }
+  result.profile.selection_ms += elapsedMs(selection_started);
 
+  const auto finalization_started = std::chrono::steady_clock::now();
   if (result.selected_index >= 0) {
     result.decision.executed_mode = ExecutedMode::MANEUVER;
   } else {
@@ -210,8 +243,8 @@ LocalPlanResult LocalPlanner::plan(
   if (result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK) {
     result.decision.candidate_source = CandidateSource::BRAKING;
   }
-  result.decision.cycle_time_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - started).count();
+  result.profile.finalization_ms = elapsedMs(finalization_started);
+  result.decision.cycle_time_ms = elapsedMs(started);
   return result;
 }
 
