@@ -211,7 +211,7 @@ CollisionCheckResult CollisionChecker::collisionCheckPose(
   const OccupancyGrid & grid) const
 {
   if (!euclideanTransformValid(grid)) {
-    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity()};
+    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 1};
   }
 
   const double collision_radius_m = std::max(0.0, config_.collision_circle_radius_m);
@@ -232,7 +232,7 @@ CollisionCheckResult CollisionChecker::collisionCheckPose(
     int center_row = 0;
     int center_col = 0;
     if (!pointToGridCell(center, grid, center_row, center_col)) {
-      return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity()};
+      return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 1};
     }
 
     const double clearance_m =
@@ -241,7 +241,7 @@ CollisionCheckResult CollisionChecker::collisionCheckPose(
       cell_half_diagonal - collision_radius_m;
     minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
     if (clearance_m <= 0.0) {
-      return {CollisionStatus::COLLISION, minimum_clearance_m};
+      return {CollisionStatus::COLLISION, minimum_clearance_m, 1};
     }
     if (clearance_m <= soft_inflation_distance_m) {
       has_soft_inflation = true;
@@ -250,7 +250,8 @@ CollisionCheckResult CollisionChecker::collisionCheckPose(
 
   return {
     has_soft_inflation ? CollisionStatus::SOFT_INFLATION : CollisionStatus::FREE,
-    minimum_clearance_m
+    minimum_clearance_m,
+    1
   };
 }
 
@@ -259,16 +260,18 @@ CollisionCheckResult CollisionChecker::collisionCheck(
   const OccupancyGrid & grid) const
 {
   if (!euclideanTransformValid(grid) || path.empty()) {
-    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity()};
+    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0};
   }
 
   const double max_step_m = 0.5 * grid.resolution;
   CollisionStatus aggregated_status = CollisionStatus::FREE;
   double minimum_clearance_m = std::numeric_limits<double>::infinity();
+  uint32_t checked_poses = 0;
 
   auto accumulatePose = [&](double x, double y, double heading) -> bool {
       const CollisionCheckResult pose_result =
         collisionCheckPose(Point(x, y), heading, grid);
+      checked_poses += pose_result.checked_poses;
       if (pose_result.status == CollisionStatus::OUT_OF_GRID) {
         aggregated_status = CollisionStatus::OUT_OF_GRID;
         minimum_clearance_m = -std::numeric_limits<double>::infinity();
@@ -281,9 +284,9 @@ CollisionCheckResult CollisionChecker::collisionCheck(
 
   if (path.size() == 1) {
     if (!accumulatePose(path.front().x, path.front().y, path.front().heading)) {
-      return {aggregated_status, minimum_clearance_m};
+      return {aggregated_status, minimum_clearance_m, checked_poses};
     }
-    return {aggregated_status, minimum_clearance_m};
+    return {aggregated_status, minimum_clearance_m, checked_poses};
   }
 
   for (std::size_t i = 0; i + 1 < path.size(); ++i) {
@@ -309,12 +312,12 @@ CollisionCheckResult CollisionChecker::collisionCheck(
       const double y = a.y + t * dy;
       const double heading = a.heading + t * heading_delta;
       if (!accumulatePose(x, y, heading)) {
-        return {aggregated_status, minimum_clearance_m};
+        return {aggregated_status, minimum_clearance_m, checked_poses};
       }
     }
   }
 
-  return {aggregated_status, minimum_clearance_m};
+  return {aggregated_status, minimum_clearance_m, checked_poses};
 }
 
 } // namespace local_planning

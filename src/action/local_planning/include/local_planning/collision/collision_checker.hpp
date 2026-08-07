@@ -20,6 +20,9 @@ struct CollisionCheckResult
 {
   CollisionStatus status = CollisionStatus::FREE;
   double minimum_clearance_m = 0.0;
+  // Number of swept-footprint poses actually examined.  This is useful for
+  // diagnosing maps/resolutions that make collision checking expensive.
+  uint32_t checked_poses = 0;
 };
 
 // Dense swept-footprint occupancy checking against a costmap whose Euclidean

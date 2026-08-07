@@ -30,10 +30,10 @@ int CandidateSelector::selectOvertake(
   (void)pool;
   const EvaluatedCandidate * best = nullptr;
   for (const auto & candidate : evaluated) {
-    if (!valid(candidate)) {continue;}
-    if (!best || clearanceRank(candidate) < clearanceRank(*best) ||
+    if (valid(candidate) &&
+      (!best || clearanceRank(candidate) < clearanceRank(*best) ||
       (clearanceRank(candidate) == clearanceRank(*best) &&
-      candidate.traversal_time_s < best->traversal_time_s))
+      candidate.traversal_time_s < best->traversal_time_s)))
     {
       best = &candidate;
     }
