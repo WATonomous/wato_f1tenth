@@ -39,6 +39,7 @@ public:
   // Returns false and leaves the object invalid if the loop is degenerate.
   bool setRacingLine(const std::vector<Point> & points);
   void setProjectionConfig(const ProjectionConfig & config) {projection_config_ = config;}
+  const ProjectionConfig & projectionConfig() const {return projection_config_;}
 
   bool valid() const {return valid_;}
   double totalLength() const {return total_length_m_;}
@@ -55,6 +56,11 @@ public:
   // query point has a meaningful heading
   Projection project(const Point & p, double heading, double seed_s) const;
 
+  // Same, but only search the forward arc [s_min, s_max] (index-bounded).
+  Projection project(
+    const Point & p, double heading, double seed_s,
+    double s_min, double s_max) const;
+
   // Locally-seeded projection without the tangent check, for query points that
   // have no heading of their own, such as an occupied costmap cell.  The seed
   // window is still what keeps it on the right branch
@@ -69,6 +75,9 @@ public:
   // Signed arc length from from_s to to_s, wrapped to [-L/2, L/2].  Positive
   // means to_s is ahead.  This is the only correct way to compare two s values.
   double deltaS(double from_s, double to_s) const;
+
+  // Forward arc length from from_s to to_s in [0, L).
+  double forwardDeltaS(double from_s, double to_s) const;
 
 private:
   struct SplineSegment
@@ -93,14 +102,15 @@ private:
     Projection & best,
     double & best_dist_sq) const;
 
-  // Best projection within +/- window of seed_s.  found is false when every
-  // candidate failed the tangent check.
-  Projection searchWindow(
+  // Best projection on the forward arc starting at start_s for length_m.
+  // Iterates only the overlapping segment index range.  found is false when
+  // every candidate failed the tangent check.
+  Projection searchArc(
     const Point & p,
     double heading,
     bool use_tangent_check,
-    double seed_s,
-    double window_m,
+    double start_s,
+    double length_m,
     bool & found) const;
 
   // Same, over every segment.  No seed, because there is nothing to seed.
