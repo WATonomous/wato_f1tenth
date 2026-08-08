@@ -114,8 +114,12 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
     const std::vector<double> expected_curvatures{0.0, 0.5 * offset_curvature, offset_curvature};
     for (std::size_t i = 0; i < 3; ++i) {
       const Path & path = candidates[static_cast<std::size_t>(side_index) * 3u + i].path;
+      EXPECT_TRUE(std::all_of(path.begin(), path.end(), [](const CurveSample & sample) {
+        return std::isfinite(sample.raceline_s);
+      }));
       const CurveSample * const intermediate = sampleAt(path, reference.toCartesian(5.0, d));
       ASSERT_NE(intermediate, nullptr);
+      EXPECT_NEAR(reference.deltaS(5.0, intermediate->raceline_s), 0.0, 1e-8);
       EXPECT_NEAR(intermediate->curvature, expected_curvatures[i], 1e-8);
       EXPECT_NEAR(endOffset(reference, path, 8.0), d, 1e-8);
     }

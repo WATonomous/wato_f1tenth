@@ -13,7 +13,6 @@ namespace
 
 constexpr double kEpsilon = 1e-6;
 constexpr double kGravityMps2 = 9.81;
-constexpr double kProjectionSPadM = 1.0;
 
 double interiorSpeedScale(PlannerIntent intent, const LocalPlannerConfig & config)
 {
@@ -56,6 +55,7 @@ bool configValid(const LocalPlannerConfig & config)
 bool finiteSample(const CurveSample & sample)
 {
   return std::isfinite(sample.s) &&
+         std::isfinite(sample.raceline_s) &&
          std::isfinite(sample.x) &&
          std::isfinite(sample.y) &&
          std::isfinite(sample.heading) &&
@@ -122,17 +122,10 @@ VelocityProfileResult assignVelocityProfile(
   const double scale = interiorSpeedScale(intent, config);
   const double terminal_scale = terminalSpeedScale(intent, config);
   std::vector<double> speeds(path.size(), 0.0);
-  double seed_s = reference.wrapS(start_raceline_s);
-  const double s_min = start_raceline_s - kProjectionSPadM;
-  const double s_max = terminal_raceline_s + kProjectionSPadM;
-
   for (std::size_t i = 0; i < path.size(); ++i) {
     const CurveSample & sample = path[i];
-    const Projection projection =
-      reference.project(Point(sample.x, sample.y), sample.heading, seed_s, s_min, s_max);
-    seed_s = projection.s;
-
-    const double raceline_speed = std::max(0.0, reference.sampleAtS(projection.s).velocity);
+    const double raceline_speed =
+      std::max(0.0, reference.sampleAtS(sample.raceline_s).velocity);
     double speed = scale * raceline_speed;
     speed = std::max(config.min_velocity_mps, speed);
     speed = std::min(speed, config.max_velocity_mps);

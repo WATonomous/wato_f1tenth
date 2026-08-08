@@ -114,6 +114,9 @@ private:
   std::optional<bool> last_overtake_ready_;
   uint64_t profiling_cycle_count_ = 0;
   std::vector<ProfileSample> profiling_window_;
+  // Grid callbacks run far faster than the planner timer, so their timings are
+  // accumulated here and reported inside the periodic profile line.
+  std::vector<double> grid_profiling_window_;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;

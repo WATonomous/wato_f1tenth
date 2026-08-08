@@ -44,6 +44,7 @@ CurveSample sampleAt(
   sample.heading = heading;
   sample.curvature = curvature;
   sample.speed = -1.0;  // sentinel: must not remain if profiling fails
+  sample.raceline_s = x;
   return sample;
 }
 
@@ -255,8 +256,10 @@ TEST(VelocityProfile, RacelineWrapAroundSequentialProjection)
   for (int i = 0; i <= 20; ++i) {
     const double s = start_s + 0.1 * static_cast<double>(i);
     const ReferenceGeometrySample geo = reference.sampleAtS(s);
-    path.push_back(sampleAt(0.1 * static_cast<double>(i), geo.x, geo.y, geo.heading,
-        geo.curvature));
+    CurveSample sample = sampleAt(
+      0.1 * static_cast<double>(i), geo.x, geo.y, geo.heading, geo.curvature);
+    sample.raceline_s = s;
+    path.push_back(sample);
   }
 
   LocalPlannerConfig config = defaultConfig();
