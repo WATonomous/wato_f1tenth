@@ -209,6 +209,18 @@ double RacelineReference::deltaS(double from_s, double to_s) const
   return delta;
 }
 
+double RacelineReference::forwardDeltaS(double from_s, double to_s) const
+{
+  if (total_length_m_ <= kEpsilon) {
+    return 0.0;
+  }
+  double delta = wrapS(to_s) - wrapS(from_s);
+  if (delta < 0.0) {
+    delta += total_length_m_;
+  }
+  return delta;
+}
+
 std::size_t RacelineReference::segmentAt(double s_wrapped, double & t) const
 {
   // cumulative_s_ is sorted; find the last knot at or before s.
@@ -351,30 +363,34 @@ bool RacelineReference::scanSegment(
   return improved;
 }
 
-Projection RacelineReference::searchWindow(
+Projection RacelineReference::searchArc(
   const Point & p,
   double heading,
   bool use_tangent_check,
-  double seed_s,
-  double window_m,
+  double start_s,
+  double length_m,
   bool & found) const
 {
   found = false;
   Projection best;
   double best_dist_sq = std::numeric_limits<double>::max();
-
-  for (std::size_t i = 0; i < points_.size(); ++i) {
-    // Skip segments whose whole span lies outside the window.  Comparing at
-    // both ends keeps a segment that only partly overlaps.
-    const double start_delta = std::abs(deltaS(seed_s, cumulative_s_[i]));
-    const double end_delta =
-      std::abs(deltaS(seed_s, cumulative_s_[i] + segment_length_[i]));
-    if (start_delta > window_m && end_delta > window_m) {
-      continue;
-    }
-    found |= scanSegment(p, heading, use_tangent_check, i, best, best_dist_sq);
+  if (points_.empty() || length_m <= 0.0) {
+    return best;
   }
 
+  length_m = std::min(length_m, total_length_m_);
+  double t = 0.0;
+  std::size_t i = segmentAt(wrapS(start_s), t);
+  const std::size_t n = points_.size();
+  double covered = 0.0;
+  for (std::size_t k = 0; k < n; ++k) {
+    found |= scanSegment(p, heading, use_tangent_check, i, best, best_dist_sq);
+    covered += (k == 0) ? (segment_length_[i] - t) : segment_length_[i];
+    if (covered >= length_m - kEpsilon) {
+      break;
+    }
+    i = (i + 1) % n;
+  }
   return best;
 }
 
@@ -404,14 +420,39 @@ Projection RacelineReference::project(
     return {};
   }
 
+  const double window = projection_config_.seed_window_m;
   bool found = false;
-  Projection result = searchWindow(
-    p, heading, true, seed_s, projection_config_.seed_window_m, found);
+  Projection result = searchArc(
+    p, heading, true, seed_s - window, 2.0 * window, found);
   if (found) {
     return result;
   }
 
   // Stale seed: initialization, relocalization, or ego genuinely jumped.
+  result = projectGlobal(p, heading, true);
+  result.seed_was_stale = true;
+  return result;
+}
+
+Projection RacelineReference::project(
+  const Point & p,
+  double heading,
+  double seed_s,
+  double s_min,
+  double s_max) const
+{
+  if (!valid_) {
+    return {};
+  }
+  (void)seed_s;
+
+  bool found = false;
+  Projection result = searchArc(
+    p, heading, true, s_min, forwardDeltaS(s_min, s_max), found);
+  if (found) {
+    return result;
+  }
+
   result = projectGlobal(p, heading, true);
   result.seed_was_stale = true;
   return result;
@@ -423,9 +464,10 @@ Projection RacelineReference::project(const Point & p, double seed_s) const
     return {};
   }
 
+  const double window = projection_config_.seed_window_m;
   bool found = false;
-  Projection result = searchWindow(
-    p, 0.0, false, seed_s, projection_config_.seed_window_m, found);
+  Projection result = searchArc(
+    p, 0.0, false, seed_s - window, 2.0 * window, found);
   if (found) {
     return result;
   }
