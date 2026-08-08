@@ -2,6 +2,7 @@
 #define LOCAL_PLANNING_CORE_TYPES_HPP
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -119,6 +120,9 @@ struct CurveSample
   double heading = 0.0;    // rad
   double curvature = 0.0;  // 1/m
   double speed = 0.0;      // m/s, filled by the velocity profile
+  // Raceline station associated with this sample. Maneuver construction owns
+  // this mapping so downstream stages never need to project x/y back to s/d.
+  double raceline_s = std::numeric_limits<double>::quiet_NaN();
 };
 
 struct LocalPlannerConfig

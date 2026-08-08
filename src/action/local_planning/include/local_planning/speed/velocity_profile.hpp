@@ -16,8 +16,8 @@ struct VelocityProfileResult
 };
 
 // Builds a dynamically feasible speed profile on a complete candidate path.
-// Projects samples onto the raceline, applies intent-scaled raceline / vehicle /
-// friction caps, an explicit terminal speed policy, then backward deceleration
+// Uses the raceline station retained during maneuver construction, applies
+// intent-scaled raceline / vehicle / friction caps, an explicit terminal speed policy, then backward deceleration
 // and forward acceleration passes.  Speeds are written to `path` only when the
 // profile is feasible.
 VelocityProfileResult assignVelocityProfile(

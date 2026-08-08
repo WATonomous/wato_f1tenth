@@ -68,6 +68,8 @@ private:
     Path & path,
     const BoundaryState & start,
     const BoundaryState & end,
+    double start_raceline_s,
+    double end_raceline_s,
     BoundaryState * actual_end = nullptr) const;
   bool appendTail(Path & path, double start_s, double distance, double d) const;
   bool staysOnSide(const Path & path, double ego_s, int side, bool allow_start_center) const;
