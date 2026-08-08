@@ -12,8 +12,6 @@ namespace local_planning
 {
 namespace
 {
-constexpr double kProjectionSPadM = 1.0;
-
 void appendCandidates(
   LocalPlanResult & result,
   std::vector<ManeuverCandidate> candidates,
@@ -32,10 +30,7 @@ void appendCandidates(
 }
 
 void fillSelectedMetrics(
-  LocalPlanResult & result,
-  const RacelineReference & reference,
-  double ego_s,
-  double horizon_m)
+  LocalPlanResult & result)
 {
   if (result.selected_index < 0) {return;}
   const auto & candidate = result.pool.at(static_cast<std::size_t>(result.selected_index));
@@ -54,12 +49,7 @@ void fillSelectedMetrics(
     result.decision.min_speed_mps = std::min(result.decision.min_speed_mps, sample.speed);
     result.decision.max_speed_mps = std::max(result.decision.max_speed_mps, sample.speed);
   }
-  const auto & end = candidate.path.back();
-  const auto projection = reference.project(
-    Point(end.x, end.y), end.heading, ego_s,
-    ego_s - kProjectionSPadM, ego_s + horizon_m + kProjectionSPadM);
-  result.decision.terminal_d_m = projection.d;
-  result.decision.projection_seed_was_stale |= projection.seed_was_stale;
+  result.decision.terminal_d_m = candidate.target_d;
 }
 }  // namespace
 
@@ -150,17 +140,11 @@ LocalPlanResult LocalPlanner::plan(
           ++result.decision.out_of_grid_rejected;
           continue;
         }
-        const auto & end = candidate.path.back();
-        const auto projection_started = std::chrono::steady_clock::now();
-        const double horizon = builder_.config().horizon_m;
-        const auto terminal = reference_.project(
-          Point(end.x, end.y), end.heading, state.ego_s,
-          state.ego_s - kProjectionSPadM, state.ego_s + horizon + kProjectionSPadM);
-        result.profile.terminal_projection_ms += elapsedMs(projection_started);
-        result.decision.projection_seed_was_stale |= terminal.seed_was_stale;
+        const double terminal_s = reference_.wrapS(
+          state.ego_s + builder_.config().horizon_m);
         const auto velocity_started = std::chrono::steady_clock::now();
         const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
-            terminal.s, profile_intent, reference_, config_);
+            terminal_s, profile_intent, reference_, config_);
         result.profile.velocity_profile_ms += elapsedMs(velocity_started);
         evaluated.velocity_feasible = velocity.feasible;
         evaluated.traversal_time_s = velocity.traversal_time_s;
@@ -247,7 +231,7 @@ LocalPlanResult LocalPlanner::plan(
     }
   }
 
-  fillSelectedMetrics(result, reference_, state.ego_s, builder_.config().horizon_m);
+  fillSelectedMetrics(result);
   if (result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK) {
     result.decision.candidate_source = CandidateSource::BRAKING;
   }

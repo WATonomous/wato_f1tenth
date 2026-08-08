@@ -162,6 +162,8 @@ bool ManeuverBuilder::connect(
   Path & path,
   const BoundaryState & start,
   const BoundaryState & end,
+  double start_raceline_s,
+  double end_raceline_s,
   BoundaryState * actual_end) const
 {
   const GeneratedConnection connection = curve_generator_.generate({start, end});
@@ -169,8 +171,12 @@ bool ManeuverBuilder::connect(
     return false;
   }
   const double s_offset = path.empty() ? 0.0 : path.back().s;
+  const double connection_length = connection.samples.back().s;
+  const double reference_progress = reference_.deltaS(start_raceline_s, end_raceline_s);
   for (std::size_t i = path.empty() ? 0 : 1; i < connection.samples.size(); ++i) {
     CurveSample sample = connection.samples[i];
+    const double fraction = connection_length > kTolerance ? sample.s / connection_length : 0.0;
+    sample.raceline_s = reference_.wrapS(start_raceline_s + fraction * reference_progress);
     sample.s += s_offset;
     path.push_back(sample);
   }
@@ -201,7 +207,8 @@ bool ManeuverBuilder::appendTail(Path & path, double start_s, double distance, d
     const CurveSample & previous = path.back();
     path.push_back({
         previous.s + std::hypot(next.x - previous.x, next.y - previous.y),
-        next.x, next.y, next.heading, next.curvature, 0.0});
+        next.x, next.y, next.heading, next.curvature, 0.0,
+        reference_.wrapS(start_s + covered)});
   }
   return true;
 }
@@ -320,7 +327,9 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
             }
             Path path;
             BoundaryState join;
-            if (connect(path, ego, intermediate, &join) && connect(path, join, horizon)) {
+            if (connect(path, ego, intermediate, ego_s, intermediate_s, &join) &&
+              connect(path, join, horizon, intermediate_s, horizon_s))
+            {
               candidates.push_back({std::move(path), horizon_d, config_.horizon_m, 0.0});
             }
           }
@@ -346,7 +355,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
   BoundaryState target;
   Path path;
   if (boundary(target_s, target_d, 0.0, target) &&
-    connect(path, ego, target) && staysOnSide(path, ego_s, side, false))
+    connect(path, ego, target, ego_s, target_s) && staysOnSide(path, ego_s, side, false))
   {
     const double deviation = maximumOffsetDeviation(path, ego_s, target_d);
     candidates.push_back({std::move(path), target_d, config_.horizon_m, deviation});
@@ -373,7 +382,8 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
       const double target_s = reference_.wrapS(ego_s + transition);
       BoundaryState target;
       Path path;
-      if (boundary(target_s, d, 0.0, target) && connect(path, ego, target) &&
+      if (boundary(target_s, d, 0.0, target) &&
+        connect(path, ego, target, ego_s, target_s) &&
         appendTail(path, target_s, config_.horizon_m - transition, d) &&
         staysOnSide(path, ego_s, side, false))
       {
@@ -397,7 +407,8 @@ std::vector<ManeuverCandidate> ManeuverBuilder::merge(
     const double target_s = reference_.wrapS(ego_s + completion);
     BoundaryState target;
     Path path;
-    if (boundary(target_s, 0.0, 0.0, target) && connect(path, ego, target) &&
+    if (boundary(target_s, 0.0, 0.0, target) &&
+      connect(path, ego, target, ego_s, target_s) &&
       appendTail(path, target_s, config_.horizon_m - completion, 0.0))
     {
       candidates.push_back({std::move(path), 0.0, completion, 0.0});
