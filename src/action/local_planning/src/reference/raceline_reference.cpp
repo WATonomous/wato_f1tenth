@@ -209,18 +209,6 @@ double RacelineReference::deltaS(double from_s, double to_s) const
   return delta;
 }
 
-double RacelineReference::forwardDeltaS(double from_s, double to_s) const
-{
-  if (total_length_m_ <= kEpsilon) {
-    return 0.0;
-  }
-  double delta = wrapS(to_s) - wrapS(from_s);
-  if (delta < 0.0) {
-    delta += total_length_m_;
-  }
-  return delta;
-}
-
 std::size_t RacelineReference::segmentAt(double s_wrapped, double & t) const
 {
   // cumulative_s_ is sorted; find the last knot at or before s.
@@ -429,30 +417,6 @@ Projection RacelineReference::project(
   }
 
   // Stale seed: initialization, relocalization, or ego genuinely jumped.
-  result = projectGlobal(p, heading, true);
-  result.seed_was_stale = true;
-  return result;
-}
-
-Projection RacelineReference::project(
-  const Point & p,
-  double heading,
-  double seed_s,
-  double s_min,
-  double s_max) const
-{
-  if (!valid_) {
-    return {};
-  }
-  (void)seed_s;
-
-  bool found = false;
-  Projection result = searchArc(
-    p, heading, true, s_min, forwardDeltaS(s_min, s_max), found);
-  if (found) {
-    return result;
-  }
-
   result = projectGlobal(p, heading, true);
   result.seed_was_stale = true;
   return result;

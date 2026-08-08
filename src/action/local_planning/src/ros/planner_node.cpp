@@ -38,14 +38,9 @@ PlannerNode::PlannerNode()
         planner_.buildGridCache(grid_);
         has_grid_ = true;
         if (config_.profiling_enabled) {
-          const double elapsed_ms = std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - profile_started).count();
-          const auto cells = static_cast<std::size_t>(std::max(0, grid_.width)) *
-          static_cast<std::size_t>(std::max(0, grid_.height));
-          RCLCPP_INFO(get_logger(),
-            "LOCAL_PLANNER_GRID_PROFILE width=%d height=%d cells=%zu resolution=%.4f "
-            "convert_and_distance_transform_ms=%.3f",
-            grid_.width, grid_.height, cells, grid_.resolution, elapsed_ms);
+          grid_profiling_window_.push_back(
+            std::chrono::duration<double, std::milli>(
+              std::chrono::steady_clock::now() - profile_started).count());
         }
       });
   racing_line_sub_ = create_subscription<nav_msgs::msg::Path>(config_.racing_line_topic, latched,
@@ -228,6 +223,22 @@ void PlannerNode::recordProfile(ProfileSample sample)
     ready_cycles += item.inputs_ready ? 1U : 0U;
   }
 
+  const std::size_t grid_updates = grid_profiling_window_.size();
+  std::array<double, 3> grid{0.0, 0.0, 0.0};
+  if (!grid_profiling_window_.empty()) {
+    double sum = 0.0;
+    for (const double value : grid_profiling_window_) {
+      sum += value;
+    }
+    std::sort(grid_profiling_window_.begin(), grid_profiling_window_.end());
+    const std::size_t p95_index = (95 * grid_profiling_window_.size() + 99) / 100 - 1;
+    grid = {sum / static_cast<double>(grid_profiling_window_.size()),
+      grid_profiling_window_[p95_index], grid_profiling_window_.back()};
+  }
+  grid_profiling_window_.clear();
+  const auto grid_cells = static_cast<std::size_t>(std::max(0, grid_.width)) *
+    static_cast<std::size_t>(std::max(0, grid_.height));
+
   RCLCPP_INFO(get_logger(),
     "LOCAL_PLANNER_PROFILE format=avg/p95/max window=%zu ready=%zu "
     "cycle_ms=%.3f/%.3f/%.3f odom_ms=%.3f/%.3f/%.3f state_ms=%.3f/%.3f/%.3f "
@@ -238,7 +249,8 @@ void PlannerNode::recordProfile(ProfileSample sample)
     "velocity_ms=%.3f/%.3f/%.3f selection_ms=%.3f/%.3f/%.3f "
     "finalization_ms=%.3f/%.3f/%.3f candidates=%.1f/%.1f/%.1f "
     "path_samples=%.1f/%.1f/%.1f max_path_samples=%.1f/%.1f/%.1f "
-    "collision_poses=%.1f/%.1f/%.1f",
+    "collision_poses=%.1f/%.1f/%.1f "
+    "grid_updates=%zu grid=%dx%d cells=%zu res=%.4f grid_ms=%.3f/%.3f/%.3f",
     profiling_window_.size(), ready_cycles,
     cycle[0], cycle[1], cycle[2], odom[0], odom[1], odom[2], state[0], state[1], state[2],
     planner[0], planner[1], planner[2], decision_pub[0], decision_pub[1], decision_pub[2],
@@ -250,7 +262,9 @@ void PlannerNode::recordProfile(ProfileSample sample)
     candidates.average, candidates.p95, candidates.maximum,
     samples.average, samples.p95, samples.maximum,
     max_samples.average, max_samples.p95, max_samples.maximum,
-    collision_poses.average, collision_poses.p95, collision_poses.maximum);
+    collision_poses.average, collision_poses.p95, collision_poses.maximum,
+    grid_updates, grid_.width, grid_.height, grid_cells, grid_.resolution,
+    grid[0], grid[1], grid[2]);
   profiling_window_.clear();
 }
 

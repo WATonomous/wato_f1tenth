@@ -56,11 +56,6 @@ public:
   // query point has a meaningful heading
   Projection project(const Point & p, double heading, double seed_s) const;
 
-  // Same, but only search the forward arc [s_min, s_max] (index-bounded).
-  Projection project(
-    const Point & p, double heading, double seed_s,
-    double s_min, double s_max) const;
-
   // Locally-seeded projection without the tangent check, for query points that
   // have no heading of their own, such as an occupied costmap cell.  The seed
   // window is still what keeps it on the right branch
@@ -75,9 +70,6 @@ public:
   // Signed arc length from from_s to to_s, wrapped to [-L/2, L/2].  Positive
   // means to_s is ahead.  This is the only correct way to compare two s values.
   double deltaS(double from_s, double to_s) const;
-
-  // Forward arc length from from_s to to_s in [0, L).
-  double forwardDeltaS(double from_s, double to_s) const;
 
 private:
   struct SplineSegment
