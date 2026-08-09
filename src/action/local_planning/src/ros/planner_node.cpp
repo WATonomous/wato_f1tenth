@@ -157,6 +157,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.use_steering_start_curvature = declare_parameter("use_steering_start_curvature", true);
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
   cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
+  cfg.diagnostics_enabled = declare_parameter("diagnostics_enabled", true);
   const std::string intent_filter = declare_parameter("profiling_intent_filter", std::string());
   if (!intent_filter.empty()) {
     for (const PlannerIntent intent : {PlannerIntent::FOLLOW_RACING_LINE, PlannerIntent::OVERTAKE,
@@ -278,6 +279,12 @@ void PlannerNode::emitProfile(PlannerIntent intent, std::vector<ProfileSample> &
   std::size_t out_of_grid_cycles = 0;
   uint64_t hint_samples = 0;
   uint64_t hint_fallbacks = 0;
+  // Discontinuity counters.  A jerk is a change, so these are what to read when
+  // the car twitches; the timing fields above will look healthy either way.
+  std::size_t intent_changes = 0;
+  std::size_t side_flips = 0;
+  std::size_t no_path_cycles = 0;
+  std::size_t steer_stale_cycles = 0;
   std::array<std::size_t, 4> mode_counts{};
   for (const auto & item : window) {
     ready_cycles += item.inputs_ready ? 1U : 0U;
@@ -285,6 +292,10 @@ void PlannerNode::emitProfile(PlannerIntent intent, std::vector<ProfileSample> &
     out_of_grid_cycles += item.out_of_grid_rejected > 0 ? 1U : 0U;
     hint_samples += item.station_hint_samples;
     hint_fallbacks += item.station_hint_fallbacks;
+    intent_changes += item.intent_changed ? 1U : 0U;
+    side_flips += item.side_flipped ? 1U : 0U;
+    no_path_cycles += item.path_published ? 0U : 1U;
+    steer_stale_cycles += item.steering_fresh ? 0U : 1U;
     ++mode_counts.at(static_cast<std::size_t>(item.executed_mode));
   }
   const double hint_fallback_pct = hint_samples == 0 ? 0.0 :
@@ -321,6 +332,7 @@ void PlannerNode::emitProfile(PlannerIntent intent, std::vector<ProfileSample> &
     "valid=%.1f/%.1f/%.1f collision_rej=%.1f/%.1f/%.1f velocity_rej=%.1f/%.1f/%.1f "
     "empty_pool_cycles=%zu out_of_grid_cycles=%zu "
     "station_hint_fallback=%llu/%llu(%.2f%%) "
+    "intent_changes=%zu side_flips=%zu no_path_cycles=%zu steer_stale_cycles=%zu "
     "modes=none:%zu/maneuver:%zu/braking:%zu/unavailable:%zu "
     "grid_updates=%zu grid=%dx%d cells=%zu res=%.4f grid_ms=%.3f/%.3f/%.3f",
     intentToString(intent).c_str(), window.size(), ready_cycles,
@@ -341,6 +353,7 @@ void PlannerNode::emitProfile(PlannerIntent intent, std::vector<ProfileSample> &
     empty_pool_cycles, out_of_grid_cycles,
     static_cast<unsigned long long>(hint_fallbacks),
     static_cast<unsigned long long>(hint_samples), hint_fallback_pct,
+    intent_changes, side_flips, no_path_cycles, steer_stale_cycles,
     mode_counts[0], mode_counts[1], mode_counts[2], mode_counts[3],
     grid_updates, grid_.width, grid_.height, grid_cells, grid_.resolution,
     grid[0], grid[1], grid[2]);
@@ -359,11 +372,86 @@ void PlannerNode::emitProfile(PlannerIntent intent, std::vector<ProfileSample> &
   window.clear();
 }
 
+void PlannerNode::noteTransitions(
+  const PlannerDecisionData & data,
+  bool path_published,
+  bool steering_fresh,
+  ProfileSample & sample)
+{
+  sample.path_published = path_published;
+  sample.steering_fresh = steering_fresh;
+
+  const bool first = !has_previous_cycle_;
+  const bool intent_changed = !first && data.requested_intent != previous_intent_;
+  const bool path_changed = !first && path_published != previous_path_published_;
+  const bool steering_changed = !first && steering_fresh != previous_steering_fresh_;
+  // Only a sign change counts.  Drifting from -0.30 to -0.55 is the planner
+  // adjusting; crossing zero is the car being sent the other way.
+  const bool side_flipped = !first &&
+    previous_terminal_d_m_ * data.terminal_d_m < 0.0;
+
+  sample.intent_changed = intent_changed;
+  sample.side_flipped = side_flipped;
+
+  // Snapshot before overwriting: the log reports the transition, not the state.
+  const PlannerIntent from_intent = previous_intent_;
+  const bool from_path_published = previous_path_published_;
+  const double from_terminal_d_m = previous_terminal_d_m_;
+  const bool from_steering_fresh = previous_steering_fresh_;
+
+  has_previous_cycle_ = true;
+  previous_intent_ = data.requested_intent;
+  previous_path_published_ = path_published;
+  previous_terminal_d_m_ = data.terminal_d_m;
+  previous_steering_fresh_ = steering_fresh;
+
+  if (!config_.diagnostics_enabled ||
+    (!intent_changed && !path_changed && !steering_changed && !side_flipped))
+  {
+    return;
+  }
+
+  // Why the intent moved, in the state machine's own terms.  The gate checks
+  // compatibility only when no opponent is detected, so the two cases are
+  // reported separately rather than guessed at from the intent alone.
+  const char * reason = data.opponent_detected ? "opponent" :
+    (data.raceline_compatible ? "compatible" : "incompatible");
+  const auto & state_config = state_machine_.config();
+
+  RCLCPP_INFO(get_logger(),
+    "LOCAL_PLANNER_EVENT %s->%s reason=%s "
+    "ego_d=%+.3f(lim %.3f) head_err=%+.3f(lim %.3f) compatible=%d "
+    "opp=%d gap=%+.2f rel=%s "
+    "path=%s->%s term_d=%+.3f->%+.3f steer_fresh=%d->%d mode=%d "
+    "valid=%u collision_rej=%u",
+    intentToString(from_intent).c_str(), intentToString(data.requested_intent).c_str(),
+    reason,
+    data.ego_d_m, state_config.compat_lateral_m,
+    data.heading_error_rad, state_config.compat_heading_rad,
+    data.raceline_compatible ? 1 : 0,
+    data.opponent_detected ? 1 : 0, data.opponent_gap_m,
+    relativePositionToString(data.relative_position).c_str(),
+    from_path_published ? "yes" : "no", path_published ? "yes" : "no",
+    from_terminal_d_m, data.terminal_d_m,
+    from_steering_fresh ? 1 : 0, steering_fresh ? 1 : 0,
+    static_cast<int>(data.executed_mode),
+    data.valid_candidate_count, data.collision_rejected);
+}
+
 void PlannerNode::planningCycle()
 {
   const auto cycle_started = std::chrono::steady_clock::now();
   ProfileSample profile;
+  // Set on the one path that reaches the publisher; read by finishProfile on
+  // every path, so each of the early returns below is correctly recorded as a
+  // cycle that handed the controller nothing.
+  bool path_published = false;
+  bool steering_fresh = false;
+  const PlannerDecisionData * event_decision = nullptr;
   const auto finishProfile = [&]() {
+      if (event_decision != nullptr) {
+        noteTransitions(*event_decision, path_published, steering_fresh, profile);
+      }
       profile.cycle_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - cycle_started).count();
       recordProfile(profile);
@@ -377,7 +465,7 @@ void PlannerNode::planningCycle()
 
   const auto odom_started = std::chrono::steady_clock::now();
   Odometry odom = rosToOdometry(*odom_);
-  const bool steering_fresh = has_steering_ &&
+  steering_fresh = has_steering_ &&
     std::chrono::duration<double>(std::chrono::steady_clock::now() -
     steering_received_).count() <= config_.steering_command_timeout_s;
   if (steering_fresh) {odom.steering_angle = steering_angle_;}
@@ -423,6 +511,7 @@ void PlannerNode::planningCycle()
   profile.collision_poses_checked = result.profile.collision_poses_checked;
   result.decision.start_curvature_from_steering =
     config_.use_steering_start_curvature && steering_fresh;
+  event_decision = &result.decision;
   const auto decision_publish_started = std::chrono::steady_clock::now();
   publishDecision(result.decision);
   profile.decision_publish_ms = std::chrono::duration<double, std::milli>(
@@ -469,6 +558,7 @@ void PlannerNode::planningCycle()
   const auto path_publish_started = std::chrono::steady_clock::now();
   local_path_map_pub_->publish(map_path);
   local_path_pub_->publish(controller_path);
+  path_published = true;
   profile.path_publish_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_publish_started).count();
   const auto marker_publish_started = std::chrono::steady_clock::now();
@@ -537,6 +627,9 @@ void PlannerNode::publishDecision(const PlannerDecisionData & data)
   out.relative_position = static_cast<uint8_t>(data.relative_position);
   out.opponent_detected = data.opponent_detected;
   out.opponent_gap_m = data.opponent_gap_m;
+  out.ego_d_m = data.ego_d_m;
+  out.heading_error_rad = data.heading_error_rad;
+  out.raceline_compatible = data.raceline_compatible;
   out.executed_mode = static_cast<uint8_t>(data.executed_mode);
   out.candidate_source = static_cast<uint8_t>(data.candidate_source);
   out.projection_seed_was_stale = data.projection_seed_was_stale;

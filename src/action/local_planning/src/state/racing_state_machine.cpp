@@ -160,16 +160,20 @@ RelativePosition RacingStateMachine::classify(double gap_m) const
 bool RacingStateMachine::isRacelineCompatible(
   const Odometry & ego_odom,
   double ego_s,
-  double ego_d) const
+  double ego_d)
 {
-  if (std::abs(ego_d) > config_.compat_lateral_m) {
-    return false;
-  }
+  // Computed before the lateral early-out so the telemetry is populated on
+  // every cycle, not only the ones that reach the heading test.
   const ReferenceGeometrySample sample = reference_.sampleAtS(ego_s);
-  return std::abs(wrapAngle(ego_odom.heading - sample.heading)) <= config_.compat_heading_rad;
+  state_.heading_error_rad = wrapAngle(ego_odom.heading - sample.heading);
+
+  state_.raceline_compatible =
+    std::abs(ego_d) <= config_.compat_lateral_m &&
+    std::abs(state_.heading_error_rad) <= config_.compat_heading_rad;
+  return state_.raceline_compatible;
 }
 
-PlannerIntent RacingStateMachine::nextIntent(const Odometry & ego_odom) const
+PlannerIntent RacingStateMachine::nextIntent(const Odometry & ego_odom)
 {
   const bool compatible = isRacelineCompatible(ego_odom, state_.ego_s, state_.ego_d);
 

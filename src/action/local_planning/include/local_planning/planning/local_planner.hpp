@@ -25,6 +25,11 @@ struct PlannerDecisionData
   RelativePosition relative_position = RelativePosition::NONE;
   bool opponent_detected = false;
   double opponent_gap_m = 0.0;
+  // The two inputs to the FOLLOW/MERGE gate, plus its result.  Published so a
+  // flapping intent can be read off a bag without rebuilding.
+  double ego_d_m = 0.0;
+  double heading_error_rad = 0.0;
+  bool raceline_compatible = false;
   ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
   CandidateSource candidate_source = CandidateSource::NONE;
   bool projection_seed_was_stale = false;
