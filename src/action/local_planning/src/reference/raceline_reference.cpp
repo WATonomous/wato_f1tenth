@@ -18,6 +18,18 @@ constexpr double kDuplicateWaypointToleranceM = 1e-6;
 // this brackets the true foot well inside the basin where Newton converges.
 constexpr int kCoarseSamplesPerSegment = 4;
 constexpr int kNewtonIterations = 8;
+// lateralOffsetAt() stops when the tangential residual is small, but the
+// residual is not the answer -- it leaks into the returned offset only as
+// kappa * residual^2 / 2, because it displaces the query point along the
+// tangent, which the final dot product discards.  So the tolerance belongs on
+// that leak, not on the residual itself: at the tightest curvature the vehicle
+// can hold (max_curvature_inv_m 1.74) a 1 cm residual is 0.1 mm of offset
+// error, and on a real raceline far less.  Tightening this past what the offset
+// needs does not buy accuracy, it just fails to converge -- 1e-4 here left 37%
+// of samples falling through to the O(n) fallback and made this slower than the
+// projection it replaced.
+constexpr int kMaxLateralOffsetSteps = 8;
+constexpr double kLateralOffsetToleranceM = 1e-2;
 
 double wrapAngle(double angle)
 {
@@ -270,6 +282,41 @@ Point RacelineReference::toCartesian(double s, double d) const
     sample.x + d * sample.normal_x,
     sample.y + d * sample.normal_y,
     sample.velocity);
+}
+
+double RacelineReference::lateralOffsetAt(const Point & p, double s_hint, bool * converged) const
+{
+  if (converged != nullptr) {
+    *converged = false;
+  }
+  if (!valid_) {
+    return 0.0;
+  }
+
+  // Newton on arc length.  At the perpendicular foot the offset vector is
+  // orthogonal to the tangent, so the tangential residual is the station error
+  // to first order and subtracting it walks s straight to the foot.  No segment
+  // bookkeeping and no window: each step is one spline evaluation.
+  double s = s_hint;
+  ReferenceGeometrySample reference = sampleAtS(s);
+  double dx = p.x - reference.x;
+  double dy = p.y - reference.y;
+
+  for (int step = 0; step < kMaxLateralOffsetSteps; ++step) {
+    const double along = dx * reference.tangent_x + dy * reference.tangent_y;
+    if (std::abs(along) <= kLateralOffsetToleranceM) {
+      if (converged != nullptr) {
+        *converged = true;
+      }
+      break;
+    }
+    s = wrapS(s + along);
+    reference = sampleAtS(s);
+    dx = p.x - reference.x;
+    dy = p.y - reference.y;
+  }
+
+  return dx * reference.normal_x + dy * reference.normal_y;
 }
 
 double RacelineReference::refineOnSegment(

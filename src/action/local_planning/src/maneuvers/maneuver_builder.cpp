@@ -213,43 +213,46 @@ bool ManeuverBuilder::appendTail(Path & path, double start_s, double distance, d
   return true;
 }
 
-bool ManeuverBuilder::staysOnSide(
+ManeuverBuilder::SideCheck ManeuverBuilder::sideAndDeviation(
   const Path & path,
-  double ego_s,
   int side,
-  bool allow_start_center) const
-{
-  const double deadband = config_.sideDeadbandM();
-  double seed = reference_.wrapS(ego_s);
-  for (std::size_t i = 0; i < path.size(); ++i) {
-    const CurveSample & sample = path[i];
-    const Projection projection = reference_.project(Point(sample.x, sample.y), seed);
-    seed = projection.s;
-    if (i == 0 && allow_start_center && std::abs(projection.d) <= deadband) {
-      continue;
-    }
-    // Inside ±deadband is still "on the line"; only reject a clear opposite-side
-    // excursion beyond one vehicle width.
-    if (side * projection.d <= -deadband) {
-      return false;
-    }
-  }
-  return true;
-}
-
-double ManeuverBuilder::maximumOffsetDeviation(
-  const Path & path,
-  double ego_s,
+  bool allow_start_center,
   double target_d) const
 {
-  double seed = reference_.wrapS(ego_s);
-  double maximum_deviation = 0.0;
-  for (const CurveSample & sample : path) {
-    const Projection projection = reference_.project(Point(sample.x, sample.y), seed);
-    seed = projection.s;
-    maximum_deviation = std::max(maximum_deviation, std::abs(projection.d - target_d));
+  const double deadband = config_.sideDeadbandM();
+  SideCheck result;
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    const CurveSample & sample = path[i];
+    // Every sample already knows its station -- connect() and appendTail() set
+    // raceline_s when they build it -- so this needs no search.  The old
+    // project() call here rescanned about twenty spline segments per sample to
+    // recover a value the sample was carrying, and at two sweeps per candidate
+    // that was 99% of the cost of PASS.
+    const Point p(sample.x, sample.y);
+    bool converged = false;
+    double d = reference_.lateralOffsetAt(p, sample.raceline_s, &converged);
+    ++station_hint_stats_.samples;
+    if (!converged) {
+      ++station_hint_stats_.fallbacks;
+      // connect() interpolates raceline_s linearly along the curve, which stops
+      // resembling the reference when a corner is tight relative to horizon_m.
+      // Fall back to the windowed search this used to do unconditionally, seeded
+      // on the sample's own station rather than the previous sample's result --
+      // strictly the better seed, and no worse than the old behaviour.
+      d = reference_.project(p, sample.raceline_s).d;
+    }
+
+    const bool skip_side_check = i == 0 && allow_start_center && std::abs(d) <= deadband;
+    // Inside ±deadband is still "on the line"; only reject a clear opposite-side
+    // excursion beyond one vehicle width.
+    if (!skip_side_check && side * d <= -deadband) {
+      return result;   // stays_on_side stays false; the deviation is never read
+    }
+    result.max_offset_deviation_m =
+      std::max(result.max_offset_deviation_m, std::abs(d - target_d));
   }
-  return maximum_deviation;
+  result.stays_on_side = true;
+  return result;
 }
 
 std::vector<double> ManeuverBuilder::offsets(int side) const
@@ -300,9 +303,31 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   if (!reference_.valid()) {
     return candidates;
   }
-  (void)ego_d;  // kept for the staysOnSide check below when re-enabled
+  // Unused: the dense side check is deferred to opponent prediction (review P0-1).
+  // Crossing needs curvature_multiplier == 0.0 on corners tighter than ~3 m; the
+  // interim mitigation is dropping 0.0 from overtake_curvature_multipliers.
+  (void)ego_d;
   const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
   const std::vector<double> lateral_offsets = offsets(0);
+  // The first leg is a function of (intermediate_s, intermediate_d,
+  // heading_offset, curvature_multiplier).  It does not depend on horizon_d,
+  // which the emission order below nests outside it, so building it inline
+  // re-solves the same G2 connection once per same-side horizon offset -- two
+  // thirds of the first-leg solves here are exact duplicates.  Solve each
+  // distinct first leg once per intermediate_d into this scratch table instead
+  // and reuse it as the prefix for every horizon offset.  The loop nesting is
+  // otherwise unchanged, so candidates come out in the same order as before;
+  // selectOvertake() breaks ties on first-seen, and that must not shift.
+  struct FirstLeg
+  {
+    Path path;
+    BoundaryState join;
+    bool valid = false;
+  };
+  const std::size_t heading_count = config_.overtake_heading_offsets_rad.size();
+  const std::size_t curvature_count = config_.overtake_curvature_multipliers.size();
+  std::vector<FirstLeg> first_legs(heading_count * curvature_count);
+
   for (double s_offset : config_.overtake_s_offsets_from_opponent_rear_m) {
     const double intermediate_s = reference_.wrapS(opponent_rear_s + s_offset);
     const double progress = reference_.deltaS(ego_s, intermediate_s);
@@ -310,26 +335,39 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
       continue;
     }
     for (double intermediate_d : lateral_offsets) {
+      for (std::size_t h = 0; h < heading_count; ++h) {
+        for (std::size_t c = 0; c < curvature_count; ++c) {
+          FirstLeg & leg = first_legs[h * curvature_count + c];
+          leg.path.clear();   // clear(), not a fresh Path: the capacity is worth keeping
+          leg.valid = false;
+          BoundaryState intermediate;
+          if (!boundary(
+              intermediate_s, intermediate_d, config_.overtake_heading_offsets_rad[h],
+              intermediate, config_.overtake_curvature_multipliers[c]))
+          {
+            continue;
+          }
+          leg.valid = connect(leg.path, ego, intermediate, ego_s, intermediate_s, &leg.join);
+        }
+      }
+
       for (double horizon_d : lateral_offsets) {
         if (intermediate_d * horizon_d <= 0.0) {
           continue;
         }
-        for (double heading_offset : config_.overtake_heading_offsets_rad) {
-          for (double curvature_multiplier : config_.overtake_curvature_multipliers) {
-            BoundaryState intermediate;
-            BoundaryState horizon;
-            if (!boundary(
-                intermediate_s, intermediate_d, heading_offset, intermediate,
-                curvature_multiplier) ||
-              !boundary(horizon_s, horizon_d, 0.0, horizon))
-            {
+        // Invariant across the heading/curvature pairs below, unlike the first leg.
+        BoundaryState horizon;
+        if (!boundary(horizon_s, horizon_d, 0.0, horizon)) {
+          continue;
+        }
+        for (std::size_t h = 0; h < heading_count; ++h) {
+          for (std::size_t c = 0; c < curvature_count; ++c) {
+            const FirstLeg & leg = first_legs[h * curvature_count + c];
+            if (!leg.valid) {
               continue;
             }
-            Path path;
-            BoundaryState join;
-            if (connect(path, ego, intermediate, ego_s, intermediate_s, &join) &&
-              connect(path, join, horizon, intermediate_s, horizon_s))
-            {
+            Path path = leg.path;
+            if (connect(path, leg.join, horizon, intermediate_s, horizon_s)) {
               candidates.push_back({std::move(path), horizon_d, config_.horizon_m, 0.0});
             }
           }
@@ -355,10 +393,13 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
   BoundaryState target;
   Path path;
   if (boundary(target_s, target_d, 0.0, target) &&
-    connect(path, ego, target, ego_s, target_s) && staysOnSide(path, ego_s, side, false))
+    connect(path, ego, target, ego_s, target_s))
   {
-    const double deviation = maximumOffsetDeviation(path, ego_s, target_d);
-    candidates.push_back({std::move(path), target_d, config_.horizon_m, deviation});
+    const SideCheck check = sideAndDeviation(path, side, false, target_d);
+    if (check.stays_on_side) {
+      candidates.push_back(
+        {std::move(path), target_d, config_.horizon_m, check.max_offset_deviation_m});
+    }
   }
   return candidates;
 }
@@ -384,11 +425,16 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
       Path path;
       if (boundary(target_s, d, 0.0, target) &&
         connect(path, ego, target, ego_s, target_s) &&
-        appendTail(path, target_s, config_.horizon_m - transition, d) &&
-        staysOnSide(path, ego_s, side, false))
+        appendTail(path, target_s, config_.horizon_m - transition, d))
       {
-        const double deviation = maximumOffsetDeviation(path, ego_s, preferred);
-        candidates.push_back({std::move(path), d, transition, deviation});
+        // Deviation is measured against the preferred offset, not this
+        // candidate's own d: recovery candidates are ranked by how far they
+        // stray from where the planner would rather be.
+        const SideCheck check = sideAndDeviation(path, side, false, preferred);
+        if (check.stays_on_side) {
+          candidates.push_back(
+            {std::move(path), d, transition, check.max_offset_deviation_m});
+        }
       }
     }
   }

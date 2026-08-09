@@ -18,6 +18,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/msg/marker_array.hpp>
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -47,6 +48,10 @@ private:
     bool use_steering_start_curvature = true;
     bool profiling_enabled = true;
     int profiling_log_every_n_cycles = 20;
+    // Empty means report every intent on its own line.  Set to one of
+    // FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to log only that intent, which is
+    // what you want when only the expensive state matters.
+    std::optional<PlannerIntent> profiling_intent_filter;
     std::string racing_line_topic;
     std::string occupancy_grid_topic;
     std::string odom_topic;
@@ -91,10 +96,26 @@ private:
     uint32_t total_path_samples = 0;
     uint32_t max_path_samples = 0;
     uint32_t collision_poses_checked = 0;
+    // Why candidates died, and what the cycle actually executed.  Without these
+    // a zero-candidate cycle and an everything-collided cycle look identical in
+    // the aggregate, and they call for opposite fixes.
+    uint32_t collision_rejected = 0;
+    uint32_t out_of_grid_rejected = 0;
+    uint32_t velocity_rejected = 0;
+    uint32_t valid_candidate_count = 0;
+    // Slow-path rate in the side/deviation sweep.  Reported because the fast and
+    // slow paths produce identical paths and differ only in cost.
+    uint64_t station_hint_samples = 0;
+    uint64_t station_hint_fallbacks = 0;
+    ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
     bool inputs_ready = false;
+    // Which intent produced this cycle's workload.  Cycles are aggregated per
+    // intent, never pooled: see recordProfile().
+    PlannerIntent intent = PlannerIntent::FOLLOW_RACING_LINE;
   };
 
   void recordProfile(ProfileSample sample);
+  void emitProfile(PlannerIntent intent, std::vector<ProfileSample> & window);
 
   NodeConfig config_;
   RacelineReference reference_;
@@ -113,10 +134,17 @@ private:
   bool has_steering_ = false;
   std::optional<bool> last_overtake_ready_;
   uint64_t profiling_cycle_count_ = 0;
-  std::vector<ProfileSample> profiling_window_;
+  // One window per PlannerIntent, indexed by the enum value.  FOLLOW runs about
+  // 1 ms and OVERTAKE tens of ms, so a pooled window reports percentiles that
+  // track how many overtakes happened to land in it rather than what an
+  // overtake actually costs.
+  std::array<std::vector<ProfileSample>, 4> profiling_windows_;
   // Grid callbacks run far faster than the planner timer, so their timings are
   // accumulated here and reported inside the periodic profile line.
   std::vector<double> grid_profiling_window_;
+  // Counted separately from the window above, which is capped: with an intent
+  // filter the window saturates and would understate the real update count.
+  std::size_t grid_updates_since_report_ = 0;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;

@@ -36,13 +36,19 @@ planner_node:
     max_velocity_mps: 7.7 # Derived from the horizon braking envelope.
     max_accel_mps2: 5.0
     max_decel_mps2: 5.0
-    overtake_speed_scale: 1.1
-    treat_out_of_grid_as_free: false
+    overtake_speed_scale: 0.8
+    treat_out_of_grid_as_free: true
 
     sample_spacing_m: 0.1
     max_curvature_inv_m: 1.74
     max_arc_length_m: 12.0
-    seed_window_m: 3.0
+    # Dominates PASS cost: project() is called once per path sample by
+    # staysOnSide/maximumOffsetDeviation, and scans +/- this much line each
+    # time. 2.0 measured 1.5x faster than 3.0 with identical results. Do not
+    # drop below ~1.5: past the window the search silently returns the wrong
+    # station rather than falling back, and 7.7 m/s x 50 ms = 0.385 m per
+    # cycle, more when a cycle is missed.
+    seed_window_m: 2.0
     tangent_tolerance_rad: 1.2
 
     planner_rate_hz: 20.0
@@ -53,9 +59,14 @@ planner_node:
     steering_command_timeout_s: 0.06
     wheelbase_m: 0.33
     use_steering_start_curvature: true
-    # Emits one machine-readable aggregate profile line every N planner cycles.
+    # Emits one machine-readable aggregate profile line per intent, every N
+    # cycles *of that intent*. FOLLOW and OVERTAKE differ by more than an order
+    # of magnitude, so they are never pooled into one window.
     profiling_enabled: true
     profiling_log_every_n_cycles: 20
+    # "" reports every intent. Set to FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to
+    # log only that one when the worst case is all that matters.
+    profiling_intent_filter: ""
     map_frame: "map"
     controller_frame: "base_link"
     local_path_topic: "/local_path"
