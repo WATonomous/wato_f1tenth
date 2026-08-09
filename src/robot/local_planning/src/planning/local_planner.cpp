@@ -90,6 +90,7 @@ LocalPlanResult LocalPlanner::plan(
     return result;
   }
 
+  builder_.resetStationHintStats();
   auto appendGenerated = [&](CandidateSource source, auto generator) {
       const auto generation_started = std::chrono::steady_clock::now();
       auto candidates = generator();
@@ -171,6 +172,9 @@ LocalPlanResult LocalPlanner::plan(
       evaluateFrom(first);
     }
   }
+  const auto station_hints = builder_.stationHintStats();
+  result.profile.station_hint_samples = station_hints.samples;
+  result.profile.station_hint_fallbacks = station_hints.fallbacks;
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
   result.profile.generated_count = result.decision.generated_count;
   for (const auto & candidate : result.pool) {
