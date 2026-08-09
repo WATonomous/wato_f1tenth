@@ -48,6 +48,10 @@ private:
     bool use_steering_start_curvature = true;
     bool profiling_enabled = true;
     int profiling_log_every_n_cycles = 20;
+    // Per-transition event lines.  Independent of profiling_enabled: profiling
+    // answers "how long", this answers "what changed", and when the car twitches
+    // the second question is the one that matters.
+    bool diagnostics_enabled = true;
     // Empty means report every intent on its own line.  Set to one of
     // FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to log only that intent, which is
     // what you want when only the expensive state matters.
@@ -107,6 +111,12 @@ private:
     // slow paths produce identical paths and differ only in cost.
     uint64_t station_hint_samples = 0;
     uint64_t station_hint_fallbacks = 0;
+    // Per-cycle transition flags.  A jerk is a discontinuity, so what matters is
+    // how often the cycle-to-cycle answer changed, not what any one cycle said.
+    bool path_published = false;
+    bool steering_fresh = false;
+    bool intent_changed = false;
+    bool side_flipped = false;
     ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
     bool inputs_ready = false;
     // Which intent produced this cycle's workload.  Cycles are aggregated per
@@ -116,6 +126,14 @@ private:
 
   void recordProfile(ProfileSample sample);
   void emitProfile(PlannerIntent intent, std::vector<ProfileSample> & window);
+
+  // Compares this cycle against the last one, flags the differences on sample,
+  // and logs a line when anything the controller can feel changed.
+  void noteTransitions(
+    const PlannerDecisionData & data,
+    bool path_published,
+    bool steering_fresh,
+    ProfileSample & sample);
 
   NodeConfig config_;
   RacelineReference reference_;
@@ -145,6 +163,14 @@ private:
   // Counted separately from the window above, which is capped: with an intent
   // filter the window saturates and would understate the real update count.
   std::size_t grid_updates_since_report_ = 0;
+  // Last cycle's answers, for the transition comparison.  Nothing reads these
+  // to plan with; they exist so a discontinuity has something to be measured
+  // against.
+  bool has_previous_cycle_ = false;
+  PlannerIntent previous_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
+  bool previous_path_published_ = false;
+  double previous_terminal_d_m_ = 0.0;
+  bool previous_steering_fresh_ = false;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;

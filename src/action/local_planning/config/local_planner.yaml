@@ -67,6 +67,12 @@ planner_node:
     # "" reports every intent. Set to FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to
     # log only that one when the worst case is all that matters.
     profiling_intent_filter: ""
+    # One LOCAL_PLANNER_EVENT line per transition the controller can feel: the
+    # intent changing, a path appearing or disappearing, the selected side
+    # flipping across the centreline, or the steering start-curvature going
+    # stale. Silent on a steady lap by construction, so leave it on -- the
+    # volume is itself the measurement.
+    diagnostics_enabled: true
     map_frame: "map"
     controller_frame: "base_link"
     local_path_topic: "/local_path"
