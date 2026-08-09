@@ -37,6 +37,13 @@ struct TacticalState
   // Outputs, not telemetry: the planner reads these instead of projecting again.
   double ego_s = 0.0;
   double ego_d = 0.0;
+
+  // Telemetry, not outputs.  These are the two inputs to the FOLLOW/MERGE gate,
+  // recorded because the gate is a hard threshold with no memory: when the
+  // intent flaps, the only way to tell a real excursion from a cycle sitting on
+  // the limit is to see how close to the limit it was.
+  double heading_error_rad = 0.0;
+  bool raceline_compatible = false;
 };
 
 // Tactical layer: observation to intent, with no memory beyond the projection
@@ -68,9 +75,11 @@ private:
 
   RelativePosition classify(double gap_m) const;
 
-  bool isRacelineCompatible(const Odometry & ego_odom, double ego_s, double ego_d) const;
+  // Records heading_error_rad and raceline_compatible on state_ as a side
+  // effect, so the decision and the numbers behind it cannot drift apart.
+  bool isRacelineCompatible(const Odometry & ego_odom, double ego_s, double ego_d);
 
-  PlannerIntent nextIntent(const Odometry & ego_odom) const;
+  PlannerIntent nextIntent(const Odometry & ego_odom);
 
   const RacelineReference & reference_;
   StateMachineConfig config_;
