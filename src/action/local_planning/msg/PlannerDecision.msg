@@ -33,6 +33,13 @@ uint8 requested_intent
 uint8 relative_position
 bool opponent_detected
 float64 opponent_gap_m
+
+# Inputs to the FOLLOW_RACING_LINE / MERGE gate, and its result. The gate is a
+# hard threshold with no hysteresis, so these say whether a transition was a
+# real excursion or a cycle sitting on the limit.
+float64 ego_d_m
+float64 heading_error_rad
+bool raceline_compatible
 uint8 executed_mode
 uint8 candidate_source
 bool projection_seed_was_stale

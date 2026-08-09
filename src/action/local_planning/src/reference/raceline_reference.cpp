@@ -18,18 +18,22 @@ constexpr double kDuplicateWaypointToleranceM = 1e-6;
 // this brackets the true foot well inside the basin where Newton converges.
 constexpr int kCoarseSamplesPerSegment = 4;
 constexpr int kNewtonIterations = 8;
-// lateralOffsetAt() stops when the tangential residual is small, but the
-// residual is not the answer -- it leaks into the returned offset only as
-// kappa * residual^2 / 2, because it displaces the query point along the
-// tangent, which the final dot product discards.  So the tolerance belongs on
-// that leak, not on the residual itself: at the tightest curvature the vehicle
-// can hold (max_curvature_inv_m 1.74) a 1 cm residual is 0.1 mm of offset
-// error, and on a real raceline far less.  Tightening this past what the offset
-// needs does not buy accuracy, it just fails to converge -- 1e-4 here left 37%
-// of samples falling through to the O(n) fallback and made this slower than the
-// projection it replaced.
+// lateralOffsetAt() converges quadratically once the Newton step is divided by
+// (1 - kappa*d), so a tight tolerance costs iterations rather than fallbacks and
+// there is no reason to trade accuracy away.  Measured on the sim and Mexico
+// City racelines: exact to 1e-9 m, under 1% falling through to the windowed
+// search.  Do not loosen this to chase a fallback rate -- an undivided step was
+// what made 1e-4 unreachable, and loosening to 1e-2 to hide that cost 3.6 cm.
 constexpr int kMaxLateralOffsetSteps = 8;
-constexpr double kLateralOffsetToleranceM = 1e-2;
+constexpr double kLateralOffsetToleranceM = 1e-6;
+// Below this the query point is at the centre of curvature, where the foot of
+// the perpendicular is not unique.
+constexpr double kMinNewtonDenominator = 1e-3;
+// How far the refinement may travel from the hint before declaring it unusable.
+// Comfortably covers connect()'s station-interpolation error, which measured
+// 0.12 m on the sim raceline and 0.81 m on a deliberately worse one, while
+// staying inside the seed window the fallback search would use anyway.
+constexpr double kMaxLateralOffsetExcursionM = 1.0;
 
 double wrapAngle(double angle)
 {
@@ -293,10 +297,15 @@ double RacelineReference::lateralOffsetAt(const Point & p, double s_hint, bool *
     return 0.0;
   }
 
-  // Newton on arc length.  At the perpendicular foot the offset vector is
-  // orthogonal to the tangent, so the tangential residual is the station error
-  // to first order and subtracting it walks s straight to the foot.  No segment
-  // bookkeeping and no window: each step is one spline evaluation.
+  // Newton on arc length, seeking the station where the offset vector is
+  // orthogonal to the tangent.  For f(s) = (p - ref(s)) . T(s), the Frenet
+  // relations give f'(s) = -(1 - kappa * d), so the step is along / (1 - kappa*d).
+  //
+  // That denominator is the whole reason this is not simply "subtract the
+  // tangential residual".  Approaching the centre of curvature, kappa*d -> 1 and
+  // the residual goes to zero while the station error does not: at kappa 1.74
+  // and d 0.55 it shrinks by 23x, so an undivided step stalls far from the foot
+  // and reports success.  Dividing recovers true quadratic convergence.
   double s = s_hint;
   ReferenceGeometrySample reference = sampleAtS(s);
   double dx = p.x - reference.x;
@@ -310,7 +319,27 @@ double RacelineReference::lateralOffsetAt(const Point & p, double s_hint, bool *
       }
       break;
     }
-    s = wrapS(s + along);
+    const double offset = dx * reference.normal_x + dy * reference.normal_y;
+    // At or past the centre of curvature the foot is not unique and Newton has
+    // no useful direction.  Clamping keeps the step finite; the excursion test
+    // below then rejects it rather than letting it wander.
+    double denominator = 1.0 - reference.curvature * offset;
+    if (std::abs(denominator) < kMinNewtonDenominator) {
+      denominator = std::copysign(kMinNewtonDenominator, denominator);
+    }
+
+    // A small denominator makes the step enormous, and on a closed loop an
+    // unbounded step lands in a different part of the track, where Newton
+    // happily converges to the wrong foot and reports success -- measured 9.7 m
+    // of error before this bound existed.  The contract is "refine a nearby
+    // station", so leaving the neighbourhood means the hint was unusable, not
+    // that the answer is far away.  Say so and let the caller search.
+    const double step_s = std::clamp(
+      along / denominator, -kMaxLateralOffsetExcursionM, kMaxLateralOffsetExcursionM);
+    s = wrapS(s + step_s);
+    if (std::abs(deltaS(s_hint, s)) > kMaxLateralOffsetExcursionM) {
+      break;
+    }
     reference = sampleAtS(s);
     dx = p.x - reference.x;
     dy = p.y - reference.y;

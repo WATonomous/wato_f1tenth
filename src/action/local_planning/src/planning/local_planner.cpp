@@ -82,6 +82,9 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.relative_position = state.relative_position;
   result.decision.opponent_detected = state.opponent.detected;
   result.decision.opponent_gap_m = state.opponent.gap_m;
+  result.decision.ego_d_m = state.ego_d;
+  result.decision.heading_error_rad = state.heading_error_rad;
+  result.decision.raceline_compatible = state.raceline_compatible;
   result.decision.start_curvature_inv_m = ego.curvature;
   result.decision.start_curvature_from_steering = std::abs(ego.curvature) > 0.0;
 
