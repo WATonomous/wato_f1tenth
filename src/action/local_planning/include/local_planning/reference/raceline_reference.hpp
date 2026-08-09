@@ -13,7 +13,13 @@ namespace local_planning
 struct ProjectionConfig
 {
   // Half-width of the arc-length window searched either side of the seed.
-  double seed_window_m = 3.0;
+  // Cost scales with this: every project() scans +/- this much raceline, and
+  // staysOnSide()/maximumOffsetDeviation() call project() once per path sample.
+  // Too small is not a graceful degradation -- once the true station falls
+  // outside the window the search returns a confidently wrong answer without
+  // setting seed_was_stale, so keep several times the worst seed step (ego
+  // speed x cycle period, times however many cycles may be dropped).
+  double seed_window_m = 2.0;
   // A candidate whose reference tangent disagrees with the query heading by
   // more than this is on the wrong branch.  The wrong branch of a hairpin is
   // typically anti-parallels
@@ -51,6 +57,19 @@ public:
 
   // Frenet (s, d) -> world, offsetting along the left normal at s.
   Point toCartesian(double s, double d) const;
+
+  // Signed lateral offset of p, positive left, refined from a caller-supplied
+  // station.  Use this wherever the station is already known by construction --
+  // every CurveSample carries raceline_s -- instead of paying project() to
+  // rediscover it by scanning the seed window.  Measured ~50x cheaper.
+  //
+  // The hint only has to be near: Newton on arc length converges to the true
+  // perpendicular foot from a hint off by a metre.  It is not a substitute for
+  // project() when the station is genuinely unknown, and it will not cross to a
+  // far branch of the track.  Pass converged to find out whether it got there;
+  // when it comes back false the hint was not a neighbouring station and the
+  // returned offset is meaningless.
+  double lateralOffsetAt(const Point & p, double s_hint, bool * converged = nullptr) const;
 
   // Locally-seeded projection with the tangent check.  Use this wherever the
   // query point has a meaningful heading
