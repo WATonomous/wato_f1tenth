@@ -67,6 +67,11 @@ struct LocalPlanResult
     uint32_t total_path_samples = 0;
     uint32_t max_path_samples = 0;
     uint32_t collision_poses_checked = 0;
+    // Side/deviation sweep took the slow windowed search instead of the cheap
+    // station hint.  A high rate here is a ~60x latency cliff that is otherwise
+    // invisible: the paths come out identical either way.
+    uint64_t station_hint_samples = 0;
+    uint64_t station_hint_fallbacks = 0;
   } profile;
 };
 

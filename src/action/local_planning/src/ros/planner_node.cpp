@@ -15,6 +15,16 @@
 
 namespace local_planning
 {
+namespace
+{
+// Conditions that repeat every cycle while they last.  The profile line carries
+// their rate; the log only needs to say "still happening".
+constexpr int kRareErrorThrottleMs = 10000;
+// Measured 0.65% on the sim raceline and 0.00% on Mexico City, so anything at
+// percent scale means the hints have degraded, not that a few samples were
+// unlucky.
+constexpr double kStationHintFallbackWarnPct = 2.0;
+}  // namespace
 
 PlannerNode::PlannerNode()
 : Node("planner_node"),
@@ -38,6 +48,14 @@ PlannerNode::PlannerNode()
         planner_.buildGridCache(grid_);
         has_grid_ = true;
         if (config_.profiling_enabled) {
+          // Drained by whichever intent reports next.  Bounded because an
+          // intent filter (or a rare intent) can leave it undrained for a long
+          // time; keeping the most recent samples is what the report wants.
+          constexpr std::size_t kMaxGridProfileSamples = 512;
+          if (grid_profiling_window_.size() >= kMaxGridProfileSamples) {
+            grid_profiling_window_.erase(grid_profiling_window_.begin());
+          }
+          ++grid_updates_since_report_;
           grid_profiling_window_.push_back(
             std::chrono::duration<double, std::milli>(
               std::chrono::steady_clock::now() - profile_started).count());
@@ -126,7 +144,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.curve.sample_spacing_m = declare_parameter("sample_spacing_m", 0.1);
   cfg.curve.max_curvature_inv_m = declare_parameter("max_curvature_inv_m", 1.74);
   cfg.curve.max_arc_length_m = declare_parameter("max_arc_length_m", 12.0);
-  cfg.projection.seed_window_m = declare_parameter("seed_window_m", 3.0);
+  cfg.projection.seed_window_m = declare_parameter("seed_window_m", 2.0);
   cfg.projection.tangent_tolerance_rad = declare_parameter("tangent_tolerance_rad", 1.2);
 
   cfg.planner_rate_hz = declare_parameter("planner_rate_hz", 20.0);
@@ -139,6 +157,21 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.use_steering_start_curvature = declare_parameter("use_steering_start_curvature", true);
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
   cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
+  const std::string intent_filter = declare_parameter("profiling_intent_filter", std::string());
+  if (!intent_filter.empty()) {
+    for (const PlannerIntent intent : {PlannerIntent::FOLLOW_RACING_LINE, PlannerIntent::OVERTAKE,
+        PlannerIntent::PASS, PlannerIntent::MERGE})
+    {
+      if (intentToString(intent) == intent_filter) {
+        cfg.profiling_intent_filter = intent;
+      }
+    }
+    if (!cfg.profiling_intent_filter) {
+      RCLCPP_WARN(
+        get_logger(), "Unknown profiling_intent_filter '%s'; profiling every intent",
+        intent_filter.c_str());
+    }
+  }
   cfg.map_frame = declare_parameter("map_frame", "map");
   cfg.controller_frame = declare_parameter("controller_frame", "base_link");
   cfg.local_path_topic = declare_parameter("local_path_topic", "/local_path");
@@ -154,15 +187,28 @@ void PlannerNode::recordProfile(ProfileSample sample)
   if (!config_.profiling_enabled) {
     return;
   }
-
-  ++profiling_cycle_count_;
-  profiling_window_.push_back(sample);
-  const std::size_t window_size = static_cast<std::size_t>(std::max(
-      1, config_.profiling_log_every_n_cycles));
-  if (profiling_window_.size() < window_size) {
+  if (config_.profiling_intent_filter && *config_.profiling_intent_filter != sample.intent) {
     return;
   }
 
+  ++profiling_cycle_count_;
+  // Bucket by intent.  A window only fills with cycles of one intent, so its
+  // percentiles describe that intent's cost rather than the mix of states that
+  // happened to occur, and an OVERTAKE window spanning several bursts is a
+  // better sample of overtake cost than one truncated at a burst boundary.
+  std::vector<ProfileSample> & window =
+    profiling_windows_.at(static_cast<std::size_t>(sample.intent));
+  window.push_back(sample);
+  const std::size_t window_size = static_cast<std::size_t>(std::max(
+      1, config_.profiling_log_every_n_cycles));
+  if (window.size() < window_size) {
+    return;
+  }
+  emitProfile(sample.intent, window);
+}
+
+void PlannerNode::emitProfile(PlannerIntent intent, std::vector<ProfileSample> & window)
+{
   struct Summary
   {
     double average;
@@ -171,9 +217,9 @@ void PlannerNode::recordProfile(ProfileSample sample)
   };
   const auto summarize = [&](auto getter) {
       std::vector<double> values;
-      values.reserve(profiling_window_.size());
+      values.reserve(window.size());
       double sum = 0.0;
-      for (const auto & item : profiling_window_) {
+      for (const auto & item : window) {
         const double value = getter(item);
         values.push_back(value);
         sum += value;
@@ -218,12 +264,34 @@ void PlannerNode::recordProfile(ProfileSample sample)
   const auto collision_poses = summarize([](const auto & p) {
         return static_cast<double>(p.collision_poses_checked);
   });
+  const auto collision_rejected = summarize([](const auto & p) {
+        return static_cast<double>(p.collision_rejected);
+  });
+  const auto velocity_rejected = summarize([](const auto & p) {
+        return static_cast<double>(p.velocity_rejected);
+  });
+  const auto valid_candidates = summarize([](const auto & p) {
+        return static_cast<double>(p.valid_candidate_count);
+  });
   std::size_t ready_cycles = 0;
-  for (const auto & item : profiling_window_) {
+  std::size_t empty_pool_cycles = 0;
+  std::size_t out_of_grid_cycles = 0;
+  uint64_t hint_samples = 0;
+  uint64_t hint_fallbacks = 0;
+  std::array<std::size_t, 4> mode_counts{};
+  for (const auto & item : window) {
     ready_cycles += item.inputs_ready ? 1U : 0U;
+    empty_pool_cycles += item.candidate_count == 0 ? 1U : 0U;
+    out_of_grid_cycles += item.out_of_grid_rejected > 0 ? 1U : 0U;
+    hint_samples += item.station_hint_samples;
+    hint_fallbacks += item.station_hint_fallbacks;
+    ++mode_counts.at(static_cast<std::size_t>(item.executed_mode));
   }
+  const double hint_fallback_pct = hint_samples == 0 ? 0.0 :
+    100.0 * static_cast<double>(hint_fallbacks) / static_cast<double>(hint_samples);
 
-  const std::size_t grid_updates = grid_profiling_window_.size();
+  const std::size_t grid_updates = grid_updates_since_report_;
+  grid_updates_since_report_ = 0;
   std::array<double, 3> grid{0.0, 0.0, 0.0};
   if (!grid_profiling_window_.empty()) {
     double sum = 0.0;
@@ -240,7 +308,7 @@ void PlannerNode::recordProfile(ProfileSample sample)
     static_cast<std::size_t>(std::max(0, grid_.height));
 
   RCLCPP_INFO(get_logger(),
-    "LOCAL_PLANNER_PROFILE format=avg/p95/max window=%zu ready=%zu "
+    "LOCAL_PLANNER_PROFILE intent=%s format=avg/p95/max window=%zu ready=%zu "
     "cycle_ms=%.3f/%.3f/%.3f odom_ms=%.3f/%.3f/%.3f state_ms=%.3f/%.3f/%.3f "
     "planner_ms=%.3f/%.3f/%.3f decision_pub_ms=%.3f/%.3f/%.3f "
     "path_msg_ms=%.3f/%.3f/%.3f tf_ms=%.3f/%.3f/%.3f path_pub_ms=%.3f/%.3f/%.3f "
@@ -250,8 +318,12 @@ void PlannerNode::recordProfile(ProfileSample sample)
     "finalization_ms=%.3f/%.3f/%.3f candidates=%.1f/%.1f/%.1f "
     "path_samples=%.1f/%.1f/%.1f max_path_samples=%.1f/%.1f/%.1f "
     "collision_poses=%.1f/%.1f/%.1f "
+    "valid=%.1f/%.1f/%.1f collision_rej=%.1f/%.1f/%.1f velocity_rej=%.1f/%.1f/%.1f "
+    "empty_pool_cycles=%zu out_of_grid_cycles=%zu "
+    "station_hint_fallback=%llu/%llu(%.2f%%) "
+    "modes=none:%zu/maneuver:%zu/braking:%zu/unavailable:%zu "
     "grid_updates=%zu grid=%dx%d cells=%zu res=%.4f grid_ms=%.3f/%.3f/%.3f",
-    profiling_window_.size(), ready_cycles,
+    intentToString(intent).c_str(), window.size(), ready_cycles,
     cycle[0], cycle[1], cycle[2], odom[0], odom[1], odom[2], state[0], state[1], state[2],
     planner[0], planner[1], planner[2], decision_pub[0], decision_pub[1], decision_pub[2],
     path_message[0], path_message[1], path_message[2], tf[0], tf[1], tf[2],
@@ -263,9 +335,28 @@ void PlannerNode::recordProfile(ProfileSample sample)
     samples.average, samples.p95, samples.maximum,
     max_samples.average, max_samples.p95, max_samples.maximum,
     collision_poses.average, collision_poses.p95, collision_poses.maximum,
+    valid_candidates.average, valid_candidates.p95, valid_candidates.maximum,
+    collision_rejected.average, collision_rejected.p95, collision_rejected.maximum,
+    velocity_rejected.average, velocity_rejected.p95, velocity_rejected.maximum,
+    empty_pool_cycles, out_of_grid_cycles,
+    static_cast<unsigned long long>(hint_fallbacks),
+    static_cast<unsigned long long>(hint_samples), hint_fallback_pct,
+    mode_counts[0], mode_counts[1], mode_counts[2], mode_counts[3],
     grid_updates, grid_.width, grid_.height, grid_cells, grid_.resolution,
     grid[0], grid[1], grid[2]);
-  profiling_window_.clear();
+
+  // Loud, not just tabulated.  Above this the station hints have stopped being
+  // usable and the sweep has quietly reverted to the ~60x slower search it was
+  // written to avoid -- with identical paths out, so nothing else shows it.
+  if (hint_fallback_pct > kStationHintFallbackWarnPct) {
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), *get_clock(), kRareErrorThrottleMs,
+      "Station-hint projection falling back %.1f%% of samples in %s: the cheap "
+      "path is not being taken. Expect candidate_gen_ms up to ~60x. Check the "
+      "raceline's curvature against horizon_m.",
+      hint_fallback_pct, intentToString(intent).c_str());
+  }
+  window.clear();
 }
 
 void PlannerNode::planningCycle()
@@ -310,6 +401,16 @@ void PlannerNode::planningCycle()
   auto result = planner_.plan(state_machine_.state(), ego, grid_);
   profile.planner_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - planner_started).count();
+  // Attribute the cycle to the intent that produced its workload, not to the
+  // state machine's intent: the branches below key off requested_intent.
+  profile.intent = result.decision.requested_intent;
+  profile.collision_rejected = result.decision.collision_rejected;
+  profile.out_of_grid_rejected = result.decision.out_of_grid_rejected;
+  profile.velocity_rejected = result.decision.velocity_rejected;
+  profile.valid_candidate_count = result.decision.valid_candidate_count;
+  profile.station_hint_samples = result.profile.station_hint_samples;
+  profile.station_hint_fallbacks = result.profile.station_hint_fallbacks;
+  profile.executed_mode = result.decision.executed_mode;
   profile.candidate_generation_ms = result.profile.candidate_generation_ms;
   profile.collision_check_ms = result.profile.collision_check_ms;
   profile.terminal_projection_ms = result.profile.terminal_projection_ms;
@@ -336,7 +437,11 @@ void PlannerNode::planningCycle()
     return;
   }
   if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
-    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "Braking path unavailable");
+    // Rate and cause live in the profile line's modes=/empty_pool_cycles=
+    // fields, so this only needs to stay loud enough to notice when profiling
+    // is off or filtered to an intent that is not the one failing.
+    RCLCPP_ERROR_THROTTLE(
+      get_logger(), *get_clock(), kRareErrorThrottleMs, "Braking path unavailable");
     finishProfile();
     return;
   }
