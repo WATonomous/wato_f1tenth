@@ -17,6 +17,7 @@ find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(global_planner REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -86,7 +87,7 @@ target_link_libraries(planner_node
   ${cpp_typesupport_target}
 )
 ament_target_dependencies(planner_node
-  rclcpp ackermann_msgs nav_msgs std_msgs geometry_msgs visualization_msgs
+  rclcpp ackermann_msgs nav_msgs std_msgs geometry_msgs visualization_msgs global_planner
   tf2 tf2_ros tf2_geometry_msgs)
 
 # Only the core is exported; costmap_test_tools links it for RacelineReference.
