@@ -1,6 +1,7 @@
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -53,7 +54,6 @@ void validateConfig(const ManeuverConfig & config)
     "overtake_s_offsets_from_opponent_rear_m");
   requireNonEmpty(config.passing_d_magnitudes_m, "passing_d_magnitudes_m");
   requireNonEmpty(config.overtake_heading_offsets_rad, "overtake_heading_offsets_rad");
-  requireNonEmpty(config.overtake_curvature_multipliers, "overtake_curvature_multipliers");
   requireNonEmpty(config.pass_transition_distances_m, "pass_transition_distances_m");
   requireNonEmpty(config.merge_completion_distances_m, "merge_completion_distances_m");
 
@@ -62,7 +62,6 @@ void validateConfig(const ManeuverConfig & config)
     "overtake_s_offsets_from_opponent_rear_m");
   requireFinite(config.passing_d_magnitudes_m, "passing_d_magnitudes_m");
   requireFinite(config.overtake_heading_offsets_rad, "overtake_heading_offsets_rad");
-  requireFinite(config.overtake_curvature_multipliers, "overtake_curvature_multipliers");
   requireFinite(config.pass_transition_distances_m, "pass_transition_distances_m");
   requireFinite(config.merge_completion_distances_m, "merge_completion_distances_m");
 
@@ -83,14 +82,6 @@ void validateConfig(const ManeuverConfig & config)
     throw std::invalid_argument(
       "passing_d_magnitudes_m must be greater than vehicle width (2 * collision radius)");
   }
-  if (std::any_of(
-      config.overtake_curvature_multipliers.begin(),
-      config.overtake_curvature_multipliers.end(),
-      [](double multiplier) {return multiplier < 0.0 || multiplier > 1.0;}))
-  {
-    throw std::invalid_argument("overtake curvature multipliers must be in [0, 1]");
-  }
-
   const auto invalid_distance = [&config](double distance) {
       return distance <= 0.0 || distance > config.horizon_m;
     };
@@ -128,7 +119,6 @@ ManeuverBuilder::ManeuverBuilder(
   removeDuplicates(config_.overtake_s_offsets_from_opponent_rear_m);
   removeDuplicates(config_.passing_d_magnitudes_m);
   removeDuplicates(config_.overtake_heading_offsets_rad);
-  removeDuplicates(config_.overtake_curvature_multipliers);
   removeDuplicates(config_.pass_transition_distances_m);
   std::sort(
     config_.pass_transition_distances_m.begin(), config_.pass_transition_distances_m.end(),
@@ -141,7 +131,7 @@ bool ManeuverBuilder::boundary(
   double d,
   double heading_offset,
   BoundaryState & result,
-  double curvature_multiplier) const
+  BoundaryCurvature curvature) const
 {
   const ReferenceGeometrySample reference = reference_.sampleAtS(s);
   const double denominator = 1.0 - d * reference.curvature;
@@ -152,7 +142,8 @@ bool ManeuverBuilder::boundary(
     reference.x + d * reference.normal_x,
     reference.y + d * reference.normal_y,
     reference.heading + heading_offset,
-    curvature_multiplier * reference.curvature / denominator,
+    curvature == BoundaryCurvature::REFERENCE ?
+    reference.curvature : reference.curvature / denominator,
     reference.velocity};
   return std::isfinite(result.x) && std::isfinite(result.y) &&
          std::isfinite(result.heading) && std::isfinite(result.curvature);
@@ -316,13 +307,13 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
     return candidates;
   }
   // Unused: the dense side check is deferred to opponent prediction (review P0-1).
-  // Crossing needs curvature_multiplier == 0.0 on corners tighter than ~3 m; the
-  // interim mitigation is dropping 0.0 from overtake_curvature_multipliers.
+  // The old zero-curvature intermediate boundary that caused tight-corner crossings
+  // has been removed; OVERTAKE now uses only reference and exact offset curvature.
   (void)ego_d;
   const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
   const std::vector<double> lateral_offsets = offsets(0, bounds, track_bounds_rejected);
   // The first leg is a function of (intermediate_s, intermediate_d,
-  // heading_offset, curvature_multiplier).  It does not depend on horizon_d,
+  // heading_offset, curvature mode).  It does not depend on horizon_d,
   // which the emission order below nests outside it, so building it inline
   // re-solves the same G2 connection once per same-side horizon offset -- two
   // thirds of the first-leg solves here are exact duplicates.  Solve each
@@ -336,8 +327,11 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
     BoundaryState join;
     bool valid = false;
   };
+  constexpr std::array<BoundaryCurvature, 2> curvature_modes{
+    BoundaryCurvature::REFERENCE,
+    BoundaryCurvature::OFFSET};
   const std::size_t heading_count = config_.overtake_heading_offsets_rad.size();
-  const std::size_t curvature_count = config_.overtake_curvature_multipliers.size();
+  const std::size_t curvature_count = curvature_modes.size();
   std::vector<FirstLeg> first_legs(heading_count * curvature_count);
 
   for (double s_offset : config_.overtake_s_offsets_from_opponent_rear_m) {
@@ -355,7 +349,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
           BoundaryState intermediate;
           if (!boundary(
               intermediate_s, intermediate_d, config_.overtake_heading_offsets_rad[h],
-              intermediate, config_.overtake_curvature_multipliers[c]))
+              intermediate, curvature_modes[c]))
           {
             continue;
           }
