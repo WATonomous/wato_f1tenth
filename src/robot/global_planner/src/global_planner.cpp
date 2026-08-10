@@ -1,108 +1,74 @@
 #include "global_planner.hpp"
 
-GlobalPlanner::GlobalPlanner () : Node ("global_planner_node") {
+#include <geometry_msgs/msg/pose_stamped.hpp>
 
-    //parameters
-    this->declare_parameter<std::string>("file_directory", "/assets/optmial_clean_map.csv");
-    this->declare_parameter<std::string>("vis_topic", "/global_planner/vis");
-    this->declare_parameter<std::string>("path_topic", "/global_planner/path");
-    this->declare_parameter<std::string>("waypoint_frame_id","map");
+#include <sstream>
 
-    //init pub and subs
-    file_directory = this->get_parameter("file_directory").as_string();
-    path_pub_topic = this->get_parameter("path_topic").as_string();
-    vis_pub_topic = this->get_parameter("vis_topic").as_string();
-    waypoint_frame_id = this->get_parameter("waypoint_frame_id").as_string();
+GlobalPlanner::GlobalPlanner()
+: Node("global_planner_node")
+{
+  declare_parameter<std::string>("file_directory", "/assets/raceline_reference.csv");
+  declare_parameter<std::string>("path_topic", "/global_planner/path");
+  declare_parameter<std::string>("reference_track_topic", "/global_planner/reference_track");
+  declare_parameter<std::string>("waypoint_frame_id", "map");
 
+  waypoint_frame_id_ = get_parameter("waypoint_frame_id").as_string();
+  const auto qos = rclcpp::QoS(1).transient_local().reliable();
+  path_pub_ = create_publisher<nav_msgs::msg::Path>(
+    get_parameter("path_topic").as_string(), qos);
+  reference_pub_ = create_publisher<global_planner::msg::ReferenceTrack>(
+    get_parameter("reference_track_topic").as_string(), qos);
 
-    //declare pubs and subs
-    auto qos = rclcpp::QoS(1).transient_local().reliable();
+  const auto file_path = ament_index_cpp::get_package_share_directory("global_planner") +
+    get_parameter("file_directory").as_string();
+  std::ifstream file(file_path);
+  if (!file.is_open()) {
+    RCLCPP_FATAL(get_logger(), "Could not open raceline reference: %s", file_path.c_str());
+    rclcpp::shutdown();
+    return;
+  }
 
-    path_pub = this->create_publisher<nav_msgs::msg::Path>(path_pub_topic,qos);
+  reference_track_.header.frame_id = waypoint_frame_id_;
+  reference_track_.header.stamp = now();
+  reference_track_.path.header = reference_track_.header;
+  retrieveData(file);
 
-    //vis_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>(vis_pub_topic,10);
-
-    //check if the file is valid
-    const auto file_path = ament_index_cpp::get_package_share_directory("global_planner") + file_directory;
-    std::ifstream file (file_path);
-    if (!file.is_open()) {
-        RCLCPP_FATAL(this->get_logger(), "could not open the file, check file path again");
-        rclcpp::shutdown();
-        return;
-    }
-
-    RCLCPP_INFO(this->get_logger(), "the csv file %s opended correctly", file_path.c_str());
-
-    //init some of the data
-    waypoints.header.frame_id = waypoint_frame_id;
-    waypoints.header.stamp = this->now();
-
-    //populate the correct data
-    GlobalPlanner::retrieve_data(file);
-
-    RCLCPP_INFO(this->get_logger(),"number of waypoints : %zu \n", waypoints.poses.size());
-
-    //publish the data
-    GlobalPlanner::publish_data();
-
-
+  RCLCPP_INFO(
+    get_logger(), "Loaded %zu raceline waypoints with widths",
+    reference_track_.path.poses.size());
+  path_pub_->publish(reference_track_.path);
+  reference_pub_->publish(reference_track_);
 }
 
-void GlobalPlanner::retrieve_data(std::ifstream &file) {
+void GlobalPlanner::retrieveData(std::ifstream & file)
+{
+  std::string line;
+  std::getline(file, line);  // x_m,y_m,v_mps,dr_m,dl_m
+  while (std::getline(file, line)) {
+    std::stringstream row(line);
+    std::string x, y, velocity, right, left;
+    std::getline(row, x, ',');
+    std::getline(row, y, ',');
+    std::getline(row, velocity, ',');
+    std::getline(row, right, ',');
+    std::getline(row, left, ',');
 
-    std::string line;
+    geometry_msgs::msg::PoseStamped waypoint;
+    waypoint.header = reference_track_.header;
+    waypoint.pose.position.x = std::stod(x);
+    waypoint.pose.position.y = std::stod(y);
+    waypoint.pose.position.z = std::stod(velocity);
+    reference_track_.path.poses.push_back(waypoint);
 
-    //skip the header
-    std::getline(file, line);
-
-    while (std::getline(file, line)) {
-
-       //convert line to string stream
-       std::stringstream ss(line);
-       std::string x_str, y_str, vel_str;
-       std::string temp;
-
-       //break string stream into parts
-       std::getline(ss, x_str, ',');
-       std::getline(ss, y_str, ',');
-       std::getline(ss, vel_str, ',');
-
-       //convert to double
-       double x,y,vel;
-       try {
-            x = std::stod(x_str);
-            y = std::stod(y_str);
-            vel = std::stod(vel_str);
-       } catch (const std::invalid_argument &e){
-            RCLCPP_WARN(get_logger(), "Skipping invalid line: %s", line.c_str());
-            continue;
-       }
-
-       //package the waypoint and velocity
-       geometry_msgs::msg::PoseStamped current_waypoint;
-       current_waypoint.header.frame_id = waypoint_frame_id;
-       current_waypoint.header.stamp = this->now();
-
-       //might have to play with these to fix the wierd ofset
-       current_waypoint.pose.position.x = x;
-       current_waypoint.pose.position.y = y;
-
-       //contains the velocity
-       current_waypoint.pose.position.z = vel;
-
-       waypoints.poses.push_back(current_waypoint);
-
-    }
-
-    //close the file
-    file.close();
+    global_planner::msg::TrackWidth width;
+    width.right_m = std::stof(right);
+    width.left_m = std::stof(left);
+    reference_track_.widths.push_back(width);
+  }
 }
 
-void GlobalPlanner::publish_data () {
-    path_pub->publish(waypoints);
-}
-
-int main(int argc, char * argv[]) {
+int main(int argc, char * argv[])
+{
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<GlobalPlanner>());
   rclcpp::shutdown();

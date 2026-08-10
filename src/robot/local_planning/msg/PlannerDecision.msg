@@ -37,6 +37,10 @@ float64 opponent_gap_m
 # Inputs to the FOLLOW_RACING_LINE / MERGE gate, and its result. The gate is a
 # hard threshold with no hysteresis, so these say whether a transition was a
 # real excursion or a cycle sitting on the limit.
+# Station the gate believes the car is at. A wrong projection moves ego_d_m and
+# heading_error_rad together, which reads exactly like a real excursion, so the
+# station itself has to be on the wire to tell the two apart.
+float64 ego_s_m
 float64 ego_d_m
 float64 heading_error_rad
 bool raceline_compatible
@@ -57,5 +61,9 @@ uint32 generated_count
 uint32 collision_rejected
 uint32 out_of_grid_rejected
 uint32 velocity_rejected
+bool track_bounds_ready
+float64 sustainable_left_m
+float64 sustainable_right_m
+uint32 track_bounds_rejected
 uint32 valid_candidate_count
 float64 cycle_time_ms

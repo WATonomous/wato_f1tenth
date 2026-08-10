@@ -6,7 +6,9 @@
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetLaunchConfiguration
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -28,7 +30,7 @@ def generate_launch_description():
 
     pure_persuit_config = os.path.join(
         get_package_share_directory('bringup_robot'),
-        'config',
+        'config', 'pure_persuit',
         'pure_persuit.yaml'
     )
 
@@ -43,13 +45,31 @@ def generate_launch_description():
         description='the config with gamepad settings'
     )
 
-    pure_persuit_la = DeclareLaunchArgument (
+    pure_persuit_la = DeclareLaunchArgument(
         'pure_persuit_config',
         default_value=pure_persuit_config,
         description='the config for pure persuit settings'
     )
 
-    ld = LaunchDescription([gamepad_la, mux_la, pure_persuit_la]) # Begin building a launch description
+    use_injector_la = DeclareLaunchArgument(
+        'use_costmap_injector',
+        default_value='false',
+        description='Inject the configured synthetic obstacles'
+    )
+    raw_grid_topic_la = DeclareLaunchArgument(
+        'raw_grid_topic',
+        default_value='/costmap'
+    )
+    select_injected_grid = SetLaunchConfiguration(
+        'raw_grid_topic',
+        '/costmap_injected',
+        condition=IfCondition(LaunchConfiguration('use_costmap_injector'))
+    )
+
+    ld = LaunchDescription([
+        gamepad_la, mux_la, pure_persuit_la,
+        use_injector_la, raw_grid_topic_la, select_injected_grid
+    ])
   
     # the first 4 nodes are MANDATORY to launch every time
     # they are responsible for providing you with odometry
@@ -191,5 +211,27 @@ def generate_launch_description():
     )
     ld.add_action(costmap_param)
     ld.add_action(costmap_node)
+
+    injector = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(
+            get_package_share_directory('costmap_test_tools'),
+            'launch',
+            'injected_costmap.launch.py'
+        )),
+        condition=IfCondition(LaunchConfiguration('use_costmap_injector'))
+    )
+    ld.add_action(injector)
+
+    local_planner = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(
+            get_package_share_directory('local_planning'),
+            'launch',
+            'local-planner.launch.py'
+        )),
+        launch_arguments={
+            'raw_grid_topic': LaunchConfiguration('raw_grid_topic')
+        }.items()
+    )
+    ld.add_action(local_planner)
 
     return ld

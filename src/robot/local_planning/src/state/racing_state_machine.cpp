@@ -68,6 +68,7 @@ void RacingStateMachine::update(
   ego_seed_s_ = ego.s;
   state_.ego_s = ego.s;
   state_.ego_d = ego.d;
+  state_.ego_seed_was_stale = ego.seed_was_stale;
 
   state_.relative_position = detectOpponent(occupancy_grid, ego.s, state_.opponent) ?
     classify(state_.opponent.gap_m) :
@@ -191,8 +192,11 @@ PlannerIntent RacingStateMachine::nextIntent(const Odometry & ego_odom)
     case RelativePosition::AHEAD_NOT_CLEAR:
       return PlannerIntent::PASS;
 
+    // Clear of the opponent: rejoin. A car already on the line has nothing to
+    // merge back to, so it hands straight to the global follower rather than
+    // planning a merge onto the station it is already at.
     case RelativePosition::AHEAD_AND_CLEAR:
-      return PlannerIntent::MERGE;
+      return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
 
     case RelativePosition::BEHIND:
       if (state_.opponent.gap_m < config_.overtake_start_gap_m) {

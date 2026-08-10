@@ -115,7 +115,7 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
     for (std::size_t i = 0; i < 3; ++i) {
       const Path & path = candidates[static_cast<std::size_t>(side_index) * 3u + i].path;
       EXPECT_TRUE(std::all_of(path.begin(), path.end(), [](const CurveSample & sample) {
-        return std::isfinite(sample.raceline_s);
+          return std::isfinite(sample.raceline_s);
       }));
       const CurveSample * const intermediate = sampleAt(path, reference.toCartesian(5.0, d));
       ASSERT_NE(intermediate, nullptr);
@@ -251,6 +251,44 @@ TEST(ManeuverBuilder, DenseSideValidationRejectsAnInconsistentMeasuredSide)
   const ManeuverBuilder builder = makeBuilder(reference, ManeuverConfig{});
 
   EXPECT_TRUE(builder.pass(egoAt(reference, 4.0, -0.30), 4.0, 0.30).empty());
+}
+
+TEST(ManeuverBuilder, TrackBoundsFilterOvertakeSidesAndPassMovesInward)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ManeuverConfig config;
+  config.overtake_s_offsets_from_opponent_rear_m = {0.0};
+  config.overtake_heading_offsets_rad = {0.0};
+  config.overtake_curvature_multipliers = {1.0};
+  const ManeuverBuilder builder = makeBuilder(reference, config);
+
+  uint32_t rejected = 0;
+  const auto overtake = builder.overtake(
+    egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0,
+    SustainableBounds{0.60, 0.40}, &rejected);
+  ASSERT_EQ(overtake.size(), 1u);
+  EXPECT_LT(overtake.front().target_d, 0.0);
+  EXPECT_EQ(rejected, 3u);  // +0.55, -0.75, +0.75 configurations
+
+  rejected = 0;
+  const auto pass = builder.pass(
+    egoAt(reference, 4.0, 0.74), 4.0, 0.74,
+    SustainableBounds{1.0, 0.60}, &rejected);
+  ASSERT_EQ(pass.size(), 1u);
+  EXPECT_DOUBLE_EQ(pass.front().target_d, 0.55);
+  EXPECT_EQ(rejected, 1u);
+}
+
+TEST(ManeuverBuilder, MergeRequiresClearanceOnBothSides)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const ManeuverBuilder builder = makeBuilder(reference, ManeuverConfig{});
+  uint32_t rejected = 0;
+  EXPECT_TRUE(builder.merge(
+    egoAt(reference, 2.0, 0.2), 2.0, SustainableBounds{0.5, 0.0}, &rejected).empty());
+  EXPECT_EQ(rejected, 1u);
 }
 
 } // namespace local_planning

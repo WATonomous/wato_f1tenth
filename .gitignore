@@ -9,3 +9,8 @@ log/
 wato_env
 
 watod-config.local.sh
+
+# ROS 2 bag recordings (large; keep local only)
+*.db3
+*.mcap
+src/robot/bringup_robot/bags/

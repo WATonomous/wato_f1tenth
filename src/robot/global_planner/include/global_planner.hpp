@@ -1,47 +1,27 @@
 #ifndef GLOBAL_PLANNER_HPP_
 #define GLOBAL_PLANNER_HPP_
 
-#include <chrono>
-#include <memory>
-#include <string>
-#include <thread>
-#include <string>
-#include <fstream>
-#include <sstream>
-
+#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "global_planner/msg/reference_track.hpp"
+#include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-//message types
-#include "std_msgs/msg/float32_multi_array.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "std_msgs/msg/float32.hpp"
-#include "nav_msgs/msg/path.hpp"
+#include <fstream>
+#include <memory>
+#include <string>
 
-//#include "visualization_msgs/msg/marker_array.hpp"
-#include "ament_index_cpp/get_package_share_directory.hpp"
-
-class GlobalPlanner: public rclcpp::Node {
+class GlobalPlanner : public rclcpp::Node
+{
 public:
-    GlobalPlanner();
+  GlobalPlanner();
+
 private:
-    //publishers
-    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr velocity_pub;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub;
-    //rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr vis_pub;
+  void retrieveData(std::ifstream & file);
 
-    //helper functions
-    void publish_data ();
-    void retrieve_data (std::ifstream &file);
-
-    //helper variabels
-    nav_msgs::msg::Path waypoints;
-    //visualization_msgs::msg::Marker vis_path;
-
-    //parameters
-    std::string path_pub_topic, vis_pub_topic, file_directory;
-    std::string waypoint_frame_id;
-    
+  global_planner::msg::ReferenceTrack reference_track_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
+  rclcpp::Publisher<global_planner::msg::ReferenceTrack>::SharedPtr reference_pub_;
+  std::string waypoint_frame_id_;
 };
-
 
 #endif

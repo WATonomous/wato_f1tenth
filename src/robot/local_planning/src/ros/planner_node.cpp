@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <stdexcept>
 #include <vector>
@@ -37,6 +38,9 @@ PlannerNode::PlannerNode()
   tf_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_buffer_))
 {
   reference_.setProjectionConfig(config_.projection);
+  // Clock type has to match now()'s before the two are ever subtracted; the
+  // has_steering_ guard short-circuits until the callback overwrites this.
+  steering_received_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
   const auto latched = rclcpp::QoS(1).transient_local().reliable();
 
   odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(config_.odom_topic, 10,
@@ -61,17 +65,43 @@ PlannerNode::PlannerNode()
               std::chrono::steady_clock::now() - profile_started).count());
         }
       });
-  racing_line_sub_ = create_subscription<nav_msgs::msg::Path>(config_.racing_line_topic, latched,
-      [this](const nav_msgs::msg::Path::SharedPtr msg) {
-        if (!reference_.setRacingLine(rosPathToRacingLine(*msg))) {
-          RCLCPP_ERROR(get_logger(), "Invalid racing line");
-        }
-      });
+  reference_track_sub_ = create_subscription<global_planner::msg::ReferenceTrack>(
+    config_.reference_track_topic, latched,
+    [this](const global_planner::msg::ReferenceTrack::SharedPtr msg) {
+      if (msg->path.poses.size() != msg->widths.size()) {
+        RCLCPP_ERROR(
+          get_logger(), "Reference/width count mismatch: path=%zu widths=%zu",
+          msg->path.poses.size(), msg->widths.size());
+        reference_.clearTrackWidths();
+        return;
+      }
+      if (!reference_.setRacingLine(rosPathToRacingLine(msg->path))) {
+        RCLCPP_ERROR(get_logger(), "Invalid driving reference");
+        return;
+      }
+      std::vector<TrackWidth> widths;
+      widths.reserve(msg->widths.size());
+      for (const auto & width : msg->widths) {
+        widths.push_back({width.right_m, width.left_m});
+      }
+      if (!reference_.setTrackWidths(
+          widths, config_.maneuver.horizon_m,
+          config_.maneuver.collision_circle_radius_m, config_.track_boundary_margin_m,
+          config_.width_lookup_spacing_m))
+      {
+        RCLCPP_ERROR(get_logger(), "Invalid reference widths; local maneuvers disabled");
+        return;
+      }
+      RCLCPP_INFO(
+        get_logger(), "Reference track ready: %zu waypoints, %zu width samples",
+        reference_.waypointCount(), reference_.widthSampleCount());
+      publishTrackBoundsMarkers();
+    });
   steering_sub_ = create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
       config_.steering_command_topic, 10,
     [this](const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg) {
       steering_angle_ = msg->drive.steering_angle;
-      steering_received_ = std::chrono::steady_clock::now();
+      steering_received_ = now();
       has_steering_ = true;
       });
 
@@ -82,6 +112,11 @@ PlannerNode::PlannerNode()
   decision_pub_ = create_publisher<msg::PlannerDecision>(config_.decision_topic, 10);
   visualization_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
     config_.visualization_topic, 10);
+  track_bounds_visualization_pub_ =
+    create_publisher<visualization_msgs::msg::MarkerArray>(
+    config_.track_bounds_visualization_topic, latched);
+  projection_visualization_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
+    config_.projection_visualization_topic, 10);
 
   timer_ = create_wall_timer(
     std::chrono::duration<double>(1.0 / config_.planner_rate_hz),
@@ -124,10 +159,10 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
 
   cfg.state.corridor_half_width_m = declare_parameter("corridor_half_width_m", 0.25);
   cfg.state.overlap_gap_m = declare_parameter("overlap_gap_m", 0.80);
-  cfg.state.clear_gap_m = declare_parameter("clear_gap_m", 1.50);
+  cfg.state.clear_gap_m = declare_parameter("clear_gap_m", 1.00);
   cfg.state.overtake_start_gap_m = declare_parameter("overtake_start_gap_m", 3.00);
   cfg.state.compat_lateral_m = declare_parameter("compat_lateral_m", 0.40);
-  cfg.state.compat_heading_rad = declare_parameter("compat_heading_rad", 0.15);
+  cfg.state.compat_heading_rad = declare_parameter("compat_heading_rad", 1.05);
 
   cfg.planner.front_collision_circle_offset_m = declare_parameter(
     "front_collision_circle_offset_m", 0.26);
@@ -148,7 +183,10 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.projection.tangent_tolerance_rad = declare_parameter("tangent_tolerance_rad", 1.2);
 
   cfg.planner_rate_hz = declare_parameter("planner_rate_hz", 20.0);
-  cfg.racing_line_topic = declare_parameter("racing_line_topic", "/global_planner/path");
+  cfg.reference_track_topic = declare_parameter(
+    "reference_track_topic", "/global_planner/reference_track");
+  cfg.track_boundary_margin_m = declare_parameter("track_boundary_margin_m", 0.05);
+  cfg.width_lookup_spacing_m = declare_parameter("width_lookup_spacing_m", 0.10);
   cfg.occupancy_grid_topic = declare_parameter("occupancy_grid_topic", "/occupancy_grid");
   cfg.odom_topic = declare_parameter("odom_topic", "/odom");
   cfg.steering_command_topic = declare_parameter("steering_command_topic", "/drive/autonomy");
@@ -180,6 +218,11 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.overtake_ready_topic = declare_parameter("overtake_ready_topic", "/overtake_ready");
   cfg.decision_topic = declare_parameter("decision_topic", "/planner_decision");
   cfg.visualization_topic = declare_parameter("visualization_topic", "/local_planner_viz");
+  cfg.track_bounds_visualization_topic = declare_parameter(
+    "track_bounds_visualization_topic", "/local_planner_track_bounds_viz");
+  cfg.projection_visualization_topic = declare_parameter(
+    "projection_visualization_topic", "/local_planner_projection_viz");
+  cfg.publish_projection_markers = declare_parameter("publish_projection_markers", true);
   return cfg;
 }
 
@@ -423,6 +466,7 @@ void PlannerNode::noteTransitions(
     "ego_d=%+.3f(lim %.3f) head_err=%+.3f(lim %.3f) compatible=%d "
     "opp=%d gap=%+.2f rel=%s "
     "path=%s->%s term_d=%+.3f->%+.3f steer_fresh=%d->%d mode=%d "
+    "track_ready=%d track_caps=R%.3f/L%.3f track_rej=%u "
     "valid=%u collision_rej=%u",
     intentToString(from_intent).c_str(), intentToString(data.requested_intent).c_str(),
     reason,
@@ -435,6 +479,8 @@ void PlannerNode::noteTransitions(
     from_terminal_d_m, data.terminal_d_m,
     from_steering_fresh ? 1 : 0, steering_fresh ? 1 : 0,
     static_cast<int>(data.executed_mode),
+    data.track_bounds_ready ? 1 : 0,
+    data.sustainable_right_m, data.sustainable_left_m, data.track_bounds_rejected,
     data.valid_candidate_count, data.collision_rejected);
 }
 
@@ -466,8 +512,7 @@ void PlannerNode::planningCycle()
   const auto odom_started = std::chrono::steady_clock::now();
   Odometry odom = rosToOdometry(*odom_);
   steering_fresh = has_steering_ &&
-    std::chrono::duration<double>(std::chrono::steady_clock::now() -
-    steering_received_).count() <= config_.steering_command_timeout_s;
+    std::abs((now() - steering_received_).seconds()) <= config_.steering_command_timeout_s;
   if (steering_fresh) {odom.steering_angle = steering_angle_;}
   profile.odom_conversion_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - odom_started).count();
@@ -476,6 +521,13 @@ void PlannerNode::planningCycle()
   state_machine_.update(odom, grid_);
   profile.state_update_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - state_started).count();
+  // Before any of the returns below: the intent this explains is usually
+  // FOLLOW_RACING_LINE or a failed cycle, neither of which reaches
+  // publishMarkers().
+  const auto projection_marker_started = std::chrono::steady_clock::now();
+  publishProjectionMarkers(odom, state_machine_.state());
+  profile.marker_publish_ms += std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - projection_marker_started).count();
   BoundaryState ego;
   ego.x = odom.position.x;
   ego.y = odom.position.y;
@@ -520,21 +572,26 @@ void PlannerNode::planningCycle()
   if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
     const auto marker_publish_started = std::chrono::steady_clock::now();
     publishOvertakeReady(false);
-    profile.marker_publish_ms = std::chrono::duration<double, std::milli>(
+    profile.marker_publish_ms += std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - marker_publish_started).count();
     finishProfile();
     return;
   }
+  // Every path out of this cycle that publishes no local path must say so. The
+  // topic is latched, so staying silent leaves the controller holding a true it
+  // was handed cycles ago while /local_path goes stale underneath it.
   if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
     // Rate and cause live in the profile line's modes=/empty_pool_cycles=
     // fields, so this only needs to stay loud enough to notice when profiling
     // is off or filtered to an intent that is not the one failing.
     RCLCPP_ERROR_THROTTLE(
       get_logger(), *get_clock(), kRareErrorThrottleMs, "Braking path unavailable");
+    publishOvertakeReady(false);
     finishProfile();
     return;
   }
   if (result.selected_index < 0) {
+    publishOvertakeReady(false);
     finishProfile();
     return;
   }
@@ -548,6 +605,7 @@ void PlannerNode::planningCycle()
   const auto tf_started = std::chrono::steady_clock::now();
   if (!transformPathToControllerFrame(map_path, controller_path)) {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Local path transform unavailable");
+    publishOvertakeReady(false);
     profile.tf_ms = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - tf_started).count();
     finishProfile();
@@ -564,7 +622,7 @@ void PlannerNode::planningCycle()
   const auto marker_publish_started = std::chrono::steady_clock::now();
   publishMarkers(result);
   publishOvertakeReady(true);
-  profile.marker_publish_ms = std::chrono::duration<double, std::milli>(
+  profile.marker_publish_ms += std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - marker_publish_started).count();
   finishProfile();
 }
@@ -627,6 +685,7 @@ void PlannerNode::publishDecision(const PlannerDecisionData & data)
   out.relative_position = static_cast<uint8_t>(data.relative_position);
   out.opponent_detected = data.opponent_detected;
   out.opponent_gap_m = data.opponent_gap_m;
+  out.ego_s_m = data.ego_s_m;
   out.ego_d_m = data.ego_d_m;
   out.heading_error_rad = data.heading_error_rad;
   out.raceline_compatible = data.raceline_compatible;
@@ -647,6 +706,10 @@ void PlannerNode::publishDecision(const PlannerDecisionData & data)
   out.collision_rejected = data.collision_rejected;
   out.out_of_grid_rejected = data.out_of_grid_rejected;
   out.velocity_rejected = data.velocity_rejected;
+  out.track_bounds_ready = data.track_bounds_ready;
+  out.sustainable_left_m = data.sustainable_left_m;
+  out.sustainable_right_m = data.sustainable_right_m;
+  out.track_bounds_rejected = data.track_bounds_rejected;
   out.valid_candidate_count = data.valid_candidate_count;
   out.cycle_time_ms = data.cycle_time_ms;
   decision_pub_->publish(out);
@@ -689,7 +752,178 @@ void PlannerNode::publishMarkers(const LocalPlanResult & result)
     }
     markers.markers.push_back(std::move(line));
   }
+  if (result.selected_index >= 0) {
+    const auto & selected = result.pool.at(
+      static_cast<std::size_t>(result.selected_index));
+    if (!selected.path.empty()) {
+      visualization_msgs::msg::Marker terminal;
+      terminal.header = clear.header;
+      terminal.ns = "selected_terminal_offset";
+      terminal.id = 0;
+      terminal.type = visualization_msgs::msg::Marker::SPHERE;
+      terminal.action = visualization_msgs::msg::Marker::ADD;
+      terminal.pose.position.x = selected.path.back().x;
+      terminal.pose.position.y = selected.path.back().y;
+      terminal.pose.orientation.w = 1.0;
+      terminal.scale.x = 0.18;
+      terminal.scale.y = 0.18;
+      terminal.scale.z = 0.18;
+      terminal.color.a = 1.0F;
+      terminal.color.r = 1.0F;
+      terminal.color.g = 0.75F;
+      markers.markers.push_back(std::move(terminal));
+    }
+  }
   visualization_pub_->publish(markers);
+}
+
+void PlannerNode::publishProjectionMarkers(const Odometry & odom, const TacticalState & state)
+{
+  if (!config_.publish_projection_markers || !reference_.valid()) {
+    return;
+  }
+
+  // The same sample isRacelineCompatible() used, so what is drawn is what the
+  // gate decided on rather than a second opinion computed here.
+  const ReferenceGeometrySample foot = reference_.sampleAtS(state.ego_s);
+  const auto & limits = state_machine_.config();
+
+  visualization_msgs::msg::MarkerArray markers;
+  visualization_msgs::msg::Marker prototype;
+  prototype.header.stamp = now();
+  prototype.header.frame_id = config_.map_frame;
+  prototype.ns = "ego_projection";
+  prototype.action = visualization_msgs::msg::Marker::ADD;
+  prototype.pose.orientation.w = 1.0;
+  // Green when the gate would allow FOLLOW_RACING_LINE, red when it would not,
+  // so the marker answers "why MERGE" before any number is read.
+  prototype.color.a = 1.0F;
+  prototype.color.r = state.raceline_compatible ? 0.15F : 1.0F;
+  prototype.color.g = state.raceline_compatible ? 1.0F : 0.15F;
+  prototype.color.b = 0.15F;
+
+  auto projected = prototype;
+  projected.id = 0;
+  projected.type = visualization_msgs::msg::Marker::SPHERE;
+  projected.pose.position.x = foot.x;
+  projected.pose.position.y = foot.y;
+  projected.scale.x = 0.22;
+  projected.scale.y = 0.22;
+  projected.scale.z = 0.22;
+  markers.markers.push_back(std::move(projected));
+
+  // Ego to its foot: the vector whose length is ego_d.  A correct projection
+  // draws this perpendicular to the reference; anything else is the projection
+  // being wrong, not the car being off-line.
+  auto offset = prototype;
+  offset.id = 1;
+  offset.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  offset.scale.x = 0.04;
+  geometry_msgs::msg::Point ego_point;
+  ego_point.x = odom.position.x;
+  ego_point.y = odom.position.y;
+  geometry_msgs::msg::Point foot_point;
+  foot_point.x = foot.x;
+  foot_point.y = foot.y;
+  offset.points.push_back(ego_point);
+  offset.points.push_back(foot_point);
+  markers.markers.push_back(std::move(offset));
+
+  // The two headings heading_error_rad is the difference of, drawn from the
+  // points they are taken at.  Their disagreement is the angle being measured.
+  const auto arrow = [&prototype](
+    int id, double x, double y, double heading, float red, float green, float blue) {
+      auto marker = prototype;
+      marker.id = id;
+      marker.type = visualization_msgs::msg::Marker::ARROW;
+      marker.pose.position.x = x;
+      marker.pose.position.y = y;
+      tf2::Quaternion rotation;
+      rotation.setRPY(0.0, 0.0, heading);
+      marker.pose.orientation = tf2::toMsg(rotation);
+      marker.scale.x = 1.0;
+      marker.scale.y = 0.06;
+      marker.scale.z = 0.06;
+      marker.color.r = red;
+      marker.color.g = green;
+      marker.color.b = blue;
+      return marker;
+    };
+  markers.markers.push_back(arrow(2, foot.x, foot.y, foot.heading, 0.3F, 0.6F, 1.0F));
+  markers.markers.push_back(
+    arrow(3, odom.position.x, odom.position.y, odom.heading, 1.0F, 0.6F, 0.1F));
+
+  auto text = prototype;
+  text.id = 4;
+  text.ns = "ego_projection_text";
+  text.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+  text.pose.position.x = odom.position.x;
+  text.pose.position.y = odom.position.y;
+  text.pose.position.z = 0.6;
+  text.scale.z = 0.22;
+  // Every threshold is printed next to the value it gates, because "0.31" only
+  // means something beside the limit it is being compared against.
+  std::array<char, 256> label{};
+  std::snprintf(
+    label.data(), label.size(),
+    "%s%s\ns=%.2f/%.1f d=%+.2f/%.2f\nhead_err=%+.3f/%.3f",
+    intentToString(state.intent).c_str(), state.ego_seed_was_stale ? " SEED-STALE" : "",
+    state.ego_s, reference_.totalLength(),
+    state.ego_d, limits.compat_lateral_m,
+    state.heading_error_rad, limits.compat_heading_rad);
+  text.text = label.data();
+  markers.markers.push_back(std::move(text));
+
+  projection_visualization_pub_->publish(markers);
+}
+
+void PlannerNode::publishTrackBoundsMarkers()
+{
+  if (!reference_.trackWidthsValid()) {
+    return;
+  }
+  visualization_msgs::msg::MarkerArray markers;
+  const auto make_line = [this](
+    const char * name, int id, float red, float green, float blue)
+    {
+      visualization_msgs::msg::Marker line;
+      line.header.stamp = now();
+      line.header.frame_id = config_.map_frame;
+      line.ns = name;
+      line.id = id;
+      line.type = visualization_msgs::msg::Marker::LINE_STRIP;
+      line.action = visualization_msgs::msg::Marker::ADD;
+      line.scale.x = 0.025;
+      line.color.a = 0.8F;
+      line.color.r = red;
+      line.color.g = green;
+      line.color.b = blue;
+      return line;
+    };
+  auto raw_left = make_line("track_bounds_raw", 0, 0.2F, 0.55F, 1.0F);
+  auto raw_right = make_line("track_bounds_raw", 1, 0.2F, 0.55F, 1.0F);
+  auto cap_left = make_line("track_bounds_sustainable", 0, 1.0F, 0.3F, 0.1F);
+  auto cap_right = make_line("track_bounds_sustainable", 1, 1.0F, 0.3F, 0.1F);
+  for (std::size_t i = 0; i <= reference_.widthSampleCount(); ++i) {
+    const std::size_t index = i % reference_.widthSampleCount();
+    const auto widths = reference_.widthSample(index);
+    const auto reference = reference_.sampleAtS(widths.s);
+    const auto append = [&reference](visualization_msgs::msg::Marker & marker, double d) {
+        geometry_msgs::msg::Point point;
+        point.x = reference.x + d * reference.normal_x;
+        point.y = reference.y + d * reference.normal_y;
+        marker.points.push_back(point);
+      };
+    append(raw_left, widths.raw.left_magnitude);
+    append(raw_right, -widths.raw.right_magnitude);
+    append(cap_left, widths.sustainable.left_magnitude);
+    append(cap_right, -widths.sustainable.right_magnitude);
+  }
+  markers.markers.push_back(std::move(raw_left));
+  markers.markers.push_back(std::move(raw_right));
+  markers.markers.push_back(std::move(cap_left));
+  markers.markers.push_back(std::move(cap_right));
+  track_bounds_visualization_pub_->publish(markers);
 }
 
 }  // namespace local_planning

@@ -9,6 +9,7 @@
 #include "local_planning/state/racing_state_machine.hpp"
 
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <global_planner/msg/reference_track.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -45,6 +46,8 @@ private:
     double planner_rate_hz = 20.0;
     double steering_command_timeout_s = 0.06;
     double wheelbase_m = 0.33;
+    double track_boundary_margin_m = 0.05;
+    double width_lookup_spacing_m = 0.10;
     bool use_steering_start_curvature = true;
     bool profiling_enabled = true;
     int profiling_log_every_n_cycles = 20;
@@ -56,7 +59,7 @@ private:
     // FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to log only that intent, which is
     // what you want when only the expensive state matters.
     std::optional<PlannerIntent> profiling_intent_filter;
-    std::string racing_line_topic;
+    std::string reference_track_topic;
     std::string occupancy_grid_topic;
     std::string odom_topic;
     std::string steering_command_topic;
@@ -67,6 +70,9 @@ private:
     std::string overtake_ready_topic;
     std::string decision_topic;
     std::string visualization_topic;
+    std::string track_bounds_visualization_topic;
+    std::string projection_visualization_topic;
+    bool publish_projection_markers = true;
   };
 
   NodeConfig loadConfig();
@@ -78,6 +84,13 @@ private:
   void publishDecision(const PlannerDecisionData & data);
   void publishOvertakeReady(bool ready);
   void publishMarkers(const LocalPlanResult & result);
+  void publishTrackBoundsMarkers();
+  // Draws the ego projection the FOLLOW/MERGE gate actually used: the foot on
+  // the reference, the offset that becomes ego_d, and the two headings whose
+  // difference becomes heading_error_rad.  Published every cycle, on its own
+  // topic, because the intent this explains is usually one where publishMarkers
+  // never runs.
+  void publishProjectionMarkers(const Odometry & odom, const TacticalState & state);
 
   struct ProfileSample
   {
@@ -148,7 +161,9 @@ private:
   OccupancyGrid grid_;
   bool has_grid_ = false;
   double steering_angle_ = 0.0;
-  std::chrono::steady_clock::time_point steering_received_;
+  // ROS clock, not steady_clock: under use_sim_time the two are unrelated, and
+  // steering_command_timeout_s is a budget in simulated seconds.
+  rclcpp::Time steering_received_;
   bool has_steering_ = false;
   std::optional<bool> last_overtake_ready_;
   uint64_t profiling_cycle_count_ = 0;
@@ -174,13 +189,17 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;
-  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr racing_line_sub_;
+  rclcpp::Subscription<global_planner::msg::ReferenceTrack>::SharedPtr reference_track_sub_;
   rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr steering_sub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_map_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr overtake_ready_pub_;
   rclcpp::Publisher<msg::PlannerDecision>::SharedPtr decision_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr visualization_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+    track_bounds_visualization_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+    projection_visualization_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

@@ -82,11 +82,17 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.relative_position = state.relative_position;
   result.decision.opponent_detected = state.opponent.detected;
   result.decision.opponent_gap_m = state.opponent.gap_m;
+  result.decision.ego_s_m = state.ego_s;
   result.decision.ego_d_m = state.ego_d;
   result.decision.heading_error_rad = state.heading_error_rad;
   result.decision.raceline_compatible = state.raceline_compatible;
+  result.decision.projection_seed_was_stale = state.ego_seed_was_stale;
   result.decision.start_curvature_inv_m = ego.curvature;
   result.decision.start_curvature_from_steering = std::abs(ego.curvature) > 0.0;
+  result.decision.track_bounds_ready = reference_.trackWidthsValid();
+  const SustainableBounds bounds = reference_.sustainableBounds(state.ego_s);
+  result.decision.sustainable_left_m = bounds.left_magnitude;
+  result.decision.sustainable_right_m = bounds.right_magnitude;
 
   if (state.intent == PlannerIntent::FOLLOW_RACING_LINE) {
     result.decision.cycle_time_ms = elapsedMs(started);
@@ -102,24 +108,33 @@ LocalPlanResult LocalPlanner::plan(
     };
 
   PlannerIntent profile_intent = state.intent;
-  if (state.intent == PlannerIntent::OVERTAKE) {
+  if (!result.decision.track_bounds_ready) {
+    // FOLLOW remains available through the global raceline consumer. Local
+    // maneuvers require the matching, index-aligned width message.
+  } else if (state.intent == PlannerIntent::OVERTAKE) {
     appendGenerated(CandidateSource::OVERTAKE, [&]() {
-        return builder_.overtake(ego, state.ego_s, state.ego_d, state.opponent.s);
+        return builder_.overtake(
+          ego, state.ego_s, state.ego_d, state.opponent.s, bounds,
+          &result.decision.track_bounds_rejected);
     });
   } else if (state.intent == PlannerIntent::PASS &&
     std::abs(state.ego_d) <= builder_.config().sideDeadbandM())
   {
     appendGenerated(CandidateSource::MERGE_ALIGNMENT, [&]() {
-        return builder_.merge(ego, state.ego_s);
+        return builder_.merge(
+          ego, state.ego_s, bounds, &result.decision.track_bounds_rejected);
     });
     profile_intent = PlannerIntent::MERGE;
   } else if (state.intent == PlannerIntent::PASS) {
     appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
-        return builder_.pass(ego, state.ego_s, state.ego_d);
+        return builder_.pass(
+          ego, state.ego_s, state.ego_d, bounds,
+          &result.decision.track_bounds_rejected);
     });
   } else {
     appendGenerated(CandidateSource::MERGE, [&]() {
-        return builder_.merge(ego, state.ego_s);
+        return builder_.merge(
+          ego, state.ego_s, bounds, &result.decision.track_bounds_rejected);
     });
   }
 
@@ -170,7 +185,9 @@ LocalPlanResult LocalPlanner::plan(
     {
       const std::size_t first = result.evaluated.size();
       appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
-          return builder_.recover(ego, state.ego_s, state.ego_d);
+          return builder_.recover(
+            ego, state.ego_s, state.ego_d, bounds,
+            &result.decision.track_bounds_rejected);
       });
       evaluateFrom(first);
     }

@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/empty.hpp"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2/utils.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
@@ -31,23 +33,44 @@
 namespace
 {
 
+enum class ObstacleKind
+{
+  Static,           // holds a fixed map pose, never touched again
+  RacelineStatic,   // parked at an (s, d) on the line; respawn moves it to a new s
+  RacelineMover,    // advances along the line every cycle
+};
+
+ObstacleKind parseKind(const std::string & text)
+{
+  if (text == "raceline_mover") {
+    return ObstacleKind::RacelineMover;
+  }
+  if (text == "raceline_static") {
+    return ObstacleKind::RacelineStatic;
+  }
+  return ObstacleKind::Static;
+}
+
 struct Obstacle
 {
   std::string name;
-  bool mover = false;       // advances along the raceline instead of holding a map pose
+  ObstacleKind kind = ObstacleKind::Static;
 
-  // Mover state.
+  // Frenet state, meaningful for both raceline kinds.
   double s = 0.0;
   double d = 0.0;
   double speed_scale = 0.6;
 
-  // Current pose in the map frame.  Recomputed each cycle for movers.
+  // Current pose in the map frame.  Derived from (s, d) for the raceline kinds.
   double x = 0.0;
   double y = 0.0;
   double yaw = 0.0;
 
   double length_m = 0.50;
   double width_m = 0.30;
+
+  // Raceline-anchored obstacles have no valid pose until a raceline arrives.
+  bool anchored() const {return kind != ObstacleKind::Static;}
 };
 
 }  // namespace
@@ -61,8 +84,12 @@ public:
     enabled_ = declare_parameter<bool>("enabled", true);
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     obstacle_value_ = static_cast<int8_t>(declare_parameter<int>("obstacle_value", 100));
-    min_ego_distance_m_ = declare_parameter<double>("min_ego_distance_m", 1.0);
+    min_ego_distance_m_ = declare_parameter<double>("min_ego_distance_m", 0.5);
     clicked_obstacle_size_m_ = declare_parameter<double>("clicked_obstacle_size_m", 0.30);
+    ego_frame_ = declare_parameter<std::string>("ego_frame", "base_link");
+    respawn_min_ego_distance_m_ =
+      declare_parameter<double>("respawn_min_ego_distance_m", 4.0);
+    respawn_lateral_range_m_ = declare_parameter<double>("respawn_lateral_range_m", 0.0);
 
     const auto raw_grid_topic = declare_parameter<std::string>("raw_grid_topic", "/costmap");
     const auto injected_grid_topic =
@@ -71,14 +98,15 @@ public:
       declare_parameter<std::string>("raceline_topic", "/global_planner/path");
     const auto marker_topic =
       declare_parameter<std::string>("marker_topic", "/injected_obstacles_viz");
+    const auto respawn_topic =
+      declare_parameter<std::string>("respawn_topic", "/inject_obstacle/respawn");
 
     for (const auto & name :
       declare_parameter<std::vector<std::string>>("obstacle_names", std::vector<std::string>{}))
     {
       Obstacle obstacle;
       obstacle.name = name;
-      obstacle.mover =
-        declare_parameter<std::string>(name + ".kind", "static") == "raceline_mover";
+      obstacle.kind = parseKind(declare_parameter<std::string>(name + ".kind", "static"));
       obstacle.s = declare_parameter<double>(name + ".start_s", 0.0);
       obstacle.d = declare_parameter<double>(name + ".d", 0.0);
       obstacle.speed_scale = declare_parameter<double>(name + ".speed_scale", 0.6);
@@ -109,6 +137,12 @@ public:
       "/clicked_point", 1,
       [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {onClickedPoint(*msg);});
 
+    // One `ros2 topic pub` teleports every raceline_static block to a fresh
+    // random spot on the line, so a scenario can be re-rolled without a relaunch.
+    respawn_sub_ = create_subscription<std_msgs::msg::Empty>(
+      respawn_topic, 1,
+      [this](const std_msgs::msg::Empty::SharedPtr) {onRespawn();});
+
     RCLCPP_INFO(
       get_logger(), "Injector %s: %s -> %s, %zu configured obstacle(s)",
       enabled_ ? "enabled" : "disabled (passthrough)",
@@ -130,6 +164,88 @@ private:
       return;
     }
     RCLCPP_INFO(get_logger(), "Raceline accepted, %.2f m loop", reference_.totalLength());
+
+    // Anchored obstacles were parked at an (s, d) with no line to resolve it
+    // against; now they have one.
+    for (auto & obstacle : obstacles_) {
+      if (obstacle.anchored()) {
+        placeOnRaceline(obstacle);
+      }
+    }
+  }
+
+  // Re-rolls every raceline_static obstacle onto a fresh random s.  Movers and
+  // clicked blocks are left alone.
+  void onRespawn()
+  {
+    if (!reference_.valid()) {
+      RCLCPP_WARN(get_logger(), "Respawn ignored: no raceline yet");
+      return;
+    }
+
+    const auto ego = lookupEgoInMap();
+    if (!ego) {
+      RCLCPP_WARN(
+        get_logger(), "Respawn: ego pose unknown, obstacle may land on top of the car");
+    }
+
+    std::uniform_real_distribution<double> s_dist(0.0, reference_.totalLength());
+    std::uniform_real_distribution<double> d_dist(
+      -respawn_lateral_range_m_, respawn_lateral_range_m_);
+
+    int respawned = 0;
+    for (auto & obstacle : obstacles_) {
+      if (obstacle.kind != ObstacleKind::RacelineStatic) {
+        continue;
+      }
+
+      // Rejection sample so the new spot is not right on the car's nose.  A
+      // bounded number of tries keeps this terminating on a short loop where
+      // no candidate clears the radius; the last draw is used regardless.
+      for (int attempt = 0; attempt < 32; ++attempt) {
+        obstacle.s = s_dist(rng_);
+        obstacle.d = d_dist(rng_);
+        placeOnRaceline(obstacle);
+        if (!ego ||
+          std::hypot(obstacle.x - ego->x(), obstacle.y - ego->y()) >=
+          respawn_min_ego_distance_m_)
+        {
+          break;
+        }
+      }
+
+      ++respawned;
+      RCLCPP_INFO(
+        get_logger(), "Respawned '%s' at s=%.2f d=%.2f -> (%.2f, %.2f)",
+        obstacle.name.c_str(), obstacle.s, obstacle.d, obstacle.x, obstacle.y);
+    }
+
+    if (respawned == 0) {
+      RCLCPP_WARN(get_logger(), "Respawn: no obstacle of kind 'raceline_static' configured");
+    }
+  }
+
+  void placeOnRaceline(Obstacle & obstacle)
+  {
+    const auto sample = reference_.sampleAtS(obstacle.s);
+    obstacle.x = sample.x + obstacle.d * sample.normal_x;
+    obstacle.y = sample.y + obstacle.d * sample.normal_y;
+    obstacle.yaw = sample.heading;
+  }
+
+  std::optional<tf2::Vector3> lookupEgoInMap() const
+  {
+    try {
+      const auto transform =
+        tf_buffer_->lookupTransform(map_frame_, ego_frame_, tf2::TimePointZero);
+      return tf2::Vector3(
+        transform.transform.translation.x, transform.transform.translation.y, 0.0);
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN(
+        get_logger(), "Cannot transform '%s' -> '%s': %s",
+        ego_frame_.c_str(), map_frame_.c_str(), ex.what());
+      return std::nullopt;
+    }
   }
 
   void onClickedPoint(const geometry_msgs::msg::PointStamped & msg)
@@ -168,7 +284,7 @@ private:
         const tf2::Transform origin_from_map = frame_from_origin.inverse() * frame_from_map;
 
         for (const auto & obstacle : obstacles_) {
-          if (obstacle.mover && !reference_.valid()) {
+          if (obstacle.anchored() && !reference_.valid()) {
             continue;
           }
           if (overlapsEgo(obstacle, grid.header.frame_id, frame_from_map)) {
@@ -193,17 +309,13 @@ private:
     }
 
     for (auto & obstacle : obstacles_) {
-      if (!obstacle.mover) {
+      if (obstacle.kind != ObstacleKind::RacelineMover) {
         continue;
       }
       const double speed =
         obstacle.speed_scale * std::max(0.0, reference_.sampleAtS(obstacle.s).velocity);
       obstacle.s = reference_.wrapS(obstacle.s + speed * dt);
-
-      const auto sample = reference_.sampleAtS(obstacle.s);
-      obstacle.x = sample.x + obstacle.d * sample.normal_x;
-      obstacle.y = sample.y + obstacle.d * sample.normal_y;
-      obstacle.yaw = sample.heading;
+      placeOnRaceline(obstacle);
     }
   }
 
@@ -216,10 +328,14 @@ private:
       return true;
     }
 
+    // Always take the latest available transform.  Matching the grid stamp
+    // exactly makes the lookup fail whenever TF and the costmap are even
+    // slightly out of sync, and a dropped frame means the obstacle blinks out
+    // of the grid entirely.  A few milliseconds of TF staleness is invisible
+    // next to that.
     try {
       const auto transform = tf_buffer_->lookupTransform(
-        grid.header.frame_id, map_frame_, rclcpp::Time(grid.header.stamp),
-        tf2::durationFromSec(0.05));
+        grid.header.frame_id, map_frame_, tf2::TimePointZero);
       tf2::fromMsg(transform.transform, frame_from_map);
       return true;
     } catch (const tf2::TransformException & ex) {
@@ -297,7 +413,7 @@ private:
 
     int id = 0;
     for (const auto & obstacle : obstacles_) {
-      if (obstacle.mover && !reference_.valid()) {
+      if (obstacle.anchored() && !reference_.valid()) {
         continue;
       }
 
@@ -317,10 +433,11 @@ private:
       marker.scale.x = obstacle.length_m;
       marker.scale.y = obstacle.width_m;
       marker.scale.z = 0.30;
+      const bool mover = obstacle.kind == ObstacleKind::RacelineMover;
       marker.color.a = 0.8f;
-      marker.color.r = obstacle.mover ? 0.9f : 0.4f;
+      marker.color.r = mover ? 0.9f : 0.4f;
       marker.color.g = 0.2f;
-      marker.color.b = obstacle.mover ? 0.2f : 0.9f;
+      marker.color.b = mover ? 0.2f : 0.9f;
       markers.markers.push_back(marker);
     }
 
@@ -329,13 +446,17 @@ private:
 
   bool enabled_ = true;
   std::string map_frame_;
+  std::string ego_frame_;
   int8_t obstacle_value_ = 100;
-  double min_ego_distance_m_ = 1.0;
+  double min_ego_distance_m_ = 0.5;
   double clicked_obstacle_size_m_ = 0.30;
+  double respawn_min_ego_distance_m_ = 4.0;
+  double respawn_lateral_range_m_ = 0.0;
 
   std::vector<Obstacle> obstacles_;
   local_planning::RacelineReference reference_;
   std::optional<rclcpp::Time> last_stamp_;
+  std::mt19937 rng_{std::random_device{}()};
 
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -344,6 +465,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr raceline_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr clicked_point_sub_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr respawn_sub_;
 };
 
 int main(int argc, char * argv[])

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <limits>
 
 namespace local_planning
@@ -127,8 +128,15 @@ std::vector<double> secondDerivatives(
 
 } // namespace
 
+SustainableBounds SustainableBounds::unbounded()
+{
+  const double infinity = std::numeric_limits<double>::infinity();
+  return {infinity, infinity};
+}
+
 bool RacelineReference::setRacingLine(const std::vector<Point> & points)
 {
+  clearTrackWidths();
   valid_ = false;
   points_.clear();
   cumulative_s_.clear();
@@ -197,6 +205,109 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
   spline_y_ = build(ys, my);
   valid_ = true;
   return true;
+}
+
+void RacelineReference::clearTrackWidths()
+{
+  track_widths_valid_ = false;
+  width_spacing_m_ = 0.0;
+  raw_right_m_.clear();
+  raw_left_m_.clear();
+  sustainable_right_m_.clear();
+  sustainable_left_m_.clear();
+}
+
+bool RacelineReference::setTrackWidths(
+  const std::vector<TrackWidth> & widths,
+  double horizon_m,
+  double collision_radius_m,
+  double margin_m,
+  double requested_spacing_m)
+{
+  clearTrackWidths();
+  if (!valid_ || widths.size() != points_.size() ||
+    requested_spacing_m <= 0.0)
+  {
+    return false;
+  }
+
+  const std::size_t count = std::max<std::size_t>(
+    2, static_cast<std::size_t>(std::ceil(total_length_m_ / requested_spacing_m)));
+  width_spacing_m_ = total_length_m_ / static_cast<double>(count);
+  raw_right_m_.resize(count);
+  raw_left_m_.resize(count);
+  const double clearance = collision_radius_m + margin_m;
+
+  for (std::size_t i = 0; i < count; ++i) {
+    double t = 0.0;
+    const std::size_t segment = segmentAt(static_cast<double>(i) * width_spacing_m_, t);
+    const std::size_t next = (segment + 1) % points_.size();
+    const double alpha = t / segment_length_[segment];
+    raw_right_m_[i] = std::max(
+      0.0, widths[segment].right_m +
+      alpha * (widths[next].right_m - widths[segment].right_m) - clearance);
+    raw_left_m_[i] = std::max(
+      0.0,
+      widths[segment].left_m +
+      alpha * (widths[next].left_m - widths[segment].left_m) - clearance);
+  }
+
+  const std::size_t window = std::min(
+    count, static_cast<std::size_t>(std::ceil(horizon_m / width_spacing_m_)) + 1);
+  sustainable_right_m_ = circularMinimum(raw_right_m_, window);
+  sustainable_left_m_ = circularMinimum(raw_left_m_, window);
+  track_widths_valid_ = true;
+  return true;
+}
+
+std::vector<double> RacelineReference::circularMinimum(
+  const std::vector<double> & values, std::size_t window)
+{
+  std::vector<double> result(values.size());
+  std::deque<std::size_t> minimum;
+  const std::size_t extended_count = values.size() + window - 1;
+  for (std::size_t i = 0; i < extended_count; ++i) {
+    while (!minimum.empty() &&
+      values[minimum.back() % values.size()] >= values[i % values.size()])
+    {
+      minimum.pop_back();
+    }
+    minimum.push_back(i);
+    while (minimum.front() + window <= i) {
+      minimum.pop_front();
+    }
+    if (i + 1 >= window) {
+      const std::size_t start = i + 1 - window;
+      if (start < values.size()) {
+        result[start] = values[minimum.front() % values.size()];
+      }
+    }
+  }
+  return result;
+}
+
+SustainableBounds RacelineReference::sustainableBounds(double s) const
+{
+  if (!track_widths_valid_) {
+    return {};
+  }
+  const std::size_t index = std::min(
+    static_cast<std::size_t>(wrapS(s) / width_spacing_m_), sustainable_left_m_.size() - 1);
+  const std::size_t next = (index + 1) % sustainable_left_m_.size();
+  return {
+    std::min(sustainable_right_m_[index], sustainable_right_m_[next]),
+    std::min(sustainable_left_m_[index], sustainable_left_m_[next])};
+}
+
+WidthLookupSample RacelineReference::widthSample(std::size_t index) const
+{
+  if (!track_widths_valid_ || index >= raw_left_m_.size()) {
+    return {};
+  }
+  return {
+    static_cast<double>(index) * width_spacing_m_,
+    {raw_right_m_[index], raw_left_m_[index]},
+    {sustainable_right_m_[index], sustainable_left_m_[index]}};
 }
 
 double RacelineReference::wrapS(double s) const
