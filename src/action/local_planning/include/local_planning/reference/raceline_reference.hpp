@@ -34,6 +34,27 @@ struct Projection
   bool seed_was_stale = false;
 };
 
+struct SustainableBounds
+{
+  double right_magnitude = 0.0;
+  double left_magnitude = 0.0;
+
+  static SustainableBounds unbounded();
+};
+
+struct WidthLookupSample
+{
+  double s = 0.0;
+  SustainableBounds raw;
+  SustainableBounds sustainable;
+};
+
+struct TrackWidth
+{
+  double right_m = 0.0;
+  double left_m = 0.0;
+};
+
 // The smooth closed reference the whole planner is anchored to.
 // Geometry is a periodic cubic spline in x(s) and y(s) parameterized by
 // cumulative chord length. Speed is interpolated linearly between waypoints
@@ -50,6 +71,20 @@ public:
   bool valid() const {return valid_;}
   double totalLength() const {return total_length_m_;}
   std::size_t waypointCount() const {return points_.size();}
+
+  // Widths are index-aligned with the active reference. Construction performs
+  // all interpolation and forward-horizon minima; the runtime query is O(1).
+  bool setTrackWidths(
+    const std::vector<TrackWidth> & widths,
+    double horizon_m,
+    double collision_radius_m,
+    double margin_m,
+    double spacing_m);
+  void clearTrackWidths();
+  bool trackWidthsValid() const {return track_widths_valid_;}
+  SustainableBounds sustainableBounds(double s) const;
+  WidthLookupSample widthSample(std::size_t index) const;
+  std::size_t widthSampleCount() const {return raw_left_m_.size();}
 
   // Position, tangent, normal, heading, curvature, and speed at arc length s.
   // s is wrapped, so any real value is in range.
@@ -133,6 +168,8 @@ private:
 
   // Newton refinement of the foot of the perpendicular within one segment.
   double refineOnSegment(const Point & p, std::size_t segment, double t_initial) const;
+  static std::vector<double> circularMinimum(
+    const std::vector<double> & values, std::size_t window);
 
   bool valid_ = false;
   std::vector<Point> points_;
@@ -142,6 +179,13 @@ private:
   std::vector<SplineSegment> spline_y_;
   double total_length_m_ = 0.0;
   ProjectionConfig projection_config_;
+
+  bool track_widths_valid_ = false;
+  double width_spacing_m_ = 0.0;
+  std::vector<double> raw_right_m_;
+  std::vector<double> raw_left_m_;
+  std::vector<double> sustainable_right_m_;
+  std::vector<double> sustainable_left_m_;
 };
 
 } // namespace local_planning

@@ -27,6 +27,10 @@ struct PlannerDecisionData
   double opponent_gap_m = 0.0;
   // The two inputs to the FOLLOW/MERGE gate, plus its result.  Published so a
   // flapping intent can be read off a bag without rebuilding.
+  // Where the gate thinks the car is.  Published alongside its own inputs
+  // because a wrong station makes ego_d and heading_error_rad wrong together,
+  // and that pair is indistinguishable from a genuine excursion without it.
+  double ego_s_m = 0.0;
   double ego_d_m = 0.0;
   double heading_error_rad = 0.0;
   bool raceline_compatible = false;
@@ -47,6 +51,10 @@ struct PlannerDecisionData
   uint32_t collision_rejected = 0;
   uint32_t out_of_grid_rejected = 0;
   uint32_t velocity_rejected = 0;
+  bool track_bounds_ready = false;
+  double sustainable_left_m = 0.0;
+  double sustainable_right_m = 0.0;
+  uint32_t track_bounds_rejected = 0;
   uint32_t valid_candidate_count = 0;
   double cycle_time_ms = 0.0;
 };

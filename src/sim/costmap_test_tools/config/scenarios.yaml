@@ -4,23 +4,49 @@ costmap_obstacle_injector_node:
 
     raw_grid_topic: "/costmap"
     injected_grid_topic: "/costmap_injected"
+    # The global planner's raceline, velocity packed into pose.position.z.
+    # Not a centerline: obstacles are anchored to the line the car races.
     raceline_topic: "/global_planner/path"
     marker_topic: "/injected_obstacles_viz"
 
     map_frame: "map"
+    ego_frame: "base_link"
     obstacle_value: 100
 
     # Obstacles closer than this to base_link are skipped, so a badly placed
     # block cannot violate the "ego is not in its own costmap" contract.
-    min_ego_distance_m: 1.0
+    min_ego_distance_m: 0.5
     clicked_obstacle_size_m: 0.30
 
-    # Only the names listed here are instantiated.  Add "cone" to switch to the
-    # static block, or list both.
-    obstacle_names: ["slow_car"]
+    # Publishing to this topic re-rolls every "raceline_static" obstacle onto a
+    # new random s:
+    #   ros2 topic pub --once /inject_obstacle/respawn std_msgs/msg/Empty {}
+    respawn_topic: "/inject_obstacle/respawn"
+
+    # A respawn never lands a block closer than this to the car, so re-rolling
+    # mid-lap cannot drop a wall on ego's nose.
+    respawn_min_ego_distance_m: 4.0
+
+    # Lateral spread of a respawn, in metres either side of the line.  0 keeps
+    # every respawn dead on the raceline.
+    respawn_lateral_range_m: 0.0
+
+    # Only the names listed here are instantiated.  Swap in "slow_car" for the
+    # moving-opponent scenario, or list both.
+    obstacle_names: ["cone"]
+
+    # A fixed block sitting on the line: gives the PASS recovery tiers and the
+    # braking fallback without a mover's closing speed confusing the planner.
+    # start_s is only the initial spot; respawn moves it anywhere on the loop.
+    cone:
+      kind: "raceline_static"
+      start_s: 12.0
+      d: 0.0
+      length_m: 0.20
+      width_m: 0.20
 
     # A slower car on the line: gives FOLLOW -> OVERTAKE -> PASS -> MERGE with a
-    # realistic closing speed.
+    # realistic closing speed.  Unaffected by respawn.
     slow_car:
       kind: "raceline_mover"
       start_s: 12.0
@@ -28,13 +54,3 @@ costmap_obstacle_injector_node:
       speed_scale: 0.6     # fraction of raceline speed at its own s
       length_m: 0.50
       width_m: 0.30
-
-    # A fixed block on the line: gives the PASS recovery tiers and the braking
-    # fallback.  Set x/y to a point that is actually on your raceline.
-    cone:
-      kind: "static"
-      x: 3.2
-      y: -1.1
-      yaw: 0.0
-      length_m: 0.20
-      width_m: 0.20

@@ -183,13 +183,13 @@ TEST(RacingStateMachine, OverlappingPasses)
 // Same intent as OVERLAPPING on purpose: no OVERTAKE -> MERGE jump mid-pass.
 TEST(RacingStateMachine, AheadNotClearAlsoPasses)
 {
-  const Cycle cycle = runWithOpponentAtGap(2.0, 0.50, -1.00);
+  const Cycle cycle = runWithOpponentAtGap(2.0, 0.50, -0.90);
   ASSERT_TRUE(cycle.state.opponent.detected);
   EXPECT_EQ(cycle.state.relative_position, RelativePosition::AHEAD_NOT_CLEAR);
   EXPECT_EQ(cycle.state.intent, PlannerIntent::PASS);
 }
 
-TEST(RacingStateMachine, AheadAndClearMerges)
+TEST(RacingStateMachine, AheadAndClearOffTheLineMerges)
 {
   const Cycle cycle = runWithOpponentAtGap(2.0, 0.50, -2.00);
   ASSERT_TRUE(cycle.state.opponent.detected);
@@ -197,8 +197,21 @@ TEST(RacingStateMachine, AheadAndClearMerges)
   EXPECT_EQ(cycle.state.intent, PlannerIntent::MERGE);
 }
 
+// The pass ended on the line: there is no displacement left to merge away, so
+// MERGE here would plan a maneuver back onto the station ego already occupies.
+TEST(RacingStateMachine, AheadAndClearOnTheLineFollows)
+{
+  const Cycle cycle = runWithOpponentAtGap(2.0, 0.0, -2.00);
+  ASSERT_TRUE(cycle.state.opponent.detected);
+  EXPECT_EQ(cycle.state.relative_position, RelativePosition::AHEAD_AND_CLEAR);
+  EXPECT_TRUE(cycle.state.raceline_compatible);
+  EXPECT_EQ(cycle.state.intent, PlannerIntent::FOLLOW_RACING_LINE);
+}
+
 // Brackets, not exact boundaries: at a one-cell scan step, asserting to within
-// a cell of 0.80 / 1.50 would measure the grid resolution, not the classifier.
+// a cell of 0.80 / 1.00 would measure the grid resolution, not the classifier.
+// The two boundaries are only 0.20 apart, so AHEAD_NOT_CLEAR is bracketed at
+// its midpoint.
 TEST(RacingStateMachine, ClassifyBracketsEachBoundary)
 {
   EXPECT_EQ(
@@ -211,11 +224,11 @@ TEST(RacingStateMachine, ClassifyBracketsEachBoundary)
     runWithOpponentAtGap(2.0, 0.0, -0.60).state.relative_position,
     RelativePosition::OVERLAPPING);
   EXPECT_EQ(
-    runWithOpponentAtGap(2.0, 0.0, -1.00).state.relative_position,
+    runWithOpponentAtGap(2.0, 0.0, -0.90).state.relative_position,
     RelativePosition::AHEAD_NOT_CLEAR);
   EXPECT_EQ(
     runWithOpponentAtGap(2.0, 0.0, -1.30).state.relative_position,
-    RelativePosition::AHEAD_NOT_CLEAR);
+    RelativePosition::AHEAD_AND_CLEAR);
   EXPECT_EQ(
     runWithOpponentAtGap(2.0, 0.0, -1.80).state.relative_position,
     RelativePosition::AHEAD_AND_CLEAR);
@@ -232,7 +245,8 @@ TEST(RacingStateMachine, LateralToleranceGatesTheHandoff)
     PlannerIntent::MERGE);
 }
 
-TEST(RacingStateMachine, HeadingToleranceGatesTheHandoff)
+// Only a wrong-way heading gates the handoff; see local_planner.yaml.
+TEST(RacingStateMachine, WrongWayHeadingGatesTheHandoff)
 {
   const StateMachineConfig config = defaultConfig();
   EXPECT_EQ(
@@ -241,6 +255,22 @@ TEST(RacingStateMachine, HeadingToleranceGatesTheHandoff)
   EXPECT_EQ(
     runWithoutOpponent(2.0, 0.0, config.compat_heading_rad + 0.05).state.intent,
     PlannerIntent::MERGE);
+}
+
+// The flapping this threshold was widened to kill: a car sitting inside the
+// lateral deadband and yawing across the old 0.30 rad limit was called
+// incompatible on every other cycle, so the intent oscillated at the yaw
+// frequency while ego_d never moved. Both signs, because the wobble is
+// two-sided and a one-sided test would pass against a botched wrapAngle.
+TEST(RacingStateMachine, YawWobbleOnTheLineDoesNotMerge)
+{
+  for (const double heading_offset : {-0.44, -0.30, 0.30, 0.44}) {
+    const Cycle cycle = runWithoutOpponent(2.0, -0.05, heading_offset);
+    EXPECT_EQ(cycle.state.intent, PlannerIntent::FOLLOW_RACING_LINE)
+      << "heading_offset " << heading_offset;
+    EXPECT_TRUE(cycle.state.raceline_compatible)
+      << "heading_offset " << heading_offset;
+  }
 }
 
 // What deltaS exists for: a naive subtraction reports nearly a full lap here.
