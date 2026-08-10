@@ -150,8 +150,6 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
     "passing_d_magnitudes_m", std::vector<double>{0.55, 0.75});
   cfg.maneuver.overtake_heading_offsets_rad = declare_parameter(
     "overtake_heading_offsets_rad", std::vector<double>{-0.15, 0.0, 0.15});
-  cfg.maneuver.overtake_curvature_multipliers = declare_parameter(
-    "overtake_curvature_multipliers", std::vector<double>{0.0, 0.5, 1.0});
   cfg.maneuver.pass_transition_distances_m = declare_parameter(
     "pass_transition_distances_m", std::vector<double>{6.0, 3.0, 1.0});
   cfg.maneuver.merge_completion_distances_m = declare_parameter(

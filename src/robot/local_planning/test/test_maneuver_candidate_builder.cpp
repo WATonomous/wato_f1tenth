@@ -3,6 +3,7 @@
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <vector>
 
@@ -71,6 +72,21 @@ bool staysOnSide(
     });
 }
 
+bool neverCrossesOppositeSide(
+  const RacelineReference & reference,
+  const Path & path,
+  double ego_s,
+  int side)
+{
+  double seed = ego_s;
+  return std::all_of(path.begin(), path.end(),
+           [&](const CurveSample & sample) {
+             const Projection projection = reference.project(Point(sample.x, sample.y), seed);
+             seed = projection.s;
+             return side * projection.d >= -1e-6;
+    });
+}
+
 } // namespace
 
 TEST(ManeuverBuilder, OvertakeMirrorsOffsetsAndIsStrictlyForward)
@@ -81,12 +97,11 @@ TEST(ManeuverBuilder, OvertakeMirrorsOffsetsAndIsStrictlyForward)
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.passing_d_magnitudes_m = {0.55};
   config.overtake_heading_offsets_rad = {0.0};
-  config.overtake_curvature_multipliers = {1.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
   const BoundaryState ego = egoAt(reference, 2.0, 0.0);
 
   const std::vector<ManeuverCandidate> both_sides = builder.overtake(ego, 2.0, 0.0, 5.0);
-  ASSERT_EQ(both_sides.size(), 2u);
+  ASSERT_EQ(both_sides.size(), 4u);
   EXPECT_LT(endOffset(reference, both_sides.front().path, 8.0), 0.0);
   EXPECT_GT(endOffset(reference, both_sides.back().path, 8.0), 0.0);
   EXPECT_TRUE(builder.overtake(ego, 2.0, 0.0, 8.0).empty());
@@ -100,20 +115,21 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.passing_d_magnitudes_m = {0.55};
   config.overtake_heading_offsets_rad = {0.15};
-  config.overtake_curvature_multipliers = {0.0, 0.5, 1.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
   const std::vector<ManeuverCandidate> candidates =
     builder.overtake(egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0);
-  ASSERT_EQ(candidates.size(), 6u);
+  ASSERT_EQ(candidates.size(), 4u);
   const ReferenceGeometrySample reference_sample = reference.sampleAtS(5.0);
   for (int side_index = 0; side_index < 2; ++side_index) {
     const double d = side_index == 0 ? -0.55 : 0.55;
     const double offset_curvature =
       reference_sample.curvature / (1.0 - d * reference_sample.curvature);
-    const std::vector<double> expected_curvatures{0.0, 0.5 * offset_curvature, offset_curvature};
-    for (std::size_t i = 0; i < 3; ++i) {
-      const Path & path = candidates[static_cast<std::size_t>(side_index) * 3u + i].path;
+    const std::array<double, 2> expected_curvatures{
+      reference_sample.curvature, offset_curvature};
+    for (std::size_t i = 0; i < expected_curvatures.size(); ++i) {
+      const Path & path = candidates[
+        static_cast<std::size_t>(side_index) * expected_curvatures.size() + i].path;
       EXPECT_TRUE(std::all_of(path.begin(), path.end(), [](const CurveSample & sample) {
           return std::isfinite(sample.raceline_s);
       }));
@@ -123,6 +139,29 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
       EXPECT_NEAR(intermediate->curvature, expected_curvatures[i], 1e-8);
       EXPECT_NEAR(endOffset(reference, path, 8.0), d, 1e-8);
     }
+  }
+}
+
+TEST(ManeuverBuilder, OvertakeCurvatureModesDoNotReproduceTightCornerCrossing)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(3.0, 240)));
+  ManeuverConfig config;
+  config.horizon_m = 6.0;
+  config.collision_circle_radius_m = 0.14;
+  config.overtake_s_offsets_from_opponent_rear_m = {0.0};
+  config.passing_d_magnitudes_m = {0.30};
+  config.overtake_heading_offsets_rad = {0.0};
+  const ManeuverBuilder builder = makeBuilder(reference, config);
+
+  const double ego_s = 2.0;
+  const std::vector<ManeuverCandidate> candidates = builder.overtake(
+    egoAt(reference, ego_s, 0.0), ego_s, 0.0, ego_s + 1.5);
+
+  ASSERT_FALSE(candidates.empty());
+  for (const ManeuverCandidate & candidate : candidates) {
+    const int side = candidate.target_d > 0.0 ? 1 : -1;
+    EXPECT_TRUE(neverCrossesOppositeSide(reference, candidate.path, ego_s, side));
   }
 }
 
@@ -212,10 +251,6 @@ TEST(ManeuverBuilder, RejectsConfigurationThatCannotRespectTheCommonHorizon)
   ManeuverConfig offsets_inside_deadband;
   offsets_inside_deadband.passing_d_magnitudes_m = {0.30, 0.55};
   EXPECT_THROW(makeBuilder(reference, offsets_inside_deadband), std::invalid_argument);
-
-  ManeuverConfig invalid_curvature_multiplier;
-  invalid_curvature_multiplier.overtake_curvature_multipliers = {1.1};
-  EXPECT_THROW(makeBuilder(reference, invalid_curvature_multiplier), std::invalid_argument);
 }
 
 TEST(ManeuverBuilder, OvertakeAndMergePreserveForwardTargetsAcrossWrapAround)
@@ -226,14 +261,13 @@ TEST(ManeuverBuilder, OvertakeAndMergePreserveForwardTargetsAcrossWrapAround)
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.passing_d_magnitudes_m = {0.55};
   config.overtake_heading_offsets_rad = {0.0};
-  config.overtake_curvature_multipliers = {1.0};
   config.merge_completion_distances_m = {2.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
   const double ego_s = reference.totalLength() - 2.0;
   const std::vector<ManeuverCandidate> overtake = builder.overtake(
     egoAt(reference, ego_s, 0.0), ego_s, 0.0, 1.0);
-  ASSERT_EQ(overtake.size(), 2u);
+  ASSERT_EQ(overtake.size(), 4u);
   EXPECT_NEAR(endOffset(reference, overtake.front().path, 4.0), -0.55, 1e-8);
   EXPECT_NEAR(endOffset(reference, overtake.back().path, 4.0), 0.55, 1e-8);
 
@@ -260,14 +294,13 @@ TEST(ManeuverBuilder, TrackBoundsFilterOvertakeSidesAndPassMovesInward)
   ManeuverConfig config;
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.overtake_heading_offsets_rad = {0.0};
-  config.overtake_curvature_multipliers = {1.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
   uint32_t rejected = 0;
   const auto overtake = builder.overtake(
     egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0,
     SustainableBounds{0.60, 0.40}, &rejected);
-  ASSERT_EQ(overtake.size(), 1u);
+  ASSERT_EQ(overtake.size(), 2u);
   EXPECT_LT(overtake.front().target_d, 0.0);
   EXPECT_EQ(rejected, 3u);  // +0.55, -0.75, +0.75 configurations
 

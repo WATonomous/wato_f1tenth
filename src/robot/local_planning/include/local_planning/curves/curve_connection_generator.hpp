@@ -13,8 +13,8 @@ struct ConnectionRequest
 {
   BoundaryState start;
 
-  // Use raceline curvature at the horizon and offset-lane
-  // curvature kappa / (1 - d * kappa) at an intermediate.
+  // Maneuver boundaries use either raceline curvature or the offset-lane
+  // curvature kappa / (1 - d * kappa), depending on the candidate mode.
   BoundaryState terminal;
 };
 

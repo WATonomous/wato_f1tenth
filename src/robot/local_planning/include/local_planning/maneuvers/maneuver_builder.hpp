@@ -32,7 +32,6 @@ struct ManeuverConfig
   std::vector<double> overtake_s_offsets_from_opponent_rear_m{0.0, 0.5, 1.0};
   std::vector<double> passing_d_magnitudes_m{0.55, 0.75};
   std::vector<double> overtake_heading_offsets_rad{-0.15, 0.0, 0.15};
-  std::vector<double> overtake_curvature_multipliers{0.0, 0.5, 1.0};
   std::vector<double> pass_transition_distances_m{6.0, 3.0, 1.0};
   std::vector<double> merge_completion_distances_m{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
@@ -82,12 +81,18 @@ public:
   void resetStationHintStats() const {station_hint_stats_ = {};}
 
 private:
+  enum class BoundaryCurvature
+  {
+    REFERENCE,
+    OFFSET
+  };
+
   bool boundary(
     double s,
     double d,
     double heading_offset,
     BoundaryState & result,
-    double curvature_multiplier = 1.0) const;
+    BoundaryCurvature curvature = BoundaryCurvature::OFFSET) const;
   bool connect(
     Path & path,
     const BoundaryState & start,
