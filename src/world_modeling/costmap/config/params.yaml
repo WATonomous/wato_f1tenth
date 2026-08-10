@@ -1,9 +1,9 @@
 occupancy_grid_generator:
   ros__parameters:
     # Grid dimensions and resolution
-    grid_width: 20.0        # meters
-    grid_height: 20.0       # meters
-    resolution: 0.05         # meters per cell
+    grid_width: 15.0        # meters
+    grid_height: 15.0       # meters
+    resolution: 0.10         # meters per cell
 
     # Frame IDs
     robot_frame: "base_link"

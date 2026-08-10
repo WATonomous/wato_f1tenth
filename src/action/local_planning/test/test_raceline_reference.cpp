@@ -176,4 +176,29 @@ TEST(RacelineReference, RejectsDegenerateInput)
   EXPECT_FALSE(reference.valid());
 }
 
+TEST(RacelineReference, TrackWidthsApplyClearanceAndForwardMinimumAcrossWrap)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  std::vector<TrackWidth> widths(reference.waypointCount());
+  for (std::size_t i = 0; i < reference.waypointCount(); ++i) {
+    widths[i] = {1.0, 1.2};
+  }
+  widths[0] = {0.40, 0.80};
+
+  ASSERT_TRUE(reference.setTrackWidths(widths, 3.0, 0.20, 0.05, 0.10));
+  const auto bounds = reference.sustainableBounds(reference.totalLength() - 0.05);
+  EXPECT_NEAR(bounds.right_magnitude, 0.15, 1e-5);
+  EXPECT_NEAR(bounds.left_magnitude, 0.55, 1e-5);
+}
+
+TEST(RacelineReference, TrackWidthsRequireOneWidthPerWaypoint)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const std::vector<TrackWidth> widths(reference.waypointCount() - 1, {1.0, 1.0});
+  EXPECT_FALSE(reference.setTrackWidths(widths, 6.0, 0.20, 0.05, 0.10));
+  EXPECT_FALSE(reference.trackWidthsValid());
+}
+
 } // namespace local_planning

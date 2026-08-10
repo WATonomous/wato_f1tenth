@@ -12,11 +12,13 @@ struct StateMachineConfig
   double corridor_half_width_m = 0.25;
 
   double overlap_gap_m = 0.80;          // BEHIND <-> OVERLAPPING
-  double clear_gap_m = 1.50;            // AHEAD_NOT_CLEAR <-> AHEAD_AND_CLEAR
+  double clear_gap_m = 1.00;            // AHEAD_NOT_CLEAR <-> AHEAD_AND_CLEAR
   double overtake_start_gap_m = 3.00;   // must stay below the planner's horizon_m
 
   double compat_lateral_m = 0.40;       // keep equal to ManeuverConfig::sideDeadbandM()
-  double compat_heading_rad = 0.15;
+  // A wrong-way backstop, not a tracking tolerance: lateral offset alone decides
+  // the handoff. See local_planner.yaml for why this sits at 60 deg.
+  double compat_heading_rad = 1.05;
 };
 
 struct OpponentObservation
@@ -44,6 +46,12 @@ struct TacticalState
   // the limit is to see how close to the limit it was.
   double heading_error_rad = 0.0;
   bool raceline_compatible = false;
+
+  // The seeded projection failed its tangent check and the whole loop had to be
+  // searched.  Steady laps never set this, so a run of them means the seed has
+  // stopped tracking ego and ego_s -- with every threshold that reads it -- is
+  // not to be trusted.
+  bool ego_seed_was_stale = false;
 };
 
 // Tactical layer: observation to intent, with no memory beyond the projection

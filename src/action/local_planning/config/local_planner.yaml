@@ -23,10 +23,22 @@ planner_node:
 
     corridor_half_width_m: 0.25
     overlap_gap_m: 0.80
-    clear_gap_m: 1.50
+    clear_gap_m: 1.00
     overtake_start_gap_m: 3.00
     compat_lateral_m: 0.28
-    compat_heading_rad: 0.15
+    # Deliberately loose: lateral offset alone decides the FOLLOW/MERGE handoff.
+    # This term used to be sized as a tracking tolerance (asin(compat_lateral_m /
+    # min_lookahead) ~ 0.30) and it dominated the gate -- a car sitting on the
+    # line and yawing back onto it reads as incompatible, so the intent flapped
+    # at the yaw frequency while ego_d never left the deadband. Heading is now
+    # only a wrong-way check: a spun or backwards car must not be handed to a
+    # pure pursuit that would chase a lookahead point behind it.
+    # 60 deg is not arbitrary. It must stay under tangent_tolerance_rad (1.2 rad
+    # / 69 deg), past which the seeded projection rejects every candidate station
+    # and falls back to a full-loop search -- so beyond that the ego_d this gate
+    # actually runs on is already untrustworthy. Raise tangent_tolerance_rad
+    # first if you ever need this higher.
+    compat_heading_rad: 1.05
 
     front_collision_circle_offset_m: 0.32
     soft_inflation_distance_m: 0.10
@@ -46,13 +58,20 @@ planner_node:
     # staysOnSide/maximumOffsetDeviation, and scans +/- this much line each
     # time. 2.0 measured 1.5x faster than 3.0 with identical results. Do not
     # drop below ~1.5: past the window the search silently returns the wrong
-    # station rather than falling back, and 7.7 m/s x 50 ms = 0.385 m per
-    # cycle, more when a cycle is missed.
+    # station rather than falling back, and 7.7 m/s x 33 ms = 0.257 m per
+    # cycle at 30 Hz, more when a cycle is missed.
     seed_window_m: 2.0
     tangent_tolerance_rad: 1.2
 
-    planner_rate_hz: 20.0
-    racing_line_topic: "/global_planner/path"
+    planner_rate_hz: 30.0
+    # The raceline and its offline-computed widths are index-aligned. All
+    # planner s/d values remain raceline-relative.
+    reference_track_topic: "/global_planner/reference_track"
+    track_boundary_margin_m: 0.05
+    width_lookup_spacing_m: 0.10
+    # Width caps constrain requested terminal/intermediate d values. Dense G2
+    # path boundary checking is intentionally deferred, so interior overshoot
+    # between those targets remains a known limitation of this first version.
     occupancy_grid_topic: "/occupancy_grid"
     odom_topic: "/odom"
     steering_command_topic: "/drive/autonomy"
@@ -80,3 +99,10 @@ planner_node:
     overtake_ready_topic: "/overtake_ready"
     decision_topic: "/planner_decision"
     visualization_topic: "/local_planner_viz"
+    track_bounds_visualization_topic: "/local_planner_track_bounds_viz"
+    # Where the FOLLOW/MERGE gate thinks the car is on the reference: the foot
+    # of the projection, the offset that becomes ego_d, and the two headings its
+    # error is the difference of. Published every cycle, including the ones that
+    # publish no path, which is where an unexplained MERGE lives.
+    projection_visualization_topic: "/local_planner_projection_viz"
+    publish_projection_markers: true
