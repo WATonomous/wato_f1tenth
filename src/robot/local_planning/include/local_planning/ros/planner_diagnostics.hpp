@@ -23,7 +23,7 @@ struct PlannerDiagnosticsConfig
   double compat_heading_rad = 0.0;
 };
 
-struct PlannerCycleProfile
+struct RosBoundaryProfile
 {
   double cycle_ms = 0.0;
   double odom_conversion_ms = 0.0;
@@ -34,29 +34,23 @@ struct PlannerCycleProfile
   double tf_ms = 0.0;
   double path_publish_ms = 0.0;
   double marker_publish_ms = 0.0;
-  double candidate_generation_ms = 0.0;
-  double collision_check_ms = 0.0;
-  double terminal_projection_ms = 0.0;
-  double velocity_profile_ms = 0.0;
-  double selection_ms = 0.0;
-  double finalization_ms = 0.0;
-  uint32_t candidate_count = 0;
-  uint32_t total_path_samples = 0;
-  uint32_t max_path_samples = 0;
-  uint32_t collision_poses_checked = 0;
-  uint32_t collision_rejected = 0;
-  uint32_t out_of_grid_rejected = 0;
-  uint32_t velocity_rejected = 0;
-  uint32_t valid_candidate_count = 0;
-  uint64_t station_hint_samples = 0;
-  uint64_t station_hint_fallbacks = 0;
+};
+
+struct CycleOutcome
+{
+  bool inputs_ready = false;
+  std::optional<PlannerDecisionData> decision;
   bool path_published = false;
   bool steering_fresh = false;
   bool intent_changed = false;
   bool side_flipped = false;
-  ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
-  bool inputs_ready = false;
-  PlannerIntent intent = PlannerIntent::FOLLOW_RACING_LINE;
+};
+
+struct CycleProfile
+{
+  LocalPlanProfile core;
+  RosBoundaryProfile ros;
+  CycleOutcome outcome;
 };
 
 class PlannerDiagnostics
@@ -68,25 +62,17 @@ public:
     PlannerDiagnosticsConfig config);
 
   void recordGridUpdate(double update_ms, const OccupancyGrid & grid);
-  void recordCycle(
-    PlannerCycleProfile sample,
-    const PlannerDecisionData * decision,
-    bool path_published,
-    bool steering_fresh);
+  void recordCycle(CycleProfile sample);
 
 private:
-  void recordProfile(PlannerCycleProfile sample);
-  void emitProfile(PlannerIntent intent, std::vector<PlannerCycleProfile> & window);
-  void noteTransitions(
-    const PlannerDecisionData & data,
-    bool path_published,
-    bool steering_fresh,
-    PlannerCycleProfile & sample);
+  void recordProfile(CycleProfile sample);
+  void emitProfile(PlannerIntent intent, std::vector<CycleProfile> & window);
+  void noteTransitions(CycleProfile & sample);
 
   rclcpp::Logger logger_;
   rclcpp::Clock::SharedPtr clock_;
   PlannerDiagnosticsConfig config_;
-  std::array<std::vector<PlannerCycleProfile>, 4> profiling_windows_;
+  std::array<std::vector<CycleProfile>, 4> profiling_windows_;
   std::vector<double> grid_profiling_window_;
   std::size_t grid_updates_since_report_ = 0;
   int grid_width_ = 0;
