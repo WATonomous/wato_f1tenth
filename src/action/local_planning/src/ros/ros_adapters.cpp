@@ -28,19 +28,4 @@ OccupancyGrid rosToOccupancyGrid(const nav_msgs::msg::OccupancyGrid & msg)
   return grid;
 }
 
-std::vector<Point> rosPathToRacingLine(const nav_msgs::msg::Path & msg)
-{
-  std::vector<Point> racing_line;
-  racing_line.reserve(msg.poses.size());
-
-  for (const auto & pose : msg.poses) {
-    racing_line.emplace_back(
-      pose.pose.position.x,
-      pose.pose.position.y,
-      pose.pose.position.z);
-  }
-
-  return racing_line;
-}
-
 } // namespace local_planning
