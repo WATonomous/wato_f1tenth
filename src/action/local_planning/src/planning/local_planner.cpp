@@ -56,9 +56,13 @@ void fillSelectedMetrics(
 LocalPlanner::LocalPlanner(
   const RacelineReference & reference,
   const ManeuverBuilder & builder,
-  LocalPlannerConfig config)
-: reference_(reference), builder_(builder), config_(std::move(config)),
-  collision_checker_(config_)
+  VehicleGeometry vehicle_geometry,
+  GridPolicy grid_policy,
+  CollisionConfig collision_config,
+  VelocityProfileConfig velocity_config)
+: reference_(reference), builder_(builder), vehicle_geometry_(vehicle_geometry),
+  velocity_config_(velocity_config),
+  collision_checker_(vehicle_geometry_, grid_policy, collision_config)
 {
 }
 
@@ -118,7 +122,7 @@ LocalPlanResult LocalPlanner::plan(
           &result.decision.track_bounds_rejected);
     });
   } else if (state.intent == PlannerIntent::PASS &&
-    std::abs(state.ego_d) <= builder_.config().sideDeadbandM())
+    std::abs(state.ego_d) <= vehicle_geometry_.fullWidthM())
   {
     appendGenerated(CandidateSource::MERGE_ALIGNMENT, [&]() {
         return builder_.merge(
@@ -146,11 +150,6 @@ LocalPlanResult LocalPlanner::plan(
         evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
         result.profile.collision_check_ms += elapsedMs(collision_started);
         result.profile.collision_poses_checked += evaluated.collision.checked_poses;
-        if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID &&
-          config_.treat_out_of_grid_as_free)
-        {
-          evaluated.collision.status = CollisionStatus::FREE;
-        }
         if (evaluated.collision.status == CollisionStatus::COLLISION) {
           ++result.decision.collision_rejected;
           continue;
@@ -163,7 +162,7 @@ LocalPlanResult LocalPlanner::plan(
           state.ego_s + builder_.config().horizon_m);
         const auto velocity_started = std::chrono::steady_clock::now();
         const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
-            terminal_s, profile_intent, reference_, config_);
+            terminal_s, profile_intent, reference_, velocity_config_);
         result.profile.velocity_profile_ms += elapsedMs(velocity_started);
         evaluated.velocity_feasible = velocity.feasible;
         evaluated.traversal_time_s = velocity.traversal_time_s;
@@ -244,9 +243,9 @@ LocalPlanResult LocalPlanner::plan(
       result.selected_index = safest->candidate_index;
       auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
       for (auto & sample : path) {
-        sample.speed = std::max(config_.min_velocity_mps,
+        sample.speed = std::max(velocity_config_.min_velocity_mps,
             std::sqrt(std::max(0.0, ego.speed * ego.speed -
-            2.0 * config_.max_decel_mps2 * sample.s)));
+            2.0 * velocity_config_.max_decel_mps2 * sample.s)));
       }
       result.decision.executed_mode = ExecutedMode::BRAKING_FALLBACK;
       result.decision.candidate_source = CandidateSource::BRAKING;

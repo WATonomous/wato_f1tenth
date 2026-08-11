@@ -15,7 +15,6 @@ struct StateMachineConfig
   double clear_gap_m = 1.00;            // AHEAD_NOT_CLEAR <-> AHEAD_AND_CLEAR
   double overtake_start_gap_m = 3.00;   // must stay below the planner's horizon_m
 
-  double compat_lateral_m = 0.40;       // keep equal to ManeuverConfig::sideDeadbandM()
   // A wrong-way backstop, not a tracking tolerance: lateral offset alone decides
   // the handoff. See local_planner.yaml for why this sits at 60 deg.
   double compat_heading_rad = 1.05;
@@ -60,7 +59,11 @@ class RacingStateMachine
 {
 public:
   // reference is borrowed and must outlive this object. Never pass a temporary.
-  RacingStateMachine(const RacelineReference & reference, StateMachineConfig config);
+  RacingStateMachine(
+    const RacelineReference & reference,
+    StateMachineConfig config,
+    VehicleGeometry vehicle_geometry,
+    GridPolicy grid_policy);
 
   RacingStateMachine(RacingStateMachine &&) = delete;
   RacingStateMachine(const RacingStateMachine &) = delete;
@@ -91,6 +94,8 @@ private:
 
   const RacelineReference & reference_;
   StateMachineConfig config_;
+  VehicleGeometry vehicle_geometry_;
+  GridPolicy grid_policy_;
   TacticalState state_;
 
   // Carried between cycles. Stale-seed recovery inside RacelineReference handles

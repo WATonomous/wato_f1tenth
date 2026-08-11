@@ -16,6 +16,11 @@ enum class CollisionStatus
   OUT_OF_GRID
 };
 
+struct CollisionConfig
+{
+  double soft_inflation_distance_m = 0.18;
+};
+
 struct CollisionCheckResult
 {
   CollisionStatus status = CollisionStatus::FREE;
@@ -30,7 +35,10 @@ struct CollisionCheckResult
 class CollisionChecker
 {
 public:
-  explicit CollisionChecker(const LocalPlannerConfig & config);
+  CollisionChecker(
+    VehicleGeometry vehicle_geometry,
+    GridPolicy grid_policy,
+    CollisionConfig config);
 
   // Builds the Euclidean distance transform into obstacle_distance_m.
   // Required before collisionCheck.
@@ -46,8 +54,11 @@ private:
     const Point & p,
     double heading,
     const OccupancyGrid & grid) const;
+  CollisionCheckResult applyOutOfGridPolicy(CollisionCheckResult result) const;
 
-  const LocalPlannerConfig & config_;
+  VehicleGeometry vehicle_geometry_;
+  GridPolicy grid_policy_;
+  CollisionConfig config_;
 };
 
 } // namespace local_planning

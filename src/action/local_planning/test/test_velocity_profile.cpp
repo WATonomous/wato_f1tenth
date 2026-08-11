@@ -59,9 +59,9 @@ std::vector<CurveSample> straightPath(double length, double spacing, double curv
   return path;
 }
 
-LocalPlannerConfig defaultConfig()
+VelocityProfileConfig defaultConfig()
 {
-  LocalPlannerConfig config;
+  VelocityProfileConfig config;
   config.friction_coeff = 1.0;
   config.min_velocity_mps = 0.0;
   config.max_velocity_mps = 10.0;
@@ -77,7 +77,7 @@ TEST(VelocityProfile, StraightRacelineAndVehicleCaps)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(20.0, 4.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 3.0;
 
   std::vector<CurveSample> path = straightPath(5.0, 0.5);
@@ -96,7 +96,7 @@ TEST(VelocityProfile, CurvatureFrictionCap)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(20.0, 10.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 20.0;
 
   const double curvature = 0.5;
@@ -116,7 +116,7 @@ TEST(VelocityProfile, InteriorScalingByIntent)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 5.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 20.0;
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 100.0;
@@ -139,7 +139,7 @@ TEST(VelocityProfile, ExplicitTerminalCapAllModes)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 5.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 20.0;
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 100.0;
@@ -172,7 +172,7 @@ TEST(VelocityProfile, TerminalCapPropagatesBackward)
   }
   ASSERT_TRUE(reference.setRacingLine(points));
 
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 20.0;
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 2.0;
@@ -193,7 +193,7 @@ TEST(VelocityProfile, ForwardAccelerationFromMeasuredSpeed)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 10.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 10.0;
   config.max_accel_mps2 = 2.0;
   config.max_decel_mps2 = 100.0;
@@ -217,7 +217,7 @@ TEST(VelocityProfile, InfeasibleMeasuredStartRejected)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 2.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 20.0;
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 1.0;
@@ -262,7 +262,7 @@ TEST(VelocityProfile, RacelineWrapAroundSequentialProjection)
     path.push_back(sample);
   }
 
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 100.0;
 
@@ -279,7 +279,7 @@ TEST(VelocityProfile, TraversalTimeConstantSpeed)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 4.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 4.0;
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 100.0;
@@ -297,7 +297,7 @@ TEST(VelocityProfile, UsesCurveArcLengthRatherThanCartesianChord)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 4.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.max_velocity_mps = 4.0;
 
   std::vector<CurveSample> path = {
@@ -315,10 +315,10 @@ TEST(VelocityProfile, RejectsInvalidInputs)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(20.0, 4.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
 
   // Corrupt accel.
-  LocalPlannerConfig bad = config;
+  VelocityProfileConfig bad = config;
   bad.max_accel_mps2 = 0.0;
   std::vector<CurveSample> path = straightPath(3.0, 0.5);
   EXPECT_FALSE(
@@ -376,7 +376,7 @@ TEST(VelocityProfile, ZeroAverageSpeedRejected)
   RacelineReference reference;
   // Zero raceline speed with zero start leaves a positive-length segment at v=0.
   ASSERT_TRUE(reference.setRacingLine(straightLoop(20.0, 0.0)));
-  LocalPlannerConfig config = defaultConfig();
+  VelocityProfileConfig config = defaultConfig();
   config.min_velocity_mps = 0.0;
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 100.0;

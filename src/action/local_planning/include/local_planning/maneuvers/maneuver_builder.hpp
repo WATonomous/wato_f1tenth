@@ -28,14 +28,12 @@ struct ManeuverConfig
 {
   double horizon_m = 6.0;
 
-  double collision_circle_radius_m = 0.20;
   std::vector<double> overtake_s_offsets_from_opponent_rear_m{0.0, 0.5, 1.0};
   std::vector<double> passing_d_magnitudes_m{0.55, 0.75};
   std::vector<double> overtake_heading_offsets_rad{-0.15, 0.0, 0.15};
   std::vector<double> pass_transition_distances_m{6.0, 3.0, 1.0};
   std::vector<double> merge_completion_distances_m{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
-  double sideDeadbandM() const {return 2.0 * collision_circle_radius_m;}
 };
 
 class ManeuverBuilder
@@ -44,7 +42,8 @@ public:
   ManeuverBuilder(
     const RacelineReference & reference,
     const CurveConnectionGenerator & curve_generator,
-    ManeuverConfig config);
+    ManeuverConfig config,
+    VehicleGeometry vehicle_geometry);
 
   std::vector<ManeuverCandidate> overtake(
     const BoundaryState & ego,
@@ -129,6 +128,7 @@ private:
   const RacelineReference & reference_;
   const CurveConnectionGenerator & curve_generator_;
   ManeuverConfig config_;
+  VehicleGeometry vehicle_geometry_;
   // Mutable so the generation entry points stay const: this is diagnostics
   // about how the answer was reached, not part of the answer.
   mutable StationHintStats station_hint_stats_;

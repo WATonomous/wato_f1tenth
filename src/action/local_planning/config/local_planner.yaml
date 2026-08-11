@@ -24,9 +24,8 @@ planner_node:
     overlap_gap_m: 0.80
     clear_gap_m: 1.00
     overtake_start_gap_m: 3.00
-    compat_lateral_m: 0.28
     # Deliberately loose: lateral offset alone decides the FOLLOW/MERGE handoff.
-    # This term used to be sized as a tracking tolerance (asin(compat_lateral_m /
+    # This term used to be sized as a tracking tolerance (asin(vehicle width /
     # min_lookahead) ~ 0.30) and it dominated the gate -- a car sitting on the
     # line and yawing back onto it reads as incompatible, so the intent flapped
     # at the yaw frequency while ego_d never left the deadband. Heading is now
@@ -42,6 +41,7 @@ planner_node:
     front_collision_circle_offset_m: 0.32
     soft_inflation_distance_m: 0.10
     occupied_threshold: 50
+    treat_unknown_as_free: true
     friction_coeff: 1.0
     min_velocity_mps: 0.0
     max_velocity_mps: 7.7 # Derived from the horizon braking envelope.

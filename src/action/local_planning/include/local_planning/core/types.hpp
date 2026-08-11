@@ -62,6 +62,26 @@ struct OccupancyGrid
   bool has_euclidean_transform = false;
 };
 
+struct VehicleGeometry
+{
+  double collision_radius_m = 0.20;
+  double front_circle_offset_m = 0.26;
+
+  double fullWidthM() const {return 2.0 * collision_radius_m;}
+};
+
+struct GridPolicy
+{
+  int occupied_threshold = 50;
+  bool treat_unknown_as_free = true;
+  bool treat_out_of_grid_as_free = false;
+
+  bool isOccupied(int8_t value) const
+  {
+    return value < 0 ? !treat_unknown_as_free : value >= occupied_threshold;
+  }
+};
+
 // What the tactical layer asks the planner to do this cycle.  Nothing
 // serializes it today; Phase 6 mirrors it as uint8 constants in
 // PlannerDecision.msg, and those must then be kept in step.
@@ -123,30 +143,6 @@ struct CurveSample
   // Raceline station associated with this sample. Maneuver construction owns
   // this mapping so downstream stages never need to project x/y back to s/d.
   double raceline_s = std::numeric_limits<double>::quiet_NaN();
-};
-
-struct LocalPlannerConfig
-{
-  // Two-circle footprint, rear circle at the path point and front circle
-  // pushed forward along the heading.
-  double collision_circle_radius_m = 0.20;
-  double front_collision_circle_offset_m = 0.26;
-  double soft_inflation_distance_m = 0.18;
-  int occupied_threshold = 50;
-
-  // Lateral vehicle extent used as the shared "on the raceline" band for side
-  // commit (PASS) and merge-done checks.
-  double vehicleWidthM() const {return 2.0 * collision_circle_radius_m;}
-
-  double friction_coeff = 1.0;
-  double min_velocity_mps = 0.0;
-  double max_velocity_mps = 10.0;
-  double max_accel_mps2 = 5.0;
-  double max_decel_mps2 = 5.0;
-  // Interior/terminal racing-speed multiplier for OVERTAKE/PASS, and MERGE
-  // interiors only. MERGE's horizon terminal stays at unscaled raceline speed.
-  double overtake_speed_scale = 1.1;
-  bool treat_out_of_grid_as_free = false;
 };
 
 } // namespace local_planning
