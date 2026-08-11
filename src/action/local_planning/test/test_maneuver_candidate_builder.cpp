@@ -36,10 +36,14 @@ BoundaryState egoAt(const RacelineReference & reference, double s, double d)
     sample.velocity};
 }
 
-ManeuverBuilder makeBuilder(const RacelineReference & reference, ManeuverConfig config)
+ManeuverBuilder makeBuilder(
+  const RacelineReference & reference,
+  ManeuverConfig config,
+  VehicleGeometry vehicle_geometry = VehicleGeometry{})
 {
   static const CurveConnectionGenerator generator;
-  return ManeuverBuilder(reference, generator, std::move(config));
+  return ManeuverBuilder(
+    reference, generator, std::move(config), vehicle_geometry);
 }
 
 const CurveSample * sampleAt(const Path & path, const Point & expected)
@@ -147,12 +151,13 @@ TEST(ManeuverBuilder, OvertakeCurvatureModesDoNotReproduceTightCornerCrossing)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(3.0, 240)));
   ManeuverConfig config;
+  VehicleGeometry vehicle_geometry;
   config.horizon_m = 6.0;
-  config.collision_circle_radius_m = 0.14;
+  vehicle_geometry.collision_radius_m = 0.14;
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.passing_d_magnitudes_m = {0.30};
   config.overtake_heading_offsets_rad = {0.0};
-  const ManeuverBuilder builder = makeBuilder(reference, config);
+  const ManeuverBuilder builder = makeBuilder(reference, config, vehicle_geometry);
 
   const double ego_s = 2.0;
   const std::vector<ManeuverCandidate> candidates = builder.overtake(

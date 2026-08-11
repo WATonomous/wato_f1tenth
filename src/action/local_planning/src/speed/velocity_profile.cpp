@@ -14,7 +14,7 @@ namespace
 constexpr double kEpsilon = 1e-6;
 constexpr double kGravityMps2 = 9.81;
 
-double interiorSpeedScale(PlannerIntent intent, const LocalPlannerConfig & config)
+double interiorSpeedScale(PlannerIntent intent, const VelocityProfileConfig & config)
 {
   switch (intent) {
     case PlannerIntent::FOLLOW_RACING_LINE:
@@ -27,7 +27,7 @@ double interiorSpeedScale(PlannerIntent intent, const LocalPlannerConfig & confi
   return 1.0;
 }
 
-double terminalSpeedScale(PlannerIntent intent, const LocalPlannerConfig & config)
+double terminalSpeedScale(PlannerIntent intent, const VelocityProfileConfig & config)
 {
   // MERGE hands off to the global follower at unscaled raceline speed.
   if (intent == PlannerIntent::MERGE) {
@@ -36,7 +36,7 @@ double terminalSpeedScale(PlannerIntent intent, const LocalPlannerConfig & confi
   return interiorSpeedScale(intent, config);
 }
 
-bool configValid(const LocalPlannerConfig & config)
+bool configValid(const VelocityProfileConfig & config)
 {
   return std::isfinite(config.friction_coeff) &&
          config.friction_coeff > 0.0 &&
@@ -62,7 +62,7 @@ bool finiteSample(const CurveSample & sample)
          std::isfinite(sample.curvature);
 }
 
-double frictionSpeedLimit(double curvature, const LocalPlannerConfig & config)
+double frictionSpeedLimit(double curvature, const VelocityProfileConfig & config)
 {
   const double abs_curvature = std::abs(curvature);
   if (abs_curvature <= kEpsilon) {
@@ -85,7 +85,7 @@ VelocityProfileResult assignVelocityProfile(
   double terminal_raceline_s,
   PlannerIntent intent,
   const RacelineReference & reference,
-  const LocalPlannerConfig & config)
+  const VelocityProfileConfig & config)
 {
   if (!configValid(config) || !reference.valid() || path.size() < 2) {
     return reject();
