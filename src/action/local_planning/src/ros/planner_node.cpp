@@ -72,6 +72,9 @@ PlannerNode::PlannerNode()
   reference_track_sub_ = create_subscription<global_planner::msg::ReferenceTrack>(
     config_.reference_track_topic, latched,
     [this](const global_planner::msg::ReferenceTrack::SharedPtr msg) {
+      // ReferenceTrack is the planner's sole production reference input. Its
+      // path carries x/y waypoints with the offline speed in position.z, while
+      // the parallel widths array supplies the track bounds.
       if (msg->path.poses.size() != msg->widths.size()) {
         RCLCPP_ERROR(
           get_logger(), "Reference/width count mismatch: path=%zu widths=%zu",
@@ -79,7 +82,15 @@ PlannerNode::PlannerNode()
         reference_.clearTrackWidths();
         return;
       }
-      if (!reference_.setRacingLine(rosPathToRacingLine(msg->path))) {
+      std::vector<Point> points;
+      points.reserve(msg->path.poses.size());
+      for (const auto & pose : msg->path.poses) {
+        points.emplace_back(
+          pose.pose.position.x,
+          pose.pose.position.y,
+          pose.pose.position.z);
+      }
+      if (!reference_.setRacingLine(points)) {
         RCLCPP_ERROR(get_logger(), "Invalid driving reference");
         return;
       }

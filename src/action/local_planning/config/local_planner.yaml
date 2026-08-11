@@ -1,9 +1,3 @@
-racing_line_publisher_node:
-  ros__parameters:
-    racing_line_file: "" # absolute path to the raceline CSV: x, y, velocity
-    racing_line_topic: "/racing_line"
-    waypoint_frame_id: "map"
-
 occupancy_grid_frame_adapter_node:
   ros__parameters:
     raw_grid_topic: "/costmap"
