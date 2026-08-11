@@ -77,9 +77,6 @@ add_executable(occupancy_grid_frame_adapter_node src/ros/occupancy_grid_frame_ad
 ament_target_dependencies(occupancy_grid_frame_adapter_node
   rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
 
-add_executable(racing_line_publisher_node src/ros/racing_line_publisher_node.cpp)
-ament_target_dependencies(racing_line_publisher_node rclcpp nav_msgs geometry_msgs)
-
 add_executable(planner_node src/ros/planner_node.cpp)
 target_link_libraries(planner_node
   local_planning_ros
@@ -104,7 +101,6 @@ install(TARGETS local_planning_ros
 
 install(TARGETS
   occupancy_grid_frame_adapter_node
-  racing_line_publisher_node
   planner_node
   DESTINATION lib/${PROJECT_NAME}
 )
