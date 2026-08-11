@@ -58,6 +58,8 @@ target_include_directories(local_planning_core PUBLIC
 # local_planning_ros — the boundary layer plus the nodes.
 # ---------------------------------------------------------------------------
 add_library(local_planning_ros
+  src/ros/planner_diagnostics.cpp
+  src/ros/planner_visualization.cpp
   src/ros/ros_adapters.cpp
 )
 target_link_libraries(local_planning_ros PUBLIC
@@ -69,6 +71,7 @@ ament_target_dependencies(local_planning_ros PUBLIC
   nav_msgs
   std_msgs
   geometry_msgs
+  visualization_msgs
   tf2
   tf2_geometry_msgs
 )
@@ -136,6 +139,18 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_candidate_selector test/test_candidate_selector.cpp)
   target_link_libraries(test_candidate_selector local_planning_core)
+
+  ament_add_gtest(test_ros_adapters test/test_ros_adapters.cpp)
+  target_link_libraries(test_ros_adapters local_planning_ros)
+  ament_target_dependencies(test_ros_adapters rclcpp)
+
+  ament_add_gtest(test_planner_diagnostics test/test_planner_diagnostics.cpp)
+  target_link_libraries(test_planner_diagnostics local_planning_ros)
+  ament_target_dependencies(test_planner_diagnostics rclcpp)
+
+  ament_add_gtest(test_planner_visualization test/test_planner_visualization.cpp)
+  target_link_libraries(test_planner_visualization local_planning_ros)
+  ament_target_dependencies(test_planner_visualization rclcpp visualization_msgs)
 endif()
 
 ament_export_include_directories(include)
