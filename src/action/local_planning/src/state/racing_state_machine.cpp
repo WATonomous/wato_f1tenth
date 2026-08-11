@@ -11,9 +11,6 @@ namespace
 
 constexpr double kPi = 3.14159265358979323846;
 
-// Same constant and comparison as LocalPlannerConfig::occupied_threshold.
-constexpr int8_t kOccupiedThreshold = 50;
-
 double wrapAngle(double angle)
 {
   while (angle > kPi) {
@@ -48,8 +45,11 @@ bool gridUsable(const OccupancyGrid & grid)
 
 RacingStateMachine::RacingStateMachine(
   const RacelineReference & reference,
-  StateMachineConfig config)
-: reference_(reference), config_(std::move(config))
+  StateMachineConfig config,
+  VehicleGeometry vehicle_geometry,
+  GridPolicy grid_policy)
+: reference_(reference), config_(std::move(config)),
+  vehicle_geometry_(vehicle_geometry), grid_policy_(grid_policy)
 {
 }
 
@@ -136,7 +136,7 @@ bool RacingStateMachine::corridorOccupied(
   for (double d = -half_width; d <= half_width + 1e-9; d += occupancy_grid.resolution) {
     std::size_t index = 0;
     if (gridIndex(occupancy_grid, reference_.toCartesian(s, d), index) &&
-      occupancy_grid.data[index] >= kOccupiedThreshold)
+      grid_policy_.isOccupied(occupancy_grid.data[index]))
     {
       return true;
     }
@@ -169,7 +169,7 @@ bool RacingStateMachine::isRacelineCompatible(
   state_.heading_error_rad = wrapAngle(ego_odom.heading - sample.heading);
 
   state_.raceline_compatible =
-    std::abs(ego_d) <= config_.compat_lateral_m &&
+    std::abs(ego_d) <= vehicle_geometry_.fullWidthM() &&
     std::abs(state_.heading_error_rad) <= config_.compat_heading_rad;
   return state_.raceline_compatible;
 }

@@ -46,14 +46,16 @@ CurveSample sample(double s, double x, double y, double heading = 0.0)
   return out;
 }
 
-LocalPlannerConfig defaultConfig()
+struct TestPolicies
 {
-  LocalPlannerConfig config;
-  config.collision_circle_radius_m = 0.20;
-  config.front_collision_circle_offset_m = 0.26;
-  config.soft_inflation_distance_m = 0.18;
-  config.occupied_threshold = 50;
-  return config;
+  VehicleGeometry vehicle;
+  GridPolicy grid;
+  CollisionConfig collision;
+};
+
+CollisionChecker makeChecker(const TestPolicies & policies = TestPolicies{})
+{
+  return CollisionChecker(policies.vehicle, policies.grid, policies.collision);
 }
 
 OccupancyGrid freeField()
@@ -67,8 +69,8 @@ TEST(CollisionChecker, FreePath)
 {
   OccupancyGrid grid = freeField();
   setOccupied(grid, 50, 90);  // ≈ (4.05, 0.05)
-  const LocalPlannerConfig config = defaultConfig();
-  CollisionChecker checker(config);
+  const TestPolicies policies;
+  CollisionChecker checker = makeChecker(policies);
   checker.buildEuclideanTransform(grid);
 
   const std::vector<CurveSample> path = {
@@ -80,15 +82,15 @@ TEST(CollisionChecker, FreePath)
   const CollisionCheckResult result = checker.collisionCheck(path, grid);
   EXPECT_EQ(result.status, CollisionStatus::FREE);
   EXPECT_TRUE(std::isfinite(result.minimum_clearance_m));
-  EXPECT_GT(result.minimum_clearance_m, config.soft_inflation_distance_m);
+  EXPECT_GT(result.minimum_clearance_m, policies.collision.soft_inflation_distance_m);
 }
 
 TEST(CollisionChecker, SoftInflationPath)
 {
   OccupancyGrid grid = freeField();
-  const LocalPlannerConfig config = defaultConfig();
+  const TestPolicies policies;
   setOccupied(grid, 53, 50);  // center ≈ (0.05, 0.35)
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker(policies);
   checker.buildEuclideanTransform(grid);
 
   const std::vector<CurveSample> path = {
@@ -102,15 +104,14 @@ TEST(CollisionChecker, SoftInflationPath)
   const CollisionCheckResult result = checker.collisionCheck(path, grid);
   EXPECT_EQ(result.status, CollisionStatus::SOFT_INFLATION);
   EXPECT_GT(result.minimum_clearance_m, 0.0);
-  EXPECT_LE(result.minimum_clearance_m, config.soft_inflation_distance_m);
+  EXPECT_LE(result.minimum_clearance_m, policies.collision.soft_inflation_distance_m);
 }
 
 TEST(CollisionChecker, HardCollisionPath)
 {
   OccupancyGrid grid = freeField();
   setOccupied(grid, 50, 60);
-  const LocalPlannerConfig config = defaultConfig();
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker();
   checker.buildEuclideanTransform(grid);
 
   const std::vector<CurveSample> path = {
@@ -128,8 +129,7 @@ TEST(CollisionChecker, InterpolationPreventsTunneling)
 {
   OccupancyGrid grid = freeField();
   setOccupied(grid, 50, 60);
-  const LocalPlannerConfig config = defaultConfig();
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker();
   checker.buildEuclideanTransform(grid);
 
   const std::vector<CurveSample> path = {
@@ -144,17 +144,19 @@ TEST(CollisionChecker, InterpolationPreventsTunneling)
 TEST(CollisionChecker, FrontCircleOnlyCollision)
 {
   OccupancyGrid grid = freeField();
-  const LocalPlannerConfig config = defaultConfig();
+  const TestPolicies policies;
   setOccupied(grid, 50, 52);
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker(policies);
   checker.buildEuclideanTransform(grid);
 
   const Point obstacle = cellCenter(grid, 50, 52);
   const Point rear(0.0, 0.0);
-  const Point front(config.front_collision_circle_offset_m, 0.0);
-  ASSERT_GT(std::hypot(obstacle.x - rear.x, obstacle.y - rear.y), config.collision_circle_radius_m);
+  const Point front(policies.vehicle.front_circle_offset_m, 0.0);
+  ASSERT_GT(
+    std::hypot(obstacle.x - rear.x, obstacle.y - rear.y),
+    policies.vehicle.collision_radius_m);
   ASSERT_LE(std::hypot(obstacle.x - front.x, obstacle.y - front.y),
-      config.collision_circle_radius_m);
+      policies.vehicle.collision_radius_m);
 
   const std::vector<CurveSample> path = {
     sample(0.0, 0.0, 0.0, 0.0),
@@ -168,8 +170,7 @@ TEST(CollisionChecker, MinimumClearanceAggregatesOverPath)
 {
   OccupancyGrid grid = freeField();
   setOccupied(grid, 50, 80);
-  const LocalPlannerConfig config = defaultConfig();
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker();
   checker.buildEuclideanTransform(grid);
 
   const std::vector<CurveSample> far_only = {
@@ -192,8 +193,7 @@ TEST(CollisionChecker, MinimumClearanceAggregatesOverPath)
 TEST(CollisionChecker, FullFootprintGridDepartureIsOutOfGrid)
 {
   OccupancyGrid grid = makeGrid(20, 20, 0.10, 0.0, 0.0);
-  const LocalPlannerConfig config = defaultConfig();
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker();
   checker.buildEuclideanTransform(grid);
 
   const std::vector<CurveSample> path = {
@@ -209,8 +209,7 @@ TEST(CollisionChecker, FullFootprintGridDepartureIsOutOfGrid)
 
 TEST(CollisionChecker, MissingEuclideanTransformOrInvalidGridIsOutOfGrid)
 {
-  const LocalPlannerConfig config = defaultConfig();
-  CollisionChecker checker(config);
+  CollisionChecker checker = makeChecker();
   const std::vector<CurveSample> path = {sample(0.0, 0.0, 0.0)};
 
   OccupancyGrid invalid;
@@ -234,14 +233,64 @@ TEST(CollisionChecker, CollisionNearOccupiedCellCorner)
 {
   OccupancyGrid grid = freeField();
   setOccupied(grid, 50, 52);
-  LocalPlannerConfig config = defaultConfig();
-  config.front_collision_circle_offset_m = 0.0;
-  CollisionChecker checker(config);
+  TestPolicies policies;
+  policies.vehicle.front_circle_offset_m = 0.0;
+  CollisionChecker checker = makeChecker(policies);
   checker.buildEuclideanTransform(grid);
 
   const CollisionCheckResult result = checker.collisionCheck({sample(0.0, 0.0, 0.0)}, grid);
   EXPECT_EQ(result.status, CollisionStatus::COLLISION);
   EXPECT_LE(result.minimum_clearance_m, 0.0);
+}
+
+TEST(CollisionChecker, OccupiedThresholdComesFromGridPolicy)
+{
+  OccupancyGrid strict_grid = freeField();
+  setOccupied(strict_grid, 50, 50, 60);
+  OccupancyGrid permissive_grid = strict_grid;
+
+  TestPolicies strict_policies;
+  strict_policies.grid.occupied_threshold = 75;
+  CollisionChecker strict_checker = makeChecker(strict_policies);
+  strict_checker.buildEuclideanTransform(strict_grid);
+  EXPECT_EQ(
+    strict_checker.collisionCheck({sample(0.0, 0.05, 0.05)}, strict_grid).status,
+    CollisionStatus::FREE);
+
+  TestPolicies permissive_policies;
+  permissive_policies.grid.occupied_threshold = 50;
+  CollisionChecker permissive_checker = makeChecker(permissive_policies);
+  permissive_checker.buildEuclideanTransform(permissive_grid);
+  EXPECT_EQ(
+    permissive_checker.collisionCheck({sample(0.0, 0.05, 0.05)}, permissive_grid).status,
+    CollisionStatus::COLLISION);
+}
+
+TEST(CollisionChecker, UnknownCellsRemainFreeByDefault)
+{
+  OccupancyGrid grid = freeField();
+  setOccupied(grid, 50, 50, -1);
+  CollisionChecker checker = makeChecker();
+  checker.buildEuclideanTransform(grid);
+
+  EXPECT_EQ(
+    checker.collisionCheck({sample(0.0, 0.05, 0.05)}, grid).status,
+    CollisionStatus::FREE);
+}
+
+TEST(CollisionChecker, OutOfGridCanRemainFree)
+{
+  OccupancyGrid grid = makeGrid(20, 20, 0.10, 0.0, 0.0);
+  TestPolicies policies;
+  policies.grid.treat_out_of_grid_as_free = true;
+  CollisionChecker checker = makeChecker(policies);
+  checker.buildEuclideanTransform(grid);
+
+  const CollisionCheckResult result = checker.collisionCheck(
+    {sample(0.0, 1.70, 1.0), sample(0.2, 1.90, 1.0)}, grid);
+  EXPECT_EQ(result.status, CollisionStatus::FREE);
+  EXPECT_TRUE(std::isinf(result.minimum_clearance_m));
+  EXPECT_LT(result.minimum_clearance_m, 0.0);
 }
 
 } // namespace local_planning

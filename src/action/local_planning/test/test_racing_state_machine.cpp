@@ -74,7 +74,8 @@ void stampOpponent(
   const RacelineReference & reference,
   double s_start,
   double s_end,
-  double d_half = 0.10)
+  double d_half = 0.10,
+  int8_t value = 100)
 {
   const double step = 0.5 * kResolution;
   for (double s = s_start; s <= s_end + 1e-9; s += step) {
@@ -86,7 +87,7 @@ void stampOpponent(
         continue;
       }
       grid.data[static_cast<std::size_t>(row) * static_cast<std::size_t>(grid.width) +
-        static_cast<std::size_t>(col)] = 100;
+        static_cast<std::size_t>(col)] = value;
     }
   }
 }
@@ -102,7 +103,8 @@ struct Cycle
 
 Cycle runOnce(
   double ego_s, double ego_d, double heading_offset, double opponent_start_s,
-  double opponent_end_s, bool with_opponent, StateMachineConfig config = defaultConfig())
+  double opponent_end_s, bool with_opponent, StateMachineConfig config = defaultConfig(),
+  VehicleGeometry vehicle_geometry = VehicleGeometry{}, GridPolicy grid_policy = GridPolicy{})
 {
   Cycle cycle;
   cycle.reference = makeReference();
@@ -112,15 +114,20 @@ Cycle runOnce(
     stampOpponent(cycle.grid, cycle.reference, opponent_start_s, opponent_end_s);
   }
 
-  RacingStateMachine machine(cycle.reference, config);
+  RacingStateMachine machine(cycle.reference, config, vehicle_geometry, grid_policy);
   machine.update(cycle.ego, cycle.grid);
   cycle.state = machine.state();
   return cycle;
 }
 
-Cycle runWithoutOpponent(double ego_s, double ego_d, double heading_offset = 0.0)
+Cycle runWithoutOpponent(
+  double ego_s,
+  double ego_d,
+  double heading_offset = 0.0,
+  VehicleGeometry vehicle_geometry = VehicleGeometry{})
 {
-  return runOnce(ego_s, ego_d, heading_offset, 0.0, 0.0, false);
+  return runOnce(
+    ego_s, ego_d, heading_offset, 0.0, 0.0, false, defaultConfig(), vehicle_geometry);
 }
 
 // Gap is to the opponent's near face; positive is ahead.
@@ -236,12 +243,15 @@ TEST(RacingStateMachine, ClassifyBracketsEachBoundary)
 
 TEST(RacingStateMachine, LateralToleranceGatesTheHandoff)
 {
-  const StateMachineConfig config = defaultConfig();
+  VehicleGeometry vehicle_geometry;
+  vehicle_geometry.collision_radius_m = 0.15;
   EXPECT_EQ(
-    runWithoutOpponent(2.0, config.compat_lateral_m - 0.05).state.intent,
+    runWithoutOpponent(
+      2.0, vehicle_geometry.fullWidthM() - 0.05, 0.0, vehicle_geometry).state.intent,
     PlannerIntent::FOLLOW_RACING_LINE);
   EXPECT_EQ(
-    runWithoutOpponent(2.0, config.compat_lateral_m + 0.05).state.intent,
+    runWithoutOpponent(
+      2.0, vehicle_geometry.fullWidthM() + 0.05, 0.0, vehicle_geometry).state.intent,
     PlannerIntent::MERGE);
 }
 
@@ -283,7 +293,8 @@ TEST(RacingStateMachine, GapIsWrapAwareAcrossTheStartLine)
   OccupancyGrid grid = gridAround(ego.position, 8.0);
   stampOpponent(grid, reference, 0.20, 1.20);
 
-  RacingStateMachine machine(reference, defaultConfig());
+  RacingStateMachine machine(
+    reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
   machine.update(ego, grid);
   const TacticalState & state = machine.state();
 
@@ -304,7 +315,8 @@ TEST(RacingStateMachine, DetectorReportsTheNearFace)
   OccupancyGrid grid = gridAround(ego.position, 8.0);
   stampOpponent(grid, reference, ego_s + 2.0, ego_s + 3.0);
 
-  RacingStateMachine machine(reference, defaultConfig());
+  RacingStateMachine machine(
+    reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
   machine.update(ego, grid);
   const TacticalState & state = machine.state();
 
@@ -321,7 +333,8 @@ TEST(RacingStateMachine, EgoProjectionIsAUsableOutput)
   const Odometry ego = egoAt(reference, 2.0, 0.25);
   const OccupancyGrid grid = gridAround(ego.position, 8.0);
 
-  RacingStateMachine machine(reference, defaultConfig());
+  RacingStateMachine machine(
+    reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
   machine.update(ego, grid);
 
   // A fresh machine seeds from zero, so this is the same call it made.
@@ -336,7 +349,8 @@ TEST(RacingStateMachine, InvalidReferenceProducesTheDefaultState)
   const RacelineReference reference;   // no racing line set
   ASSERT_FALSE(reference.valid());
 
-  RacingStateMachine machine(reference, defaultConfig());
+  RacingStateMachine machine(
+    reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
   machine.update(Odometry{}, OccupancyGrid{});
 
   EXPECT_FALSE(machine.state().opponent.detected);
@@ -344,12 +358,49 @@ TEST(RacingStateMachine, InvalidReferenceProducesTheDefaultState)
   EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
 }
 
+TEST(RacingStateMachine, OccupiedThresholdComesFromGridPolicy)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  OccupancyGrid grid = gridAround(ego.position, 8.0);
+  stampOpponent(grid, reference, 4.0, 5.0, 0.10, 60);
+
+  GridPolicy strict_policy;
+  strict_policy.occupied_threshold = 75;
+  RacingStateMachine strict_machine(
+    reference, defaultConfig(), VehicleGeometry{}, strict_policy);
+  strict_machine.update(ego, grid);
+  EXPECT_FALSE(strict_machine.state().opponent.detected);
+
+  GridPolicy permissive_policy;
+  permissive_policy.occupied_threshold = 50;
+  RacingStateMachine permissive_machine(
+    reference, defaultConfig(), VehicleGeometry{}, permissive_policy);
+  permissive_machine.update(ego, grid);
+  EXPECT_TRUE(permissive_machine.state().opponent.detected);
+}
+
+TEST(RacingStateMachine, UnknownCellsRemainFreeByDefault)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  OccupancyGrid grid = gridAround(ego.position, 8.0);
+  stampOpponent(grid, reference, 4.0, 5.0, 0.10, -1);
+
+  RacingStateMachine machine(
+    reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+  machine.update(ego, grid);
+
+  EXPECT_FALSE(machine.state().opponent.detected);
+}
+
 TEST(RacingStateMachine, EmptyGridDetectsNothing)
 {
   const RacelineReference reference = makeReference();
   const Odometry ego = egoAt(reference, 2.0, 0.0);
 
-  RacingStateMachine machine(reference, defaultConfig());
+  RacingStateMachine machine(
+    reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
   machine.update(ego, OccupancyGrid{});
 
   EXPECT_FALSE(machine.state().opponent.detected);

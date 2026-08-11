@@ -4,6 +4,7 @@
 #include "local_planning/collision/collision_checker.hpp"
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 #include "local_planning/selection/candidate_selector.hpp"
+#include "local_planning/speed/velocity_profile.hpp"
 #include "local_planning/state/racing_state_machine.hpp"
 
 #include <vector>
@@ -94,7 +95,10 @@ public:
   LocalPlanner(
     const RacelineReference & reference,
     const ManeuverBuilder & builder,
-    LocalPlannerConfig config);
+    VehicleGeometry vehicle_geometry,
+    GridPolicy grid_policy,
+    CollisionConfig collision_config,
+    VelocityProfileConfig velocity_config);
 
   LocalPlanner(const LocalPlanner &) = delete;
   LocalPlanner(LocalPlanner &&) = delete;
@@ -110,7 +114,8 @@ public:
 private:
   const RacelineReference & reference_;
   const ManeuverBuilder & builder_;
-  LocalPlannerConfig config_;
+  VehicleGeometry vehicle_geometry_;
+  VelocityProfileConfig velocity_config_;
   CollisionChecker collision_checker_;
   CandidateSelector selector_;
 };

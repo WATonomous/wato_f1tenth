@@ -31,9 +31,13 @@ PlannerNode::PlannerNode()
 : Node("planner_node"),
   config_(loadConfig()),
   curve_generator_(config_.curve),
-  maneuver_builder_(reference_, curve_generator_, config_.maneuver),
-  state_machine_(reference_, config_.state),
-  planner_(reference_, maneuver_builder_, config_.planner),
+  maneuver_builder_(
+    reference_, curve_generator_, config_.maneuver, config_.vehicle_geometry),
+  state_machine_(
+    reference_, config_.state, config_.vehicle_geometry, config_.grid_policy),
+  planner_(
+    reference_, maneuver_builder_, config_.vehicle_geometry, config_.grid_policy,
+    config_.collision, config_.velocity),
   tf_buffer_(std::make_shared<tf2_ros::Buffer>(get_clock())),
   tf_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_buffer_))
 {
@@ -86,7 +90,7 @@ PlannerNode::PlannerNode()
       }
       if (!reference_.setTrackWidths(
           widths, config_.maneuver.horizon_m,
-          config_.maneuver.collision_circle_radius_m, config_.track_boundary_margin_m,
+          config_.vehicle_geometry.collision_radius_m, config_.track_boundary_margin_m,
           config_.width_lookup_spacing_m))
       {
         RCLCPP_ERROR(get_logger(), "Invalid reference widths; local maneuvers disabled");
@@ -122,16 +126,11 @@ PlannerNode::PlannerNode()
     std::chrono::duration<double>(1.0 / config_.planner_rate_hz),
     std::bind(&PlannerNode::planningCycle, this));
 
-  if (std::abs(config_.state.compat_lateral_m -
-    config_.maneuver.sideDeadbandM()) > 1e-6)
-  {
-    RCLCPP_WARN(get_logger(), "compat_lateral_m differs from side deadband");
-  }
   if (config_.state.overtake_start_gap_m >= config_.maneuver.horizon_m) {
     RCLCPP_WARN(get_logger(), "overtake_start_gap_m must be below horizon_m");
   }
-  if (config_.planner.max_velocity_mps > std::sqrt(
-    2.0 * config_.planner.max_decel_mps2 * config_.maneuver.horizon_m))
+  if (config_.velocity.max_velocity_mps > std::sqrt(
+    2.0 * config_.velocity.max_decel_mps2 * config_.maneuver.horizon_m))
   {
     RCLCPP_WARN(get_logger(), "max velocity exceeds horizon braking envelope");
   }
@@ -141,9 +140,8 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
 {
   NodeConfig cfg;
   cfg.maneuver.horizon_m = declare_parameter("horizon_m", 6.0);
-  const double radius = declare_parameter("collision_circle_radius_m", 0.20);
-  cfg.maneuver.collision_circle_radius_m = radius;
-  cfg.planner.collision_circle_radius_m = radius;
+  cfg.vehicle_geometry.collision_radius_m = declare_parameter(
+    "collision_circle_radius_m", 0.20);
   cfg.maneuver.overtake_s_offsets_from_opponent_rear_m = declare_parameter(
     "overtake_s_offsets_from_opponent_rear_m", std::vector<double>{0.0, 0.5, 1.0});
   cfg.maneuver.passing_d_magnitudes_m = declare_parameter(
@@ -159,20 +157,22 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.state.overlap_gap_m = declare_parameter("overlap_gap_m", 0.80);
   cfg.state.clear_gap_m = declare_parameter("clear_gap_m", 1.00);
   cfg.state.overtake_start_gap_m = declare_parameter("overtake_start_gap_m", 3.00);
-  cfg.state.compat_lateral_m = declare_parameter("compat_lateral_m", 0.40);
   cfg.state.compat_heading_rad = declare_parameter("compat_heading_rad", 1.05);
 
-  cfg.planner.front_collision_circle_offset_m = declare_parameter(
+  cfg.vehicle_geometry.front_circle_offset_m = declare_parameter(
     "front_collision_circle_offset_m", 0.26);
-  cfg.planner.soft_inflation_distance_m = declare_parameter("soft_inflation_distance_m", 0.18);
-  cfg.planner.occupied_threshold = declare_parameter("occupied_threshold", 50);
-  cfg.planner.friction_coeff = declare_parameter("friction_coeff", 1.0);
-  cfg.planner.min_velocity_mps = declare_parameter("min_velocity_mps", 0.0);
-  cfg.planner.max_velocity_mps = declare_parameter("max_velocity_mps", 7.7);
-  cfg.planner.max_accel_mps2 = declare_parameter("max_accel_mps2", 5.0);
-  cfg.planner.max_decel_mps2 = declare_parameter("max_decel_mps2", 5.0);
-  cfg.planner.overtake_speed_scale = declare_parameter("overtake_speed_scale", 1.1);
-  cfg.planner.treat_out_of_grid_as_free = declare_parameter("treat_out_of_grid_as_free", false);
+  cfg.collision.soft_inflation_distance_m = declare_parameter(
+    "soft_inflation_distance_m", 0.18);
+  cfg.grid_policy.occupied_threshold = declare_parameter("occupied_threshold", 50);
+  cfg.grid_policy.treat_unknown_as_free = declare_parameter("treat_unknown_as_free", true);
+  cfg.grid_policy.treat_out_of_grid_as_free = declare_parameter(
+    "treat_out_of_grid_as_free", false);
+  cfg.velocity.friction_coeff = declare_parameter("friction_coeff", 1.0);
+  cfg.velocity.min_velocity_mps = declare_parameter("min_velocity_mps", 0.0);
+  cfg.velocity.max_velocity_mps = declare_parameter("max_velocity_mps", 7.7);
+  cfg.velocity.max_accel_mps2 = declare_parameter("max_accel_mps2", 5.0);
+  cfg.velocity.max_decel_mps2 = declare_parameter("max_decel_mps2", 5.0);
+  cfg.velocity.overtake_speed_scale = declare_parameter("overtake_speed_scale", 1.1);
 
   cfg.curve.sample_spacing_m = declare_parameter("sample_spacing_m", 0.1);
   cfg.curve.max_curvature_inv_m = declare_parameter("max_curvature_inv_m", 1.74);
@@ -468,7 +468,7 @@ void PlannerNode::noteTransitions(
     "valid=%u collision_rej=%u",
     intentToString(from_intent).c_str(), intentToString(data.requested_intent).c_str(),
     reason,
-    data.ego_d_m, state_config.compat_lateral_m,
+    data.ego_d_m, config_.vehicle_geometry.fullWidthM(),
     data.heading_error_rad, state_config.compat_heading_rad,
     data.raceline_compatible ? 1 : 0,
     data.opponent_detected ? 1 : 0, data.opponent_gap_m,
@@ -867,7 +867,7 @@ void PlannerNode::publishProjectionMarkers(const Odometry & odom, const Tactical
     "%s%s\ns=%.2f/%.1f d=%+.2f/%.2f\nhead_err=%+.3f/%.3f",
     intentToString(state.intent).c_str(), state.ego_seed_was_stale ? " SEED-STALE" : "",
     state.ego_s, reference_.totalLength(),
-    state.ego_d, limits.compat_lateral_m,
+    state.ego_d, config_.vehicle_geometry.fullWidthM(),
     state.heading_error_rad, limits.compat_heading_rad);
   text.text = label.data();
   markers.markers.push_back(std::move(text));

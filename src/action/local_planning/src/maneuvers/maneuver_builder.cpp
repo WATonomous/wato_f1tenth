@@ -43,7 +43,7 @@ void requireFinite(const std::vector<double> & values, const char * name)
   }
 }
 
-void validateConfig(const ManeuverConfig & config)
+void validateConfig(const ManeuverConfig & config, const VehicleGeometry & vehicle_geometry)
 {
   if (!std::isfinite(config.horizon_m) || config.horizon_m <= 0.0) {
     throw std::invalid_argument("horizon_m must be finite and positive");
@@ -71,10 +71,12 @@ void validateConfig(const ManeuverConfig & config)
   {
     throw std::invalid_argument("passing_d_magnitudes_m must contain only positive values");
   }
-  if (!std::isfinite(config.collision_circle_radius_m) || config.collision_circle_radius_m <= 0.0) {
+  if (!std::isfinite(vehicle_geometry.collision_radius_m) ||
+    vehicle_geometry.collision_radius_m <= 0.0)
+  {
     throw std::invalid_argument("collision_circle_radius_m must be finite and positive");
   }
-  const double side_deadband = config.sideDeadbandM();
+  const double side_deadband = vehicle_geometry.fullWidthM();
   if (std::any_of(
       config.passing_d_magnitudes_m.begin(), config.passing_d_magnitudes_m.end(),
       [side_deadband](double magnitude) {return magnitude <= side_deadband;}))
@@ -112,10 +114,12 @@ bool matches(const CurveSample & sample, const BoundaryState & boundary)
 ManeuverBuilder::ManeuverBuilder(
   const RacelineReference & reference,
   const CurveConnectionGenerator & curve_generator,
-  ManeuverConfig config)
-: reference_(reference), curve_generator_(curve_generator), config_(std::move(config))
+  ManeuverConfig config,
+  VehicleGeometry vehicle_geometry)
+: reference_(reference), curve_generator_(curve_generator), config_(std::move(config)),
+  vehicle_geometry_(vehicle_geometry)
 {
-  validateConfig(config_);
+  validateConfig(config_, vehicle_geometry_);
   removeDuplicates(config_.overtake_s_offsets_from_opponent_rear_m);
   removeDuplicates(config_.passing_d_magnitudes_m);
   removeDuplicates(config_.overtake_heading_offsets_rad);
@@ -210,7 +214,7 @@ ManeuverBuilder::SideCheck ManeuverBuilder::sideAndDeviation(
   bool allow_start_center,
   double target_d) const
 {
-  const double deadband = config_.sideDeadbandM();
+  const double deadband = vehicle_geometry_.fullWidthM();
   SideCheck result;
   for (std::size_t i = 0; i < path.size(); ++i) {
     const CurveSample & sample = path[i];
@@ -288,7 +292,7 @@ std::optional<double> ManeuverBuilder::preferredOffset(
 
 int ManeuverBuilder::sideOf(double d) const
 {
-  if (std::abs(d) <= config_.sideDeadbandM()) {
+  if (std::abs(d) <= vehicle_geometry_.fullWidthM()) {
     return 0;
   }
   return d > 0.0 ? 1 : -1;
