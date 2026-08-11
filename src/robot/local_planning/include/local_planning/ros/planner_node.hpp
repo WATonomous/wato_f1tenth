@@ -38,8 +38,11 @@ public:
 private:
   struct NodeConfig
   {
+    VehicleGeometry vehicle_geometry;
+    GridPolicy grid_policy;
     ManeuverConfig maneuver;
-    LocalPlannerConfig planner;
+    CollisionConfig collision;
+    VelocityProfileConfig velocity;
     CurveGeneratorConfig curve;
     ProjectionConfig projection;
     StateMachineConfig state;

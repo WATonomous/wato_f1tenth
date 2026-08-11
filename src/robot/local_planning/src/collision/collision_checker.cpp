@@ -137,8 +137,11 @@ void distanceTransform1d(
 
 } // namespace
 
-CollisionChecker::CollisionChecker(const LocalPlannerConfig & config)
-: config_(config)
+CollisionChecker::CollisionChecker(
+  VehicleGeometry vehicle_geometry,
+  GridPolicy grid_policy,
+  CollisionConfig config)
+: vehicle_geometry_(vehicle_geometry), grid_policy_(grid_policy), config_(config)
 {
 }
 
@@ -165,9 +168,8 @@ void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
   for (int row = 0; row < grid.height; ++row) {
     for (int col = 0; col < grid.width; ++col) {
       const int index = gridIndex(row, col, grid.width);
-      f[static_cast<size_t>(col)] =
-        grid.data[static_cast<size_t>(index)] >= config_.occupied_threshold ?
-        0.0 : kInfDistanceSqCells;
+      f[static_cast<size_t>(col)] = grid_policy_.isOccupied(
+        grid.data[static_cast<size_t>(index)]) ? 0.0 : kInfDistanceSqCells;
     }
 
     f.resize(static_cast<size_t>(grid.width));
@@ -214,14 +216,14 @@ CollisionCheckResult CollisionChecker::collisionCheckPose(
     return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 1};
   }
 
-  const double collision_radius_m = std::max(0.0, config_.collision_circle_radius_m);
+  const double collision_radius_m = std::max(0.0, vehicle_geometry_.collision_radius_m);
   const double soft_inflation_distance_m = std::max(0.0, config_.soft_inflation_distance_m);
   const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
   const Point circle_centers[] = {
     p,
     {
-      p.x + config_.front_collision_circle_offset_m * std::cos(heading),
-      p.y + config_.front_collision_circle_offset_m * std::sin(heading),
+      p.x + vehicle_geometry_.front_circle_offset_m * std::cos(heading),
+      p.y + vehicle_geometry_.front_circle_offset_m * std::sin(heading),
       p.velocity
     }
   };
@@ -255,12 +257,24 @@ CollisionCheckResult CollisionChecker::collisionCheckPose(
   };
 }
 
+CollisionCheckResult CollisionChecker::applyOutOfGridPolicy(
+  CollisionCheckResult result) const
+{
+  if (result.status == CollisionStatus::OUT_OF_GRID &&
+    grid_policy_.treat_out_of_grid_as_free)
+  {
+    result.status = CollisionStatus::FREE;
+  }
+  return result;
+}
+
 CollisionCheckResult CollisionChecker::collisionCheck(
   const std::vector<CurveSample> & path,
   const OccupancyGrid & grid) const
 {
   if (!euclideanTransformValid(grid) || path.empty()) {
-    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0};
+    return applyOutOfGridPolicy(
+      {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0});
   }
 
   const double max_step_m = 0.5 * grid.resolution;
@@ -284,9 +298,10 @@ CollisionCheckResult CollisionChecker::collisionCheck(
 
   if (path.size() == 1) {
     if (!accumulatePose(path.front().x, path.front().y, path.front().heading)) {
-      return {aggregated_status, minimum_clearance_m, checked_poses};
+      return applyOutOfGridPolicy(
+        {aggregated_status, minimum_clearance_m, checked_poses});
     }
-    return {aggregated_status, minimum_clearance_m, checked_poses};
+    return applyOutOfGridPolicy({aggregated_status, minimum_clearance_m, checked_poses});
   }
 
   for (std::size_t i = 0; i + 1 < path.size(); ++i) {
@@ -312,12 +327,13 @@ CollisionCheckResult CollisionChecker::collisionCheck(
       const double y = a.y + t * dy;
       const double heading = a.heading + t * heading_delta;
       if (!accumulatePose(x, y, heading)) {
-        return {aggregated_status, minimum_clearance_m, checked_poses};
+        return applyOutOfGridPolicy(
+          {aggregated_status, minimum_clearance_m, checked_poses});
       }
     }
   }
 
-  return {aggregated_status, minimum_clearance_m, checked_poses};
+  return applyOutOfGridPolicy({aggregated_status, minimum_clearance_m, checked_poses});
 }
 
 } // namespace local_planning

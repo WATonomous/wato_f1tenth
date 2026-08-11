@@ -9,6 +9,18 @@
 namespace local_planning
 {
 
+struct VelocityProfileConfig
+{
+  double friction_coeff = 1.0;
+  double min_velocity_mps = 0.0;
+  double max_velocity_mps = 10.0;
+  double max_accel_mps2 = 5.0;
+  double max_decel_mps2 = 5.0;
+  // Interior/terminal racing-speed multiplier for OVERTAKE/PASS, and MERGE
+  // interiors only. MERGE's horizon terminal stays at unscaled raceline speed.
+  double overtake_speed_scale = 1.1;
+};
+
 struct VelocityProfileResult
 {
   bool feasible = false;
@@ -27,7 +39,7 @@ VelocityProfileResult assignVelocityProfile(
   double terminal_raceline_s,
   PlannerIntent intent,
   const RacelineReference & reference,
-  const LocalPlannerConfig & config);
+  const VelocityProfileConfig & config);
 
 } // namespace local_planning
 
