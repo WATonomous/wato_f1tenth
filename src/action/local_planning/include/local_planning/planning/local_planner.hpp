@@ -60,33 +60,33 @@ struct PlannerDecisionData
   double cycle_time_ms = 0.0;
 };
 
+// Timings are intentionally kept out of PlannerDecisionData: they are
+// diagnostics for stdout, not part of the planner's control contract.
+struct LocalPlanProfile
+{
+  double candidate_generation_ms = 0.0;
+  double collision_check_ms = 0.0;
+  double terminal_projection_ms = 0.0;
+  double velocity_profile_ms = 0.0;
+  double selection_ms = 0.0;
+  double finalization_ms = 0.0;
+  uint32_t total_path_samples = 0;
+  uint32_t max_path_samples = 0;
+  uint32_t collision_poses_checked = 0;
+  // Side/deviation sweep took the slow windowed search instead of the cheap
+  // station hint.  A high rate here is a ~60x latency cliff that is otherwise
+  // invisible: the paths come out identical either way.
+  uint64_t station_hint_samples = 0;
+  uint64_t station_hint_fallbacks = 0;
+};
+
 struct LocalPlanResult
 {
   std::vector<ManeuverCandidate> pool;
   std::vector<EvaluatedCandidate> evaluated;
   int selected_index = -1;
   PlannerDecisionData decision;
-
-  // Timings are intentionally kept out of PlannerDecisionData: they are
-  // diagnostics for stdout, not part of the planner's control contract.
-  struct Profile
-  {
-    double candidate_generation_ms = 0.0;
-    double collision_check_ms = 0.0;
-    double terminal_projection_ms = 0.0;
-    double velocity_profile_ms = 0.0;
-    double selection_ms = 0.0;
-    double finalization_ms = 0.0;
-    uint32_t generated_count = 0;
-    uint32_t total_path_samples = 0;
-    uint32_t max_path_samples = 0;
-    uint32_t collision_poses_checked = 0;
-    // Side/deviation sweep took the slow windowed search instead of the cheap
-    // station hint.  A high rate here is a ~60x latency cliff that is otherwise
-    // invisible: the paths come out identical either way.
-    uint64_t station_hint_samples = 0;
-    uint64_t station_hint_fallbacks = 0;
-  } profile;
+  LocalPlanProfile profile;
 };
 
 class LocalPlanner

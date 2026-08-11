@@ -88,10 +88,20 @@ TEST(PlannerDiagnostics, AggregatesPerIntentPercentilesAndGridSamples)
   LogCapture capture;
 
   for (const double cycle_ms : {1.0, 2.0, 9.0}) {
-    PlannerCycleProfile sample;
-    sample.cycle_ms = cycle_ms;
-    sample.inputs_ready = true;
-    diagnostics.recordCycle(sample, nullptr, false, false);
+    CycleProfile sample;
+    sample.ros.cycle_ms = cycle_ms;
+    sample.ros.tf_ms = cycle_ms;
+    sample.core.candidate_generation_ms = cycle_ms;
+    sample.core.total_path_samples = static_cast<uint32_t>(cycle_ms);
+    sample.core.collision_poses_checked = static_cast<uint32_t>(cycle_ms);
+    sample.outcome.inputs_ready = true;
+    sample.outcome.decision.emplace();
+    sample.outcome.decision->generated_count = static_cast<uint32_t>(cycle_ms);
+    sample.outcome.decision->collision_rejected = static_cast<uint32_t>(cycle_ms);
+    sample.outcome.decision->out_of_grid_rejected = static_cast<uint32_t>(cycle_ms);
+    sample.outcome.decision->velocity_rejected = static_cast<uint32_t>(cycle_ms);
+    sample.outcome.decision->valid_candidate_count = static_cast<uint32_t>(cycle_ms);
+    diagnostics.recordCycle(std::move(sample));
   }
 
   ASSERT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 1U);
@@ -99,8 +109,33 @@ TEST(PlannerDiagnostics, AggregatesPerIntentPercentilesAndGridSamples)
   EXPECT_NE(message.find("intent=FOLLOW_RACING_LINE"), std::string::npos);
   EXPECT_NE(message.find("window=3 ready=3"), std::string::npos);
   EXPECT_NE(message.find("cycle_ms=4.000/9.000/9.000"), std::string::npos);
+  EXPECT_NE(message.find("tf_ms=4.000/9.000/9.000"), std::string::npos);
+  EXPECT_NE(message.find("candidate_gen_ms=4.000/9.000/9.000"), std::string::npos);
+  EXPECT_NE(message.find("candidates=4.0/9.0/9.0"), std::string::npos);
+  EXPECT_NE(message.find("path_samples=4.0/9.0/9.0"), std::string::npos);
+  EXPECT_NE(message.find("collision_poses=4.0/9.0/9.0"), std::string::npos);
+  EXPECT_NE(message.find("valid=4.0/9.0/9.0"), std::string::npos);
+  EXPECT_NE(message.find("collision_rej=4.0/9.0/9.0"), std::string::npos);
+  EXPECT_NE(message.find("velocity_rej=4.0/9.0/9.0"), std::string::npos);
+  EXPECT_NE(message.find("out_of_grid_cycles=3"), std::string::npos);
   EXPECT_NE(message.find("grid_updates=3 grid=4x3 cells=12 res=0.2500"), std::string::npos);
   EXPECT_NE(message.find("grid_ms=5.000/9.000/9.000"), std::string::npos);
+}
+
+TEST(PlannerDiagnostics, CycleWithoutDecisionUsesDefaultFollowOutcome)
+{
+  PlannerDiagnosticsConfig config;
+  config.profiling_log_every_n_cycles = 1;
+  auto diagnostics = makeDiagnostics(config);
+  LogCapture capture;
+
+  diagnostics.recordCycle({});
+
+  ASSERT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 1U);
+  const std::string & message = capture.messages().back();
+  EXPECT_NE(message.find("intent=FOLLOW_RACING_LINE"), std::string::npos);
+  EXPECT_NE(message.find("candidates=0.0/0.0/0.0"), std::string::npos);
+  EXPECT_NE(message.find("modes=none:1/maneuver:0/braking:0/unavailable:0"), std::string::npos);
 }
 
 TEST(PlannerDiagnostics, IntentFilterIgnoresOtherWindows)
@@ -111,13 +146,14 @@ TEST(PlannerDiagnostics, IntentFilterIgnoresOtherWindows)
   auto diagnostics = makeDiagnostics(config);
   LogCapture capture;
 
-  PlannerCycleProfile follow;
-  diagnostics.recordCycle(follow, nullptr, false, false);
+  CycleProfile follow;
+  diagnostics.recordCycle(follow);
   EXPECT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 0U);
 
-  PlannerCycleProfile overtake;
-  overtake.intent = PlannerIntent::OVERTAKE;
-  diagnostics.recordCycle(overtake, nullptr, false, false);
+  CycleProfile overtake;
+  overtake.outcome.decision.emplace();
+  overtake.outcome.decision->requested_intent = PlannerIntent::OVERTAKE;
+  diagnostics.recordCycle(overtake);
   ASSERT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 1U);
   EXPECT_NE(capture.messages().back().find("intent=OVERTAKE"), std::string::npos);
 }
@@ -133,17 +169,24 @@ TEST(PlannerDiagnostics, LogsOnlyEdgeTriggeredControllerVisibleTransitions)
 
   PlannerDecisionData decision;
   decision.terminal_d_m = 0.3;
-  diagnostics.recordCycle({}, &decision, false, false);
+  const auto record = [&](bool path_published, bool steering_fresh) {
+      CycleProfile sample;
+      sample.outcome.decision = decision;
+      sample.outcome.path_published = path_published;
+      sample.outcome.steering_fresh = steering_fresh;
+      diagnostics.recordCycle(std::move(sample));
+    };
+  record(false, false);
   EXPECT_EQ(capture.count("LOCAL_PLANNER_EVENT"), 0U);
 
   decision.requested_intent = PlannerIntent::OVERTAKE;
-  diagnostics.recordCycle({}, &decision, false, false);
+  record(false, false);
   decision.requested_intent = PlannerIntent::OVERTAKE;
-  diagnostics.recordCycle({}, &decision, true, false);
-  diagnostics.recordCycle({}, &decision, true, true);
+  record(true, false);
+  record(true, true);
   decision.terminal_d_m = -0.2;
-  diagnostics.recordCycle({}, &decision, true, true);
-  diagnostics.recordCycle({}, &decision, true, true);
+  record(true, true);
+  record(true, true);
 
   EXPECT_EQ(capture.count("LOCAL_PLANNER_EVENT"), 4U);
   EXPECT_NE(capture.messages().front().find("FOLLOW_RACING_LINE->OVERTAKE"), std::string::npos);
