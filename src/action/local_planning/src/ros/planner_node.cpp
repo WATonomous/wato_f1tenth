@@ -231,83 +231,62 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
 void PlannerNode::planningCycle()
 {
   const auto cycle_started = std::chrono::steady_clock::now();
-  PlannerCycleProfile profile;
-  bool path_published = false;
-  bool steering_fresh = false;
-  const PlannerDecisionData * event_decision = nullptr;
+  CycleProfile profile;
   const auto finishProfile = [&]() {
-      profile.cycle_ms = std::chrono::duration<double, std::milli>(
+      profile.ros.cycle_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - cycle_started).count();
-      diagnostics_.recordCycle(
-        std::move(profile), event_decision, path_published, steering_fresh);
+      diagnostics_.recordCycle(std::move(profile));
     };
   if (!odom_ || !has_grid_ || !reference_.valid()) {
     publishDecision(PlannerDecisionData{});
     finishProfile();
     return;
   }
-  profile.inputs_ready = true;
+  profile.outcome.inputs_ready = true;
 
   const auto odom_started = std::chrono::steady_clock::now();
   Odometry odom = rosToOdometry(*odom_);
-  steering_fresh = has_steering_ &&
+  profile.outcome.steering_fresh = has_steering_ &&
     std::abs((now() - steering_received_).seconds()) <= config_.steering_command_timeout_s;
-  if (steering_fresh) {odom.steering_angle = steering_angle_;}
-  profile.odom_conversion_ms = std::chrono::duration<double, std::milli>(
+  if (profile.outcome.steering_fresh) {odom.steering_angle = steering_angle_;}
+  profile.ros.odom_conversion_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - odom_started).count();
 
   const auto state_started = std::chrono::steady_clock::now();
   state_machine_.update(odom, grid_);
-  profile.state_update_ms = std::chrono::duration<double, std::milli>(
+  profile.ros.state_update_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - state_started).count();
   const auto projection_marker_started = std::chrono::steady_clock::now();
   visualization_.publishProjection(
     odom, state_machine_.state(), now(), *projection_visualization_pub_);
-  profile.marker_publish_ms += std::chrono::duration<double, std::milli>(
+  profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - projection_marker_started).count();
   BoundaryState ego;
   ego.x = odom.position.x;
   ego.y = odom.position.y;
   ego.heading = odom.heading;
   ego.speed = odom.velocity;
-  if (config_.use_steering_start_curvature && steering_fresh) {
+  if (config_.use_steering_start_curvature && profile.outcome.steering_fresh) {
     ego.curvature = std::tan(odom.steering_angle) / config_.wheelbase_m;
   }
 
   const auto planner_started = std::chrono::steady_clock::now();
   auto result = planner_.plan(state_machine_.state(), ego, grid_);
-  profile.planner_ms = std::chrono::duration<double, std::milli>(
+  profile.ros.planner_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - planner_started).count();
-  profile.intent = result.decision.requested_intent;
-  profile.collision_rejected = result.decision.collision_rejected;
-  profile.out_of_grid_rejected = result.decision.out_of_grid_rejected;
-  profile.velocity_rejected = result.decision.velocity_rejected;
-  profile.valid_candidate_count = result.decision.valid_candidate_count;
-  profile.station_hint_samples = result.profile.station_hint_samples;
-  profile.station_hint_fallbacks = result.profile.station_hint_fallbacks;
-  profile.executed_mode = result.decision.executed_mode;
-  profile.candidate_generation_ms = result.profile.candidate_generation_ms;
-  profile.collision_check_ms = result.profile.collision_check_ms;
-  profile.terminal_projection_ms = result.profile.terminal_projection_ms;
-  profile.velocity_profile_ms = result.profile.velocity_profile_ms;
-  profile.selection_ms = result.profile.selection_ms;
-  profile.finalization_ms = result.profile.finalization_ms;
-  profile.candidate_count = result.profile.generated_count;
-  profile.total_path_samples = result.profile.total_path_samples;
-  profile.max_path_samples = result.profile.max_path_samples;
-  profile.collision_poses_checked = result.profile.collision_poses_checked;
+  profile.core = result.profile;
   result.decision.start_curvature_from_steering =
-    config_.use_steering_start_curvature && steering_fresh;
-  event_decision = &result.decision;
+    config_.use_steering_start_curvature && profile.outcome.steering_fresh;
+  profile.outcome.decision = result.decision;
   const auto decision_publish_started = std::chrono::steady_clock::now();
   publishDecision(result.decision);
-  profile.decision_publish_ms = std::chrono::duration<double, std::milli>(
+  profile.ros.decision_publish_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - decision_publish_started).count();
 
   if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
     const auto marker_publish_started = std::chrono::steady_clock::now();
     publishOvertakeReady(false);
-    profile.marker_publish_ms += std::chrono::duration<double, std::milli>(
+    profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - marker_publish_started).count();
     finishProfile();
     return;
@@ -329,30 +308,30 @@ void PlannerNode::planningCycle()
   const auto map_path = pathToRos(
     result.pool.at(static_cast<std::size_t>(result.selected_index)).path,
     now(), config_.map_frame);
-  profile.path_message_ms = std::chrono::duration<double, std::milli>(
+  profile.ros.path_message_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_message_started).count();
   nav_msgs::msg::Path controller_path;
   const auto tf_started = std::chrono::steady_clock::now();
   if (!transformPathToControllerFrame(map_path, controller_path)) {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Local path transform unavailable");
     publishOvertakeReady(false);
-    profile.tf_ms = std::chrono::duration<double, std::milli>(
+    profile.ros.tf_ms = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - tf_started).count();
     finishProfile();
     return;
   }
-  profile.tf_ms = std::chrono::duration<double, std::milli>(
+  profile.ros.tf_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - tf_started).count();
   const auto path_publish_started = std::chrono::steady_clock::now();
   local_path_map_pub_->publish(map_path);
   local_path_pub_->publish(controller_path);
-  path_published = true;
-  profile.path_publish_ms = std::chrono::duration<double, std::milli>(
+  profile.outcome.path_published = true;
+  profile.ros.path_publish_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_publish_started).count();
   const auto marker_publish_started = std::chrono::steady_clock::now();
   visualization_.publishCandidates(result, now(), *visualization_pub_);
   publishOvertakeReady(true);
-  profile.marker_publish_ms += std::chrono::duration<double, std::milli>(
+  profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - marker_publish_started).count();
   finishProfile();
 }
