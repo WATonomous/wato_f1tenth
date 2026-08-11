@@ -12,6 +12,12 @@ namespace
 constexpr int kRareErrorThrottleMs = 10000;
 constexpr double kStationHintFallbackWarnPct = 2.0;
 constexpr std::size_t kMaxGridProfileSamples = 512;
+
+const PlannerDecisionData & decisionFor(const CycleProfile & sample)
+{
+  static const PlannerDecisionData default_decision;
+  return sample.outcome.decision ? *sample.outcome.decision : default_decision;
+}
 }  // namespace
 
 PlannerDiagnostics::PlannerDiagnostics(
@@ -40,43 +46,39 @@ void PlannerDiagnostics::recordGridUpdate(double update_ms, const OccupancyGrid 
   grid_profiling_window_.push_back(update_ms);
 }
 
-void PlannerDiagnostics::recordCycle(
-  PlannerCycleProfile sample,
-  const PlannerDecisionData * decision,
-  bool path_published,
-  bool steering_fresh)
+void PlannerDiagnostics::recordCycle(CycleProfile sample)
 {
-  if (decision != nullptr) {
-    noteTransitions(*decision, path_published, steering_fresh, sample);
+  if (sample.outcome.decision) {
+    noteTransitions(sample);
   }
   recordProfile(std::move(sample));
 }
 
-void PlannerDiagnostics::recordProfile(PlannerCycleProfile sample)
+void PlannerDiagnostics::recordProfile(CycleProfile sample)
 {
   if (!config_.profiling_enabled) {
     return;
   }
-  if (config_.profiling_intent_filter && *config_.profiling_intent_filter != sample.intent) {
+  const PlannerIntent intent = decisionFor(sample).requested_intent;
+  if (config_.profiling_intent_filter && *config_.profiling_intent_filter != intent) {
     return;
   }
 
   // Bucket by intent so each percentile describes one workload rather than a
   // mix of cheap FOLLOW cycles and expensive maneuver cycles.
-  std::vector<PlannerCycleProfile> & window =
-    profiling_windows_.at(static_cast<std::size_t>(sample.intent));
+  std::vector<CycleProfile> & window = profiling_windows_.at(static_cast<std::size_t>(intent));
   window.push_back(std::move(sample));
   const std::size_t window_size = static_cast<std::size_t>(std::max(
       1, config_.profiling_log_every_n_cycles));
   if (window.size() < window_size) {
     return;
   }
-  emitProfile(window.front().intent, window);
+  emitProfile(decisionFor(window.front()).requested_intent, window);
 }
 
 void PlannerDiagnostics::emitProfile(
   PlannerIntent intent,
-  std::vector<PlannerCycleProfile> & window)
+  std::vector<CycleProfile> & window)
 {
   struct Summary
   {
@@ -101,45 +103,57 @@ void PlannerDiagnostics::emitProfile(
       return std::array<double, 3>{summary.average, summary.p95, summary.maximum};
     };
 
-  const auto cycle = format(summarize([](const auto & p) {return p.cycle_ms;}));
-  const auto odom = format(summarize([](const auto & p) {return p.odom_conversion_ms;}));
-  const auto state = format(summarize([](const auto & p) {return p.state_update_ms;}));
-  const auto planner = format(summarize([](const auto & p) {return p.planner_ms;}));
-  const auto decision_pub = format(summarize([](const auto & p) {return p.decision_publish_ms;}));
-  const auto path_message = format(summarize([](const auto & p) {return p.path_message_ms;}));
-  const auto tf = format(summarize([](const auto & p) {return p.tf_ms;}));
-  const auto path_pub = format(summarize([](const auto & p) {return p.path_publish_ms;}));
-  const auto marker_pub = format(summarize([](const auto & p) {return p.marker_publish_ms;}));
+  const auto cycle = format(summarize([](const auto & p) {return p.ros.cycle_ms;}));
+  const auto odom = format(summarize([](const auto & p) {return p.ros.odom_conversion_ms;}));
+  const auto state = format(summarize([](const auto & p) {return p.ros.state_update_ms;}));
+  const auto planner = format(summarize([](const auto & p) {return p.ros.planner_ms;}));
+  const auto decision_pub = format(summarize([](const auto & p) {
+        return p.ros.decision_publish_ms;
+  }));
+  const auto path_message = format(summarize([](const auto & p) {
+        return p.ros.path_message_ms;
+  }));
+  const auto tf = format(summarize([](const auto & p) {return p.ros.tf_ms;}));
+  const auto path_pub = format(summarize([](const auto & p) {return p.ros.path_publish_ms;}));
+  const auto marker_pub = format(summarize([](const auto & p) {
+        return p.ros.marker_publish_ms;
+  }));
   const auto generation = format(summarize([](const auto & p) {
-        return p.candidate_generation_ms;
+        return p.core.candidate_generation_ms;
   }));
-  const auto collision = format(summarize([](const auto & p) {return p.collision_check_ms;}));
+  const auto collision = format(summarize([](const auto & p) {
+        return p.core.collision_check_ms;
+  }));
   const auto projection = format(summarize([](const auto & p) {
-        return p.terminal_projection_ms;
+        return p.core.terminal_projection_ms;
   }));
-  const auto velocity = format(summarize([](const auto & p) {return p.velocity_profile_ms;}));
-  const auto selection = format(summarize([](const auto & p) {return p.selection_ms;}));
-  const auto finalization = format(summarize([](const auto & p) {return p.finalization_ms;}));
+  const auto velocity = format(summarize([](const auto & p) {
+        return p.core.velocity_profile_ms;
+  }));
+  const auto selection = format(summarize([](const auto & p) {return p.core.selection_ms;}));
+  const auto finalization = format(summarize([](const auto & p) {
+        return p.core.finalization_ms;
+  }));
   const auto candidates = summarize([](const auto & p) {
-        return static_cast<double>(p.candidate_count);
+        return static_cast<double>(decisionFor(p).generated_count);
   });
   const auto samples = summarize([](const auto & p) {
-        return static_cast<double>(p.total_path_samples);
+        return static_cast<double>(p.core.total_path_samples);
   });
   const auto max_samples = summarize([](const auto & p) {
-        return static_cast<double>(p.max_path_samples);
+        return static_cast<double>(p.core.max_path_samples);
   });
   const auto collision_poses = summarize([](const auto & p) {
-        return static_cast<double>(p.collision_poses_checked);
+        return static_cast<double>(p.core.collision_poses_checked);
   });
   const auto collision_rejected = summarize([](const auto & p) {
-        return static_cast<double>(p.collision_rejected);
+        return static_cast<double>(decisionFor(p).collision_rejected);
   });
   const auto velocity_rejected = summarize([](const auto & p) {
-        return static_cast<double>(p.velocity_rejected);
+        return static_cast<double>(decisionFor(p).velocity_rejected);
   });
   const auto valid_candidates = summarize([](const auto & p) {
-        return static_cast<double>(p.valid_candidate_count);
+        return static_cast<double>(decisionFor(p).valid_candidate_count);
   });
   std::size_t ready_cycles = 0;
   std::size_t empty_pool_cycles = 0;
@@ -152,16 +166,17 @@ void PlannerDiagnostics::emitProfile(
   std::size_t steer_stale_cycles = 0;
   std::array<std::size_t, 4> mode_counts{};
   for (const auto & item : window) {
-    ready_cycles += item.inputs_ready ? 1U : 0U;
-    empty_pool_cycles += item.candidate_count == 0 ? 1U : 0U;
-    out_of_grid_cycles += item.out_of_grid_rejected > 0 ? 1U : 0U;
-    hint_samples += item.station_hint_samples;
-    hint_fallbacks += item.station_hint_fallbacks;
-    intent_changes += item.intent_changed ? 1U : 0U;
-    side_flips += item.side_flipped ? 1U : 0U;
-    no_path_cycles += item.path_published ? 0U : 1U;
-    steer_stale_cycles += item.steering_fresh ? 0U : 1U;
-    ++mode_counts.at(static_cast<std::size_t>(item.executed_mode));
+    const PlannerDecisionData & decision = decisionFor(item);
+    ready_cycles += item.outcome.inputs_ready ? 1U : 0U;
+    empty_pool_cycles += decision.generated_count == 0 ? 1U : 0U;
+    out_of_grid_cycles += decision.out_of_grid_rejected > 0 ? 1U : 0U;
+    hint_samples += item.core.station_hint_samples;
+    hint_fallbacks += item.core.station_hint_fallbacks;
+    intent_changes += item.outcome.intent_changed ? 1U : 0U;
+    side_flips += item.outcome.side_flipped ? 1U : 0U;
+    no_path_cycles += item.outcome.path_published ? 0U : 1U;
+    steer_stale_cycles += item.outcome.steering_fresh ? 0U : 1U;
+    ++mode_counts.at(static_cast<std::size_t>(decision.executed_mode));
   }
   const double hint_fallback_pct = hint_samples == 0 ? 0.0 :
     100.0 * static_cast<double>(hint_fallbacks) / static_cast<double>(hint_samples);
@@ -234,23 +249,20 @@ void PlannerDiagnostics::emitProfile(
   window.clear();
 }
 
-void PlannerDiagnostics::noteTransitions(
-  const PlannerDecisionData & data,
-  bool path_published,
-  bool steering_fresh,
-  PlannerCycleProfile & sample)
+void PlannerDiagnostics::noteTransitions(CycleProfile & sample)
 {
-  sample.path_published = path_published;
-  sample.steering_fresh = steering_fresh;
+  const PlannerDecisionData & data = *sample.outcome.decision;
 
   const bool first = !has_previous_cycle_;
   const bool intent_changed = !first && data.requested_intent != previous_intent_;
-  const bool path_changed = !first && path_published != previous_path_published_;
-  const bool steering_changed = !first && steering_fresh != previous_steering_fresh_;
+  const bool path_changed = !first &&
+    sample.outcome.path_published != previous_path_published_;
+  const bool steering_changed = !first &&
+    sample.outcome.steering_fresh != previous_steering_fresh_;
   const bool side_flipped = !first && previous_terminal_d_m_ * data.terminal_d_m < 0.0;
 
-  sample.intent_changed = intent_changed;
-  sample.side_flipped = side_flipped;
+  sample.outcome.intent_changed = intent_changed;
+  sample.outcome.side_flipped = side_flipped;
 
   const PlannerIntent from_intent = previous_intent_;
   const bool from_path_published = previous_path_published_;
@@ -259,9 +271,9 @@ void PlannerDiagnostics::noteTransitions(
 
   has_previous_cycle_ = true;
   previous_intent_ = data.requested_intent;
-  previous_path_published_ = path_published;
+  previous_path_published_ = sample.outcome.path_published;
   previous_terminal_d_m_ = data.terminal_d_m;
-  previous_steering_fresh_ = steering_fresh;
+  previous_steering_fresh_ = sample.outcome.steering_fresh;
 
   if (!config_.diagnostics_enabled ||
     (!intent_changed && !path_changed && !steering_changed && !side_flipped))
@@ -286,9 +298,9 @@ void PlannerDiagnostics::noteTransitions(
     data.raceline_compatible ? 1 : 0,
     data.opponent_detected ? 1 : 0, data.opponent_gap_m,
     relativePositionToString(data.relative_position).c_str(),
-    from_path_published ? "yes" : "no", path_published ? "yes" : "no",
+    from_path_published ? "yes" : "no", sample.outcome.path_published ? "yes" : "no",
     from_terminal_d_m, data.terminal_d_m,
-    from_steering_fresh ? 1 : 0, steering_fresh ? 1 : 0,
+    from_steering_fresh ? 1 : 0, sample.outcome.steering_fresh ? 1 : 0,
     static_cast<int>(data.executed_mode),
     data.track_bounds_ready ? 1 : 0,
     data.sustainable_right_m, data.sustainable_left_m, data.track_bounds_rejected,

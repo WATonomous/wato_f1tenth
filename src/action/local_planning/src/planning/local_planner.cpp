@@ -195,7 +195,6 @@ LocalPlanResult LocalPlanner::plan(
   result.profile.station_hint_samples = station_hints.samples;
   result.profile.station_hint_fallbacks = station_hints.fallbacks;
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
-  result.profile.generated_count = result.decision.generated_count;
   for (const auto & candidate : result.pool) {
     const auto sample_count = static_cast<uint32_t>(candidate.path.size());
     result.profile.total_path_samples += sample_count;
