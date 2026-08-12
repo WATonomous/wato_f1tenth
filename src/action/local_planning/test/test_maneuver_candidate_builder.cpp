@@ -105,7 +105,10 @@ TEST(ManeuverBuilder, OvertakeMirrorsOffsetsAndIsStrictlyForward)
   const BoundaryState ego = egoAt(reference, 2.0, 0.0);
 
   const std::vector<ManeuverCandidate> both_sides = builder.overtake(ego, 2.0, 0.0, 5.0);
-  ASSERT_EQ(both_sides.size(), 4u);
+  ASSERT_EQ(both_sides.size(), 6u);
+  EXPECT_EQ(std::count_if(
+      both_sides.begin(), both_sides.end(),
+      [](const ManeuverCandidate & candidate) {return candidate.uses_offset_tail;}), 2);
   EXPECT_LT(endOffset(reference, both_sides.front().path, 8.0), 0.0);
   EXPECT_GT(endOffset(reference, both_sides.back().path, 8.0), 0.0);
   EXPECT_TRUE(builder.overtake(ego, 2.0, 0.0, 8.0).empty());
@@ -123,17 +126,22 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
 
   const std::vector<ManeuverCandidate> candidates =
     builder.overtake(egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0);
-  ASSERT_EQ(candidates.size(), 4u);
+  ASSERT_EQ(candidates.size(), 6u);
   const ReferenceGeometrySample reference_sample = reference.sampleAtS(5.0);
-  for (int side_index = 0; side_index < 2; ++side_index) {
-    const double d = side_index == 0 ? -0.55 : 0.55;
+  for (double d : {-0.55, 0.55}) {
     const double offset_curvature =
       reference_sample.curvature / (1.0 - d * reference_sample.curvature);
     const std::array<double, 2> expected_curvatures{
       reference_sample.curvature, offset_curvature};
-    for (std::size_t i = 0; i < expected_curvatures.size(); ++i) {
-      const Path & path = candidates[
-        static_cast<std::size_t>(side_index) * expected_curvatures.size() + i].path;
+    std::vector<const ManeuverCandidate *> clothoids;
+    for (const ManeuverCandidate & candidate : candidates) {
+      if (!candidate.uses_offset_tail && std::abs(candidate.target_d - d) <= 1e-8) {
+        clothoids.push_back(&candidate);
+      }
+    }
+    ASSERT_EQ(clothoids.size(), expected_curvatures.size());
+    for (std::size_t i = 0; i < clothoids.size(); ++i) {
+      const Path & path = clothoids[i]->path;
       EXPECT_TRUE(std::all_of(path.begin(), path.end(), [](const CurveSample & sample) {
           return std::isfinite(sample.raceline_s);
       }));
@@ -144,6 +152,65 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
       EXPECT_NEAR(endOffset(reference, path, 8.0), d, 1e-8);
     }
   }
+}
+
+TEST(ManeuverBuilder, OvertakeOffsetTailsAreExactAndG2Continuous)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ManeuverConfig config;
+  config.overtake_s_offsets_from_opponent_rear_m = {0.0};
+  config.passing_d_magnitudes_m = {0.55};
+  // The exact-tail entry is intentionally independent of this exploratory grid.
+  config.overtake_heading_offsets_rad = {0.15};
+  const ManeuverBuilder builder = makeBuilder(reference, config);
+
+  const auto candidates = builder.overtake(
+    egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0);
+  for (double d : {-0.55, 0.55}) {
+    const auto found = std::find_if(
+      candidates.begin(), candidates.end(), [d](const ManeuverCandidate & candidate) {
+        return candidate.uses_offset_tail && std::abs(candidate.target_d - d) <= 1e-8;
+      });
+    ASSERT_NE(found, candidates.end());
+
+    const Point join_point = reference.toCartesian(5.0, d);
+    const auto join = std::find_if(
+      found->path.begin(), found->path.end(), [&](const CurveSample & sample) {
+        return std::hypot(sample.x - join_point.x, sample.y - join_point.y) < 1e-6;
+      });
+    ASSERT_NE(join, found->path.end());
+    const ReferenceGeometrySample join_reference = reference.sampleAtS(5.0);
+    EXPECT_NEAR(
+      std::atan2(
+        std::sin(join->heading - join_reference.heading),
+        std::cos(join->heading - join_reference.heading)),
+      0.0, 1e-8);
+    EXPECT_NEAR(
+      join->curvature,
+      join_reference.curvature / (1.0 - d * join_reference.curvature), 1e-8);
+
+    for (auto sample = join; sample != found->path.end(); ++sample) {
+      bool converged = false;
+      const double actual_d = reference.lateralOffsetAt(
+        Point(sample->x, sample->y), sample->raceline_s, &converged);
+      EXPECT_TRUE(converged);
+      EXPECT_NEAR(actual_d, d, 1e-7);
+    }
+  }
+}
+
+TEST(ManeuverBuilder, DefaultOvertakeAddsOneOffsetTailPerStationAndOffset)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const ManeuverBuilder builder = makeBuilder(reference, ManeuverConfig{});
+
+  const auto candidates = builder.overtake(
+    egoAt(reference, 2.0, 0.0), 2.0, 0.0, 4.0);
+  EXPECT_EQ(std::count_if(
+      candidates.begin(), candidates.end(),
+      [](const ManeuverCandidate & candidate) {return candidate.uses_offset_tail;}), 12);
 }
 
 TEST(ManeuverBuilder, OvertakeCurvatureModesDoNotReproduceTightCornerCrossing)
@@ -203,18 +270,46 @@ TEST(ManeuverBuilder, RecoveryUsesExactConstantOffsetTailsAndKeepsItsSide)
 
   const std::vector<ManeuverCandidate> candidates =
     builder.recover(egoAt(reference, 6.0, 0.45), 6.0, 0.45);
-  ASSERT_EQ(candidates.size(), 2u);
-  const Path & first = candidates.front().path;
-  EXPECT_NE(nullptr, sampleAt(first, reference.toCartesian(9.0, 0.60)));
-  EXPECT_NE(nullptr, sampleAt(first, reference.toCartesian(9.1, 0.60)));
-  EXPECT_NEAR(endOffset(reference, first, 12.0), 0.60, 1e-8);
-  EXPECT_DOUBLE_EQ(candidates[0].maneuver_distance_m, 3.0);
-  EXPECT_DOUBLE_EQ(candidates[1].maneuver_distance_m, 2.0);
-  EXPECT_DOUBLE_EQ(candidates[0].target_d, 0.60);
-  EXPECT_GT(candidates[0].max_offset_deviation_m, 0.0);
+  ASSERT_EQ(candidates.size(), 4u);
+  const auto first = std::find_if(
+    candidates.begin(), candidates.end(), [](const ManeuverCandidate & candidate) {
+      return candidate.target_d == 0.60 && candidate.maneuver_distance_m == 3.0;
+    });
+  ASSERT_NE(first, candidates.end());
+  EXPECT_NE(nullptr, sampleAt(first->path, reference.toCartesian(9.0, 0.60)));
+  EXPECT_NE(nullptr, sampleAt(first->path, reference.toCartesian(9.1, 0.60)));
+  EXPECT_NEAR(endOffset(reference, first->path, 12.0), 0.60, 1e-8);
+  EXPECT_GT(first->max_offset_deviation_m, 0.0);
   for (const ManeuverCandidate & candidate : candidates) {
+    EXPECT_TRUE(candidate.uses_offset_tail);
     EXPECT_TRUE(staysOnSide(reference, candidate.path, 6.0, 1));
   }
+}
+
+TEST(ManeuverBuilder, RecoveryAddsShortPreferredTailsWithoutDuplicatingNominalPass)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ManeuverConfig config;
+  config.pass_transition_distances_m = {6.0, 3.0, 1.0};
+  const ManeuverBuilder builder = makeBuilder(reference, config);
+
+  const auto candidates = builder.recover(
+    egoAt(reference, 6.0, 0.55), 6.0, 0.55);
+  std::vector<double> preferred_tail_distances;
+  for (const ManeuverCandidate & candidate : candidates) {
+    if (candidate.uses_offset_tail && std::abs(candidate.target_d - 0.55) <= 1e-8) {
+      preferred_tail_distances.push_back(candidate.maneuver_distance_m);
+    }
+  }
+  ASSERT_EQ(preferred_tail_distances.size(), 2u);
+  EXPECT_DOUBLE_EQ(preferred_tail_distances[0], 3.0);
+  EXPECT_DOUBLE_EQ(preferred_tail_distances[1], 1.0);
+  EXPECT_TRUE(std::none_of(
+      candidates.begin(), candidates.end(), [](const ManeuverCandidate & candidate) {
+        return std::abs(candidate.target_d - 0.55) <= 1e-8 &&
+               std::abs(candidate.maneuver_distance_m - 6.0) <= 1e-8;
+      }));
 }
 
 TEST(ManeuverBuilder, MergeUsesEveryUniqueCompletionDistanceAndAnExactRacelineTail)
@@ -272,9 +367,16 @@ TEST(ManeuverBuilder, OvertakeAndMergePreserveForwardTargetsAcrossWrapAround)
   const double ego_s = reference.totalLength() - 2.0;
   const std::vector<ManeuverCandidate> overtake = builder.overtake(
     egoAt(reference, ego_s, 0.0), ego_s, 0.0, 1.0);
-  ASSERT_EQ(overtake.size(), 4u);
+  ASSERT_EQ(overtake.size(), 6u);
   EXPECT_NEAR(endOffset(reference, overtake.front().path, 4.0), -0.55, 1e-8);
   EXPECT_NEAR(endOffset(reference, overtake.back().path, 4.0), 0.55, 1e-8);
+  const auto wrapped_tail = std::find_if(
+    overtake.begin(), overtake.end(), [](const ManeuverCandidate & candidate) {
+      return candidate.uses_offset_tail && candidate.target_d < 0.0;
+    });
+  ASSERT_NE(wrapped_tail, overtake.end());
+  EXPECT_NE(
+    nullptr, sampleAt(wrapped_tail->path, reference.toCartesian(1.1, -0.55)));
 
   const std::vector<ManeuverCandidate> merge = builder.merge(
     egoAt(reference, ego_s, 0.20), ego_s);
@@ -305,8 +407,12 @@ TEST(ManeuverBuilder, TrackBoundsFilterOvertakeSidesAndPassMovesInward)
   const auto overtake = builder.overtake(
     egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0,
     SustainableBounds{0.60, 0.40}, &rejected);
-  ASSERT_EQ(overtake.size(), 2u);
+  ASSERT_EQ(overtake.size(), 3u);
   EXPECT_LT(overtake.front().target_d, 0.0);
+  EXPECT_EQ(std::count_if(
+      overtake.begin(), overtake.end(), [](const ManeuverCandidate & candidate) {
+        return candidate.uses_offset_tail && candidate.target_d == -0.55;
+      }), 1);
   EXPECT_EQ(rejected, 3u);  // +0.55, -0.75, +0.75 configurations
 
   rejected = 0;

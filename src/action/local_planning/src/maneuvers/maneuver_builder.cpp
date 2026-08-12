@@ -1,5 +1,7 @@
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 
+#include "local_planning/curves/reference_curve_sampler.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -181,29 +183,33 @@ bool ManeuverBuilder::connect(
   return true;
 }
 
-bool ManeuverBuilder::appendTail(Path & path, double start_s, double distance, double d) const
+bool ManeuverBuilder::appendReferenceCurve(
+  Path & path,
+  double start_s,
+  double reference_distance_m,
+  double d) const
 {
-  if (distance <= 0.0) {
-    return true;
-  }
   if (path.empty() || curve_generator_.config().sample_spacing_m <= 0.0) {
     return false;
   }
-  BoundaryState start;
-  if (!boundary(start_s, d, 0.0, start) || !matches(path.back(), start)) {
+  const GeneratedReferenceCurve generated = ReferenceCurveSampler().generate(
+    reference_,
+    {start_s, reference_distance_m, d, curve_generator_.config().sample_spacing_m});
+  if (!generated.valid || generated.samples.empty()) {
     return false;
   }
-  for (double covered = 0.0; covered < distance; ) {
-    covered += std::min(curve_generator_.config().sample_spacing_m, distance - covered);
-    BoundaryState next;
-    if (!boundary(start_s + covered, d, 0.0, next)) {
-      return false;
-    }
-    const CurveSample & previous = path.back();
-    path.push_back({
-        previous.s + std::hypot(next.x - previous.x, next.y - previous.y),
-        next.x, next.y, next.heading, next.curvature, 0.0,
-        reference_.wrapS(start_s + covered)});
+  const CurveSample & first = generated.samples.front();
+  const BoundaryState start{
+    first.x, first.y, first.heading, first.curvature, first.speed};
+  if (!matches(path.back(), start)) {
+    return false;
+  }
+
+  const double s_offset = path.back().s;
+  for (std::size_t i = 1; i < generated.samples.size(); ++i) {
+    CurveSample sample = generated.samples[i];
+    sample.s += s_offset;
+    path.push_back(sample);
   }
   return true;
 }
@@ -218,8 +224,9 @@ ManeuverBuilder::SideCheck ManeuverBuilder::sideAndDeviation(
   SideCheck result;
   for (std::size_t i = 0; i < path.size(); ++i) {
     const CurveSample & sample = path[i];
-    // Every sample already knows its station -- connect() and appendTail() set
-    // raceline_s when they build it -- so this needs no search.  The old
+    // Every sample already knows its station -- connect() and the reference
+    // curve sampler set raceline_s when they build it -- so this needs no
+    // search.  The old
     // project() call here rescanned about twenty spline segments per sample to
     // recover a value the sample was carrying, and at two sweeps per candidate
     // that was 99% of the cost of PASS.
@@ -337,6 +344,15 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   const std::size_t heading_count = config_.overtake_heading_offsets_rad.size();
   const std::size_t curvature_count = curvature_modes.size();
   std::vector<FirstLeg> first_legs(heading_count * curvature_count);
+  const auto zero_heading = std::find_if(
+    config_.overtake_heading_offsets_rad.begin(),
+    config_.overtake_heading_offsets_rad.end(),
+    [](double heading) {return std::abs(heading) <= kTolerance;});
+  const std::optional<std::size_t> zero_heading_index =
+    zero_heading == config_.overtake_heading_offsets_rad.end() ?
+    std::nullopt :
+    std::optional<std::size_t>(static_cast<std::size_t>(
+        zero_heading - config_.overtake_heading_offsets_rad.begin()));
 
   for (double s_offset : config_.overtake_s_offsets_from_opponent_rear_m) {
     const double intermediate_s = reference_.wrapS(opponent_rear_s + s_offset);
@@ -381,6 +397,40 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
               candidates.push_back({std::move(path), horizon_d, config_.horizon_m, 0.0});
             }
           }
+        }
+      }
+
+      // Add one exact constant-offset suffix for every opponent-relative
+      // station/offset pair.  It is G2-continuous only from the first leg whose
+      // terminal heading is parallel to the reference and whose curvature is
+      // the exact offset curvature.  Reuse that cached exploratory leg when a
+      // zero heading sample is configured (the default); otherwise construct
+      // the exact-entry leg once so this robust candidate family does not
+      // disappear when the exploratory heading grid is changed.
+      FirstLeg exact_entry;
+      const FirstLeg * entry = nullptr;
+      if (zero_heading_index) {
+        entry = &first_legs[*zero_heading_index * curvature_count + 1U];
+      } else {
+        BoundaryState intermediate;
+        if (boundary(
+            intermediate_s, intermediate_d, 0.0, intermediate,
+            BoundaryCurvature::OFFSET))
+        {
+          exact_entry.valid = connect(
+            exact_entry.path, ego, intermediate, ego_s, intermediate_s,
+            &exact_entry.join);
+        }
+        entry = &exact_entry;
+      }
+      if (entry->valid) {
+        Path path = entry->path;
+        if (appendReferenceCurve(
+            path, intermediate_s, config_.horizon_m - progress,
+            intermediate_d))
+        {
+          candidates.push_back(
+            {std::move(path), intermediate_d, config_.horizon_m, 0.0, true});
         }
       }
     }
@@ -440,7 +490,13 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
   const std::vector<double> allowed_offsets = offsets(side, bounds);
   for (double transition : config_.pass_transition_distances_m) {
     for (double d : allowed_offsets) {
-      if (std::abs(d - *preferred) <= kTolerance) {
+      const bool targets_preferred = std::abs(d - *preferred) <= kTolerance;
+      // The nominal PASS candidate already connects to preferred_d over the
+      // full horizon.  Shorter preferred connections are new recovery options;
+      // the full-horizon instance would only duplicate the nominal geometry.
+      if (targets_preferred &&
+        std::abs(transition - config_.horizon_m) <= kTolerance)
+      {
         continue;
       }
       const double target_s = reference_.wrapS(ego_s + transition);
@@ -448,7 +504,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
       Path path;
       if (boundary(target_s, d, 0.0, target) &&
         connect(path, ego, target, ego_s, target_s) &&
-        appendTail(path, target_s, config_.horizon_m - transition, d))
+        appendReferenceCurve(path, target_s, config_.horizon_m - transition, d))
       {
         // Deviation is measured against the preferred offset, not this
         // candidate's own d: recovery candidates are ranked by how far they
@@ -456,7 +512,8 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
         const SideCheck check = sideAndDeviation(path, side, false, *preferred);
         if (check.stays_on_side) {
           candidates.push_back(
-            {std::move(path), d, transition, check.max_offset_deviation_m});
+            {std::move(path), d, transition, check.max_offset_deviation_m,
+              transition < config_.horizon_m - kTolerance});
         }
       }
     }
@@ -483,7 +540,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::merge(
     Path path;
     if (boundary(target_s, 0.0, 0.0, target) &&
       connect(path, ego, target, ego_s, target_s) &&
-      appendTail(path, target_s, config_.horizon_m - completion, 0.0))
+      appendReferenceCurve(path, target_s, config_.horizon_m - completion, 0.0))
     {
       candidates.push_back({std::move(path), 0.0, completion, 0.0});
     }

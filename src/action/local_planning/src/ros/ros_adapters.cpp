@@ -68,6 +68,7 @@ msg::PlannerDecision plannerDecisionToRos(
   out.raceline_compatible = data.raceline_compatible;
   out.executed_mode = static_cast<uint8_t>(data.executed_mode);
   out.candidate_source = static_cast<uint8_t>(data.candidate_source);
+  out.selected_offset_tail = data.selected_offset_tail;
   out.projection_seed_was_stale = data.projection_seed_was_stale;
   out.clearance_class = static_cast<uint8_t>(data.clearance_class);
   out.minimum_clearance_m = data.minimum_clearance_m;
