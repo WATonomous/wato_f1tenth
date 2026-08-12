@@ -40,6 +40,7 @@ add_library(local_planning_core
   src/core/types.cpp
   src/reference/raceline_reference.cpp
   src/curves/curve_connection_generator.cpp
+  src/curves/reference_curve_sampler.cpp
   src/curves/clothoids_backend.cpp
   src/curves/upstream/clothoid_g2.cpp
   src/maneuvers/maneuver_builder.cpp
@@ -124,6 +125,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_curve_connection_generator test/test_curve_connection_generator.cpp)
   target_link_libraries(test_curve_connection_generator local_planning_core)
+
+  ament_add_gtest(test_reference_curve_sampler test/test_reference_curve_sampler.cpp)
+  target_link_libraries(test_reference_curve_sampler local_planning_core)
 
   ament_add_gtest(test_maneuver_candidate_builder test/test_maneuver_candidate_builder.cpp)
   target_link_libraries(test_maneuver_candidate_builder local_planning_core)

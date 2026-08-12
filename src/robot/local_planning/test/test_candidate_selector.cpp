@@ -6,12 +6,17 @@ namespace local_planning
 {
 namespace
 {
-ManeuverCandidate geometry(double distance = 0.0, double deviation = 0.0, double target_d = 0.0)
+ManeuverCandidate geometry(
+  double distance = 0.0,
+  double deviation = 0.0,
+  double target_d = 0.0,
+  bool uses_offset_tail = false)
 {
   ManeuverCandidate result;
   result.maneuver_distance_m = distance;
   result.max_offset_deviation_m = deviation;
   result.target_d = target_d;
+  result.uses_offset_tail = uses_offset_tail;
   return result;
 }
 
@@ -30,6 +35,26 @@ EvaluatedCandidate evaluated(int index, CandidateSource source, CollisionStatus 
 TEST(CandidateSelector, OvertakeNormalBeatsFasterMarginal)
 {
   const std::vector<ManeuverCandidate> pool(2);
+  const std::vector<EvaluatedCandidate> candidates{
+    evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::SOFT_INFLATION, 1.0),
+    evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0)};
+  EXPECT_EQ(CandidateSelector().selectOvertake(pool, candidates), 1);
+}
+
+TEST(CandidateSelector, OvertakeClothoidBeatsFasterTailAtEqualClearance)
+{
+  const std::vector<ManeuverCandidate> pool{
+    geometry(0.0, 0.0, 0.55, true), geometry()};
+  const std::vector<EvaluatedCandidate> candidates{
+    evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0),
+    evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0)};
+  EXPECT_EQ(CandidateSelector().selectOvertake(pool, candidates), 1);
+}
+
+TEST(CandidateSelector, OvertakeTailBeatsClothoidWithWorseClearance)
+{
+  const std::vector<ManeuverCandidate> pool{
+    geometry(), geometry(0.0, 0.0, 0.55, true)};
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::SOFT_INFLATION, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0)};

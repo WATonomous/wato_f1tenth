@@ -22,6 +22,11 @@ struct ManeuverCandidate
   double target_d = 0.0;
   double maneuver_distance_m = 0.0;
   double max_offset_deviation_m = 0.0;
+  // True only when a non-zero-length suffix samples the exact constant-offset
+  // reference.  The selector uses this to keep the existing clothoid family
+  // preferred when clearance is equal, and ROS exposes the selected value for
+  // bag-level diagnosis.
+  bool uses_offset_tail = false;
 };
 
 struct ManeuverConfig
@@ -99,7 +104,8 @@ private:
     double start_raceline_s,
     double end_raceline_s,
     BoundaryState * actual_end = nullptr) const;
-  bool appendTail(Path & path, double start_s, double distance, double d) const;
+  bool appendReferenceCurve(
+    Path & path, double start_s, double reference_distance_m, double d) const;
 
   struct SideCheck
   {

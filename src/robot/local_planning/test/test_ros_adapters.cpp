@@ -46,6 +46,7 @@ TEST(RosAdapters, DecisionPreservesEveryField)
   data.raceline_compatible = true;
   data.executed_mode = ExecutedMode::MANEUVER;
   data.candidate_source = CandidateSource::PASS_RECOVERY;
+  data.selected_offset_tail = true;
   data.projection_seed_was_stale = true;
   data.clearance_class = CollisionStatus::SOFT_INFLATION;
   data.minimum_clearance_m = 0.5;
@@ -83,6 +84,7 @@ TEST(RosAdapters, DecisionPreservesEveryField)
   EXPECT_EQ(message.raceline_compatible, data.raceline_compatible);
   EXPECT_EQ(message.executed_mode, static_cast<uint8_t>(data.executed_mode));
   EXPECT_EQ(message.candidate_source, static_cast<uint8_t>(data.candidate_source));
+  EXPECT_EQ(message.selected_offset_tail, data.selected_offset_tail);
   EXPECT_EQ(message.projection_seed_was_stale, data.projection_seed_was_stale);
   EXPECT_EQ(message.clearance_class, static_cast<uint8_t>(data.clearance_class));
   EXPECT_DOUBLE_EQ(message.minimum_clearance_m, data.minimum_clearance_m);

@@ -27,14 +27,30 @@ int CandidateSelector::selectOvertake(
   const std::vector<ManeuverCandidate> & pool,
   const std::vector<EvaluatedCandidate> & evaluated) const
 {
-  (void)pool;
   const EvaluatedCandidate * best = nullptr;
   for (const auto & candidate : evaluated) {
-    if (valid(candidate) &&
-      (!best || clearanceRank(candidate) < clearanceRank(*best) ||
-      (clearanceRank(candidate) == clearanceRank(*best) &&
-      candidate.traversal_time_s < best->traversal_time_s)))
-    {
+    if (!valid(candidate)) {continue;}
+    if (!best) {
+      best = &candidate;
+      continue;
+    }
+    const int candidate_clearance = clearanceRank(candidate);
+    const int best_clearance = clearanceRank(*best);
+    if (candidate_clearance < best_clearance) {
+      best = &candidate;
+      continue;
+    }
+    if (candidate_clearance > best_clearance) {continue;}
+
+    const bool candidate_tail = pool.at(
+      static_cast<std::size_t>(candidate.candidate_index)).uses_offset_tail;
+    const bool best_tail = pool.at(
+      static_cast<std::size_t>(best->candidate_index)).uses_offset_tail;
+    if (candidate_tail != best_tail) {
+      if (!candidate_tail) {best = &candidate;}
+      continue;
+    }
+    if (candidate.traversal_time_s < best->traversal_time_s) {
       best = &candidate;
     }
   }
