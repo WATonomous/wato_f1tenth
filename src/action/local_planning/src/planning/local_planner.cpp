@@ -42,6 +42,7 @@ void fillSelectedMetrics(
     result.decision.candidate_source = eval->source;
   }
   if (candidate.path.empty()) {return;}
+  result.decision.selected_offset_tail = candidate.uses_offset_tail;
   result.decision.min_speed_mps = std::numeric_limits<double>::infinity();
   for (const auto & sample : candidate.path) {
     result.decision.max_abs_curvature_inv_m = std::max(
