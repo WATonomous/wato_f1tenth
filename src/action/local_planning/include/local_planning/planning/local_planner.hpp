@@ -37,6 +37,7 @@ struct PlannerDecisionData
   bool raceline_compatible = false;
   ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
   CandidateSource candidate_source = CandidateSource::NONE;
+  bool selected_offset_tail = false;
   bool projection_seed_was_stale = false;
   CollisionStatus clearance_class = CollisionStatus::OUT_OF_GRID;
   double minimum_clearance_m = 0.0;

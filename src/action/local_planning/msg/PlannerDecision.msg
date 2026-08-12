@@ -46,6 +46,7 @@ float64 heading_error_rad
 bool raceline_compatible
 uint8 executed_mode
 uint8 candidate_source
+bool selected_offset_tail
 bool projection_seed_was_stale
 uint8 clearance_class
 float64 minimum_clearance_m
