@@ -87,6 +87,8 @@ planner_node:
     diagnostics_enabled: true
     map_frame: "map"
     controller_frame: "base_link"
+    # /local_path_map is the controller contract (map frame). /local_path is a
+    # base_link copy published only when map→base_link TF is available.
     local_path_topic: "/local_path"
     local_path_map_topic: "/local_path_map"
     overtake_ready_topic: "/overtake_ready"
