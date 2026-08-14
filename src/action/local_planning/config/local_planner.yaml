@@ -69,6 +69,7 @@ planner_node:
     odom_topic: "/odom"
     steering_command_topic: "/drive/autonomy"
     steering_command_timeout_s: 0.06
+    odom_timeout_s: 0.25
     wheelbase_m: 0.33
     use_steering_start_curvature: true
     # Emits one machine-readable aggregate profile line per intent, every N
@@ -87,6 +88,8 @@ planner_node:
     diagnostics_enabled: true
     map_frame: "map"
     controller_frame: "base_link"
+    # Ego XY/heading is latest map ← controller_frame TF, not /odom pose.
+    # /odom supplies speed and the odom_timeout_s freshness gate.
     # /local_path_map is the controller contract (map frame). /local_path is a
     # base_link copy published only when map→base_link TF is available.
     local_path_topic: "/local_path"
