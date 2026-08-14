@@ -113,6 +113,8 @@ private:
     void init_parameters();
 
     void update_controller_state();
+    std::optional<geometry_msgs::msg::Point> get_waypoint_from_path(
+        const nav_msgs::msg::Path &path, bool closed_loop);
     std::optional<geometry_msgs::msg::Point> get_local_waypoint();
     std::optional<geometry_msgs::msg::Point> get_global_waypoint();
     bool local_path_usable() const;

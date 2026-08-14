@@ -3,11 +3,9 @@ pure_persuit_node:
     global_frame_id: "map"
     local_frame_id: "base_link"
     global_path_topic: "/global_planner/path"
-    # The map-frame local path. The planner also publishes a base_link copy on
-    # /local_path, but that one is only correct at the instant it is published:
-    # this loop runs faster than the planner (50 vs 30 Hz), so between paths the
-    # car moves out from under it and the lookahead point sawtooths. Track in map
-    # and transform per tick, exactly as the global path is handled.
+    # Map-frame local path is the controller contract. /local_path is leftover
+    # viz/compat (base_link, only correct at publish). Track in map and transform
+    # the lookahead point every tick, same pipeline as the global path.
     local_path_topic: "/local_path_map"
     overtake_ready_topic: "/overtake_ready"
     dead_man_active_topic: "/dead_man_switch"

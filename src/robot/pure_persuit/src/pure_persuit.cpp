@@ -220,45 +220,64 @@ bool Pure_Persuit_Node::local_path_usable() const {
 }
 
 /*
-assumption for this one  : 
-- the global planner always gives all the cordinates in map frame, thus requiring a cordinate
-  requiring a cordinate conversion before being able to apply the control law to it
+map-frame path in, base_link lookahead out. global and local share this: closest
+index vs live pose, lookahead on the polyline, then a TF read at this instant.
+
+closed_loop is the only difference that matters. the global path is a lap, so
+closest-index is a cached wrap-aware scan and lookahead wraps. the local path is
+an open horizon rebuilt every planner cycle, so closest-index is a full scan and
+lookahead stops at the end -- running off it is a real answer, not a wrap.
 */
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint() {
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_waypoint_from_path(
+    const nav_msgs::msg::Path &path, bool closed_loop) {
 
-    //check the global path
-    if (current_global_path.poses.empty()) {
+    if (path.poses.empty()) {
 
-        RCLCPP_WARN(this->get_logger(), "no waypoints in global path while in GLOBAL_FOLLOW state");
+        RCLCPP_WARN(this->get_logger(), "no waypoints in %s while in %s",
+            closed_loop ? "global path" : "local path",
+            closed_loop ? "GLOBAL_FOLLOW" : "LOCAL_FOLLOW");
         return std::nullopt;
 
     }
 
-    //find the current index corosponding to current location of vehicle
-    size_t current_pose_index = Pure_Persuit_Node::find_current_position_index();
+    const size_t current_pose_index = closed_loop
+        ? Pure_Persuit_Node::find_current_position_index()
+        : Pure_Persuit_Node::find_closest_index(path);
 
-    //find the look_ahead point in the global frame
-    std::optional<geometry_msgs::msg::Point> target_waypoint_global =
-        Pure_Persuit_Node::find_lookahead(current_global_path, current_pose_index, true);
+    const std::optional<geometry_msgs::msg::Point> target_waypoint_global =
+        Pure_Persuit_Node::find_lookahead(path, current_pose_index, closed_loop);
 
     if (!target_waypoint_global.has_value()) {
 
-        RCLCPP_WARN(this->get_logger(), "no target look ahead point found | find_lookahead_global()");
+        if (closed_loop) {
+            RCLCPP_WARN(this->get_logger(), "no target look ahead point found | find_lookahead()");
+        }
         return std::nullopt;
 
     }
 
-    //convert the point to the local frame
-    std::optional<geometry_msgs::msg::Point> converted_waypoint = Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
+    const std::optional<geometry_msgs::msg::Point> converted_waypoint =
+        Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
 
-    if (!converted_waypoint.has_value()) {
+    if (!converted_waypoint.has_value() && closed_loop) {
 
         RCLCPP_WARN(this->get_logger(), "no target look ahead point found | convert_to_local_frame()");
-        return std::nullopt;
 
     }
 
     return converted_waypoint;
+
+}
+
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint() {
+
+    return Pure_Persuit_Node::get_waypoint_from_path(current_global_path, true);
+
+}
+
+std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
+
+    return Pure_Persuit_Node::get_waypoint_from_path(current_local_path, false);
 
 }
 
@@ -528,53 +547,6 @@ geometry_msgs::msg::Point Pure_Persuit_Node::transfrom_point_(
     
 }
 
-/*
-assumption for this one  :
-- the local planner gives all the cordinates in the global (map) frame, same as
-  the global planner, so this is the same three steps as get_global_waypoint()
-- the z value of the point encodes the velocity at the desired point
-
-this used to consume the planner's pre-transformed base_link path and walk it from
-index 0, treating the path's origin as the car. that only holds at the instant the
-path is published. the planner runs at 20 Hz and this loop at 50 Hz, so for the
-next two or three ticks the car had moved on -- up to 0.385 m at 7.7 m/s -- and
-rotated, while the path had not. the lookahead point was measured from an origin
-trailing the real car and snapped forward again on every new path: a sawtooth on
-the steering command at the planner rate, worst at speed and in corners, since
-steering is kp*2y/L^2 with no rate limit. the global path never had this because
-it is re-referenced to the live pose on every tick. now both are.
-*/
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
-
-    if (current_local_path.poses.empty()) {
-
-        RCLCPP_WARN(this->get_logger(), "no waypoints in local path while in LOCAL_FOLLOW state");
-        return std::nullopt;
-
-    }
-
-    //find the current index corosponding to current location of vehicle
-    size_t current_pose_index = Pure_Persuit_Node::find_closest_index(current_local_path);
-
-    /*
-    find the look_ahead point in the global frame. no wrapping: the local path is
-    an open horizon, so running past its end is a real answer, and the caller
-    degrades to the global line rather than treating it as a fault.
-    */
-    std::optional<geometry_msgs::msg::Point> target_waypoint_global =
-        Pure_Persuit_Node::find_lookahead(current_local_path, current_pose_index, false);
-
-    if (!target_waypoint_global.has_value()) {
-
-        return std::nullopt;
-
-    }
-
-    //convert the point to the local frame, with a transform read at this instant
-    return Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
-
-}
-
 ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
     const geometry_msgs::msg::Point &target_point) {
 
@@ -674,8 +646,7 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<std::string>("local_frame_id","base_link");
 
     this->declare_parameter<std::string>("global_path_topic","/global_planner/path");
-    // the map-frame local path, not the planner's pre-transformed base_link one:
-    // see get_local_waypoint() for why the base_link path cannot be tracked here
+    // map-frame local path is the controller contract; /local_path is leftover
     this->declare_parameter<std::string>("local_path_topic","/local_path_map");
     this->declare_parameter<std::string>("overtake_ready_topic","/overtake_ready");
     this->declare_parameter<std::string>("dead_man_active_topic","/dead_man_switch");
