@@ -46,6 +46,7 @@ private:
     StateMachineConfig state;
     double planner_rate_hz = 20.0;
     double steering_command_timeout_s = 0.06;
+    double odom_timeout_s = 0.25;
     double wheelbase_m = 0.33;
     double track_boundary_margin_m = 0.05;
     double width_lookup_spacing_m = 0.10;
@@ -78,6 +79,7 @@ private:
 
   NodeConfig loadConfig();
   void planningCycle();
+  std::optional<Odometry> odometryInMap();
   bool transformPathToControllerFrame(
     const nav_msgs::msg::Path & map_path,
     nav_msgs::msg::Path & controller_path);
