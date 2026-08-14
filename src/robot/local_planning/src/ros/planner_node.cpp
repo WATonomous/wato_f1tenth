@@ -3,6 +3,7 @@
 #include "local_planning/ros/ros_adapters.hpp"
 
 #include <tf2/LinearMath/Transform.h>
+#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <cmath>
@@ -193,6 +194,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.odom_topic = declare_parameter("odom_topic", "/odom");
   cfg.steering_command_topic = declare_parameter("steering_command_topic", "/drive/autonomy");
   cfg.steering_command_timeout_s = declare_parameter("steering_command_timeout_s", 0.06);
+  cfg.odom_timeout_s = declare_parameter("odom_timeout_s", 0.25);
   cfg.wheelbase_m = declare_parameter("wheelbase_m", 0.33);
   cfg.use_steering_start_curvature = declare_parameter("use_steering_start_curvature", true);
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
@@ -242,15 +244,21 @@ void PlannerNode::planningCycle()
     finishProfile();
     return;
   }
-  profile.outcome.inputs_ready = true;
 
   const auto odom_started = std::chrono::steady_clock::now();
-  Odometry odom = rosToOdometry(*odom_);
+  const auto odom_in_map = odometryInMap();
+  profile.ros.odom_conversion_ms = std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - odom_started).count();
+  if (!odom_in_map) {
+    publishDecision(PlannerDecisionData{});
+    finishProfile();
+    return;
+  }
+  profile.outcome.inputs_ready = true;
+  Odometry odom = *odom_in_map;
   profile.outcome.steering_fresh = has_steering_ &&
     std::abs((now() - steering_received_).seconds()) <= config_.steering_command_timeout_s;
   if (profile.outcome.steering_fresh) {odom.steering_angle = steering_angle_;}
-  profile.ros.odom_conversion_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - odom_started).count();
 
   const auto state_started = std::chrono::steady_clock::now();
   state_machine_.update(odom, grid_);
@@ -334,6 +342,32 @@ void PlannerNode::planningCycle()
   profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - marker_publish_started).count();
   finishProfile();
+}
+
+std::optional<Odometry> PlannerNode::odometryInMap()
+{
+  if (!odom_) {
+    return std::nullopt;
+  }
+  const rclcpp::Time stamp(odom_->header.stamp, now().get_clock_type());
+  if (std::abs((now() - stamp).seconds()) > config_.odom_timeout_s) {
+    return std::nullopt;
+  }
+  geometry_msgs::msg::TransformStamped transform;
+  try {
+    transform = tf_buffer_->lookupTransform(
+      config_.map_frame, config_.controller_frame, tf2::TimePointZero);
+  } catch (const tf2::TransformException &) {
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), *get_clock(), 1000, "Ego pose transform unavailable");
+    return std::nullopt;
+  }
+  Odometry odom;
+  odom.position.x = transform.transform.translation.x;
+  odom.position.y = transform.transform.translation.y;
+  odom.velocity = odom_->twist.twist.linear.x;
+  odom.heading = tf2::getYaw(transform.transform.rotation);
+  return odom;
 }
 
 bool PlannerNode::transformPathToControllerFrame(
