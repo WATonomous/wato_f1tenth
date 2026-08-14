@@ -310,22 +310,22 @@ void PlannerNode::planningCycle()
     now(), config_.map_frame);
   profile.ros.path_message_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_message_started).count();
+  // The controller contract is the map-frame path. Pure pursuit re-transforms
+  // the lookahead point every tick, so a missing map→base_link TF must not
+  // starve /local_path_map or clear /overtake_ready. /local_path is leftover
+  // viz/compat and is only published when that transform is available.
+  const auto path_publish_started = std::chrono::steady_clock::now();
+  local_path_map_pub_->publish(map_path);
+  profile.outcome.path_published = true;
   nav_msgs::msg::Path controller_path;
   const auto tf_started = std::chrono::steady_clock::now();
-  if (!transformPathToControllerFrame(map_path, controller_path)) {
+  if (transformPathToControllerFrame(map_path, controller_path)) {
+    local_path_pub_->publish(controller_path);
+  } else {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Local path transform unavailable");
-    publishOvertakeReady(false);
-    profile.ros.tf_ms = std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - tf_started).count();
-    finishProfile();
-    return;
   }
   profile.ros.tf_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - tf_started).count();
-  const auto path_publish_started = std::chrono::steady_clock::now();
-  local_path_map_pub_->publish(map_path);
-  local_path_pub_->publish(controller_path);
-  profile.outcome.path_published = true;
   profile.ros.path_publish_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_publish_started).count();
   const auto marker_publish_started = std::chrono::steady_clock::now();
