@@ -277,7 +277,10 @@ CollisionCheckResult CollisionChecker::collisionCheck(
       {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0});
   }
 
-  const double max_step_m = 0.5 * grid.resolution;
+  // The EDT is piecewise-constant per cell, so samples finer than the grid
+  // repeat the same lookup.  Walk at cell size; coarser path samples are still
+  // densified up to this step so a long chord cannot skip an occupied cell.
+  const double max_step_m = grid.resolution;
   CollisionStatus aggregated_status = CollisionStatus::FREE;
   double minimum_clearance_m = std::numeric_limits<double>::infinity();
   uint32_t checked_poses = 0;
