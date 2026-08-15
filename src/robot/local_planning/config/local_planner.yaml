@@ -33,7 +33,7 @@ planner_node:
     compat_heading_rad: 1.05
 
     front_collision_circle_offset_m: 0.32
-    soft_inflation_distance_m: 0.10
+    soft_inflation_distance_m: 0.15
     occupied_threshold: 50
     treat_unknown_as_free: true
     friction_coeff: 1.0
@@ -84,7 +84,7 @@ planner_node:
     profiling_log_every_n_cycles: 20
     # "" reports every intent. Set to FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to
     # log only that one when the worst case is all that matters.
-    profiling_intent_filter: ""
+    profiling_intent_filter: "OVERTAKE"
     # One LOCAL_PLANNER_EVENT line per transition the controller can feel: the
     # intent changing, a path appearing or disappearing, the selected side
     # flipping across the centreline, or the steering start-curvature going

@@ -92,6 +92,7 @@ TEST(PlannerDiagnostics, AggregatesPerIntentPercentilesAndGridSamples)
     sample.ros.cycle_ms = cycle_ms;
     sample.ros.tf_ms = cycle_ms;
     sample.core.candidate_generation_ms = cycle_ms;
+    sample.core.track_bounds_ms = cycle_ms;
     sample.core.total_path_samples = static_cast<uint32_t>(cycle_ms);
     sample.core.collision_poses_checked = static_cast<uint32_t>(cycle_ms);
     sample.outcome.inputs_ready = true;
@@ -111,6 +112,7 @@ TEST(PlannerDiagnostics, AggregatesPerIntentPercentilesAndGridSamples)
   EXPECT_NE(message.find("cycle_ms=4.000/9.000/9.000"), std::string::npos);
   EXPECT_NE(message.find("tf_ms=4.000/9.000/9.000"), std::string::npos);
   EXPECT_NE(message.find("candidate_gen_ms=4.000/9.000/9.000"), std::string::npos);
+  EXPECT_NE(message.find("track_bounds_ms=4.000/9.000/9.000"), std::string::npos);
   EXPECT_NE(message.find("candidates=4.0/9.0/9.0"), std::string::npos);
   EXPECT_NE(message.find("path_samples=4.0/9.0/9.0"), std::string::npos);
   EXPECT_NE(message.find("collision_poses=4.0/9.0/9.0"), std::string::npos);

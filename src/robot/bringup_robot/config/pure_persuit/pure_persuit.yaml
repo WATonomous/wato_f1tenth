@@ -32,7 +32,7 @@ pure_persuit_node:
     # geometrically correct value and limit-cycles at ~2 Hz once actuator lag is
     # in the loop -- do NOT raise this for hairpin bite, it adds gain at every
     # speed including the fast regime where it oscillates. Use min_lookahead.
-    kp_gain: 0.15
+    kp_gain: 0.25
     # L = clamp(max_lookahead * v / lookahead_ratio, min_lookahead, max_lookahead)
     max_lookahead: 2.0 #increase this if there is more lots of ossilation at high speed
     # The hairpin knob. Steering goes as 1/L^2 and L is clamped here below
