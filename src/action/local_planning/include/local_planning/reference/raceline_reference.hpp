@@ -88,6 +88,9 @@ public:
   // s is wrapped, so any real value is in range.
   ReferenceGeometrySample sampleAtS(double s) const;
 
+  // Raceline speed only. wrapS + segmentAt + lerp, no spline eval.
+  double velocityAtS(double s) const;
+
   // Frenet (s, d) -> world, offsetting along the left normal at s.
   Point toCartesian(double s, double d) const;
 
@@ -138,6 +141,10 @@ private:
 
   // Index of the segment containing wrapped arc length s, and t within it.
   std::size_t segmentAt(double s_wrapped, double & t) const;
+
+  // Linear speed on an already-located segment. sampleAtS has i and t from
+  // its own segmentAt; calling velocityAtS would search the raceline again.
+  double velocityOnSegment(std::size_t i, double t) const;
 
   // Coarse-samples one segment, refines each guess, and keeps the result if it
   // beats best_dist_sq and passes the tangent check.  Returns true if it did.

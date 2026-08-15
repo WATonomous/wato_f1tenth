@@ -50,10 +50,6 @@ public:
     const OccupancyGrid & grid) const;
 
 private:
-  CollisionCheckResult collisionCheckPose(
-    const Point & p,
-    double heading,
-    const OccupancyGrid & grid) const;
   CollisionCheckResult applyOutOfGridPolicy(CollisionCheckResult result) const;
 
   VehicleGeometry vehicle_geometry_;

@@ -103,8 +103,28 @@ TEST(RacelineReference, CurvatureMatchesAnalyticCircle)
     const ReferenceGeometrySample sample = reference.sampleAtS(s);
     EXPECT_NEAR(std::abs(sample.curvature), 1.0 / 5.0, 1e-3) << "s=" << s;
     EXPECT_NEAR(sample.velocity, 4.0, 1e-9);
+    EXPECT_NEAR(reference.velocityAtS(s), sample.velocity, 1e-12);
     EXPECT_NEAR(std::hypot(sample.tangent_x, sample.tangent_y), 1.0, 1e-9);
   }
+}
+
+TEST(RacelineReference, VelocityAtSMatchesSampleAtSOnVaryingSpeeds)
+{
+  std::vector<Point> points = circleLine(5.0, 24, 3.0);
+  for (std::size_t i = 0; i < points.size(); ++i) {
+    points[i].velocity = 2.0 + static_cast<double>(i % 5);
+  }
+
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(points));
+
+  const double length = reference.totalLength();
+  for (int i = 0; i < 100; ++i) {
+    const double s = length * static_cast<double>(i) / 100.0;
+    EXPECT_NEAR(reference.velocityAtS(s), reference.sampleAtS(s).velocity, 1e-12) << "s=" << s;
+  }
+  EXPECT_NEAR(reference.velocityAtS(-0.3), reference.sampleAtS(-0.3).velocity, 1e-12);
+  EXPECT_NEAR(reference.velocityAtS(length + 1.7), reference.sampleAtS(length + 1.7).velocity, 1e-12);
 }
 
 // The reason the tangent check exists, and the whole reason global-nearest is

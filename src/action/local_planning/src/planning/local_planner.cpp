@@ -157,8 +157,10 @@ LocalPlanResult LocalPlanner::plan(
           ++result.decision.out_of_grid_rejected;
           continue;
         }
+        const auto bounds_started = std::chrono::steady_clock::now();
         const TrackBoundsCheckResult width_check = track_bounds_checker_.check(
           candidate.path, grid);
+        result.profile.track_bounds_ms += elapsedMs(bounds_started);
         unseen_hint_samples += width_check.station_hint_samples;
         unseen_hint_fallbacks += width_check.station_hint_fallbacks;
         if (!width_check.ok) {
