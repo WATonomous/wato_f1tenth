@@ -23,14 +23,17 @@ GeneratedConnection rejected(RejectReason reason)
 
 GeneratedConnection CurveConnectionGenerator::generate(const ConnectionRequest & request) const
 {
-  clothoids_backend::SolveResult solved =
-    clothoids_backend::solveG2(request.start, request.terminal, config_.sample_spacing_m);
+  const clothoids_backend::SolveLimits limits{
+    config_.max_arc_length_m, config_.max_curvature_inv_m};
+  clothoids_backend::SolveResult solved = clothoids_backend::solveG2(
+    request.start, request.terminal, config_.sample_spacing_m, limits);
 
   if (!solved.converged) {
     return rejected(RejectReason::SOLVER_FAILED);
   }
 
-
+  // The backend stops before sampling when either of these trips, so a
+  // rejection here costs the Newton solve and nothing more.
   if (solved.arc_length_m > config_.max_arc_length_m) {
     return rejected(RejectReason::ARC_LENGTH_LIMIT);
   }
