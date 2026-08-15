@@ -69,6 +69,7 @@ struct LocalPlanProfile
 {
   double candidate_generation_ms = 0.0;
   double collision_check_ms = 0.0;
+  double track_bounds_ms = 0.0;
   double terminal_projection_ms = 0.0;
   double velocity_profile_ms = 0.0;
   double selection_ms = 0.0;
