@@ -38,10 +38,13 @@ planner_node:
     treat_unknown_as_free: true
     friction_coeff: 1.0
     min_velocity_mps: 0.0
-    max_velocity_mps: 7.7 # Derived from the horizon braking envelope.
+    # Hard testing cap. The horizon braking envelope supports 7.7; restore that
+    # value to plan at full raceline speed again.
+    max_velocity_mps: 2.0
     max_accel_mps2: 5.0
     max_decel_mps2: 5.0
-    overtake_speed_scale: 0.8
+    # 1.0 = OVERTAKE/PASS/MERGE plan at the same speed as FOLLOW.
+    overtake_speed_scale: 1.0
     treat_out_of_grid_as_free: true
 
     sample_spacing_m: 0.1
@@ -62,9 +65,9 @@ planner_node:
     reference_track_topic: "/global_planner/reference_track"
     track_boundary_margin_m: 0.05
     width_lookup_spacing_m: 0.10
-    # Width caps constrain requested terminal/intermediate d values. Dense G2
-    # path boundary checking is intentionally deferred, so interior overshoot
-    # between those targets remains a known limitation of this first version.
+    # Width table is the prior for unknown / out-of-grid poses; known cells stay
+    # with the costmap. Dense G2-overshoot into an unseen wall is caught;
+    # overshoot into a seen wall is already collision.
     occupancy_grid_topic: "/occupancy_grid"
     odom_topic: "/odom"
     steering_command_topic: "/drive/autonomy"

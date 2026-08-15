@@ -192,8 +192,6 @@ void PlannerVisualization::publishTrackBounds(
     };
   auto raw_left = make_line("track_bounds_raw", 0, 0.2F, 0.55F, 1.0F);
   auto raw_right = make_line("track_bounds_raw", 1, 0.2F, 0.55F, 1.0F);
-  auto cap_left = make_line("track_bounds_sustainable", 0, 1.0F, 0.3F, 0.1F);
-  auto cap_right = make_line("track_bounds_sustainable", 1, 1.0F, 0.3F, 0.1F);
   for (std::size_t i = 0; i <= reference_.widthSampleCount(); ++i) {
     const std::size_t index = i % reference_.widthSampleCount();
     const auto widths = reference_.widthSample(index);
@@ -206,13 +204,9 @@ void PlannerVisualization::publishTrackBounds(
       };
     append(raw_left, widths.raw.left_magnitude);
     append(raw_right, -widths.raw.right_magnitude);
-    append(cap_left, widths.sustainable.left_magnitude);
-    append(cap_right, -widths.sustainable.right_magnitude);
   }
   markers.markers.push_back(std::move(raw_left));
   markers.markers.push_back(std::move(raw_right));
-  markers.markers.push_back(std::move(cap_left));
-  markers.markers.push_back(std::move(cap_right));
   publisher.publish(markers);
 }
 

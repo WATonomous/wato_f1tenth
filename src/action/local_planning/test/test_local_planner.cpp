@@ -1,0 +1,269 @@
+#include "local_planning/planning/local_planner.hpp"
+
+#include <gtest/gtest.h>
+
+#include <cmath>
+#include <vector>
+
+namespace local_planning
+{
+namespace
+{
+
+constexpr double kPi = 3.14159265358979323846;
+constexpr double kMarginM = 0.05;
+
+std::vector<Point> circleLine(double radius, int count)
+{
+  std::vector<Point> points;
+  points.reserve(static_cast<std::size_t>(count));
+  for (int i = 0; i < count; ++i) {
+    const double angle = 2.0 * kPi * static_cast<double>(i) / static_cast<double>(count);
+    points.emplace_back(radius * std::cos(angle), radius * std::sin(angle), 3.0);
+  }
+  return points;
+}
+
+BoundaryState egoAt(const RacelineReference & reference, double s, double d)
+{
+  const ReferenceGeometrySample sample = reference.sampleAtS(s);
+  return {
+    sample.x + d * sample.normal_x,
+    sample.y + d * sample.normal_y,
+    sample.heading,
+    sample.curvature / (1.0 - d * sample.curvature),
+    sample.velocity};
+}
+
+ManeuverConfig testConfig()
+{
+  ManeuverConfig config;
+  config.overtake_s_offsets_from_opponent_rear_m = {0.0};
+  config.overtake_heading_offsets_rad = {0.0};
+  config.passing_d_magnitudes_m = {0.55, 0.75};
+  config.merge_completion_distances_m = {2.0};
+  config.pass_transition_distances_m = {6.0};
+  return config;
+}
+
+GridPolicy productionGridPolicy()
+{
+  GridPolicy policy;
+  policy.treat_unknown_as_free = true;
+  policy.treat_out_of_grid_as_free = true;
+  return policy;
+}
+
+OccupancyGrid makeGrid(
+  int width, int height, double resolution, double origin_x, double origin_y, int8_t fill)
+{
+  OccupancyGrid grid;
+  grid.width = width;
+  grid.height = height;
+  grid.resolution = resolution;
+  grid.origin = Point(origin_x, origin_y);
+  grid.data.assign(static_cast<std::size_t>(width * height), fill);
+  return grid;
+}
+
+OccupancyGrid coveringGrid(int8_t fill)
+{
+  return makeGrid(400, 400, 0.20, -40.0, -40.0, fill);
+}
+
+std::vector<TrackWidth> uniformWidths(
+  const RacelineReference & reference, double right,
+  double left)
+{
+  return std::vector<TrackWidth>(reference.waypointCount(), TrackWidth{right, left});
+}
+
+LocalPlanResult planIntent(
+  RacelineReference & reference,
+  OccupancyGrid & grid,
+  PlannerIntent intent,
+  double ego_s,
+  double ego_d,
+  double opponent_s = 5.0)
+{
+  const VehicleGeometry vehicle;
+  const CurveConnectionGenerator generator;
+  const ManeuverBuilder builder(reference, generator, testConfig(), vehicle);
+  LocalPlanner planner(
+    reference, builder, vehicle, productionGridPolicy(), CollisionConfig{},
+    VelocityProfileConfig{});
+  planner.buildGridCache(grid);
+
+  TacticalState state;
+  state.intent = intent;
+  state.ego_s = ego_s;
+  state.ego_d = ego_d;
+  state.opponent.detected = intent == PlannerIntent::OVERTAKE;
+  state.opponent.s = opponent_s;
+  state.opponent.gap_m = opponent_s - ego_s;
+  return planner.plan(state, egoAt(reference, ego_s, ego_d), grid);
+}
+
+bool offsetTailAt(const ManeuverCandidate & candidate, double magnitude)
+{
+  return candidate.uses_offset_tail &&
+         std::abs(std::abs(candidate.target_d) - magnitude) <= 1e-9;
+}
+
+}  // namespace
+
+TEST(LocalPlanner, UnknownCellsThatViolateWidthAreRejected)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+
+  OccupancyGrid grid = coveringGrid(-1);
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0);
+
+  ASSERT_GT(result.decision.generated_count, 0u);
+  EXPECT_EQ(result.decision.collision_rejected, 0u);
+  EXPECT_EQ(result.decision.track_bounds_rejected, result.decision.generated_count);
+  EXPECT_EQ(result.decision.valid_candidate_count, 0u);
+  EXPECT_EQ(result.selected_index, -1);
+}
+
+TEST(LocalPlanner, KnownFreeCellsSkipWidthEvenWhenTheTableIsNarrow)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+
+  OccupancyGrid grid = coveringGrid(0);
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0);
+
+  ASSERT_GT(result.decision.generated_count, 0u);
+  EXPECT_EQ(result.decision.track_bounds_rejected, 0u);
+  EXPECT_GT(result.decision.valid_candidate_count, 0u);
+  EXPECT_GE(result.selected_index, 0);
+}
+
+TEST(LocalPlanner, OccupiedCellsDieInCollisionBeforeWidth)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+
+  OccupancyGrid grid = coveringGrid(100);
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0);
+
+  ASSERT_GT(result.decision.generated_count, 0u);
+  EXPECT_EQ(result.decision.collision_rejected, result.decision.generated_count);
+  EXPECT_EQ(result.decision.track_bounds_rejected, 0u);
+  EXPECT_EQ(result.decision.valid_candidate_count, 0u);
+}
+
+TEST(LocalPlanner, UnknownPinchThenOpenKeepsInsideLineAndRejectsWideThroughPinch)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  std::vector<TrackWidth> widths = uniformWidths(reference, 2.0, 2.0);
+  const double ds =
+    reference.totalLength() / static_cast<double>(reference.waypointCount());
+  for (std::size_t i = 0; i < widths.size(); ++i) {
+    const double s = ds * static_cast<double>(i);
+    if (s >= 2.2 && s <= 4.8) {
+      widths[i] = {0.95, 0.95};
+    }
+  }
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      widths, vehicle.collision_radius_m, kMarginM, 0.10));
+
+  OccupancyGrid grid = coveringGrid(-1);
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0, 5.0);
+
+  ASSERT_GT(result.decision.generated_count, 0u);
+  EXPECT_GT(result.decision.track_bounds_rejected, 0u);
+  EXPECT_GT(result.decision.valid_candidate_count, 0u);
+
+  bool inside_tail_ok = false;
+  for (const auto & evaluated : result.evaluated) {
+    const auto & candidate =
+      result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+    if (offsetTailAt(candidate, 0.75)) {
+      EXPECT_FALSE(evaluated.track_bounds_ok);
+      EXPECT_FALSE(evaluated.velocity_feasible);
+    }
+    if (offsetTailAt(candidate, 0.55)) {
+      EXPECT_TRUE(evaluated.track_bounds_ok);
+      EXPECT_TRUE(evaluated.velocity_feasible);
+      inside_tail_ok = true;
+    }
+  }
+  EXPECT_TRUE(inside_tail_ok);
+}
+
+TEST(LocalPlanner, OutOfGridSamplesUseWidthWhenTheCostmapCannotSee)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+
+  const ReferenceGeometrySample ego = reference.sampleAtS(2.0);
+  OccupancyGrid grid = makeGrid(16, 16, 0.10, ego.x - 0.80, ego.y - 0.80, 0);
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0);
+
+  ASSERT_GT(result.decision.generated_count, 0u);
+  EXPECT_EQ(result.decision.collision_rejected, 0u);
+  EXPECT_EQ(result.decision.track_bounds_rejected, result.decision.generated_count);
+  EXPECT_EQ(result.decision.valid_candidate_count, 0u);
+}
+
+TEST(LocalPlanner, MergeThroughUnknownNeedsClearanceOnBothSides)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      uniformWidths(reference, 2.0, 0.25), vehicle.collision_radius_m, kMarginM, 0.10));
+
+  OccupancyGrid unknown = coveringGrid(-1);
+  const LocalPlanResult blocked = planIntent(
+    reference, unknown, PlannerIntent::MERGE, 2.0, 0.10);
+  ASSERT_GT(blocked.decision.generated_count, 0u);
+  EXPECT_EQ(blocked.decision.valid_candidate_count, 0u);
+  EXPECT_GT(blocked.decision.track_bounds_rejected, 0u);
+
+  OccupancyGrid known_free = coveringGrid(0);
+  const LocalPlanResult clear = planIntent(
+    reference, known_free, PlannerIntent::MERGE, 2.0, 0.10);
+  EXPECT_EQ(clear.decision.track_bounds_rejected, 0u);
+  EXPECT_GT(clear.decision.valid_candidate_count, 0u);
+}
+
+TEST(LocalPlanner, DecisionPublishesRawBoundsAtEgo)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  const VehicleGeometry vehicle;
+  ASSERT_TRUE(reference.setTrackWidths(
+      uniformWidths(reference, 1.0, 1.2), vehicle.collision_radius_m, kMarginM, 0.10));
+
+  OccupancyGrid grid = coveringGrid(0);
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0);
+  const SustainableBounds bounds = reference.rawBounds(2.0);
+  EXPECT_NEAR(result.decision.sustainable_right_m, bounds.right_magnitude, 1e-12);
+  EXPECT_NEAR(result.decision.sustainable_left_m, bounds.left_magnitude, 1e-12);
+}
+
+}  // namespace local_planning

@@ -176,7 +176,7 @@ TEST(RacelineReference, RejectsDegenerateInput)
   EXPECT_FALSE(reference.valid());
 }
 
-TEST(RacelineReference, TrackWidthsApplyClearanceAndForwardMinimumAcrossWrap)
+TEST(RacelineReference, TrackWidthsApplyClearanceAndRawBoundsAtPinchVsAway)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
@@ -186,10 +186,22 @@ TEST(RacelineReference, TrackWidthsApplyClearanceAndForwardMinimumAcrossWrap)
   }
   widths[0] = {0.40, 0.80};
 
-  ASSERT_TRUE(reference.setTrackWidths(widths, 3.0, 0.20, 0.05, 0.10));
-  const auto bounds = reference.sustainableBounds(reference.totalLength() - 0.05);
-  EXPECT_NEAR(bounds.right_magnitude, 0.15, 1e-5);
-  EXPECT_NEAR(bounds.left_magnitude, 0.55, 1e-5);
+  ASSERT_TRUE(reference.setTrackWidths(widths, 0.20, 0.05, 0.10));
+  const auto pinch = reference.rawBounds(0.0);
+  EXPECT_NEAR(pinch.right_magnitude, 0.15, 1e-5);
+  EXPECT_NEAR(pinch.left_magnitude, 0.55, 1e-5);
+
+  const auto away = reference.rawBounds(reference.totalLength() / 2.0);
+  EXPECT_NEAR(away.right_magnitude, 0.75, 1e-5);
+  EXPECT_NEAR(away.left_magnitude, 0.95, 1e-5);
+
+  const auto wrapped_query = reference.rawBounds(reference.totalLength());
+  EXPECT_NEAR(wrapped_query.right_magnitude, pinch.right_magnitude, 1e-12);
+  EXPECT_NEAR(wrapped_query.left_magnitude, pinch.left_magnitude, 1e-12);
+
+  const auto wrap_bin = reference.rawBounds(reference.totalLength() - 0.05);
+  EXPECT_NEAR(wrap_bin.right_magnitude, 0.15, 1e-5);
+  EXPECT_NEAR(wrap_bin.left_magnitude, 0.55, 1e-5);
 }
 
 TEST(RacelineReference, TrackWidthsRequireOneWidthPerWaypoint)
@@ -197,8 +209,31 @@ TEST(RacelineReference, TrackWidthsRequireOneWidthPerWaypoint)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const std::vector<TrackWidth> widths(reference.waypointCount() - 1, {1.0, 1.0});
-  EXPECT_FALSE(reference.setTrackWidths(widths, 6.0, 0.20, 0.05, 0.10));
+  EXPECT_FALSE(reference.setTrackWidths(widths, 0.20, 0.05, 0.10));
   EXPECT_FALSE(reference.trackWidthsValid());
+}
+
+// Closed-loop exports repeat the first waypoint (and its width) at the end.
+// setRacingLine drops the repeated waypoint; setTrackWidths must still accept
+// the width vector sized for the original, still-closed message.
+TEST(RacelineReference, TrackWidthsAcceptClosedLoopExport)
+{
+  std::vector<Point> closed = circleLine(30.0, 240);
+  closed.push_back(closed.front());
+
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(closed));
+  EXPECT_EQ(reference.waypointCount(), 240U);
+
+  const std::vector<TrackWidth> widths(closed.size(), {1.0, 1.0});
+  EXPECT_TRUE(reference.setTrackWidths(widths, 0.20, 0.05, 0.10));
+  EXPECT_TRUE(reference.trackWidthsValid());
+
+  // An open reference must still reject an oversized width vector.
+  RacelineReference open_reference;
+  ASSERT_TRUE(open_reference.setRacingLine(circleLine(30.0, 240)));
+  EXPECT_FALSE(open_reference.setTrackWidths(widths, 0.20, 0.05, 0.10));
+  EXPECT_FALSE(open_reference.trackWidthsValid());
 }
 
 } // namespace local_planning

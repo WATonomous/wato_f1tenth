@@ -46,7 +46,6 @@ struct WidthLookupSample
 {
   double s = 0.0;
   SustainableBounds raw;
-  SustainableBounds sustainable;
 };
 
 struct TrackWidth
@@ -72,17 +71,16 @@ public:
   double totalLength() const {return total_length_m_;}
   std::size_t waypointCount() const {return points_.size();}
 
-  // Widths are index-aligned with the active reference. Construction performs
-  // all interpolation and forward-horizon minima; the runtime query is O(1).
+  // Widths are index-aligned with the active reference. Construction interpolates
+  // onto a uniform table; rawBounds(s) is an O(1) lookup, min'd with the next bin.
   bool setTrackWidths(
     const std::vector<TrackWidth> & widths,
-    double horizon_m,
     double collision_radius_m,
     double margin_m,
     double spacing_m);
   void clearTrackWidths();
   bool trackWidthsValid() const {return track_widths_valid_;}
-  SustainableBounds sustainableBounds(double s) const;
+  SustainableBounds rawBounds(double s) const;
   WidthLookupSample widthSample(std::size_t index) const;
   std::size_t widthSampleCount() const {return raw_left_m_.size();}
 
@@ -103,8 +101,11 @@ public:
   // project() when the station is genuinely unknown, and it will not cross to a
   // far branch of the track.  Pass converged to find out whether it got there;
   // when it comes back false the hint was not a neighbouring station and the
-  // returned offset is meaningless.
-  double lateralOffsetAt(const Point & p, double s_hint, bool * converged = nullptr) const;
+  // returned offset is meaningless.  When it converges, refined_s (if given) is
+  // the station of the foot, to seed the next sample.
+  double lateralOffsetAt(
+    const Point & p, double s_hint, bool * converged = nullptr,
+    double * refined_s = nullptr) const;
 
   // Locally-seeded projection with the tangent check.  Use this wherever the
   // query point has a meaningful heading
@@ -168,10 +169,11 @@ private:
 
   // Newton refinement of the foot of the perpendicular within one segment.
   double refineOnSegment(const Point & p, std::size_t segment, double t_initial) const;
-  static std::vector<double> circularMinimum(
-    const std::vector<double> & values, std::size_t window);
 
   bool valid_ = false;
+  // True when setRacingLine() removed a repeated closing waypoint; the width
+  // vector from the same message then legitimately has one extra entry.
+  bool dropped_closing_waypoint_ = false;
   std::vector<Point> points_;
   std::vector<double> cumulative_s_;   // arc length at waypoint i
   std::vector<double> segment_length_; // segment i spans waypoint i to i+1 (wrapping)
@@ -184,8 +186,6 @@ private:
   double width_spacing_m_ = 0.0;
   std::vector<double> raw_right_m_;
   std::vector<double> raw_left_m_;
-  std::vector<double> sustainable_right_m_;
-  std::vector<double> sustainable_left_m_;
 };
 
 } // namespace local_planning

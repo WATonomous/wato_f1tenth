@@ -2,11 +2,13 @@
 #define LOCAL_PLANNING_PLANNING_LOCAL_PLANNER_HPP
 
 #include "local_planning/collision/collision_checker.hpp"
+#include "local_planning/collision/track_bounds_checker.hpp"
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 #include "local_planning/selection/candidate_selector.hpp"
 #include "local_planning/speed/velocity_profile.hpp"
 #include "local_planning/state/racing_state_machine.hpp"
 
+#include <cstdint>
 #include <vector>
 
 namespace local_planning
@@ -118,6 +120,7 @@ private:
   VehicleGeometry vehicle_geometry_;
   VelocityProfileConfig velocity_config_;
   CollisionChecker collision_checker_;
+  TrackBoundsChecker track_bounds_checker_;
   CandidateSelector selector_;
 };
 

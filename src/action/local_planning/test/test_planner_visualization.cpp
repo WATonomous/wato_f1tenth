@@ -178,13 +178,13 @@ TEST_F(PlannerVisualizationTest, ProjectionHonorsEnableAndValidityAndPublishesFi
   EXPECT_FALSE(receiver.receivesWithin(100ms));
 }
 
-TEST_F(PlannerVisualizationTest, TrackBoundsPublishFourClosedRawAndSustainableLines)
+TEST_F(PlannerVisualizationTest, TrackBoundsPublishTwoClosedRawLines)
 {
   RacelineReference reference;
   const auto points = circleLine(5.0, 48);
   ASSERT_TRUE(reference.setRacingLine(points));
   std::vector<TrackWidth> widths(points.size(), TrackWidth{1.2, 1.5});
-  ASSERT_TRUE(reference.setTrackWidths(widths, 2.0, 0.2, 0.05, 0.25));
+  ASSERT_TRUE(reference.setTrackWidths(widths, 0.2, 0.05, 0.25));
   PlannerVisualization visualization(reference, {"map", true, 0.4, 1.05});
   MarkerReceiver receiver("track_bounds_visualization_test");
 
@@ -192,11 +192,9 @@ TEST_F(PlannerVisualizationTest, TrackBoundsPublishFourClosedRawAndSustainableLi
   const auto message = receiver.take();
 
   ASSERT_NE(message, nullptr);
-  ASSERT_EQ(message->markers.size(), 4U);
+  ASSERT_EQ(message->markers.size(), 2U);
   EXPECT_EQ(message->markers[0].ns, "track_bounds_raw");
   EXPECT_EQ(message->markers[1].ns, "track_bounds_raw");
-  EXPECT_EQ(message->markers[2].ns, "track_bounds_sustainable");
-  EXPECT_EQ(message->markers[3].ns, "track_bounds_sustainable");
   for (const auto & marker : message->markers) {
     ASSERT_EQ(marker.points.size(), reference.widthSampleCount() + 1U);
     EXPECT_NEAR(marker.points.front().x, marker.points.back().x, 1e-12);

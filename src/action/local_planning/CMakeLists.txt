@@ -45,6 +45,7 @@ add_library(local_planning_core
   src/curves/upstream/clothoid_g2.cpp
   src/maneuvers/maneuver_builder.cpp
   src/collision/collision_checker.cpp
+  src/collision/track_bounds_checker.cpp
   src/speed/velocity_profile.cpp
   src/state/racing_state_machine.cpp
   src/selection/candidate_selector.cpp
@@ -135,6 +136,9 @@ if(BUILD_TESTING)
   ament_add_gtest(test_collision_checker test/test_collision_checker.cpp)
   target_link_libraries(test_collision_checker local_planning_core)
 
+  ament_add_gtest(test_track_bounds_checker test/test_track_bounds_checker.cpp)
+  target_link_libraries(test_track_bounds_checker local_planning_core)
+
   ament_add_gtest(test_velocity_profile test/test_velocity_profile.cpp)
   target_link_libraries(test_velocity_profile local_planning_core)
 
@@ -143,6 +147,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_candidate_selector test/test_candidate_selector.cpp)
   target_link_libraries(test_candidate_selector local_planning_core)
+
+  ament_add_gtest(test_local_planner test/test_local_planner.cpp)
+  target_link_libraries(test_local_planner local_planning_core)
 
   ament_add_gtest(test_ros_adapters test/test_ros_adapters.cpp)
   target_link_libraries(test_ros_adapters local_planning_ros)

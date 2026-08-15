@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <deque>
 #include <limits>
 
 namespace local_planning
@@ -147,7 +146,9 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
 
   // Some exporters repeat the first waypoint to close the loop.  The loop is
   // implicit here, and keeping the repeat leaves a zero-length segment that
-  // makes the spline system singular.
+  // makes the spline system singular.  Remember that we dropped it so
+  // setTrackWidths() can accept the matching, still-closed width vector.
+  dropped_closing_waypoint_ = false;
   points_ = points;
   if (points_.size() >= 2 &&
     std::hypot(
@@ -155,6 +156,7 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
       points_.front().y - points_.back().y) < kDuplicateWaypointToleranceM)
   {
     points_.pop_back();
+    dropped_closing_waypoint_ = true;
   }
   if (points_.size() < kMinWaypoints) {
     return false;
@@ -213,19 +215,23 @@ void RacelineReference::clearTrackWidths()
   width_spacing_m_ = 0.0;
   raw_right_m_.clear();
   raw_left_m_.clear();
-  sustainable_right_m_.clear();
-  sustainable_left_m_.clear();
 }
 
 bool RacelineReference::setTrackWidths(
   const std::vector<TrackWidth> & widths,
-  double horizon_m,
   double collision_radius_m,
   double margin_m,
   double requested_spacing_m)
 {
   clearTrackWidths();
-  if (!valid_ || widths.size() != points_.size() ||
+  // A closed-loop export carries one width per original waypoint, including
+  // the repeated closing waypoint that setRacingLine() dropped.  That trailing
+  // width duplicates the first and is simply ignored; interpolation below only
+  // indexes widths [0, points_.size()).
+  const std::size_t expected_count =
+    points_.size() + (dropped_closing_waypoint_ ? 1U : 0U);
+  if (!valid_ ||
+    (widths.size() != points_.size() && widths.size() != expected_count) ||
     requested_spacing_m <= 0.0)
   {
     return false;
@@ -252,51 +258,21 @@ bool RacelineReference::setTrackWidths(
       alpha * (widths[next].left_m - widths[segment].left_m) - clearance);
   }
 
-  const std::size_t window = std::min(
-    count, static_cast<std::size_t>(std::ceil(horizon_m / width_spacing_m_)) + 1);
-  sustainable_right_m_ = circularMinimum(raw_right_m_, window);
-  sustainable_left_m_ = circularMinimum(raw_left_m_, window);
   track_widths_valid_ = true;
   return true;
 }
 
-std::vector<double> RacelineReference::circularMinimum(
-  const std::vector<double> & values, std::size_t window)
-{
-  std::vector<double> result(values.size());
-  std::deque<std::size_t> minimum;
-  const std::size_t extended_count = values.size() + window - 1;
-  for (std::size_t i = 0; i < extended_count; ++i) {
-    while (!minimum.empty() &&
-      values[minimum.back() % values.size()] >= values[i % values.size()])
-    {
-      minimum.pop_back();
-    }
-    minimum.push_back(i);
-    while (minimum.front() + window <= i) {
-      minimum.pop_front();
-    }
-    if (i + 1 >= window) {
-      const std::size_t start = i + 1 - window;
-      if (start < values.size()) {
-        result[start] = values[minimum.front() % values.size()];
-      }
-    }
-  }
-  return result;
-}
-
-SustainableBounds RacelineReference::sustainableBounds(double s) const
+SustainableBounds RacelineReference::rawBounds(double s) const
 {
   if (!track_widths_valid_) {
     return {};
   }
   const std::size_t index = std::min(
-    static_cast<std::size_t>(wrapS(s) / width_spacing_m_), sustainable_left_m_.size() - 1);
-  const std::size_t next = (index + 1) % sustainable_left_m_.size();
+    static_cast<std::size_t>(wrapS(s) / width_spacing_m_), raw_left_m_.size() - 1);
+  const std::size_t next = (index + 1) % raw_left_m_.size();
   return {
-    std::min(sustainable_right_m_[index], sustainable_right_m_[next]),
-    std::min(sustainable_left_m_[index], sustainable_left_m_[next])};
+    std::min(raw_right_m_[index], raw_right_m_[next]),
+    std::min(raw_left_m_[index], raw_left_m_[next])};
 }
 
 WidthLookupSample RacelineReference::widthSample(std::size_t index) const
@@ -306,8 +282,7 @@ WidthLookupSample RacelineReference::widthSample(std::size_t index) const
   }
   return {
     static_cast<double>(index) * width_spacing_m_,
-    {raw_right_m_[index], raw_left_m_[index]},
-    {sustainable_right_m_[index], sustainable_left_m_[index]}};
+    {raw_right_m_[index], raw_left_m_[index]}};
 }
 
 double RacelineReference::wrapS(double s) const
@@ -399,7 +374,8 @@ Point RacelineReference::toCartesian(double s, double d) const
     sample.velocity);
 }
 
-double RacelineReference::lateralOffsetAt(const Point & p, double s_hint, bool * converged) const
+double RacelineReference::lateralOffsetAt(
+  const Point & p, double s_hint, bool * converged, double * refined_s) const
 {
   if (converged != nullptr) {
     *converged = false;
@@ -427,6 +403,9 @@ double RacelineReference::lateralOffsetAt(const Point & p, double s_hint, bool *
     if (std::abs(along) <= kLateralOffsetToleranceM) {
       if (converged != nullptr) {
         *converged = true;
+      }
+      if (refined_s != nullptr) {
+        *refined_s = s;
       }
       break;
     }
