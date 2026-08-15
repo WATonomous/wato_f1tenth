@@ -27,6 +27,7 @@ struct EvaluatedCandidate
   CollisionCheckResult collision;
   bool velocity_feasible = false;
   double traversal_time_s = 0.0;
+  bool track_bounds_ok = true;
 };
 
 class CandidateSelector

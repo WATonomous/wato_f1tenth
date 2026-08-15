@@ -394,7 +394,7 @@ TEST(ManeuverBuilder, DenseSideValidationRejectsAnInconsistentMeasuredSide)
   EXPECT_TRUE(builder.pass(egoAt(reference, 4.0, -0.30), 4.0, 0.30).empty());
 }
 
-TEST(ManeuverBuilder, TrackBoundsFilterOvertakeSidesAndPassMovesInward)
+TEST(ManeuverBuilder, OvertakeGeneratesAllConfiguredOffsetsAndPassPrefersNearest)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
@@ -403,36 +403,35 @@ TEST(ManeuverBuilder, TrackBoundsFilterOvertakeSidesAndPassMovesInward)
   config.overtake_heading_offsets_rad = {0.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
-  uint32_t rejected = 0;
   const auto overtake = builder.overtake(
-    egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0,
-    SustainableBounds{0.60, 0.40}, &rejected);
-  ASSERT_EQ(overtake.size(), 3u);
-  EXPECT_LT(overtake.front().target_d, 0.0);
+    egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0);
+  ASSERT_EQ(overtake.size(), 20u);
+  EXPECT_TRUE(std::any_of(
+      overtake.begin(), overtake.end(), [](const ManeuverCandidate & candidate) {
+        return candidate.target_d < 0.0;
+      }));
+  EXPECT_TRUE(std::any_of(
+      overtake.begin(), overtake.end(), [](const ManeuverCandidate & candidate) {
+        return candidate.target_d > 0.0;
+      }));
   EXPECT_EQ(std::count_if(
       overtake.begin(), overtake.end(), [](const ManeuverCandidate & candidate) {
-        return candidate.uses_offset_tail && candidate.target_d == -0.55;
-      }), 1);
-  EXPECT_EQ(rejected, 3u);  // +0.55, -0.75, +0.75 configurations
+        return candidate.uses_offset_tail;
+      }), 4);
 
-  rejected = 0;
-  const auto pass = builder.pass(
-    egoAt(reference, 4.0, 0.74), 4.0, 0.74,
-    SustainableBounds{1.0, 0.60}, &rejected);
+  const auto pass = builder.pass(egoAt(reference, 4.0, 0.74), 4.0, 0.74);
   ASSERT_EQ(pass.size(), 1u);
-  EXPECT_DOUBLE_EQ(pass.front().target_d, 0.55);
-  EXPECT_EQ(rejected, 1u);
+  EXPECT_DOUBLE_EQ(pass.front().target_d, 0.75);
 }
 
-TEST(ManeuverBuilder, MergeRequiresClearanceOnBothSides)
+TEST(ManeuverBuilder, MergeGeneratesWithoutInjectedWidthCaps)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
-  const ManeuverBuilder builder = makeBuilder(reference, ManeuverConfig{});
-  uint32_t rejected = 0;
-  EXPECT_TRUE(builder.merge(
-    egoAt(reference, 2.0, 0.2), 2.0, SustainableBounds{0.5, 0.0}, &rejected).empty());
-  EXPECT_EQ(rejected, 1u);
+  ManeuverConfig config;
+  config.merge_completion_distances_m = {2.0};
+  const ManeuverBuilder builder = makeBuilder(reference, config);
+  EXPECT_FALSE(builder.merge(egoAt(reference, 2.0, 0.2), 2.0).empty());
 }
 
 } // namespace local_planning

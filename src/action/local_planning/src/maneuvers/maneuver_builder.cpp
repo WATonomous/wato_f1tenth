@@ -257,8 +257,7 @@ ManeuverBuilder::SideCheck ManeuverBuilder::sideAndDeviation(
   return result;
 }
 
-std::vector<double> ManeuverBuilder::offsets(
-  int side, SustainableBounds bounds, uint32_t * track_bounds_rejected) const
+std::vector<double> ManeuverBuilder::offsets(int side) const
 {
   std::vector<double> result;
   for (int sign : {-1, 1}) {
@@ -266,25 +265,17 @@ std::vector<double> ManeuverBuilder::offsets(
       continue;
     }
     for (double magnitude : config_.passing_d_magnitudes_m) {
-      const double cap = sign < 0 ? bounds.right_magnitude : bounds.left_magnitude;
-      if (magnitude > cap + kTolerance) {
-        if (track_bounds_rejected != nullptr) {
-          ++(*track_bounds_rejected);
-        }
-        continue;
-      }
       result.push_back(sign * magnitude);
     }
   }
   return result;
 }
 
-std::optional<double> ManeuverBuilder::preferredOffset(
-  double ego_d, SustainableBounds bounds, uint32_t * track_bounds_rejected) const
+std::optional<double> ManeuverBuilder::preferredOffset(double ego_d) const
 {
   std::optional<double> preferred;
   double nearest = std::numeric_limits<double>::infinity();
-  for (double d : offsets(sideOf(ego_d), bounds, track_bounds_rejected)) {
+  for (double d : offsets(sideOf(ego_d))) {
     const double distance = std::abs(d - ego_d);
     if (distance < nearest - kTolerance ||
       (std::abs(distance - nearest) <= kTolerance &&
@@ -309,9 +300,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   const BoundaryState & ego,
   double ego_s,
   double ego_d,
-  double opponent_rear_s,
-  SustainableBounds bounds,
-  uint32_t * track_bounds_rejected) const
+  double opponent_rear_s) const
 {
   std::vector<ManeuverCandidate> candidates;
   if (!reference_.valid()) {
@@ -322,7 +311,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   // has been removed; OVERTAKE now uses only reference and exact offset curvature.
   (void)ego_d;
   const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
-  const std::vector<double> lateral_offsets = offsets(0, bounds, track_bounds_rejected);
+  const std::vector<double> lateral_offsets = offsets(0);
   // The first leg is a function of (intermediate_s, intermediate_d,
   // heading_offset, curvature mode).  It does not depend on horizon_d,
   // which the emission order below nests outside it, so building it inline
@@ -441,9 +430,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
 std::vector<ManeuverCandidate> ManeuverBuilder::pass(
   const BoundaryState & ego,
   double ego_s,
-  double ego_d,
-  SustainableBounds bounds,
-  uint32_t * track_bounds_rejected) const
+  double ego_d) const
 {
   std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
@@ -451,8 +438,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
     return candidates;
   }
   const double target_s = reference_.wrapS(ego_s + config_.horizon_m);
-  const std::optional<double> target_d = preferredOffset(
-    ego_d, bounds, track_bounds_rejected);
+  const std::optional<double> target_d = preferredOffset(ego_d);
   if (!target_d) {
     return candidates;
   }
@@ -473,21 +459,18 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
 std::vector<ManeuverCandidate> ManeuverBuilder::recover(
   const BoundaryState & ego,
   double ego_s,
-  double ego_d,
-  SustainableBounds bounds,
-  uint32_t * track_bounds_rejected) const
+  double ego_d) const
 {
   std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
   if (!reference_.valid() || side == 0) {
     return candidates;
   }
-  const std::optional<double> preferred = preferredOffset(
-    ego_d, bounds, track_bounds_rejected);
+  const std::optional<double> preferred = preferredOffset(ego_d);
   if (!preferred) {
     return candidates;
   }
-  const std::vector<double> allowed_offsets = offsets(side, bounds);
+  const std::vector<double> allowed_offsets = offsets(side);
   for (double transition : config_.pass_transition_distances_m) {
     for (double d : allowed_offsets) {
       const bool targets_preferred = std::abs(d - *preferred) <= kTolerance;
@@ -523,15 +506,10 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
 
 std::vector<ManeuverCandidate> ManeuverBuilder::merge(
   const BoundaryState & ego,
-  double ego_s,
-  SustainableBounds bounds,
-  uint32_t * track_bounds_rejected) const
+  double ego_s) const
 {
   std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid() || bounds.right_magnitude <= 0.0 || bounds.left_magnitude <= 0.0) {
-    if (track_bounds_rejected != nullptr && reference_.valid()) {
-      ++(*track_bounds_rejected);
-    }
+  if (!reference_.valid()) {
     return candidates;
   }
   for (double completion : config_.merge_completion_distances_m) {
