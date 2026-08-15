@@ -54,21 +54,13 @@ public:
     const BoundaryState & ego,
     double ego_s,
     double ego_d,
-    double opponent_rear_s,
-    SustainableBounds bounds = SustainableBounds::unbounded(),
-    uint32_t * track_bounds_rejected = nullptr) const;
+    double opponent_rear_s) const;
   std::vector<ManeuverCandidate> pass(
-    const BoundaryState & ego, double ego_s, double ego_d,
-    SustainableBounds bounds = SustainableBounds::unbounded(),
-    uint32_t * track_bounds_rejected = nullptr) const;
+    const BoundaryState & ego, double ego_s, double ego_d) const;
   std::vector<ManeuverCandidate> recover(
-    const BoundaryState & ego, double ego_s, double ego_d,
-    SustainableBounds bounds = SustainableBounds::unbounded(),
-    uint32_t * track_bounds_rejected = nullptr) const;
+    const BoundaryState & ego, double ego_s, double ego_d) const;
   std::vector<ManeuverCandidate> merge(
-    const BoundaryState & ego, double ego_s,
-    SustainableBounds bounds = SustainableBounds::unbounded(),
-    uint32_t * track_bounds_rejected = nullptr) const;
+    const BoundaryState & ego, double ego_s) const;
   const ManeuverConfig & config() const {return config_;}
 
   // How often the cheap station-hinted offset failed and had to fall back to a
@@ -123,12 +115,8 @@ private:
     int side,
     bool allow_start_center,
     double target_d) const;
-  std::vector<double> offsets(
-    int side, SustainableBounds bounds,
-    uint32_t * track_bounds_rejected = nullptr) const;
-  std::optional<double> preferredOffset(
-    double ego_d, SustainableBounds bounds,
-    uint32_t * track_bounds_rejected = nullptr) const;
+  std::vector<double> offsets(int side) const;
+  std::optional<double> preferredOffset(double ego_d) const;
   int sideOf(double d) const;
 
   const RacelineReference & reference_;

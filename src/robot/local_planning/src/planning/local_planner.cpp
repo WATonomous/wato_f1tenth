@@ -63,7 +63,8 @@ LocalPlanner::LocalPlanner(
   VelocityProfileConfig velocity_config)
 : reference_(reference), builder_(builder), vehicle_geometry_(vehicle_geometry),
   velocity_config_(velocity_config),
-  collision_checker_(vehicle_geometry_, grid_policy, collision_config)
+  collision_checker_(vehicle_geometry_, grid_policy, collision_config),
+  track_bounds_checker_(reference_, vehicle_geometry_)
 {
 }
 
@@ -95,7 +96,7 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.start_curvature_inv_m = ego.curvature;
   result.decision.start_curvature_from_steering = std::abs(ego.curvature) > 0.0;
   result.decision.track_bounds_ready = reference_.trackWidthsValid();
-  const SustainableBounds bounds = reference_.sustainableBounds(state.ego_s);
+  const SustainableBounds bounds = reference_.rawBounds(state.ego_s);
   result.decision.sustainable_left_m = bounds.left_magnitude;
   result.decision.sustainable_right_m = bounds.right_magnitude;
 
@@ -105,6 +106,8 @@ LocalPlanResult LocalPlanner::plan(
   }
 
   builder_.resetStationHintStats();
+  uint64_t unseen_hint_samples = 0;
+  uint64_t unseen_hint_fallbacks = 0;
   auto appendGenerated = [&](CandidateSource source, auto generator) {
       const auto generation_started = std::chrono::steady_clock::now();
       auto candidates = generator();
@@ -119,27 +122,22 @@ LocalPlanResult LocalPlanner::plan(
   } else if (state.intent == PlannerIntent::OVERTAKE) {
     appendGenerated(CandidateSource::OVERTAKE, [&]() {
         return builder_.overtake(
-          ego, state.ego_s, state.ego_d, state.opponent.s, bounds,
-          &result.decision.track_bounds_rejected);
+          ego, state.ego_s, state.ego_d, state.opponent.s);
     });
   } else if (state.intent == PlannerIntent::PASS &&
     std::abs(state.ego_d) <= vehicle_geometry_.fullWidthM())
   {
     appendGenerated(CandidateSource::MERGE_ALIGNMENT, [&]() {
-        return builder_.merge(
-          ego, state.ego_s, bounds, &result.decision.track_bounds_rejected);
+        return builder_.merge(ego, state.ego_s);
     });
     profile_intent = PlannerIntent::MERGE;
   } else if (state.intent == PlannerIntent::PASS) {
     appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
-        return builder_.pass(
-          ego, state.ego_s, state.ego_d, bounds,
-          &result.decision.track_bounds_rejected);
+        return builder_.pass(ego, state.ego_s, state.ego_d);
     });
   } else {
     appendGenerated(CandidateSource::MERGE, [&]() {
-        return builder_.merge(
-          ego, state.ego_s, bounds, &result.decision.track_bounds_rejected);
+        return builder_.merge(ego, state.ego_s);
     });
   }
 
@@ -157,6 +155,15 @@ LocalPlanResult LocalPlanner::plan(
         }
         if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID) {
           ++result.decision.out_of_grid_rejected;
+          continue;
+        }
+        const TrackBoundsCheckResult width_check = track_bounds_checker_.check(
+          candidate.path, grid);
+        unseen_hint_samples += width_check.station_hint_samples;
+        unseen_hint_fallbacks += width_check.station_hint_fallbacks;
+        if (!width_check.ok) {
+          evaluated.track_bounds_ok = false;
+          ++result.decision.track_bounds_rejected;
           continue;
         }
         const double terminal_s = reference_.wrapS(
@@ -185,16 +192,14 @@ LocalPlanResult LocalPlanner::plan(
     {
       const std::size_t first = result.evaluated.size();
       appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
-          return builder_.recover(
-            ego, state.ego_s, state.ego_d, bounds,
-            &result.decision.track_bounds_rejected);
+          return builder_.recover(ego, state.ego_s, state.ego_d);
       });
       evaluateFrom(first);
     }
   }
   const auto station_hints = builder_.stationHintStats();
-  result.profile.station_hint_samples = station_hints.samples;
-  result.profile.station_hint_fallbacks = station_hints.fallbacks;
+  result.profile.station_hint_samples = station_hints.samples + unseen_hint_samples;
+  result.profile.station_hint_fallbacks = station_hints.fallbacks + unseen_hint_fallbacks;
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
   for (const auto & candidate : result.pool) {
     const auto sample_count = static_cast<uint32_t>(candidate.path.size());
@@ -228,8 +233,9 @@ LocalPlanResult LocalPlanner::plan(
   } else {
     const EvaluatedCandidate * safest = nullptr;
     for (const auto & evaluated : result.evaluated) {
-      if (evaluated.collision.status != CollisionStatus::FREE &&
-        evaluated.collision.status != CollisionStatus::SOFT_INFLATION)
+      if (!evaluated.track_bounds_ok ||
+        (evaluated.collision.status != CollisionStatus::FREE &&
+        evaluated.collision.status != CollisionStatus::SOFT_INFLATION))
       {
         continue;
       }

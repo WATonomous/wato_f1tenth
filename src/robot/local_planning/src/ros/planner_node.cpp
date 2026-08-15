@@ -94,11 +94,15 @@ PlannerNode::PlannerNode()
         widths.push_back({width.right_m, width.left_m});
       }
       if (!reference_.setTrackWidths(
-          widths, config_.maneuver.horizon_m,
+          widths,
           config_.vehicle_geometry.collision_radius_m, config_.track_boundary_margin_m,
           config_.width_lookup_spacing_m))
       {
-        RCLCPP_ERROR(get_logger(), "Invalid reference widths; local maneuvers disabled");
+        RCLCPP_ERROR(
+          get_logger(),
+          "Invalid reference widths (%zu widths for %zu spline waypoints); "
+          "local maneuvers disabled",
+          widths.size(), reference_.waypointCount());
         return;
       }
       RCLCPP_INFO(
@@ -283,6 +287,30 @@ void PlannerNode::planningCycle()
   profile.ros.planner_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - planner_started).count();
   profile.core = result.profile;
+  if (result.decision.requested_intent == PlannerIntent::MERGE) {
+    RCLCPP_INFO_THROTTLE(
+      get_logger(), *get_clock(), 1000,
+      "MERGE_CHECK requested=1 bounds_ready=%d generated=%u valid=%u "
+      "collision_rej=%u out_of_grid_rej=%u track_rej=%u velocity_rej=%u "
+      "selected=%d executed_mode=%d path_samples=%u collision_poses=%u "
+      "ego_s=%.2f ego_d=%.2f terminal_d=%.2f clearance=%d min_clearance=%.2f",
+      result.decision.track_bounds_ready ? 1 : 0,
+      result.decision.generated_count,
+      result.decision.valid_candidate_count,
+      result.decision.collision_rejected,
+      result.decision.out_of_grid_rejected,
+      result.decision.track_bounds_rejected,
+      result.decision.velocity_rejected,
+      result.selected_index,
+      static_cast<int>(result.decision.executed_mode),
+      result.profile.total_path_samples,
+      result.profile.collision_poses_checked,
+      result.decision.ego_s_m,
+      result.decision.ego_d_m,
+      result.decision.terminal_d_m,
+      static_cast<int>(result.decision.clearance_class),
+      result.decision.minimum_clearance_m);
+  }
   result.decision.start_curvature_from_steering =
     config_.use_steering_start_curvature && profile.outcome.steering_fresh;
   profile.outcome.decision = result.decision;
