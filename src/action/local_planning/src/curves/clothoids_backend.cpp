@@ -21,7 +21,8 @@ constexpr double kMinSampleSpacingM = 1e-3;
 SolveResult solveG2(
   const BoundaryState & start,
   const BoundaryState & terminal,
-  double sample_spacing_m)
+  double sample_spacing_m,
+  const SolveLimits & limits)
 {
   SolveResult result;
 
@@ -53,6 +54,16 @@ SolveResult solveG2(
       std::max(std::abs(arc.kappaAt(0.0)), std::abs(arc.kappaAt(arc.length))));
   }
   if (!std::isfinite(max_abs_curvature)) {
+    return result;
+  }
+
+  result.arc_length_m = length;
+  result.max_abs_curvature_inv_m = max_abs_curvature;
+  result.converged = true;
+
+  // Sampling is the expensive half of this call.  Nothing below changes either
+  // limit check, so a candidate that already fails one is done here.
+  if (length > limits.max_arc_length_m || max_abs_curvature > limits.max_curvature_inv_m) {
     return result;
   }
 
@@ -136,9 +147,6 @@ SolveResult solveG2(
   // bits; downstream integrates over s, so pin it.
   result.samples.back().s = length;
 
-  result.arc_length_m = length;
-  result.max_abs_curvature_inv_m = max_abs_curvature;
-  result.converged = true;
   return result;
 }
 
