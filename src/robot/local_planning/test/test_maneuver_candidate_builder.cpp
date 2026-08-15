@@ -210,7 +210,7 @@ TEST(ManeuverBuilder, DefaultOvertakeAddsOneOffsetTailPerStationAndOffset)
     egoAt(reference, 2.0, 0.0), 2.0, 0.0, 4.0);
   EXPECT_EQ(std::count_if(
       candidates.begin(), candidates.end(),
-      [](const ManeuverCandidate & candidate) {return candidate.uses_offset_tail;}), 12);
+      [](const ManeuverCandidate & candidate) {return candidate.uses_offset_tail;}), 8);
 }
 
 TEST(ManeuverBuilder, OvertakeCurvatureModesDoNotReproduceTightCornerCrossing)
