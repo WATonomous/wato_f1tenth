@@ -141,6 +141,23 @@ TEST(CollisionChecker, InterpolationPreventsTunneling)
   EXPECT_EQ(result.status, CollisionStatus::COLLISION);
 }
 
+TEST(CollisionChecker, PathSamplesAtGridResolutionAreNotDensified)
+{
+  OccupancyGrid grid = makeGrid(20, 20, 0.10, 0.0, 0.0);
+  CollisionChecker checker = makeChecker();
+  checker.buildEuclideanTransform(grid);
+
+  const std::vector<CurveSample> path = {
+    sample(0.0, 0.5, 0.5),
+    sample(0.1, 0.6, 0.5),
+    sample(0.2, 0.7, 0.5),
+  };
+
+  const CollisionCheckResult result = checker.collisionCheck(path, grid);
+  EXPECT_EQ(result.status, CollisionStatus::FREE);
+  EXPECT_EQ(result.checked_poses, path.size());
+}
+
 TEST(CollisionChecker, FrontCircleOnlyCollision)
 {
   OccupancyGrid grid = freeField();

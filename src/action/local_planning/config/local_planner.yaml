@@ -8,7 +8,7 @@ planner_node:
   ros__parameters:
     horizon_m: 6.0
     collision_circle_radius_m: 0.14
-    overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5, 1.0]
+    overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5]
     passing_d_magnitudes_m: [0.30, 0.55, 0.75]
     overtake_heading_offsets_rad: [-0.15, 0.0, 0.15]
     pass_transition_distances_m: [6.0, 3.0, 1.0]
@@ -47,6 +47,8 @@ planner_node:
     overtake_speed_scale: 1.0
     treat_out_of_grid_as_free: true
 
+    # Fallback only.  Planning samples clothoids at the live costmap resolution
+    # so this cannot run finer than the occupancy grid.
     sample_spacing_m: 0.1
     max_curvature_inv_m: 1.74
     max_arc_length_m: 12.0

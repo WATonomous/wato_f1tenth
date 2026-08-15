@@ -46,6 +46,10 @@ public:
   : config_(config) {}
 
   const CurveGeneratorConfig & config() const {return config_;}
+  void setSampleSpacingM(double sample_spacing_m)
+  {
+    config_.sample_spacing_m = sample_spacing_m;
+  }
 
   GeneratedConnection generate(const ConnectionRequest & request) const;
 
