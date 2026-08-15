@@ -33,7 +33,7 @@ struct ManeuverConfig
 {
   double horizon_m = 6.0;
 
-  std::vector<double> overtake_s_offsets_from_opponent_rear_m{0.0, 0.5, 1.0};
+  std::vector<double> overtake_s_offsets_from_opponent_rear_m{0.0, 0.5};
   std::vector<double> passing_d_magnitudes_m{0.55, 0.75};
   std::vector<double> overtake_heading_offsets_rad{-0.15, 0.0, 0.15};
   std::vector<double> pass_transition_distances_m{6.0, 3.0, 1.0};

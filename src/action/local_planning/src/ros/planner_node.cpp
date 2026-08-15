@@ -59,6 +59,9 @@ PlannerNode::PlannerNode()
       [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
         const auto profile_started = std::chrono::steady_clock::now();
         grid_ = rosToOccupancyGrid(*msg);
+        if (grid_.resolution > 0.0) {
+          curve_generator_.setSampleSpacingM(grid_.resolution);
+        }
         planner_.buildGridCache(grid_);
         has_grid_ = true;
         diagnostics_.recordGridUpdate(
@@ -152,7 +155,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.vehicle_geometry.collision_radius_m = declare_parameter(
     "collision_circle_radius_m", 0.20);
   cfg.maneuver.overtake_s_offsets_from_opponent_rear_m = declare_parameter(
-    "overtake_s_offsets_from_opponent_rear_m", std::vector<double>{0.0, 0.5, 1.0});
+    "overtake_s_offsets_from_opponent_rear_m", std::vector<double>{0.0, 0.5});
   cfg.maneuver.passing_d_magnitudes_m = declare_parameter(
     "passing_d_magnitudes_m", std::vector<double>{0.55, 0.75});
   cfg.maneuver.overtake_heading_offsets_rad = declare_parameter(
@@ -280,6 +283,10 @@ void PlannerNode::planningCycle()
   ego.speed = odom.velocity;
   if (config_.use_steering_start_curvature && profile.outcome.steering_fresh) {
     ego.curvature = std::tan(odom.steering_angle) / config_.wheelbase_m;
+  }
+
+  if (grid_.resolution > 0.0) {
+    curve_generator_.setSampleSpacingM(grid_.resolution);
   }
 
   const auto planner_started = std::chrono::steady_clock::now();
