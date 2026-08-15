@@ -11,6 +11,8 @@ namespace local_planning
 namespace
 {
 
+constexpr double kPi = 3.14159265358979323846;
+
 OccupancyGrid makeGrid(int width, int height, double resolution, double origin_x, double origin_y)
 {
   OccupancyGrid grid;
@@ -156,6 +158,34 @@ TEST(CollisionChecker, PathSamplesAtGridResolutionAreNotDensified)
   const CollisionCheckResult result = checker.collisionCheck(path, grid);
   EXPECT_EQ(result.status, CollisionStatus::FREE);
   EXPECT_EQ(result.checked_poses, path.size());
+}
+
+TEST(CollisionChecker, FrontCircleFollowsTurningHeading)
+{
+  OccupancyGrid grid = freeField();
+  TestPolicies policies;
+  policies.vehicle.front_circle_offset_m = 0.80;
+  setOccupied(grid, 58, 50);  // center ≈ (0.05, 0.85), on the +y front circle
+  CollisionChecker checker = makeChecker(policies);
+  checker.buildEuclideanTransform(grid);
+
+  const Point obstacle = cellCenter(grid, 58, 50);
+  const Point rear(0.0, 0.0);
+  const Point front_at_end(0.0, policies.vehicle.front_circle_offset_m);
+  ASSERT_GT(
+    std::hypot(obstacle.x - rear.x, obstacle.y - rear.y),
+    policies.vehicle.collision_radius_m + policies.collision.soft_inflation_distance_m);
+  ASSERT_LE(
+    std::hypot(obstacle.x - front_at_end.x, obstacle.y - front_at_end.y),
+    policies.vehicle.collision_radius_m);
+
+  const std::vector<CurveSample> path = {
+    sample(0.0, 0.0, 0.0, 0.0),
+    sample(0.0, 0.0, 0.0, 0.5 * kPi),
+  };
+
+  const CollisionCheckResult result = checker.collisionCheck(path, grid);
+  EXPECT_EQ(result.status, CollisionStatus::COLLISION);
 }
 
 TEST(CollisionChecker, FrontCircleOnlyCollision)

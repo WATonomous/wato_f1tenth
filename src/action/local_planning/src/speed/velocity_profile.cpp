@@ -125,7 +125,7 @@ VelocityProfileResult assignVelocityProfile(
   for (std::size_t i = 0; i < path.size(); ++i) {
     const CurveSample & sample = path[i];
     const double raceline_speed =
-      std::max(0.0, reference.sampleAtS(sample.raceline_s).velocity);
+      std::max(0.0, reference.velocityAtS(sample.raceline_s));
     double speed = scale * raceline_speed;
     speed = std::max(config.min_velocity_mps, speed);
     speed = std::min(speed, config.max_velocity_mps);
@@ -137,7 +137,7 @@ VelocityProfileResult assignVelocityProfile(
   }
 
   const double terminal_raceline_speed =
-    std::max(0.0, reference.sampleAtS(terminal_raceline_s).velocity);
+    std::max(0.0, reference.velocityAtS(terminal_raceline_s));
   speeds.back() = std::min(speeds.back(), terminal_scale * terminal_raceline_speed);
   speeds.back() = std::min(speeds.back(), config.max_velocity_mps);
   speeds.back() = std::min(

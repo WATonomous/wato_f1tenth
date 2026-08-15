@@ -20,13 +20,6 @@ int gridIndex(int row, int col, int width)
   return row * width + col;
 }
 
-bool pointToGridCell(const Point & p, const OccupancyGrid & grid, int & row, int & col)
-{
-  col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
-  row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
-  return col >= 0 && col < grid.width && row >= 0 && row < grid.height;
-}
-
 bool gridGeometryValid(const OccupancyGrid & grid)
 {
   return grid.width > 0 && grid.height > 0 && grid.resolution > kEpsilon;
@@ -207,56 +200,6 @@ void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
   grid.has_euclidean_transform = true;
 }
 
-CollisionCheckResult CollisionChecker::collisionCheckPose(
-  const Point & p,
-  double heading,
-  const OccupancyGrid & grid) const
-{
-  if (!euclideanTransformValid(grid)) {
-    return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 1};
-  }
-
-  const double collision_radius_m = std::max(0.0, vehicle_geometry_.collision_radius_m);
-  const double soft_inflation_distance_m = std::max(0.0, config_.soft_inflation_distance_m);
-  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * grid.resolution;
-  const Point circle_centers[] = {
-    p,
-    {
-      p.x + vehicle_geometry_.front_circle_offset_m * std::cos(heading),
-      p.y + vehicle_geometry_.front_circle_offset_m * std::sin(heading),
-      p.velocity
-    }
-  };
-
-  bool has_soft_inflation = false;
-  double minimum_clearance_m = std::numeric_limits<double>::infinity();
-  for (const Point & center : circle_centers) {
-    int center_row = 0;
-    int center_col = 0;
-    if (!pointToGridCell(center, grid, center_row, center_col)) {
-      return {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 1};
-    }
-
-    const double clearance_m =
-      static_cast<double>(grid.obstacle_distance_m[static_cast<size_t>(
-        gridIndex(center_row, center_col, grid.width))]) -
-      cell_half_diagonal - collision_radius_m;
-    minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
-    if (clearance_m <= 0.0) {
-      return {CollisionStatus::COLLISION, minimum_clearance_m, 1};
-    }
-    if (clearance_m <= soft_inflation_distance_m) {
-      has_soft_inflation = true;
-    }
-  }
-
-  return {
-    has_soft_inflation ? CollisionStatus::SOFT_INFLATION : CollisionStatus::FREE,
-    minimum_clearance_m,
-    1
-  };
-}
-
 CollisionCheckResult CollisionChecker::applyOutOfGridPolicy(
   CollisionCheckResult result) const
 {
@@ -277,33 +220,86 @@ CollisionCheckResult CollisionChecker::collisionCheck(
       {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0});
   }
 
+  const float * const edt = grid.obstacle_distance_m.data();
+  const int width = grid.width;
+  const int height = grid.height;
+  const double origin_x = grid.origin.x;
+  const double origin_y = grid.origin.y;
+  const double resolution = grid.resolution;
+  const double collision_radius_m = std::max(0.0, vehicle_geometry_.collision_radius_m);
+  const double soft_inflation_distance_m = std::max(0.0, config_.soft_inflation_distance_m);
+  const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * resolution;
+  const double front_offset_m = vehicle_geometry_.front_circle_offset_m;
   // The EDT is piecewise-constant per cell, so samples finer than the grid
   // repeat the same lookup.  Walk at cell size; coarser path samples are still
   // densified up to this step so a long chord cannot skip an occupied cell.
-  const double max_step_m = grid.resolution;
+  const double max_step_m = resolution;
+
   CollisionStatus aggregated_status = CollisionStatus::FREE;
   double minimum_clearance_m = std::numeric_limits<double>::infinity();
   uint32_t checked_poses = 0;
 
-  auto accumulatePose = [&](double x, double y, double heading) -> bool {
-      const CollisionCheckResult pose_result =
-        collisionCheckPose(Point(x, y), heading, grid);
-      checked_poses += pose_result.checked_poses;
-      if (pose_result.status == CollisionStatus::OUT_OF_GRID) {
+  // One circle vs the EDT. This is the old collisionCheckPose body, minus the
+  // per-call reload of resolution / radius / EDT pointer (those are locals
+  // above) and minus the sin/cos that placed the front circle (the caller
+  // passes the center already).
+  auto checkCircle = [&](double x, double y) -> CollisionStatus {
+      const int col = static_cast<int>(std::floor((x - origin_x) / resolution));
+      const int row = static_cast<int>(std::floor((y - origin_y) / resolution));
+      if (col < 0 || col >= width || row < 0 || row >= height) {
+        return CollisionStatus::OUT_OF_GRID;
+      }
+
+      const double clearance_m =
+        static_cast<double>(edt[static_cast<size_t>(gridIndex(row, col, width))]) -
+        cell_half_diagonal - collision_radius_m;
+      minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
+      if (clearance_m <= 0.0) {
+        return CollisionStatus::COLLISION;
+      }
+      if (clearance_m <= soft_inflation_distance_m) {
+        return CollisionStatus::SOFT_INFLATION;
+      }
+      return CollisionStatus::FREE;
+    };
+
+  // Rear circle at (x, y), front circle at (x, y) + (front_dx, front_dy).
+  // Returns false on OUT_OF_GRID so the path walk can abort. COLLISION on one
+  // pose still continues so the reported minimum_clearance_m is the worst pose.
+  auto checkPose = [&](double x, double y, double front_dx, double front_dy) -> bool {
+      ++checked_poses;
+      const CollisionStatus rear_status = checkCircle(x, y);
+      if (rear_status == CollisionStatus::OUT_OF_GRID) {
         aggregated_status = CollisionStatus::OUT_OF_GRID;
         minimum_clearance_m = -std::numeric_limits<double>::infinity();
         return false;
       }
-      aggregated_status = worseStatus(aggregated_status, pose_result.status);
-      minimum_clearance_m = std::min(minimum_clearance_m, pose_result.minimum_clearance_m);
+      if (rear_status == CollisionStatus::COLLISION) {
+        aggregated_status = CollisionStatus::COLLISION;
+        return true;
+      }
+      aggregated_status = worseStatus(aggregated_status, rear_status);
+
+      const CollisionStatus front_status = checkCircle(x + front_dx, y + front_dy);
+      if (front_status == CollisionStatus::OUT_OF_GRID) {
+        aggregated_status = CollisionStatus::OUT_OF_GRID;
+        minimum_clearance_m = -std::numeric_limits<double>::infinity();
+        return false;
+      }
+      aggregated_status = worseStatus(aggregated_status, front_status);
       return true;
     };
 
+  auto seedFrontOffset = [front_offset_m](double heading, double & front_dx, double & front_dy) {
+      front_dx = front_offset_m * std::cos(heading);
+      front_dy = front_offset_m * std::sin(heading);
+    };
+
   if (path.size() == 1) {
-    if (!accumulatePose(path.front().x, path.front().y, path.front().heading)) {
-      return applyOutOfGridPolicy(
-        {aggregated_status, minimum_clearance_m, checked_poses});
-    }
+    double front_dx = 0.0;
+    double front_dy = 0.0;
+    seedFrontOffset(path.front().heading, front_dx, front_dy);
+    checkPose(path.front().x, path.front().y, front_dx, front_dy);
     return applyOutOfGridPolicy({aggregated_status, minimum_clearance_m, checked_poses});
   }
 
@@ -312,27 +308,39 @@ CollisionCheckResult CollisionChecker::collisionCheck(
     const CurveSample & b = path[i + 1];
     const double dx = b.x - a.x;
     const double dy = b.y - a.y;
-    const double segment_length = std::hypot(dx, dy);
+    const double segment_length = std::sqrt(dx * dx + dy * dy);
     const double heading_delta = shortestAngleDiff(a.heading, b.heading);
     const int step_count = std::max(
       1,
       static_cast<int>(std::ceil(segment_length / std::max(max_step_m, kEpsilon))));
+    const double step_dheading = heading_delta / static_cast<double>(step_count);
+    const double cos_d = std::cos(step_dheading);
+    const double sin_d = std::sin(step_dheading);
 
-    // Include both endpoints of every segment so the final sample is checked.
+    // Heading is linear along the segment, so rotating the front-circle offset
+    // by a constant step is exact. Re-seed each segment to bound drift.
+    double front_dx = 0.0;
+    double front_dy = 0.0;
+    seedFrontOffset(a.heading, front_dx, front_dy);
+
     for (int step = 0; step <= step_count; ++step) {
       // Skip the shared endpoint already evaluated at the end of the previous
       // segment, except for the first segment.
-      if (i > 0 && step == 0) {
-        continue;
+      if (!(i > 0 && step == 0)) {
+        const double t = static_cast<double>(step) / static_cast<double>(step_count);
+        const double x = a.x + t * dx;
+        const double y = a.y + t * dy;
+        if (!checkPose(x, y, front_dx, front_dy)) {
+          return applyOutOfGridPolicy(
+            {aggregated_status, minimum_clearance_m, checked_poses});
+        }
       }
-      const double t = static_cast<double>(step) / static_cast<double>(step_count);
-      const double x = a.x + t * dx;
-      const double y = a.y + t * dy;
-      const double heading = a.heading + t * heading_delta;
-      if (!accumulatePose(x, y, heading)) {
-        return applyOutOfGridPolicy(
-          {aggregated_status, minimum_clearance_m, checked_poses});
+      if (step == step_count) {
+        break;
       }
+      const double next_front_dx = front_dx * cos_d - front_dy * sin_d;
+      front_dy = front_dx * sin_d + front_dy * cos_d;
+      front_dx = next_front_dx;
     }
   }
 

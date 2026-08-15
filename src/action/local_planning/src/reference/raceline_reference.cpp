@@ -322,6 +322,13 @@ std::size_t RacelineReference::segmentAt(double s_wrapped, double & t) const
   return index;
 }
 
+double RacelineReference::velocityOnSegment(std::size_t i, double t) const
+{
+  const std::size_t next = (i + 1) % points_.size();
+  const double alpha = std::clamp(t / segment_length_[i], 0.0, 1.0);
+  return points_[i].velocity + alpha * (points_[next].velocity - points_[i].velocity);
+}
+
 ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
 {
   ReferenceGeometrySample sample;
@@ -354,15 +361,21 @@ ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
   sample.normal_x = -sample.tangent_y;
   sample.normal_y = sample.tangent_x;
   sample.heading = std::atan2(dy, dx);
-  sample.curvature = (dx * ddy - dy * ddx) / std::pow(speed_sq, 1.5);
-
-  // Raceline speed interpolates linearly between waypoints:
-  const std::size_t next = (i + 1) % points_.size();
-  const double alpha = std::clamp(t / segment_length_[i], 0.0, 1.0);
-  sample.velocity = points_[i].velocity +
-    alpha * (points_[next].velocity - points_[i].velocity);
+  sample.curvature = (dx * ddy - dy * ddx) / (speed_sq * speed);
+  sample.velocity = velocityOnSegment(i, t);
 
   return sample;
+}
+
+double RacelineReference::velocityAtS(double s) const
+{
+  if (!valid_) {
+    return 0.0;
+  }
+
+  double t = 0.0;
+  const std::size_t i = segmentAt(wrapS(s), t);
+  return velocityOnSegment(i, t);
 }
 
 Point RacelineReference::toCartesian(double s, double d) const

@@ -124,6 +124,9 @@ void PlannerDiagnostics::emitProfile(
   const auto collision = format(summarize([](const auto & p) {
         return p.core.collision_check_ms;
   }));
+  const auto track_bounds = format(summarize([](const auto & p) {
+        return p.core.track_bounds_ms;
+  }));
   const auto projection = format(summarize([](const auto & p) {
         return p.core.terminal_projection_ms;
   }));
@@ -204,7 +207,8 @@ void PlannerDiagnostics::emitProfile(
     "planner_ms=%.3f/%.3f/%.3f decision_pub_ms=%.3f/%.3f/%.3f "
     "path_msg_ms=%.3f/%.3f/%.3f tf_ms=%.3f/%.3f/%.3f path_pub_ms=%.3f/%.3f/%.3f "
     "marker_pub_ms=%.3f/%.3f/%.3f candidate_gen_ms=%.3f/%.3f/%.3f "
-    "collision_ms=%.3f/%.3f/%.3f projection_ms=%.3f/%.3f/%.3f "
+    "collision_ms=%.3f/%.3f/%.3f track_bounds_ms=%.3f/%.3f/%.3f "
+    "projection_ms=%.3f/%.3f/%.3f "
     "velocity_ms=%.3f/%.3f/%.3f selection_ms=%.3f/%.3f/%.3f "
     "finalization_ms=%.3f/%.3f/%.3f candidates=%.1f/%.1f/%.1f "
     "path_samples=%.1f/%.1f/%.1f max_path_samples=%.1f/%.1f/%.1f "
@@ -221,6 +225,7 @@ void PlannerDiagnostics::emitProfile(
     path_message[0], path_message[1], path_message[2], tf[0], tf[1], tf[2],
     path_pub[0], path_pub[1], path_pub[2], marker_pub[0], marker_pub[1], marker_pub[2],
     generation[0], generation[1], generation[2], collision[0], collision[1], collision[2],
+    track_bounds[0], track_bounds[1], track_bounds[2],
     projection[0], projection[1], projection[2], velocity[0], velocity[1], velocity[2],
     selection[0], selection[1], selection[2], finalization[0], finalization[1], finalization[2],
     candidates.average, candidates.p95, candidates.maximum,
