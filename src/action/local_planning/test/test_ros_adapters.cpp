@@ -37,6 +37,18 @@ TEST(RosAdapters, DecisionPreservesEveryField)
 {
   PlannerDecisionData data;
   data.requested_intent = PlannerIntent::PASS;
+  data.proposed_intent = PlannerIntent::MERGE;
+  data.executed_intent = PlannerIntent::PASS;
+  data.transition_class = TransitionClass::SLOW;
+  data.transition_reason = TransitionReason::OPPONENT_CLEARED;
+  data.recovery_reason = RecoveryReason::MERGE_PATH_UNAVAILABLE;
+  data.pending_transition_s = 0.12;
+  data.pending_grid_count = 3;
+  data.merge_probe_valid_cycles = 2;
+  data.merge_probe_available = true;
+  data.costmap_sequence = 42;
+  data.costmap_stamp_s = 123.45;
+  data.opponent_observation_sequence = 41;
   data.relative_position = RelativePosition::AHEAD_AND_CLEAR;
   data.opponent_detected = true;
   data.opponent_gap_m = 1.1;
@@ -75,6 +87,18 @@ TEST(RosAdapters, DecisionPreservesEveryField)
   EXPECT_EQ(message.header.frame_id, "world");
   EXPECT_EQ(rclcpp::Time(message.header.stamp, RCL_ROS_TIME), stamp);
   EXPECT_EQ(message.requested_intent, static_cast<uint8_t>(data.requested_intent));
+  EXPECT_EQ(message.proposed_intent, static_cast<uint8_t>(data.proposed_intent));
+  EXPECT_EQ(message.executed_intent, static_cast<uint8_t>(data.executed_intent));
+  EXPECT_EQ(message.transition_class, static_cast<uint8_t>(data.transition_class));
+  EXPECT_EQ(message.transition_reason, static_cast<uint8_t>(data.transition_reason));
+  EXPECT_EQ(message.recovery_reason, static_cast<uint8_t>(data.recovery_reason));
+  EXPECT_DOUBLE_EQ(message.pending_transition_s, data.pending_transition_s);
+  EXPECT_EQ(message.pending_grid_count, data.pending_grid_count);
+  EXPECT_EQ(message.merge_probe_valid_cycles, data.merge_probe_valid_cycles);
+  EXPECT_EQ(message.merge_probe_available, data.merge_probe_available);
+  EXPECT_EQ(message.costmap_sequence, data.costmap_sequence);
+  EXPECT_DOUBLE_EQ(message.costmap_stamp_s, data.costmap_stamp_s);
+  EXPECT_EQ(message.opponent_observation_sequence, data.opponent_observation_sequence);
   EXPECT_EQ(message.relative_position, static_cast<uint8_t>(data.relative_position));
   EXPECT_EQ(message.opponent_detected, data.opponent_detected);
   EXPECT_DOUBLE_EQ(message.opponent_gap_m, data.opponent_gap_m);
