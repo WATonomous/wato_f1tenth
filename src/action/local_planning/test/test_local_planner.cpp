@@ -86,7 +86,7 @@ LocalPlanResult planIntent(
   double opponent_s = 5.0)
 {
   const VehicleGeometry vehicle;
-  const CurveConnectionGenerator generator;
+  const FrenetConnectionGenerator generator;
   const ManeuverBuilder builder(reference, generator, testConfig(), vehicle);
   LocalPlanner planner(
     reference, builder, vehicle, productionGridPolicy(), CollisionConfig{},
@@ -106,7 +106,7 @@ LocalPlanResult planIntent(
 bool offsetTailAt(const ManeuverCandidate & candidate, double magnitude)
 {
   return candidate.uses_offset_tail &&
-         std::abs(std::abs(candidate.target_d) - magnitude) <= 1e-9;
+         std::abs(std::abs(candidate.passing_d) - magnitude) <= 1e-9;
 }
 
 }  // namespace

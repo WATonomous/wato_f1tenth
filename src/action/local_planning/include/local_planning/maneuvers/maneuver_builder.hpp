@@ -2,10 +2,10 @@
 #define LOCAL_PLANNING_MANEUVERS_MANEUVER_BUILDER_HPP
 
 #include "local_planning/core/types.hpp"
-#include "local_planning/curves/curve_connection_generator.hpp"
+#include "local_planning/curves/frenet_connection_generator.hpp"
 #include "local_planning/reference/raceline_reference.hpp"
+#include "local_planning/reference/reference_window.hpp"
 
-#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -19,14 +19,29 @@ using Path = std::vector<CurveSample>;
 struct ManeuverCandidate
 {
   Path path;
-  double target_d = 0.0;
+  // The two lateral offsets a candidate is characterised by.  These used to be
+  // one `target_d` field carrying whichever of them the generating branch
+  // happened to mean, which is most of why the old ranking was hard to read.
+  //
+  // passing_d is the offset at the end of the first leg -- beside the opponent,
+  // the offset that has to fit.  terminal_d is the offset at the horizon.  For
+  // a constant-offset tail they are the same value; for PASS and MERGE, which
+  // have one commanded offset, both hold it.
+  double passing_d = 0.0;
+  double terminal_d = 0.0;
   double maneuver_distance_m = 0.0;
-  double max_offset_deviation_m = 0.0;
-  // True only when a non-zero-length suffix samples the exact constant-offset
-  // reference.  The selector uses this to keep the existing clothoid family
-  // preferred when clearance is equal, and ROS exposes the selected value for
-  // bag-level diagnosis.
-  bool uses_offset_tail = false;
+  // Worst |d| along the path, accumulated by the sampler as the path is built.
+  // This is the overshoot measurement, and it is not derivable from passing_d
+  // and terminal_d: the start boundary carries the measured d' and d'', and a
+  // quintic leaving with those pointed outward swings past the offset it was
+  // commanded to reach.  A displaced, yawed car is exactly when that happens,
+  // which is also when track_bounds_rejected climbs.
+  double max_abs_d_m = 0.0;
+  // True only when a non-zero-length suffix holds a constant offset.  No longer
+  // a ranking input -- after the port a tail is an ordinary Frenet connection
+  // with d' = d'' = 0, not a different curve family -- but it stays on the wire
+  // for bag-level diagnosis.
+  bool uses_offset_tail = true;
 };
 
 struct ManeuverConfig
@@ -46,7 +61,7 @@ class ManeuverBuilder
 public:
   ManeuverBuilder(
     const RacelineReference & reference,
-    const CurveConnectionGenerator & curve_generator,
+    const FrenetConnectionGenerator & curve_generator,
     ManeuverConfig config,
     VehicleGeometry vehicle_geometry);
 
@@ -59,73 +74,62 @@ public:
     const BoundaryState & ego, double ego_s, double ego_d) const;
   std::vector<ManeuverCandidate> recover(
     const BoundaryState & ego, double ego_s, double ego_d) const;
+  // ego_d joins the signature because the start boundary is now Frenet: the
+  // measured offset is an input to the connection, not something the world-frame
+  // ego pose carried implicitly.
   std::vector<ManeuverCandidate> merge(
-    const BoundaryState & ego, double ego_s) const;
+    const BoundaryState & ego, double ego_s, double ego_d) const;
   const ManeuverConfig & config() const {return config_;}
 
-  // How often the cheap station-hinted offset failed and had to fall back to a
-  // windowed search.  This is the difference between the fast path and the slow
-  // one, and nothing else in the output distinguishes them, so it is counted
-  // and reported rather than left to be inferred from a latency spike.  Reset
-  // per cycle by the caller.
-  struct StationHintStats
-  {
-    uint64_t samples = 0;
-    uint64_t fallbacks = 0;
-  };
-  StationHintStats stationHintStats() const {return station_hint_stats_;}
-  void resetStationHintStats() const {station_hint_stats_ = {};}
-
 private:
-  enum class BoundaryCurvature
-  {
-    REFERENCE,
-    OFFSET
-  };
+  // Rebuilds the per-cycle reference table over [ego_s, ego_s + horizon_m].
+  // Every entry point calls this before generating, and every leg of every
+  // candidate then indexes the same table.  Unconditional: at ~61 spline
+  // evaluations it is cheaper than reasoning about when the reference or the
+  // station last changed, and it runs at most twice a cycle (PASS, then its
+  // recovery family).
+  bool prepareWindow(double ego_s) const;
 
+  // The measured car as a Frenet start boundary: its lateral offset, the slope
+  // implied by its heading error, and the second derivative that continues the
+  // curvature its current steering angle implies.
+  bool startBoundary(
+    const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & result) const;
+  // A commanded boundary on the reference: offset d at station s, turned
+  // heading_offset away from the reference tangent, with d'' = 0.
+  //
+  // d'' = 0 is not a simplification, it is the whole of the old
+  // BoundaryCurvature enum.  Setting d' = d'' = 0 in the curvature formula
+  // gives kappa = kappa_ref / (1 - d kappa_ref), which is exactly what the
+  // OFFSET mode used to request, and it is what makes a constant-offset tail C2
+  // at the join by construction.
   bool boundary(
-    double s,
-    double d,
-    double heading_offset,
-    BoundaryState & result,
-    BoundaryCurvature curvature = BoundaryCurvature::OFFSET) const;
+    double s, double d, double heading_offset, FrenetBoundary & result) const;
+  // max_abs_d is raised to the worst |d| the appended leg reached, so a path
+  // assembled from several legs carries the maximum over all of them.  It is
+  // left untouched when the connection is rejected.
   bool connect(
-    Path & path,
-    const BoundaryState & start,
-    const BoundaryState & end,
-    double start_raceline_s,
-    double end_raceline_s,
-    BoundaryState * actual_end = nullptr) const;
-  bool appendReferenceCurve(
-    Path & path, double start_s, double reference_distance_m, double d) const;
+    Path & path, const FrenetBoundary & start, const FrenetBoundary & end,
+    double & max_abs_d) const;
+  bool appendOffsetTail(
+    Path & path, double start_s, double reference_distance_m, double d,
+    double & max_abs_d) const;
 
-  struct SideCheck
-  {
-    bool stays_on_side = false;
-    // Only meaningful when stays_on_side; the sweep returns early otherwise.
-    double max_offset_deviation_m = 0.0;
-  };
-
-  // One sweep answering both questions the old staysOnSide() and
-  // maximumOffsetDeviation() asked separately.  They walked the same path in
-  // the same order and each computed the same lateral offset per sample, so
-  // splitting them doubled the cost of the dominant term in PASS.
-  SideCheck sideAndDeviation(
-    const Path & path,
-    int side,
-    bool allow_start_center,
-    double target_d) const;
+  // A straight read of sample.d: the Newton refinement with its windowed-search
+  // fallback is gone, because the offset is no longer something the path has to
+  // be interrogated for.
+  bool staysOnSide(const Path & path, int side) const;
   std::vector<double> offsets(int side) const;
   std::optional<double> preferredOffset(double ego_d) const;
   int sideOf(double d) const;
 
   const RacelineReference & reference_;
-  const CurveConnectionGenerator & curve_generator_;
+  const FrenetConnectionGenerator & curve_generator_;
   ManeuverConfig config_;
   VehicleGeometry vehicle_geometry_;
-  // Mutable so the generation entry points stay const: this is diagnostics
-  // about how the answer was reached, not part of the answer.
-  mutable StationHintStats station_hint_stats_;
+  // Mutable so the generation entry points stay const: this is a per-cycle
+  // cache of the reference, not part of the builder's configuration.
+  mutable ReferenceWindow window_;
 };
 
 } // namespace local_planning

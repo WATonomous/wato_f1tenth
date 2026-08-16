@@ -185,9 +185,10 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
 
   cfg.curve.sample_spacing_m = declare_parameter("sample_spacing_m", 0.1);
   cfg.curve.max_curvature_inv_m = declare_parameter("max_curvature_inv_m", 1.74);
-  cfg.curve.max_arc_length_m = declare_parameter("max_arc_length_m", 12.0);
+  cfg.curve.max_path_angle_deg = declare_parameter("max_path_angle_deg", 60.0);
   cfg.projection.seed_window_m = declare_parameter("seed_window_m", 2.0);
   cfg.projection.tangent_tolerance_rad = declare_parameter("tangent_tolerance_rad", 1.2);
+  cfg.projection.max_plausible_offset_m = declare_parameter("max_plausible_offset_m", 3.0);
 
   cfg.planner_rate_hz = declare_parameter("planner_rate_hz", 20.0);
   cfg.reference_track_topic = declare_parameter(

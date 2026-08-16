@@ -1,10 +1,9 @@
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 
-#include "local_planning/curves/reference_curve_sampler.hpp"
+#include "local_planning/curves/frenet_polynomial.hpp"
 #include "worker_pool.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -17,6 +16,15 @@ namespace
 {
 
 constexpr double kTolerance = 1e-6;
+// Past this the heading error is effectively perpendicular to the reference and
+// tan() stops being a usable encoding of it.  The generator's max_path_angle_deg
+// rejects long before here; this only keeps the arithmetic finite.
+constexpr double kMaxStartHeadingErrorRad = 1.5;
+
+double wrapAngle(double angle)
+{
+  return std::atan2(std::sin(angle), std::cos(angle));
+}
 
 void removeDuplicates(std::vector<double> & values)
 {
@@ -104,19 +112,11 @@ void validateConfig(const ManeuverConfig & config, const VehicleGeometry & vehic
   }
 }
 
-bool matches(const CurveSample & sample, const BoundaryState & boundary)
-{
-  return std::hypot(sample.x - boundary.x, sample.y - boundary.y) <= kTolerance &&
-         std::abs(std::atan2(
-      std::sin(sample.heading - boundary.heading), std::cos(sample.heading - boundary.heading))) <=
-         kTolerance && std::abs(sample.curvature - boundary.curvature) <= kTolerance;
-}
-
 } // namespace
 
 ManeuverBuilder::ManeuverBuilder(
   const RacelineReference & reference,
-  const CurveConnectionGenerator & curve_generator,
+  const FrenetConnectionGenerator & curve_generator,
   ManeuverConfig config,
   VehicleGeometry vehicle_geometry)
 : reference_(reference), curve_generator_(curve_generator), config_(std::move(config)),
@@ -133,129 +133,133 @@ ManeuverBuilder::ManeuverBuilder(
   removeDuplicates(config_.merge_completion_distances_m);
 }
 
+bool ManeuverBuilder::prepareWindow(double ego_s) const
+{
+  return window_.build(
+    reference_, ego_s, config_.horizon_m, curve_generator_.config().sample_spacing_m);
+}
+
+bool ManeuverBuilder::startBoundary(
+  const BoundaryState & ego,
+  double ego_s,
+  double ego_d,
+  FrenetBoundary & result) const
+{
+  (void)ego_s;   // index 0 of the window is exactly ego_s by construction
+  if (!window_.valid()) {
+    return false;
+  }
+  const ReferenceGeometrySample & reference = window_.at(0);
+  const double tangent_scale = 1.0 - ego_d * reference.curvature;
+  if (!(tangent_scale > kTolerance) || !std::isfinite(tangent_scale)) {
+    return false;
+  }
+  const double heading_error = wrapAngle(ego.heading - reference.heading);
+  if (!std::isfinite(heading_error) || std::abs(heading_error) >= kMaxStartHeadingErrorRad) {
+    return false;
+  }
+
+  result.s = window_.startS();
+  result.d = ego_d;
+  // heading = ref.heading + atan2(d', A), inverted.
+  result.d_prime = tangent_scale * std::tan(heading_error);
+  result.d_double_prime = frenetSecondDerivativeForVehicleCurvature(
+    ego.curvature, ego_d, result.d_prime, reference.curvature,
+    reference.curvature_derivative);
+  return std::isfinite(result.d_prime) && std::isfinite(result.d_double_prime);
+}
+
 bool ManeuverBuilder::boundary(
   double s,
   double d,
   double heading_offset,
-  BoundaryState & result,
-  BoundaryCurvature curvature) const
+  FrenetBoundary & result) const
 {
-  const ReferenceGeometrySample reference = reference_.sampleAtS(s);
-  const double denominator = 1.0 - d * reference.curvature;
-  if (denominator <= kTolerance || !std::isfinite(denominator)) {
+  if (!window_.valid()) {
     return false;
   }
-  result = {
-    reference.x + d * reference.normal_x,
-    reference.y + d * reference.normal_y,
-    reference.heading + heading_offset,
-    curvature == BoundaryCurvature::REFERENCE ?
-    reference.curvature : reference.curvature / denominator,
-    reference.velocity};
-  return std::isfinite(result.x) && std::isfinite(result.y) &&
-         std::isfinite(result.heading) && std::isfinite(result.curvature);
+  const std::size_t index = window_.indexForS(s);
+  const ReferenceGeometrySample & reference = window_.at(index);
+  const double tangent_scale = 1.0 - d * reference.curvature;
+  if (!(tangent_scale > kTolerance) || !std::isfinite(tangent_scale)) {
+    return false;
+  }
+  result.s = window_.sAt(index);
+  result.d = d;
+  result.d_prime = tangent_scale * std::tan(heading_offset);
+  result.d_double_prime = 0.0;
+  return std::isfinite(result.d_prime);
 }
 
 bool ManeuverBuilder::connect(
   Path & path,
-  const BoundaryState & start,
-  const BoundaryState & end,
-  double start_raceline_s,
-  double end_raceline_s,
-  BoundaryState * actual_end) const
+  const FrenetBoundary & start,
+  const FrenetBoundary & end,
+  double & max_abs_d) const
 {
-  const GeneratedConnection connection = curve_generator_.generate({start, end});
-  if (!connection.valid || connection.samples.empty()) {
+  const std::size_t i_start = window_.indexForS(start.s);
+  const std::size_t i_end = window_.indexForS(end.s);
+  if (i_end <= i_start) {
     return false;
   }
-  const double s_offset = path.empty() ? 0.0 : path.back().s;
-  const double connection_length = connection.samples.back().s;
-  const double reference_progress = reference_.deltaS(start_raceline_s, end_raceline_s);
-  for (std::size_t i = path.empty() ? 0 : 1; i < connection.samples.size(); ++i) {
-    CurveSample sample = connection.samples[i];
-    const double fraction = connection_length > kTolerance ? sample.s / connection_length : 0.0;
-    sample.raceline_s = reference_.wrapS(start_raceline_s + fraction * reference_progress);
-    sample.s += s_offset;
-    path.push_back(sample);
+  const double delta_s =
+    window_.spacingM() * static_cast<double>(i_end - i_start);
+  const FrenetPolynomial polynomial = computeQuintic(
+    start.d, start.d_prime, start.d_double_prime,
+    end.d, end.d_prime, end.d_double_prime, delta_s);
+  const FrenetConnectionResult result =
+    curve_generator_.generate(window_, i_start, i_end, polynomial, path);
+  if (!result.valid) {
+    return false;
   }
-  if (actual_end != nullptr) {
-    *actual_end = connection.actual_terminal;
-  }
+  max_abs_d = std::max(max_abs_d, result.max_abs_d);
   return true;
 }
 
-bool ManeuverBuilder::appendReferenceCurve(
+bool ManeuverBuilder::appendOffsetTail(
   Path & path,
   double start_s,
   double reference_distance_m,
-  double d) const
+  double d,
+  double & max_abs_d) const
 {
-  if (path.empty() || curve_generator_.config().sample_spacing_m <= 0.0) {
+  if (path.empty()) {
     return false;
   }
-  const GeneratedReferenceCurve generated = ReferenceCurveSampler().generate(
-    reference_,
-    {start_s, reference_distance_m, d, curve_generator_.config().sample_spacing_m});
-  if (!generated.valid || generated.samples.empty()) {
-    return false;
+  // A full-horizon transition leaves no tail to append.  That is success with
+  // nothing to do, not a failure: the path already ends where the tail would
+  // have started.  (MERGE's longest completion distance and PASS recovery's
+  // non-preferred full-horizon offsets both land here.)
+  if (reference_distance_m <= kTolerance) {
+    return true;
   }
-  const CurveSample & first = generated.samples.front();
-  const BoundaryState start{
-    first.x, first.y, first.heading, first.curvature, first.speed};
-  if (!matches(path.back(), start)) {
-    return false;
-  }
-
-  const double s_offset = path.back().s;
-  for (std::size_t i = 1; i < generated.samples.size(); ++i) {
-    CurveSample sample = generated.samples[i];
-    sample.s += s_offset;
-    path.push_back(sample);
-  }
-  return true;
+  // A constant offset is just a connection whose two boundaries agree, so this
+  // is the same sampler and the same code path as every other leg.  The join is
+  // C2 by construction: the leg that ended here ended with d' = d'' = 0 at this
+  // same d, which is precisely what these boundaries request.  That is what
+  // makes the old matches() continuity gate unnecessary rather than merely
+  // loose.
+  const FrenetBoundary start{start_s, d, 0.0, 0.0};
+  const FrenetBoundary end{start_s + reference_distance_m, d, 0.0, 0.0};
+  return connect(path, start, end, max_abs_d);
 }
 
-ManeuverBuilder::SideCheck ManeuverBuilder::sideAndDeviation(
-  const Path & path,
-  int side,
-  bool allow_start_center,
-  double target_d) const
+bool ManeuverBuilder::staysOnSide(const Path & path, int side) const
 {
   const double deadband = vehicle_geometry_.fullWidthM();
-  SideCheck result;
-  for (std::size_t i = 0; i < path.size(); ++i) {
-    const CurveSample & sample = path[i];
-    // Every sample already knows its station -- connect() and the reference
-    // curve sampler set raceline_s when they build it -- so this needs no
-    // search.  The old
-    // project() call here rescanned about twenty spline segments per sample to
-    // recover a value the sample was carrying, and at two sweeps per candidate
-    // that was 99% of the cost of PASS.
-    const Point p(sample.x, sample.y);
-    bool converged = false;
-    double d = reference_.lateralOffsetAt(p, sample.raceline_s, &converged);
-    ++station_hint_stats_.samples;
-    if (!converged) {
-      ++station_hint_stats_.fallbacks;
-      // connect() interpolates raceline_s linearly along the curve, which stops
-      // resembling the reference when a corner is tight relative to horizon_m.
-      // Fall back to the windowed search this used to do unconditionally, seeded
-      // on the sample's own station rather than the previous sample's result --
-      // strictly the better seed, and no worse than the old behaviour.
-      d = reference_.project(p, sample.raceline_s).d;
+  for (const CurveSample & sample : path) {
+    // sample.d is exact and free: it is the quantity the curve was planned in.
+    // This used to be a Newton refinement per sample with a windowed-search
+    // fallback, which at two sweeps per candidate was the dominant cost of
+    // PASS.
+    //
+    // Inside ±deadband is still "on the line"; only reject a clear
+    // opposite-side excursion beyond one vehicle width.
+    if (side * sample.d <= -deadband) {
+      return false;
     }
-
-    const bool skip_side_check = i == 0 && allow_start_center && std::abs(d) <= deadband;
-    // Inside ±deadband is still "on the line"; only reject a clear opposite-side
-    // excursion beyond one vehicle width.
-    if (!skip_side_check && side * d <= -deadband) {
-      return result;   // stays_on_side stays false; the deviation is never read
-    }
-    result.max_offset_deviation_m =
-      std::max(result.max_offset_deviation_m, std::abs(d - target_d));
   }
-  result.stays_on_side = true;
-  return result;
+  return true;
 }
 
 std::vector<double> ManeuverBuilder::offsets(int side) const
@@ -304,46 +308,51 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   double opponent_rear_s) const
 {
   std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid()) {
+  if (!reference_.valid() || !prepareWindow(ego_s)) {
     return candidates;
   }
-  // Unused: the dense side check is deferred to opponent prediction (review P0-1).
-  // The old zero-curvature intermediate boundary that caused tight-corner crossings
-  // has been removed; OVERTAKE now uses only reference and exact offset curvature.
-  (void)ego_d;
+  FrenetBoundary start;
+  if (!startBoundary(ego, ego_s, ego_d, start)) {
+    return candidates;
+  }
   const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
   const std::vector<double> lateral_offsets = offsets(0);
   // The first leg is a function of (intermediate_s, intermediate_d,
-  // heading_offset, curvature mode).  It does not depend on horizon_d, so
-  // each distinct first leg is solved once and reused as the prefix for every
-  // same-side horizon offset.  The two G2 waves are job lists on the
-  // persistent pool; enumeration stays in the original nested-loop order
-  // because selectOvertake() breaks ties on first-seen.
+  // heading_offset).  It does not depend on horizon_d, so each distinct first
+  // leg is sampled once and reused as the prefix for every same-side horizon
+  // offset.  The two waves are job lists on the persistent pool; enumeration
+  // stays in the original nested-loop order because selection breaks ties on
+  // first-seen.
+  //
+  // The old (curvature mode) axis of this product is gone: with d'' = 0 the two
+  // modes were the same boundary, and it was only ever a hedge against the G2
+  // solver failing to converge on one of them.
   struct FirstLeg
   {
     Path path;
-    BoundaryState join;
+    FrenetBoundary join;
+    // Carried with the leg so each completion that reuses this prefix starts
+    // its own accumulation from the prefix's worst |d|.
+    double max_abs_d = 0.0;
     bool valid = false;
   };
-  constexpr std::array<BoundaryCurvature, 2> curvature_modes{
-    BoundaryCurvature::REFERENCE,
-    BoundaryCurvature::OFFSET};
   const std::size_t heading_count = config_.overtake_heading_offsets_rad.size();
-  const std::size_t curvature_count = curvature_modes.size();
+  // The tail family attaches to a leg that arrives tangent to the offset lane,
+  // so it needs the zero-heading first leg.  When the configured grid contains
+  // one, reuse it; otherwise build a separate entry leg for the tails alone.
   const auto zero_heading = std::find_if(
     config_.overtake_heading_offsets_rad.begin(),
     config_.overtake_heading_offsets_rad.end(),
     [](double heading) {return std::abs(heading) <= kTolerance;});
-  const std::optional<std::size_t> zero_heading_index =
-    zero_heading == config_.overtake_heading_offsets_rad.end() ?
-    std::nullopt :
-    std::optional<std::size_t>(static_cast<std::size_t>(
-        zero_heading - config_.overtake_heading_offsets_rad.begin()));
+  const bool has_zero_heading =
+    zero_heading != config_.overtake_heading_offsets_rad.end();
+  const std::size_t zero_heading_index = has_zero_heading ?
+    static_cast<std::size_t>(zero_heading - config_.overtake_heading_offsets_rad.begin()) :
+    0U;
 
   const std::size_t station_count = config_.overtake_s_offsets_from_opponent_rear_m.size();
   const std::size_t offset_count = lateral_offsets.size();
-  const std::size_t first_stride = heading_count * curvature_count;
-  std::vector<FirstLeg> first_legs(station_count * offset_count * first_stride);
+  std::vector<FirstLeg> first_legs(station_count * offset_count * heading_count);
   std::vector<FirstLeg> exact_entries(station_count * offset_count);
 
   struct Station
@@ -363,8 +372,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   struct FirstJob
   {
     FirstLeg * leg = nullptr;
-    BoundaryState end;
-    double end_s = 0.0;
+    FrenetBoundary end;
   };
   std::vector<FirstJob> first_jobs;
   first_jobs.reserve(first_legs.size() + exact_entries.size());
@@ -374,88 +382,76 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
     }
     for (std::size_t d = 0; d < offset_count; ++d) {
       for (std::size_t h = 0; h < heading_count; ++h) {
-        for (std::size_t c = 0; c < curvature_count; ++c) {
-          BoundaryState intermediate;
-          if (!boundary(
-              stations[s].intermediate_s, lateral_offsets[d],
-              config_.overtake_heading_offsets_rad[h], intermediate, curvature_modes[c]))
-          {
-            continue;
-          }
-          FirstLeg & leg = first_legs[(s * offset_count + d) * first_stride +
-              h * curvature_count + c];
-          first_jobs.push_back({&leg, intermediate, stations[s].intermediate_s});
-        }
-      }
-      if (!zero_heading_index) {
-        BoundaryState intermediate;
-        if (boundary(
-            stations[s].intermediate_s, lateral_offsets[d], 0.0, intermediate,
-            BoundaryCurvature::OFFSET))
+        FrenetBoundary intermediate;
+        if (!boundary(
+            stations[s].intermediate_s, lateral_offsets[d],
+            config_.overtake_heading_offsets_rad[h], intermediate))
         {
-          first_jobs.push_back({
-              &exact_entries[s * offset_count + d], intermediate,
-              stations[s].intermediate_s});
+          continue;
+        }
+        FirstLeg & leg = first_legs[(s * offset_count + d) * heading_count + h];
+        first_jobs.push_back({&leg, intermediate});
+      }
+      if (!has_zero_heading) {
+        FrenetBoundary intermediate;
+        if (boundary(stations[s].intermediate_s, lateral_offsets[d], 0.0, intermediate)) {
+          first_jobs.push_back({&exact_entries[s * offset_count + d], intermediate});
         }
       }
     }
   }
   parallelFor(first_jobs.size(), [&](std::size_t i) {
       FirstJob & job = first_jobs[i];
-      job.leg->valid = connect(
-        job.leg->path, ego, job.end, ego_s, job.end_s, &job.leg->join);
+      job.leg->join = job.end;
+      job.leg->valid = connect(job.leg->path, start, job.end, job.leg->max_abs_d);
     });
 
   struct CompletionJob
   {
     const FirstLeg * leg = nullptr;
-    BoundaryState horizon;
+    FrenetBoundary horizon;
     double intermediate_s = 0.0;
-    double horizon_s = 0.0;
-    double target_d = 0.0;
+    double passing_d = 0.0;
+    double terminal_d = 0.0;
     bool offset_tail = false;
     double tail_distance = 0.0;
   };
   std::vector<CompletionJob> completions;
-  completions.reserve(station_count * offset_count * offset_count * first_stride);
+  completions.reserve(station_count * offset_count * offset_count * heading_count);
   for (std::size_t s = 0; s < station_count; ++s) {
     if (!stations[s].ok) {
       continue;
     }
     for (std::size_t d = 0; d < offset_count; ++d) {
       for (std::size_t horizon_i = 0; horizon_i < offset_count; ++horizon_i) {
+        // Both legs stay on one side of the raceline.  Selection ranks on
+        // |passing_d| and relies on this: no candidate reaching it straddles.
         if (lateral_offsets[d] * lateral_offsets[horizon_i] <= 0.0) {
           continue;
         }
-        BoundaryState horizon;
+        FrenetBoundary horizon;
         if (!boundary(horizon_s, lateral_offsets[horizon_i], 0.0, horizon)) {
           continue;
         }
         for (std::size_t h = 0; h < heading_count; ++h) {
-          for (std::size_t c = 0; c < curvature_count; ++c) {
-            const FirstLeg & leg = first_legs[(s * offset_count + d) * first_stride +
-                h * curvature_count + c];
-            if (!leg.valid) {
-              continue;
-            }
-            completions.push_back({
-                &leg, horizon, stations[s].intermediate_s, horizon_s,
-                lateral_offsets[horizon_i], false, 0.0});
+          const FirstLeg & leg = first_legs[(s * offset_count + d) * heading_count + h];
+          if (!leg.valid) {
+            continue;
           }
+          completions.push_back({
+              &leg, horizon, stations[s].intermediate_s,
+              lateral_offsets[d], lateral_offsets[horizon_i], false, 0.0});
         }
       }
 
-      const FirstLeg * entry = nullptr;
-      if (zero_heading_index) {
-        entry = &first_legs[(s * offset_count + d) * first_stride +
-            *zero_heading_index * curvature_count + 1U];
-      } else {
-        entry = &exact_entries[s * offset_count + d];
-      }
+      const FirstLeg * const entry = has_zero_heading ?
+        &first_legs[(s * offset_count + d) * heading_count + zero_heading_index] :
+        &exact_entries[s * offset_count + d];
       if (entry->valid) {
         completions.push_back({
-            entry, BoundaryState{}, stations[s].intermediate_s, horizon_s,
-            lateral_offsets[d], true, config_.horizon_m - stations[s].progress});
+            entry, FrenetBoundary{}, stations[s].intermediate_s,
+            lateral_offsets[d], lateral_offsets[d], true,
+            config_.horizon_m - stations[s].progress});
       }
     }
   }
@@ -465,13 +461,16 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   parallelFor(completions.size(), [&](std::size_t i) {
       const CompletionJob & job = completions[i];
       Path path = job.leg->path;
+      double max_abs_d = job.leg->max_abs_d;
       const bool ok = job.offset_tail ?
-      appendReferenceCurve(path, job.intermediate_s, job.tail_distance, job.target_d) :
-      connect(path, job.leg->join, job.horizon, job.intermediate_s, job.horizon_s);
+      appendOffsetTail(path, job.intermediate_s, job.tail_distance, job.passing_d, max_abs_d) :
+      connect(path, job.leg->join, job.horizon, max_abs_d);
       if (!ok) {
         return;
       }
-      slots[i] = {std::move(path), job.target_d, config_.horizon_m, 0.0, job.offset_tail};
+      slots[i] = {
+        std::move(path), job.passing_d, job.terminal_d, config_.horizon_m,
+        max_abs_d, job.offset_tail};
       slot_ok[i] = 1;
     });
 
@@ -491,7 +490,11 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
 {
   std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
-  if (!reference_.valid() || side == 0) {
+  if (!reference_.valid() || side == 0 || !prepareWindow(ego_s)) {
+    return candidates;
+  }
+  FrenetBoundary start;
+  if (!startBoundary(ego, ego_s, ego_d, start)) {
     return candidates;
   }
   const double target_s = reference_.wrapS(ego_s + config_.horizon_m);
@@ -499,15 +502,13 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
   if (!target_d) {
     return candidates;
   }
-  BoundaryState target;
+  FrenetBoundary target;
   Path path;
-  if (boundary(target_s, *target_d, 0.0, target) &&
-    connect(path, ego, target, ego_s, target_s))
-  {
-    const SideCheck check = sideAndDeviation(path, side, false, *target_d);
-    if (check.stays_on_side) {
+  double max_abs_d = 0.0;
+  if (boundary(target_s, *target_d, 0.0, target) && connect(path, start, target, max_abs_d)) {
+    if (staysOnSide(path, side)) {
       candidates.push_back(
-        {std::move(path), *target_d, config_.horizon_m, check.max_offset_deviation_m});
+        {std::move(path), *target_d, *target_d, config_.horizon_m, max_abs_d, false});
     }
   }
   return candidates;
@@ -520,7 +521,11 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
 {
   std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
-  if (!reference_.valid() || side == 0) {
+  if (!reference_.valid() || side == 0 || !prepareWindow(ego_s)) {
+    return candidates;
+  }
+  FrenetBoundary start;
+  if (!startBoundary(ego, ego_s, ego_d, start)) {
     return candidates;
   }
   const std::optional<double> preferred = preferredOffset(ego_d);
@@ -540,19 +545,16 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
         continue;
       }
       const double target_s = reference_.wrapS(ego_s + transition);
-      BoundaryState target;
+      FrenetBoundary target;
       Path path;
+      double max_abs_d = 0.0;
       if (boundary(target_s, d, 0.0, target) &&
-        connect(path, ego, target, ego_s, target_s) &&
-        appendReferenceCurve(path, target_s, config_.horizon_m - transition, d))
+        connect(path, start, target, max_abs_d) &&
+        appendOffsetTail(path, target_s, config_.horizon_m - transition, d, max_abs_d))
       {
-        // Deviation is measured against the preferred offset, not this
-        // candidate's own d: recovery candidates are ranked by how far they
-        // stray from where the planner would rather be.
-        const SideCheck check = sideAndDeviation(path, side, false, *preferred);
-        if (check.stays_on_side) {
+        if (staysOnSide(path, side)) {
           candidates.push_back(
-            {std::move(path), d, transition, check.max_offset_deviation_m,
+            {std::move(path), d, d, transition, max_abs_d,
               transition < config_.horizon_m - kTolerance});
         }
       }
@@ -563,21 +565,28 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
 
 std::vector<ManeuverCandidate> ManeuverBuilder::merge(
   const BoundaryState & ego,
-  double ego_s) const
+  double ego_s,
+  double ego_d) const
 {
   std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid()) {
+  if (!reference_.valid() || !prepareWindow(ego_s)) {
+    return candidates;
+  }
+  FrenetBoundary start;
+  if (!startBoundary(ego, ego_s, ego_d, start)) {
     return candidates;
   }
   for (double completion : config_.merge_completion_distances_m) {
     const double target_s = reference_.wrapS(ego_s + completion);
-    BoundaryState target;
+    FrenetBoundary target;
     Path path;
+    double max_abs_d = 0.0;
     if (boundary(target_s, 0.0, 0.0, target) &&
-      connect(path, ego, target, ego_s, target_s) &&
-      appendReferenceCurve(path, target_s, config_.horizon_m - completion, 0.0))
+      connect(path, start, target, max_abs_d) &&
+      appendOffsetTail(path, target_s, config_.horizon_m - completion, 0.0, max_abs_d))
     {
-      candidates.push_back({std::move(path), 0.0, completion, 0.0});
+      candidates.push_back(
+        {std::move(path), 0.0, 0.0, completion, max_abs_d, false});
     }
   }
   return candidates;

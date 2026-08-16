@@ -1,7 +1,7 @@
 #ifndef LOCAL_PLANNING_ROS_PLANNER_NODE_HPP
 #define LOCAL_PLANNING_ROS_PLANNER_NODE_HPP
 
-#include "local_planning/curves/curve_connection_generator.hpp"
+#include "local_planning/curves/frenet_connection_generator.hpp"
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 #include "local_planning/msg/planner_decision.hpp"
 #include "local_planning/planning/local_planner.hpp"
@@ -41,7 +41,7 @@ private:
     ManeuverConfig maneuver;
     CollisionConfig collision;
     VelocityProfileConfig velocity;
-    CurveGeneratorConfig curve;
+    FrenetConnectionConfig curve;
     ProjectionConfig projection;
     StateMachineConfig state;
     double planner_rate_hz = 20.0;
@@ -87,7 +87,7 @@ private:
 
   NodeConfig config_;
   RacelineReference reference_;
-  CurveConnectionGenerator curve_generator_;
+  FrenetConnectionGenerator curve_generator_;
   ManeuverBuilder maneuver_builder_;
   RacingStateMachine state_machine_;
   LocalPlanner planner_;

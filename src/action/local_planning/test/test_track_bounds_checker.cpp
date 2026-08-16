@@ -56,6 +56,7 @@ CurveSample offsetSample(const RacelineReference & reference, double s, double d
   sample.y = geometry.y + d * geometry.normal_y;
   sample.heading = geometry.heading;
   sample.raceline_s = s;
+  sample.d = d;
   return sample;
 }
 
@@ -103,8 +104,6 @@ TEST(TrackBoundsChecker, MissingWidthsAreOk)
   const auto result = checker.check(
     offsetPath(reference, 2.0, 4.0, 0.75), coveringGrid(-1));
   EXPECT_TRUE(result.ok);
-  EXPECT_EQ(result.station_hint_samples, 0u);
-  EXPECT_EQ(result.station_hint_fallbacks, 0u);
 }
 
 TEST(TrackBoundsChecker, UnknownWideOffsetIsRejected)
@@ -119,8 +118,6 @@ TEST(TrackBoundsChecker, UnknownWideOffsetIsRejected)
   const auto result = checker.check(
     offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(-1));
   EXPECT_FALSE(result.ok);
-  EXPECT_GT(result.station_hint_samples, 0u);
-  EXPECT_EQ(result.station_hint_fallbacks, 0u);
 }
 
 TEST(TrackBoundsChecker, KnownFreeSkipsWidth)
@@ -135,7 +132,6 @@ TEST(TrackBoundsChecker, KnownFreeSkipsWidth)
   const auto result = checker.check(
     offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(0));
   EXPECT_TRUE(result.ok);
-  EXPECT_EQ(result.station_hint_samples, 0u);
 }
 
 TEST(TrackBoundsChecker, KnownOccupiedSkipsWidth)
@@ -150,7 +146,6 @@ TEST(TrackBoundsChecker, KnownOccupiedSkipsWidth)
   const auto result = checker.check(
     offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(100));
   EXPECT_TRUE(result.ok);
-  EXPECT_EQ(result.station_hint_samples, 0u);
 }
 
 TEST(TrackBoundsChecker, OutOfGridUsesWidth)
@@ -166,7 +161,6 @@ TEST(TrackBoundsChecker, OutOfGridUsesWidth)
   OccupancyGrid grid = makeGrid(4, 4, 0.10, ego.x - 0.20, ego.y - 0.20, 0);
   const auto result = checker.check(offsetPath(reference, 2.0, 6.0, 0.55), grid);
   EXPECT_FALSE(result.ok);
-  EXPECT_GT(result.station_hint_samples, 0u);
 }
 
 TEST(TrackBoundsChecker, UnknownOnRacelineStaysInsideBounds)
@@ -181,8 +175,6 @@ TEST(TrackBoundsChecker, UnknownOnRacelineStaysInsideBounds)
   const auto result = checker.check(
     offsetPath(reference, 2.0, 4.0, 0.0), coveringGrid(-1));
   EXPECT_TRUE(result.ok);
-  EXPECT_GT(result.station_hint_samples, 0u);
-  EXPECT_EQ(result.station_hint_fallbacks, 0u);
 }
 
 TEST(TrackBoundsChecker, KnownPrefixThenUnknownSuffixChecksTheUnseen)
@@ -206,49 +198,28 @@ TEST(TrackBoundsChecker, KnownPrefixThenUnknownSuffixChecksTheUnseen)
 
   const auto result = checker.check(path, grid);
   EXPECT_FALSE(result.ok);
-  EXPECT_GT(result.station_hint_samples, 0u);
 }
 
-TEST(TrackBoundsChecker, PreviousStationSeedsNewtonAfterBadHint)
+// The two tests this replaces drove the Newton recovery: one checked that a bad
+// raceline_s was rescued by seeding from the previous sample, the other that a
+// hopeless hint fell through to a windowed project().  Neither path exists now.
+// The contract is simply that the checker believes the sample, which is the
+// point of planning in (s, d) rather than recovering it afterwards.
+TEST(TrackBoundsChecker, TrustsTheSamplesOwnStationAndOffset)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
+  // Asymmetric bounds, so reading d with the wrong sign would pick the wrong
+  // cap and the test would notice.
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 1.0, 1.0), 0.10));
+      uniformWidths(reference, 0.20, 0.90), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
-  std::vector<CurveSample> path = {
-    offsetSample(reference, 2.0, 0.0),
-    offsetSample(reference, 2.2, 0.0),
-  };
-  path[1].raceline_s = 12.0;
-
-  OccupancyGrid grid = coveringGrid(-1);
-  stampFootprint(grid, path[0], vehicle, 0);
-
-  const auto result = checker.check(path, grid);
-  EXPECT_TRUE(result.ok);
-  EXPECT_EQ(result.station_hint_samples, 2u);
-  EXPECT_EQ(result.station_hint_fallbacks, 0u);
-}
-
-TEST(TrackBoundsChecker, ProjectFallbackWhenBothHintsMiss)
-{
-  RacelineReference reference;
-  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
-  const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), 0.10));
-  const TrackBoundsChecker checker(reference, vehicle);
-
-  CurveSample sample = offsetSample(reference, 2.0, 0.55);
-  sample.raceline_s = 12.0;
-
-  const auto result = checker.check({sample}, coveringGrid(-1));
-  EXPECT_FALSE(result.ok);
-  EXPECT_EQ(result.station_hint_samples, 1u);
-  EXPECT_EQ(result.station_hint_fallbacks, 1u);
+  // 0.55 to the left is inside the 0.90 left bound.
+  EXPECT_TRUE(checker.check(offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(-1)).ok);
+  // The same magnitude to the right is outside the 0.20 right bound.
+  EXPECT_FALSE(checker.check(offsetPath(reference, 2.0, 4.0, -0.55), coveringGrid(-1)).ok);
 }
 
 }  // namespace local_planning

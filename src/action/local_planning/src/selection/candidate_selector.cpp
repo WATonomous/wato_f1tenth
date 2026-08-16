@@ -1,14 +1,15 @@
 #include "local_planning/selection/candidate_selector.hpp"
 
-#include <algorithm>
+#include <array>
 #include <cmath>
-#include <limits>
+#include <cstddef>
 
 namespace local_planning
 {
 namespace
 {
 constexpr double kTolerance = 1e-6;
+constexpr std::size_t kKeyCount = 4;
 
 bool valid(const EvaluatedCandidate & candidate)
 {
@@ -21,131 +22,60 @@ int clearanceRank(const EvaluatedCandidate & candidate)
 {
   return candidate.collision.status == CollisionStatus::FREE ? 0 : 1;
 }
+
+// Lower is better in every slot.  Unused slots are zero, which is why one
+// comparator covers all three intents: PASS and MERGE simply tie on the two
+// geometry keys and fall through to time.
+using SelectionKey = std::array<double, kKeyCount>;
+
+SelectionKey keyFor(
+  PlannerIntent intent,
+  const ManeuverCandidate & geometry,
+  const EvaluatedCandidate & evaluated)
+{
+  const bool rank_on_geometry = intent == PlannerIntent::OVERTAKE;
+  return {
+    static_cast<double>(clearanceRank(evaluated)),
+    rank_on_geometry ? std::abs(geometry.passing_d) : 0.0,
+    rank_on_geometry ? std::abs(geometry.terminal_d) : 0.0,
+    evaluated.traversal_time_s};
+}
+
+// Strictly better on the first key that differs by more than kTolerance.
+// Exact ties fall through to first-seen, which keeps enumeration order as the
+// final tiebreak exactly as the hand-rolled loops did.
+bool better(const SelectionKey & candidate, const SelectionKey & best)
+{
+  for (std::size_t i = 0; i < kKeyCount; ++i) {
+    if (candidate[i] < best[i] - kTolerance) {
+      return true;
+    }
+    if (candidate[i] > best[i] + kTolerance) {
+      return false;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
-int CandidateSelector::selectOvertake(
+int CandidateSelector::select(
+  PlannerIntent intent,
   const std::vector<ManeuverCandidate> & pool,
   const std::vector<EvaluatedCandidate> & evaluated) const
 {
-  const EvaluatedCandidate * best = nullptr;
+  int best_index = -1;
+  SelectionKey best_key{};
   for (const auto & candidate : evaluated) {
     if (!valid(candidate)) {continue;}
-    if (!best) {
-      best = &candidate;
-      continue;
-    }
-    const int candidate_clearance = clearanceRank(candidate);
-    const int best_clearance = clearanceRank(*best);
-    if (candidate_clearance < best_clearance) {
-      best = &candidate;
-      continue;
-    }
-    if (candidate_clearance > best_clearance) {continue;}
-
-    const bool candidate_tail = pool.at(
-      static_cast<std::size_t>(candidate.candidate_index)).uses_offset_tail;
-    const bool best_tail = pool.at(
-      static_cast<std::size_t>(best->candidate_index)).uses_offset_tail;
-    if (candidate_tail != best_tail) {
-      if (!candidate_tail) {best = &candidate;}
-      continue;
-    }
-    if (candidate.traversal_time_s < best->traversal_time_s) {
-      best = &candidate;
+    const auto & geometry = pool.at(static_cast<std::size_t>(candidate.candidate_index));
+    const SelectionKey key = keyFor(intent, geometry, candidate);
+    if (best_index < 0 || better(key, best_key)) {
+      best_index = candidate.candidate_index;
+      best_key = key;
     }
   }
-  return best ? best->candidate_index : -1;
-}
-
-int CandidateSelector::selectPass(
-  const std::vector<ManeuverCandidate> & pool,
-  const std::vector<EvaluatedCandidate> & evaluated) const
-{
-  const EvaluatedCandidate * preferred = nullptr;
-  for (const auto & candidate : evaluated) {
-    if (candidate.source == CandidateSource::PASS_PREFERRED && valid(candidate)) {
-      preferred = &candidate;
-      if (candidate.collision.status == CollisionStatus::FREE) {
-        return candidate.candidate_index;
-      }
-      break;
-    }
-  }
-
-  std::vector<double> tiers;
-  for (const auto & candidate : evaluated) {
-    if (candidate.source == CandidateSource::PASS_RECOVERY && valid(candidate)) {
-      tiers.push_back(pool.at(
-          static_cast<std::size_t>(candidate.candidate_index)).maneuver_distance_m);
-    }
-  }
-  std::sort(tiers.begin(), tiers.end(), std::greater<double>());
-  tiers.erase(std::unique(tiers.begin(), tiers.end(), [](double a, double b) {
-      return std::abs(a - b) <= kTolerance;
-    }), tiers.end());
-
-  for (const double tier : tiers) {
-    const EvaluatedCandidate * best = nullptr;
-    for (const auto & candidate : evaluated) {
-      if (candidate.source != CandidateSource::PASS_RECOVERY || !valid(candidate)) {continue;}
-      const auto & geometry = pool.at(static_cast<std::size_t>(candidate.candidate_index));
-      if (std::abs(geometry.maneuver_distance_m - tier) > kTolerance) {continue;}
-      if (!best) {best = &candidate; continue;}
-      const auto & best_geometry = pool.at(static_cast<std::size_t>(best->candidate_index));
-      if (clearanceRank(candidate) != clearanceRank(*best)) {
-        if (clearanceRank(candidate) < clearanceRank(*best)) {best = &candidate;}
-      } else if (geometry.max_offset_deviation_m <
-        best_geometry.max_offset_deviation_m - kTolerance)
-      {
-        best = &candidate;
-      } else if (std::abs(geometry.max_offset_deviation_m -
-        best_geometry.max_offset_deviation_m) <= kTolerance &&
-        std::abs(geometry.target_d) < std::abs(best_geometry.target_d) - kTolerance)
-      {
-        best = &candidate;
-      } else if (std::abs(geometry.max_offset_deviation_m -
-        best_geometry.max_offset_deviation_m) <= kTolerance &&
-        std::abs(std::abs(geometry.target_d) - std::abs(best_geometry.target_d)) <= kTolerance &&
-        candidate.traversal_time_s < best->traversal_time_s)
-      {
-        best = &candidate;
-      }
-    }
-
-    if (!best) {continue;}
-    if (best->collision.status == CollisionStatus::FREE) {
-      return best->candidate_index;
-    }
-    if (!preferred) {
-      return best->candidate_index;
-    }
-  }
-  return preferred ? preferred->candidate_index : -1;
-}
-
-int CandidateSelector::selectMerge(
-  const std::vector<ManeuverCandidate> & pool,
-  const std::vector<EvaluatedCandidate> & evaluated) const
-{
-  const EvaluatedCandidate * best = nullptr;
-  for (const auto & candidate : evaluated) {
-    if (!valid(candidate)) {continue;}
-    if (!best) {best = &candidate; continue;}
-    if (clearanceRank(candidate) < clearanceRank(*best)) {
-      best = &candidate;
-      continue;
-    }
-    if (clearanceRank(candidate) > clearanceRank(*best)) {continue;}
-    if (candidate.traversal_time_s < best->traversal_time_s - kTolerance) {
-      best = &candidate;
-    } else if (std::abs(candidate.traversal_time_s - best->traversal_time_s) <= kTolerance &&
-      pool.at(static_cast<std::size_t>(candidate.candidate_index)).maneuver_distance_m >
-      pool.at(static_cast<std::size_t>(best->candidate_index)).maneuver_distance_m)
-    {
-      best = &candidate;
-    }
-  }
-  return best ? best->candidate_index : -1;
+  return best_index;
 }
 
 }  // namespace local_planning

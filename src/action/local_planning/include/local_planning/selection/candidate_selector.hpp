@@ -30,16 +30,31 @@ struct EvaluatedCandidate
   bool track_bounds_ok = true;
 };
 
+// Picks one candidate per cycle by lexicographic comparison on a small key
+// tuple.
+//
+// Safety is binary everywhere: FREE beats SOFT_INFLATION and nothing more.
+// minimum_clearance_m deliberately never enters ranking -- it stays in the
+// no-candidate braking fallback, the one place a continuous margin is the right
+// question.  Ranking on a float margin here would make traversal_time_s a
+// tiebreak that never fires.
+//
+// OVERTAKE then ranks on geometry: (|passing_d|, |terminal_d|), because the
+// offset that has to fit beside the opponent is what costs lap time, and the
+// horizon offset breaks its ties.  Both legs of every OVERTAKE candidate are
+// already on one side of the raceline, so ranking on |d| cannot pull a
+// candidate across it.
+//
+// PASS and MERGE rank on time alone after safety.  "On our side" is enforced
+// when PASS candidates are generated, not here.
 class CandidateSelector
 {
 public:
-  int selectOvertake(
-    const std::vector<ManeuverCandidate> & pool,
-    const std::vector<EvaluatedCandidate> & evaluated) const;
-  int selectPass(
-    const std::vector<ManeuverCandidate> & pool,
-    const std::vector<EvaluatedCandidate> & evaluated) const;
-  int selectMerge(
+  // Returns the index into pool, or -1 when nothing is both feasible and no
+  // worse than SOFT_INFLATION.  intent selects the key tuple; anything that is
+  // not OVERTAKE uses (safety, time).
+  int select(
+    PlannerIntent intent,
     const std::vector<ManeuverCandidate> & pool,
     const std::vector<EvaluatedCandidate> & evaluated) const;
 };

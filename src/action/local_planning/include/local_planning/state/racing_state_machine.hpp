@@ -46,11 +46,18 @@ struct TacticalState
   double heading_error_rad = 0.0;
   bool raceline_compatible = false;
 
-  // The seeded projection failed its tangent check and the whole loop had to be
+  // The seed window held no plausible foot and the whole loop had to be
   // searched.  Steady laps never set this, so a run of them means the seed has
   // stopped tracking ego and ego_s -- with every threshold that reads it -- is
   // not to be trusted.
   bool ego_seed_was_stale = false;
+
+  // The projection stayed in the seed window but needed a wider tangent
+  // tolerance than configured to find a foot there.  Distinct from the flag
+  // above and much weaker: ego_s is still trustworthy, ego was just yawed away
+  // from the reference.  Expected mid-slide; persistent outside a slide means
+  // tangent_tolerance_rad is tighter than the car actually drives.
+  bool ego_heading_check_relaxed = false;
 };
 
 // Tactical layer: observation to intent, with no memory beyond the projection

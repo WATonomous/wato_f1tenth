@@ -40,7 +40,14 @@ struct PlannerDecisionData
   ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
   CandidateSource candidate_source = CandidateSource::NONE;
   bool selected_offset_tail = false;
+  // The selected candidate's overshoot: worst |d| along its path.  On the wire
+  // because it is what the port is judged on, and because it is the one part of
+  // the executed geometry that terminal_d_m does not imply -- the connection
+  // starts from the measured d' and d'', which can carry it wide of the offset
+  // it was commanded to reach.
+  double selected_max_abs_d_m = 0.0;
   bool projection_seed_was_stale = false;
+  bool projection_heading_check_relaxed = false;
   CollisionStatus clearance_class = CollisionStatus::OUT_OF_GRID;
   double minimum_clearance_m = 0.0;
   double max_abs_curvature_inv_m = 0.0;
@@ -77,11 +84,6 @@ struct LocalPlanProfile
   uint32_t total_path_samples = 0;
   uint32_t max_path_samples = 0;
   uint32_t collision_poses_checked = 0;
-  // Side/deviation sweep took the slow windowed search instead of the cheap
-  // station hint.  A high rate here is a ~60x latency cliff that is otherwise
-  // invisible: the paths come out identical either way.
-  uint64_t station_hint_samples = 0;
-  uint64_t station_hint_fallbacks = 0;
 };
 
 struct LocalPlanResult
