@@ -184,7 +184,7 @@ TEST_F(PlannerVisualizationTest, TrackBoundsPublishTwoClosedRawLines)
   const auto points = circleLine(5.0, 48);
   ASSERT_TRUE(reference.setRacingLine(points));
   std::vector<TrackWidth> widths(points.size(), TrackWidth{1.2, 1.5});
-  ASSERT_TRUE(reference.setTrackWidths(widths, 0.2, 0.05, 0.25));
+  ASSERT_TRUE(reference.setTrackWidths(widths, 0.25));
   PlannerVisualization visualization(reference, {"map", true, 0.4, 1.05});
   MarkerReceiver receiver("track_bounds_visualization_test");
 

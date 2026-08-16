@@ -75,8 +75,6 @@ public:
   // onto a uniform table; rawBounds(s) is an O(1) lookup, min'd with the next bin.
   bool setTrackWidths(
     const std::vector<TrackWidth> & widths,
-    double collision_radius_m,
-    double margin_m,
     double spacing_m);
   void clearTrackWidths();
   bool trackWidthsValid() const {return track_widths_valid_;}

@@ -96,10 +96,7 @@ PlannerNode::PlannerNode()
       for (const auto & width : msg->widths) {
         widths.push_back({width.right_m, width.left_m});
       }
-      if (!reference_.setTrackWidths(
-          widths,
-          config_.vehicle_geometry.collision_radius_m, config_.track_boundary_margin_m,
-          config_.width_lookup_spacing_m))
+      if (!reference_.setTrackWidths(widths, config_.width_lookup_spacing_m))
       {
         RCLCPP_ERROR(
           get_logger(),
@@ -195,7 +192,6 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.planner_rate_hz = declare_parameter("planner_rate_hz", 20.0);
   cfg.reference_track_topic = declare_parameter(
     "reference_track_topic", "/global_planner/reference_track");
-  cfg.track_boundary_margin_m = declare_parameter("track_boundary_margin_m", 0.05);
   cfg.width_lookup_spacing_m = declare_parameter("width_lookup_spacing_m", 0.10);
   cfg.occupancy_grid_topic = declare_parameter("occupancy_grid_topic", "/occupancy_grid");
   cfg.odom_topic = declare_parameter("odom_topic", "/odom");

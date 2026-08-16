@@ -22,6 +22,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(Threads REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME} "msg/PlannerDecision.msg"
   DEPENDENCIES builtin_interfaces std_msgs)
@@ -55,6 +56,11 @@ target_include_directories(local_planning_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+target_include_directories(local_planning_core PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/core/third_party/thread_pool
+)
+target_link_libraries(local_planning_core PUBLIC Threads::Threads)
 
 # ---------------------------------------------------------------------------
 # local_planning_ros — the boundary layer plus the nodes.
