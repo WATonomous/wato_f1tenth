@@ -24,6 +24,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <cstdint>
 
 namespace local_planning
 {
@@ -74,6 +75,11 @@ private:
     std::string track_bounds_visualization_topic;
     std::string projection_visualization_topic;
     bool publish_projection_markers = true;
+    // Debug view: the current intent's candidates as the builder produced them,
+    // before any filtering. Off by default -- it repeats the generation pass
+    // plan() is about to run.
+    bool publish_all_candidates = false;
+    std::string all_candidates_visualization_topic;
   };
 
   NodeConfig loadConfig();
@@ -82,8 +88,11 @@ private:
   bool transformPathToControllerFrame(
     const nav_msgs::msg::Path & map_path,
     nav_msgs::msg::Path & controller_path);
+  void publishAllCandidates(
+    const BoundaryState & ego, const TacticalState & state, const rclcpp::Time & stamp);
   void publishDecision(const PlannerDecisionData & data);
   void publishOvertakeReady(bool ready);
+  void publishEmptyLocalPath(const rclcpp::Time & stamp);
 
   NodeConfig config_;
   RacelineReference reference_;
@@ -99,6 +108,8 @@ private:
   nav_msgs::msg::Odometry::SharedPtr odom_;
   OccupancyGrid grid_;
   bool has_grid_ = false;
+  uint64_t costmap_sequence_ = 0;
+  double costmap_stamp_s_ = 0.0;
   double steering_angle_ = 0.0;
   // ROS clock, not steady_clock: under use_sim_time the two are unrelated, and
   // steering_command_timeout_s is a budget in simulated seconds.
@@ -119,6 +130,8 @@ private:
     track_bounds_visualization_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
     projection_visualization_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+    all_candidates_visualization_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
