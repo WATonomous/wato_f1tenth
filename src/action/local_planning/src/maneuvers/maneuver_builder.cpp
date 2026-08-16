@@ -1,6 +1,7 @@
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 
 #include "local_planning/curves/reference_curve_sampler.hpp"
+#include "worker_pool.hpp"
 
 #include <algorithm>
 #include <array>
@@ -313,14 +314,11 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
   const std::vector<double> lateral_offsets = offsets(0);
   // The first leg is a function of (intermediate_s, intermediate_d,
-  // heading_offset, curvature mode).  It does not depend on horizon_d,
-  // which the emission order below nests outside it, so building it inline
-  // re-solves the same G2 connection once per same-side horizon offset -- two
-  // thirds of the first-leg solves here are exact duplicates.  Solve each
-  // distinct first leg once per intermediate_d into this scratch table instead
-  // and reuse it as the prefix for every horizon offset.  The loop nesting is
-  // otherwise unchanged, so candidates come out in the same order as before;
-  // selectOvertake() breaks ties on first-seen, and that must not shift.
+  // heading_offset, curvature mode).  It does not depend on horizon_d, so
+  // each distinct first leg is solved once and reused as the prefix for every
+  // same-side horizon offset.  The two G2 waves are job lists on the
+  // persistent pool; enumeration stays in the original nested-loop order
+  // because selectOvertake() breaks ties on first-seen.
   struct FirstLeg
   {
     Path path;
@@ -332,7 +330,6 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
     BoundaryCurvature::OFFSET};
   const std::size_t heading_count = config_.overtake_heading_offsets_rad.size();
   const std::size_t curvature_count = curvature_modes.size();
-  std::vector<FirstLeg> first_legs(heading_count * curvature_count);
   const auto zero_heading = std::find_if(
     config_.overtake_heading_offsets_rad.begin(),
     config_.overtake_heading_offsets_rad.end(),
@@ -343,85 +340,145 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
     std::optional<std::size_t>(static_cast<std::size_t>(
         zero_heading - config_.overtake_heading_offsets_rad.begin()));
 
-  for (double s_offset : config_.overtake_s_offsets_from_opponent_rear_m) {
-    const double intermediate_s = reference_.wrapS(opponent_rear_s + s_offset);
-    const double progress = reference_.deltaS(ego_s, intermediate_s);
-    if (progress <= 0.0 || progress >= config_.horizon_m) {
+  const std::size_t station_count = config_.overtake_s_offsets_from_opponent_rear_m.size();
+  const std::size_t offset_count = lateral_offsets.size();
+  const std::size_t first_stride = heading_count * curvature_count;
+  std::vector<FirstLeg> first_legs(station_count * offset_count * first_stride);
+  std::vector<FirstLeg> exact_entries(station_count * offset_count);
+
+  struct Station
+  {
+    double intermediate_s = 0.0;
+    double progress = 0.0;
+    bool ok = false;
+  };
+  std::vector<Station> stations(station_count);
+  for (std::size_t s = 0; s < station_count; ++s) {
+    stations[s].intermediate_s = reference_.wrapS(
+      opponent_rear_s + config_.overtake_s_offsets_from_opponent_rear_m[s]);
+    stations[s].progress = reference_.deltaS(ego_s, stations[s].intermediate_s);
+    stations[s].ok = stations[s].progress > 0.0 && stations[s].progress < config_.horizon_m;
+  }
+
+  struct FirstJob
+  {
+    FirstLeg * leg = nullptr;
+    BoundaryState end;
+    double end_s = 0.0;
+  };
+  std::vector<FirstJob> first_jobs;
+  first_jobs.reserve(first_legs.size() + exact_entries.size());
+  for (std::size_t s = 0; s < station_count; ++s) {
+    if (!stations[s].ok) {
       continue;
     }
-    for (double intermediate_d : lateral_offsets) {
+    for (std::size_t d = 0; d < offset_count; ++d) {
       for (std::size_t h = 0; h < heading_count; ++h) {
         for (std::size_t c = 0; c < curvature_count; ++c) {
-          FirstLeg & leg = first_legs[h * curvature_count + c];
-          leg.path.clear();   // clear(), not a fresh Path: the capacity is worth keeping
-          leg.valid = false;
           BoundaryState intermediate;
           if (!boundary(
-              intermediate_s, intermediate_d, config_.overtake_heading_offsets_rad[h],
-              intermediate, curvature_modes[c]))
+              stations[s].intermediate_s, lateral_offsets[d],
+              config_.overtake_heading_offsets_rad[h], intermediate, curvature_modes[c]))
           {
             continue;
           }
-          leg.valid = connect(leg.path, ego, intermediate, ego_s, intermediate_s, &leg.join);
+          FirstLeg & leg = first_legs[(s * offset_count + d) * first_stride +
+              h * curvature_count + c];
+          first_jobs.push_back({&leg, intermediate, stations[s].intermediate_s});
         }
       }
+      if (!zero_heading_index) {
+        BoundaryState intermediate;
+        if (boundary(
+            stations[s].intermediate_s, lateral_offsets[d], 0.0, intermediate,
+            BoundaryCurvature::OFFSET))
+        {
+          first_jobs.push_back({
+              &exact_entries[s * offset_count + d], intermediate,
+              stations[s].intermediate_s});
+        }
+      }
+    }
+  }
+  parallelFor(first_jobs.size(), [&](std::size_t i) {
+      FirstJob & job = first_jobs[i];
+      job.leg->valid = connect(
+        job.leg->path, ego, job.end, ego_s, job.end_s, &job.leg->join);
+    });
 
-      for (double horizon_d : lateral_offsets) {
-        if (intermediate_d * horizon_d <= 0.0) {
+  struct CompletionJob
+  {
+    const FirstLeg * leg = nullptr;
+    BoundaryState horizon;
+    double intermediate_s = 0.0;
+    double horizon_s = 0.0;
+    double target_d = 0.0;
+    bool offset_tail = false;
+    double tail_distance = 0.0;
+  };
+  std::vector<CompletionJob> completions;
+  completions.reserve(station_count * offset_count * offset_count * first_stride);
+  for (std::size_t s = 0; s < station_count; ++s) {
+    if (!stations[s].ok) {
+      continue;
+    }
+    for (std::size_t d = 0; d < offset_count; ++d) {
+      for (std::size_t horizon_i = 0; horizon_i < offset_count; ++horizon_i) {
+        if (lateral_offsets[d] * lateral_offsets[horizon_i] <= 0.0) {
           continue;
         }
-        // Invariant across the heading/curvature pairs below, unlike the first leg.
         BoundaryState horizon;
-        if (!boundary(horizon_s, horizon_d, 0.0, horizon)) {
+        if (!boundary(horizon_s, lateral_offsets[horizon_i], 0.0, horizon)) {
           continue;
         }
         for (std::size_t h = 0; h < heading_count; ++h) {
           for (std::size_t c = 0; c < curvature_count; ++c) {
-            const FirstLeg & leg = first_legs[h * curvature_count + c];
+            const FirstLeg & leg = first_legs[(s * offset_count + d) * first_stride +
+                h * curvature_count + c];
             if (!leg.valid) {
               continue;
             }
-            Path path = leg.path;
-            if (connect(path, leg.join, horizon, intermediate_s, horizon_s)) {
-              candidates.push_back({std::move(path), horizon_d, config_.horizon_m, 0.0});
-            }
+            completions.push_back({
+                &leg, horizon, stations[s].intermediate_s, horizon_s,
+                lateral_offsets[horizon_i], false, 0.0});
           }
         }
       }
 
-      // Add one exact constant-offset suffix for every opponent-relative
-      // station/offset pair.  It is G2-continuous only from the first leg whose
-      // terminal heading is parallel to the reference and whose curvature is
-      // the exact offset curvature.  Reuse that cached exploratory leg when a
-      // zero heading sample is configured (the default); otherwise construct
-      // the exact-entry leg once so this robust candidate family does not
-      // disappear when the exploratory heading grid is changed.
-      FirstLeg exact_entry;
       const FirstLeg * entry = nullptr;
       if (zero_heading_index) {
-        entry = &first_legs[*zero_heading_index * curvature_count + 1U];
+        entry = &first_legs[(s * offset_count + d) * first_stride +
+            *zero_heading_index * curvature_count + 1U];
       } else {
-        BoundaryState intermediate;
-        if (boundary(
-            intermediate_s, intermediate_d, 0.0, intermediate,
-            BoundaryCurvature::OFFSET))
-        {
-          exact_entry.valid = connect(
-            exact_entry.path, ego, intermediate, ego_s, intermediate_s,
-            &exact_entry.join);
-        }
-        entry = &exact_entry;
+        entry = &exact_entries[s * offset_count + d];
       }
       if (entry->valid) {
-        Path path = entry->path;
-        if (appendReferenceCurve(
-            path, intermediate_s, config_.horizon_m - progress,
-            intermediate_d))
-        {
-          candidates.push_back(
-            {std::move(path), intermediate_d, config_.horizon_m, 0.0, true});
-        }
+        completions.push_back({
+            entry, BoundaryState{}, stations[s].intermediate_s, horizon_s,
+            lateral_offsets[d], true, config_.horizon_m - stations[s].progress});
       }
+    }
+  }
+
+  std::vector<ManeuverCandidate> slots(completions.size());
+  std::vector<char> slot_ok(completions.size(), 0);
+  parallelFor(completions.size(), [&](std::size_t i) {
+      const CompletionJob & job = completions[i];
+      Path path = job.leg->path;
+      const bool ok = job.offset_tail ?
+      appendReferenceCurve(path, job.intermediate_s, job.tail_distance, job.target_d) :
+      connect(path, job.leg->join, job.horizon, job.intermediate_s, job.horizon_s);
+      if (!ok) {
+        return;
+      }
+      slots[i] = {std::move(path), job.target_d, config_.horizon_m, 0.0, job.offset_tail};
+      slot_ok[i] = 1;
+    });
+
+  candidates.reserve(slots.size());
+  for (std::size_t i = 0; i < slots.size(); ++i) {
+    if (slot_ok[i]) {
+      candidates.push_back(std::move(slots[i]));
     }
   }
   return candidates;
