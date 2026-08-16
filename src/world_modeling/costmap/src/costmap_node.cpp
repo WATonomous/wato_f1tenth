@@ -26,7 +26,7 @@ CostmapNode::CostmapNode()
   // Declare parameters
   this->declare_parameter<double>("grid_width", 20.0);
   this->declare_parameter<double>("grid_height", 20.0);
-  this->declare_parameter<double>("resolution", 0.1);
+  this->declare_parameter<double>("resolution", 0.05);
   this->declare_parameter<std::string>("robot_frame", "base_link");
   this->declare_parameter<std::string>("scan_topic", "/hal/scan");
   this->declare_parameter<std::string>("output_topic", "/costmap");

@@ -231,6 +231,8 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.projection.max_plausible_offset_m = declare_parameter("max_plausible_offset_m", 3.0);
 
   cfg.planner_rate_hz = declare_parameter("planner_rate_hz", 20.0);
+  cfg.path_min_hold_s = declare_parameter("path_min_hold_s", 0.10);
+  cfg.path_max_hold_s = declare_parameter("path_max_hold_s", 0.15);
   cfg.reference_track_topic = declare_parameter(
     "reference_track_topic", "/global_planner/reference_track");
   cfg.width_lookup_spacing_m = declare_parameter("width_lookup_spacing_m", 0.10);
@@ -295,6 +297,7 @@ void PlannerNode::planningCycle()
     };
   if (!odom_ || !has_grid_ || !reference_.valid()) {
     state_machine_.resetEvidence();
+    held_path_.reset();
     PlannerDecisionData unavailable;
     unavailable.requested_intent = state_machine_.state().intent;
     unavailable.proposed_intent = state_machine_.state().intent;
@@ -316,6 +319,7 @@ void PlannerNode::planningCycle()
     std::chrono::steady_clock::now() - odom_started).count();
   if (!odom_in_map) {
     state_machine_.resetEvidence();
+    held_path_.reset();
     PlannerDecisionData unavailable;
     unavailable.requested_intent = state_machine_.state().intent;
     unavailable.proposed_intent = state_machine_.state().intent;
@@ -408,6 +412,7 @@ void PlannerNode::planningCycle()
 
   if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
     const auto marker_publish_started = std::chrono::steady_clock::now();
+    held_path_.reset();
     publishOvertakeReady(false);
     profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - marker_publish_started).count();
@@ -417,12 +422,42 @@ void PlannerNode::planningCycle()
   if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
     RCLCPP_ERROR_THROTTLE(
       get_logger(), *get_clock(), kRareErrorThrottleMs, "Braking path unavailable");
+    held_path_.reset();
     publishEmptyLocalPath(cycle_stamp);
     publishOvertakeReady(true);
     finishProfile();
     return;
   }
-  if (result.selected_index < 0) {
+  // --- INTENT OVERRIDE: comment out this block to let a held path survive an
+  // --- intent change (it would then only expire on collision or on max hold).
+  if (held_path_ && result.decision.requested_intent != held_intent_) {
+    held_path_.reset();
+  }
+  // --- END INTENT OVERRIDE
+
+  const double now_s = cycle_stamp.seconds();
+  const double hold_age_s = now_s - held_path_stamp_s_;
+  const Path * publish_path = nullptr;
+  // Commit window: below min hold we keep the current path even when a newer
+  // plan exists; between min and max we keep it only when this cycle found
+  // nothing; past max it expires regardless.  SOFT_INFLATION stays acceptable,
+  // matching how plan() ranks candidates.
+  if (held_path_ && hold_age_s >= 0.0 && hold_age_s < config_.path_max_hold_s &&
+    (hold_age_s < config_.path_min_hold_s || result.selected_index < 0))
+  {
+    const auto status = planner_.validatePath(*held_path_, grid_).status;
+    if (status != CollisionStatus::COLLISION && status != CollisionStatus::OUT_OF_GRID) {
+      publish_path = &*held_path_;
+    }
+  }
+  if (!publish_path && result.selected_index >= 0) {
+    held_path_ = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
+    held_path_stamp_s_ = now_s;
+    held_intent_ = result.decision.requested_intent;
+    publish_path = &*held_path_;
+  }
+  if (!publish_path) {
+    held_path_.reset();
     publishEmptyLocalPath(cycle_stamp);
     publishOvertakeReady(true);
     finishProfile();
@@ -430,9 +465,7 @@ void PlannerNode::planningCycle()
   }
 
   const auto path_message_started = std::chrono::steady_clock::now();
-  const auto map_path = pathToRos(
-    result.pool.at(static_cast<std::size_t>(result.selected_index)).path,
-    cycle_stamp, config_.map_frame);
+  const auto map_path = pathToRos(*publish_path, cycle_stamp, config_.map_frame);
   profile.ros.path_message_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_message_started).count();
   // The controller contract is the map-frame path. Pure pursuit re-transforms
