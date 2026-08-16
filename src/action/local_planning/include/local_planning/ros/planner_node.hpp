@@ -46,6 +46,11 @@ private:
     ProjectionConfig projection;
     StateMachineConfig state;
     double planner_rate_hz = 20.0;
+    // Commit window for the published local path.  Below min the current path
+    // is kept even when a newer plan exists; between min and max it is kept
+    // only to bridge a cycle that found nothing; past max it expires.
+    double path_min_hold_s = 0.10;
+    double path_max_hold_s = 0.15;
     double steering_command_timeout_s = 0.06;
     double odom_timeout_s = 0.25;
     double wheelbase_m = 0.33;
@@ -116,6 +121,9 @@ private:
   rclcpp::Time steering_received_;
   bool has_steering_ = false;
   std::optional<bool> last_overtake_ready_;
+  std::optional<Path> held_path_;
+  double held_path_stamp_s_ = 0.0;
+  PlannerIntent held_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;

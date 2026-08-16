@@ -307,7 +307,32 @@ TEST(RacingStateMachine, GapIsWrapAwareAcrossTheStartLine)
   ASSERT_TRUE(state.opponent.detected);
   EXPECT_NEAR(state.opponent.gap_m, 0.50, kFaceTolerance);
   EXPECT_EQ(state.relative_position, RelativePosition::OVERLAPPING);
-  EXPECT_EQ(state.intent, PlannerIntent::PASS);
+  // Ego is centred here, so the intent is OVERTAKE rather than PASS. The gap is
+  // what this test is about; the intent follows from CentredEgoOvertakesInstead.
+  EXPECT_EQ(state.intent, PlannerIntent::OVERTAKE);
+}
+
+// PASS holds an offset it cannot create: pass() and recover() both generate
+// nothing inside a vehicle width, so a centred ego must not be handed PASS.
+TEST(RacingStateMachine, CentredEgoOvertakesInsteadOfPassing)
+{
+  const Cycle centred = runWithOpponentAtGap(2.0, 0.10, 0.30);
+  ASSERT_TRUE(centred.state.opponent.detected);
+  EXPECT_EQ(centred.state.intent, PlannerIntent::OVERTAKE);
+
+  // Same gap, displaced beyond a vehicle width: PASS is generatable and stands.
+  const Cycle displaced = runWithOpponentAtGap(2.0, 0.50, 0.30);
+  ASSERT_TRUE(displaced.state.opponent.detected);
+  EXPECT_EQ(displaced.state.intent, PlannerIntent::PASS);
+}
+
+// Once ego overlaps or is ahead there is no overtake left to propose, so the
+// gate stops applying and PASS stays the intent even from the racing line.
+TEST(RacingStateMachine, CentredEgoStillPassesOnceOverlapping)
+{
+  const Cycle cycle = runWithOpponentAtGap(2.0, 0.10, -0.50);
+  ASSERT_TRUE(cycle.state.opponent.detected);
+  EXPECT_EQ(cycle.state.intent, PlannerIntent::PASS);
 }
 
 // Phase 6 anchors OVERTAKE here, so it must be the near face -- not the
