@@ -322,7 +322,7 @@ LocalPlanResult LocalPlanner::plan(
       result.selected_index = safest->candidate_index;
       auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
       for (auto & sample : path) {
-        sample.speed = std::max(velocity_config_.min_velocity_mps,
+        sample.speed = std::max(velocity_config_.braking_fallback_min_velocity_mps,
             std::sqrt(std::max(0.0, ego.speed * ego.speed -
             2.0 * velocity_config_.max_decel_mps2 * sample.s)));
       }
