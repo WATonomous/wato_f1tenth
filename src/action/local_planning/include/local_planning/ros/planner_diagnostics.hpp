@@ -83,6 +83,9 @@ private:
   double grid_resolution_ = 0.0;
   bool has_previous_cycle_ = false;
   PlannerIntent previous_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
+  PlannerIntent previous_proposed_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
+  uint32_t previous_pending_grid_count_ = 0;
+  uint32_t previous_merge_probe_valid_cycles_ = 0;
   bool previous_path_published_ = false;
   double previous_terminal_d_m_ = 0.0;
   bool previous_steering_fresh_ = false;

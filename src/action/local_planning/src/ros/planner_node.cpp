@@ -37,14 +37,14 @@ PlannerNode::PlannerNode()
     config_.profiling_log_every_n_cycles,
     config_.diagnostics_enabled,
     config_.profiling_intent_filter,
-    config_.vehicle_geometry.fullWidthM(),
+    config_.state.follow_exit_abs_d_m,
     config_.state.compat_heading_rad}),
   visualization_(
     reference_,
     PlannerVisualizationConfig{
     config_.map_frame,
     config_.publish_projection_markers,
-    config_.vehicle_geometry.fullWidthM(),
+    config_.state.follow_exit_abs_d_m,
     config_.state.compat_heading_rad}),
   tf_buffer_(std::make_shared<tf2_ros::Buffer>(get_clock())),
   tf_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_buffer_))
@@ -64,6 +64,8 @@ PlannerNode::PlannerNode()
         }
         planner_.buildGridCache(grid_);
         has_grid_ = true;
+        ++costmap_sequence_;
+        costmap_stamp_s_ = rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()).seconds();
         diagnostics_.recordGridUpdate(
           std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - profile_started).count(),
@@ -130,13 +132,20 @@ PlannerNode::PlannerNode()
     config_.track_bounds_visualization_topic, latched);
   projection_visualization_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
     config_.projection_visualization_topic, 10);
+  if (config_.publish_all_candidates) {
+    all_candidates_visualization_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
+      config_.all_candidates_visualization_topic, 10);
+    RCLCPP_INFO(
+      get_logger(), "Publishing every generated candidate on %s (debug; costs generation)",
+      config_.all_candidates_visualization_topic.c_str());
+  }
 
   timer_ = create_wall_timer(
     std::chrono::duration<double>(1.0 / config_.planner_rate_hz),
     std::bind(&PlannerNode::planningCycle, this));
 
-  if (config_.state.overtake_start_gap_m >= config_.maneuver.horizon_m) {
-    RCLCPP_WARN(get_logger(), "overtake_start_gap_m must be below horizon_m");
+  if (config_.state.engagement_enter_gap_m >= config_.maneuver.horizon_m) {
+    RCLCPP_WARN(get_logger(), "engagement_enter_gap_m must be below horizon_m");
   }
   if (config_.velocity.max_velocity_mps > std::sqrt(
     2.0 * config_.velocity.max_decel_mps2 * config_.maneuver.horizon_m))
@@ -148,7 +157,7 @@ PlannerNode::PlannerNode()
 PlannerNode::NodeConfig PlannerNode::loadConfig()
 {
   NodeConfig cfg;
-  cfg.maneuver.horizon_m = declare_parameter("horizon_m", 6.0);
+  cfg.maneuver.horizon_m = declare_parameter("horizon_m", 4.0);
   cfg.vehicle_geometry.collision_radius_m = declare_parameter(
     "collision_circle_radius_m", 0.20);
   cfg.maneuver.overtake_s_offsets_from_opponent_rear_m = declare_parameter(
@@ -158,15 +167,46 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.maneuver.overtake_heading_offsets_rad = declare_parameter(
     "overtake_heading_offsets_rad", std::vector<double>{-0.15, 0.0, 0.15});
   cfg.maneuver.pass_transition_distances_m = declare_parameter(
-    "pass_transition_distances_m", std::vector<double>{6.0, 3.0, 1.0});
+    "pass_transition_distances_m", std::vector<double>{4.0, 3.0, 1.0});
   cfg.maneuver.merge_completion_distances_m = declare_parameter(
-    "merge_completion_distances_m", std::vector<double>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0});
+    "merge_completion_distances_m", std::vector<double>{0.5, 1.0, 2.0, 3.0, 4.0});
 
   cfg.state.corridor_half_width_m = declare_parameter("corridor_half_width_m", 0.25);
-  cfg.state.overlap_gap_m = declare_parameter("overlap_gap_m", 0.80);
-  cfg.state.clear_gap_m = declare_parameter("clear_gap_m", 1.00);
-  cfg.state.overtake_start_gap_m = declare_parameter("overtake_start_gap_m", 3.00);
+  cfg.state.pass_enter_gap_m = declare_parameter("pass_enter_gap_m", 0.65);
+  cfg.state.pass_exit_gap_m = declare_parameter("pass_exit_gap_m", 0.95);
+  cfg.state.merge_enter_gap_m = declare_parameter("merge_enter_gap_m", -1.20);
+  cfg.state.merge_exit_gap_m = declare_parameter("merge_exit_gap_m", -0.80);
+  cfg.state.engagement_enter_gap_m = declare_parameter("engagement_enter_gap_m", 2.00);
+  cfg.state.engagement_exit_gap_m = declare_parameter("engagement_exit_gap_m", 2.50);
+  cfg.state.follow_enter_abs_d_m = declare_parameter("follow_enter_abs_d_m", 0.14);
+  cfg.state.follow_exit_abs_d_m = declare_parameter("follow_exit_abs_d_m", 0.28);
+  cfg.state.fast_confirmation_s = declare_parameter("fast_transition_confirmation_s", 0.05);
+  cfg.state.slow_confirmation_s = declare_parameter("slow_transition_confirmation_s", 0.15);
+  const int opponent_confirmation_grids = declare_parameter("opponent_confirmation_grids", 2);
+  const int pass_merge_confirmation_grids = declare_parameter(
+    "pass_merge_confirmation_grids", 3);
+  const int merge_pass_confirmation_grids = declare_parameter(
+    "merge_pass_confirmation_grids", 3);
+  const int merge_probe_confirmation_cycles = declare_parameter(
+    "merge_probe_confirmation_cycles", 3);
   cfg.state.compat_heading_rad = declare_parameter("compat_heading_rad", 1.05);
+  if (cfg.state.follow_enter_abs_d_m > cfg.state.follow_exit_abs_d_m ||
+    cfg.state.pass_enter_gap_m > cfg.state.pass_exit_gap_m ||
+    cfg.state.merge_enter_gap_m > cfg.state.merge_exit_gap_m ||
+    cfg.state.engagement_enter_gap_m > cfg.state.engagement_exit_gap_m ||
+    cfg.state.fast_confirmation_s < 0.0 || cfg.state.slow_confirmation_s < 0.0 ||
+    opponent_confirmation_grids < 1 || pass_merge_confirmation_grids < 1 ||
+    merge_pass_confirmation_grids < 1 || merge_probe_confirmation_cycles < 1)
+  {
+    throw std::invalid_argument("invalid tactical hysteresis or confirmation configuration");
+  }
+  cfg.state.opponent_confirmation_grids = static_cast<uint32_t>(opponent_confirmation_grids);
+  cfg.state.pass_merge_confirmation_grids =
+    static_cast<uint32_t>(pass_merge_confirmation_grids);
+  cfg.state.merge_pass_confirmation_grids =
+    static_cast<uint32_t>(merge_pass_confirmation_grids);
+  cfg.state.merge_probe_confirmation_cycles =
+    static_cast<uint32_t>(merge_probe_confirmation_cycles);
 
   cfg.vehicle_geometry.front_circle_offset_m = declare_parameter(
     "front_collision_circle_offset_m", 0.26);
@@ -237,12 +277,16 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.projection_visualization_topic = declare_parameter(
     "projection_visualization_topic", "/local_planner_projection_viz");
   cfg.publish_projection_markers = declare_parameter("publish_projection_markers", true);
+  cfg.publish_all_candidates = declare_parameter("publish_all_candidates", false);
+  cfg.all_candidates_visualization_topic = declare_parameter(
+    "all_candidates_visualization_topic", "/local_planner_all_candidates_viz");
   return cfg;
 }
 
 void PlannerNode::planningCycle()
 {
   const auto cycle_started = std::chrono::steady_clock::now();
+  const rclcpp::Time cycle_stamp = now();
   CycleProfile profile;
   const auto finishProfile = [&]() {
       profile.ros.cycle_ms = std::chrono::duration<double, std::milli>(
@@ -250,7 +294,18 @@ void PlannerNode::planningCycle()
       diagnostics_.recordCycle(std::move(profile));
     };
   if (!odom_ || !has_grid_ || !reference_.valid()) {
-    publishDecision(PlannerDecisionData{});
+    state_machine_.resetEvidence();
+    PlannerDecisionData unavailable;
+    unavailable.requested_intent = state_machine_.state().intent;
+    unavailable.proposed_intent = state_machine_.state().intent;
+    unavailable.executed_intent = state_machine_.state().intent;
+    const bool wants_local_path =
+      state_machine_.state().intent != PlannerIntent::FOLLOW_RACING_LINE;
+    unavailable.recovery_reason = wants_local_path ?
+      RecoveryReason::NO_SAFE_LOCAL_PATH : RecoveryReason::NONE;
+    publishDecision(unavailable);
+    if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
+    publishOvertakeReady(wants_local_path);
     finishProfile();
     return;
   }
@@ -260,7 +315,18 @@ void PlannerNode::planningCycle()
   profile.ros.odom_conversion_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - odom_started).count();
   if (!odom_in_map) {
-    publishDecision(PlannerDecisionData{});
+    state_machine_.resetEvidence();
+    PlannerDecisionData unavailable;
+    unavailable.requested_intent = state_machine_.state().intent;
+    unavailable.proposed_intent = state_machine_.state().intent;
+    unavailable.executed_intent = state_machine_.state().intent;
+    const bool wants_local_path =
+      state_machine_.state().intent != PlannerIntent::FOLLOW_RACING_LINE;
+    unavailable.recovery_reason = wants_local_path ?
+      RecoveryReason::NO_SAFE_LOCAL_PATH : RecoveryReason::NONE;
+    publishDecision(unavailable);
+    if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
+    publishOvertakeReady(wants_local_path);
     finishProfile();
     return;
   }
@@ -271,7 +337,9 @@ void PlannerNode::planningCycle()
   if (profile.outcome.steering_fresh) {odom.steering_angle = steering_angle_;}
 
   const auto state_started = std::chrono::steady_clock::now();
-  state_machine_.update(odom, grid_);
+  state_machine_.update(
+    odom, grid_, StateUpdateContext{
+      cycle_stamp.seconds(), costmap_sequence_, costmap_stamp_s_});
   profile.ros.state_update_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - state_started).count();
   const auto projection_marker_started = std::chrono::steady_clock::now();
@@ -292,8 +360,17 @@ void PlannerNode::planningCycle()
     curve_generator_.setSampleSpacingM(grid_.resolution);
   }
 
+  // Ahead of plan() and outside its intent branching on purpose: FOLLOW returns
+  // from plan() before generating anything, so this is the only place the debug
+  // view can see the maneuver families on a steady lap.
+  const auto all_candidates_started = std::chrono::steady_clock::now();
+  publishAllCandidates(ego, state_machine_.state(), cycle_stamp);
+  profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
+    std::chrono::steady_clock::now() - all_candidates_started).count();
+
   const auto planner_started = std::chrono::steady_clock::now();
   auto result = planner_.plan(state_machine_.state(), ego, grid_);
+  state_machine_.reportMergeProbe(result.decision.merge_probe_available);
   profile.ros.planner_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - planner_started).count();
   profile.core = result.profile;
@@ -302,7 +379,7 @@ void PlannerNode::planningCycle()
       get_logger(), *get_clock(), 1000,
       "MERGE_CHECK requested=1 bounds_ready=%d generated=%u valid=%u "
       "collision_rej=%u out_of_grid_rej=%u track_rej=%u velocity_rej=%u "
-      "selected=%d executed_mode=%d path_samples=%u collision_poses=%u "
+      "selected_pool_index=%d executed_mode=%d path_samples=%u collision_poses=%u "
       "ego_s=%.2f ego_d=%.2f terminal_d=%.2f clearance=%d min_clearance=%.2f",
       result.decision.track_bounds_ready ? 1 : 0,
       result.decision.generated_count,
@@ -340,12 +417,14 @@ void PlannerNode::planningCycle()
   if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
     RCLCPP_ERROR_THROTTLE(
       get_logger(), *get_clock(), kRareErrorThrottleMs, "Braking path unavailable");
-    publishOvertakeReady(false);
+    publishEmptyLocalPath(cycle_stamp);
+    publishOvertakeReady(true);
     finishProfile();
     return;
   }
   if (result.selected_index < 0) {
-    publishOvertakeReady(false);
+    publishEmptyLocalPath(cycle_stamp);
+    publishOvertakeReady(true);
     finishProfile();
     return;
   }
@@ -353,7 +432,7 @@ void PlannerNode::planningCycle()
   const auto path_message_started = std::chrono::steady_clock::now();
   const auto map_path = pathToRos(
     result.pool.at(static_cast<std::size_t>(result.selected_index)).path,
-    now(), config_.map_frame);
+    cycle_stamp, config_.map_frame);
   profile.ros.path_message_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_message_started).count();
   // The controller contract is the map-frame path. Pure pursuit re-transforms
@@ -375,7 +454,7 @@ void PlannerNode::planningCycle()
   profile.ros.path_publish_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - path_publish_started).count();
   const auto marker_publish_started = std::chrono::steady_clock::now();
-  visualization_.publishCandidates(result, now(), *visualization_pub_);
+  visualization_.publishCandidates(result, cycle_stamp, *visualization_pub_);
   publishOvertakeReady(true);
   profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - marker_publish_started).count();
@@ -439,6 +518,50 @@ bool PlannerNode::transformPathToControllerFrame(
   return true;
 }
 
+/*
+the candidates the current intent generates, drawn before anything filters them.
+
+one family, chosen by intent, mirroring plan()'s generation branch exactly: nothing
+is drawn that the planner would not have built this cycle. no recovery families, no
+merge probe, no phantom opponent -- those are conditional second passes or previews
+of states we are not in, and overlaying them makes the picture a guess.
+
+FOLLOW draws nothing because FOLLOW generates nothing: plan() returns before the
+builder is ever called. an empty topic on a steady lap is the honest reading.
+
+what is skipped is only the filtering. every path here is raw builder output, so
+one may run through a wall or off the track -- collision, bounds, and velocity all
+run inside plan(), on plan()'s own pool, and none of them have touched these.
+*/
+void PlannerNode::publishAllCandidates(
+  const BoundaryState & ego, const TacticalState & state, const rclcpp::Time & stamp)
+{
+  if (!all_candidates_visualization_pub_ || !reference_.valid()) {
+    return;
+  }
+  std::vector<CandidateFamily> families;
+  switch (state.intent) {
+    case PlannerIntent::OVERTAKE:
+      // Unreachable without a detected opponent, so opponent.s is always a real
+      // observation here, never a stand-in.
+      families.push_back(
+        {CandidateSource::OVERTAKE,
+          maneuver_builder_.overtake(ego, state.ego_s, state.ego_d, state.opponent.s)});
+      break;
+    case PlannerIntent::PASS:
+      families.push_back(
+        {CandidateSource::PASS_PREFERRED, maneuver_builder_.pass(ego, state.ego_s, state.ego_d)});
+      break;
+    case PlannerIntent::MERGE:
+      families.push_back(
+        {CandidateSource::MERGE, maneuver_builder_.merge(ego, state.ego_s, state.ego_d)});
+      break;
+    case PlannerIntent::FOLLOW_RACING_LINE:
+      break;
+  }
+  visualization_.publishAllCandidates(families, stamp, *all_candidates_visualization_pub_);
+}
+
 void PlannerNode::publishDecision(const PlannerDecisionData & data)
 {
   decision_pub_->publish(plannerDecisionToRos(data, now(), config_.map_frame));
@@ -451,6 +574,14 @@ void PlannerNode::publishOvertakeReady(bool ready)
   msg.data = ready;
   overtake_ready_pub_->publish(msg);
   last_overtake_ready_ = ready;
+}
+
+void PlannerNode::publishEmptyLocalPath(const rclcpp::Time & stamp)
+{
+  nav_msgs::msg::Path empty;
+  empty.header.stamp = stamp;
+  empty.header.frame_id = config_.map_frame;
+  local_path_map_pub_->publish(empty);
 }
 
 }  // namespace local_planning
