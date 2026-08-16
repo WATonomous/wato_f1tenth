@@ -17,7 +17,8 @@ enum class CandidateSource : uint8_t
   PASS_RECOVERY = 3,
   MERGE_ALIGNMENT = 4,
   MERGE = 5,
-  BRAKING = 6
+  BRAKING = 6,
+  MERGE_PROBE = 7
 };
 
 struct EvaluatedCandidate
