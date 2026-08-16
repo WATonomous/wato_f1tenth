@@ -283,23 +283,49 @@ PlannerIntent RacingStateMachine::proposedIntent(const Odometry & ego_odom) cons
     return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
   }
 
+  /*
+  PASS holds a lateral offset; it does not create one.  ManeuverBuilder::pass
+  and ::recover both return nothing while |d| is inside a vehicle width, so
+  entering PASS centred is entering a state that cannot generate geometry: the
+  pool is empty, there is no candidate for the braking fallback to slow along,
+  and the controller is handed an empty path and stops.  Stopping freezes the
+  gap, so PASS never releases either.
+
+  While the opponent is still ahead, the state that answers this is OVERTAKE --
+  it is the family that establishes the offset PASS then holds.  The gate is
+  restricted to gap > 0 on purpose: at overlap or once ego is ahead there is no
+  overtake to propose, PASS remains the correct intent, and an empty pool there
+  is a braking question rather than a state question.
+  */
+  const bool displaced_for_pass =
+    std::abs(state_.ego_d) > vehicle_geometry_.fullWidthM();
+  const auto passUnlessCentred = [&](PlannerIntent centred_alternative) {
+      return (displaced_for_pass || gap <= 0.0) ?
+             PlannerIntent::PASS : centred_alternative;
+    };
+
   switch (state_.intent) {
     case PlannerIntent::FOLLOW_RACING_LINE:
       if (gap <= config_.merge_enter_gap_m) {
         return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
       }
-      if (gap <= config_.pass_enter_gap_m) {return PlannerIntent::PASS;}
+      if (gap <= config_.pass_enter_gap_m) {
+        return passUnlessCentred(PlannerIntent::OVERTAKE);
+      }
       if (!compatible) {return PlannerIntent::MERGE;}
       return PlannerIntent::OVERTAKE;
     case PlannerIntent::OVERTAKE:
       if (gap <= config_.merge_enter_gap_m) {
         return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
       }
-      return gap <= config_.pass_enter_gap_m ? PlannerIntent::PASS : PlannerIntent::OVERTAKE;
+      return gap <= config_.pass_enter_gap_m ?
+             passUnlessCentred(PlannerIntent::OVERTAKE) : PlannerIntent::OVERTAKE;
     case PlannerIntent::PASS:
       if (gap >= config_.pass_exit_gap_m) {return PlannerIntent::OVERTAKE;}
       if (gap <= config_.merge_enter_gap_m) {return PlannerIntent::MERGE;}
-      return PlannerIntent::PASS;
+      // Drifting back onto the line mid-pass lands in the same empty pool as
+      // entering centred, so the hold is gated on the same condition.
+      return passUnlessCentred(PlannerIntent::OVERTAKE);
     case PlannerIntent::MERGE:
       if (gap >= config_.pass_exit_gap_m) {return PlannerIntent::OVERTAKE;}
       if (gap >= config_.merge_exit_gap_m) {return PlannerIntent::PASS;}

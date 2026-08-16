@@ -139,6 +139,14 @@ public:
     const BoundaryState & ego,
     const OccupancyGrid & grid) const;
 
+  // Re-check an already-selected path against a newer grid.  Same checker and
+  // config plan() ranks with, so a held path is judged by the same rule that
+  // admitted it.
+  CollisionCheckResult validatePath(const Path & path, const OccupancyGrid & grid) const
+  {
+    return collision_checker_.collisionCheck(path, grid);
+  }
+
 private:
   const RacelineReference & reference_;
   const ManeuverBuilder & builder_;

@@ -96,6 +96,15 @@ planner_node:
     max_plausible_offset_m: 3.0
 
     planner_rate_hz: 30.0
+    # Commit window for the published local path. Below min_hold the current
+    # path is kept even when a newer plan exists (stops cycle-to-cycle target
+    # flip); between min and max it is kept only to bridge a cycle that found
+    # nothing; past max it expires and a fresh path must be found. The held
+    # path is re-collision-checked against the newest costmap every cycle and
+    # republished with a fresh stamp, so /local_path_map rate is unchanged.
+    # An intent change drops it immediately. Set both to 0.0 to disable.
+    path_min_hold_s: 0.10
+    path_max_hold_s: 0.15
     # The raceline and its offline-computed widths are index-aligned. All
     # planner s/d values remain raceline-relative.
     reference_track_topic: "/global_planner/reference_track"
