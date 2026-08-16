@@ -65,7 +65,6 @@ planner_node:
     # The raceline and its offline-computed widths are index-aligned. All
     # planner s/d values remain raceline-relative.
     reference_track_topic: "/global_planner/reference_track"
-    track_boundary_margin_m: 0.05
     width_lookup_spacing_m: 0.10
     # Width table is the prior for unknown / out-of-grid poses; known cells stay
     # with the costmap. Dense G2-overshoot into an unseen wall is caught;

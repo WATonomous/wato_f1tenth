@@ -25,20 +25,11 @@ pure_persuit_node:
     speed_limit_active: true
     # Hard clamp on the commanded speed, applied to global- and local-path
     # following alike. Raceline CSV speeds are not capped anywhere else.
-    speed_limit: 2.0
+    speed_limit: 10.0
     max_steering_angle: 0.52
-    # steering = kp_gain * 2y/L^2, so kp_gain stands in for the wheelbase (0.33).
-    # 0.15 is a deliberately detuned ~half-wheelbase. 0.25 is closer to the
-    # geometrically correct value and limit-cycles at ~2 Hz once actuator lag is
-    # in the loop -- do NOT raise this for hairpin bite, it adds gain at every
-    # speed including the fast regime where it oscillates. Use min_lookahead.
-    kp_gain: 0.25
-    # L = clamp(max_lookahead * v / lookahead_ratio, min_lookahead, max_lookahead)
-    max_lookahead: 2.0 #increase this if there is more lots of ossilation at high speed
-    # The hairpin knob. Steering goes as 1/L^2 and L is clamped here below
-    # v = lookahead_ratio, so this bites only in the slow regime: 1.0 -> 0.8 is
-    # 1.56x more steering in tight corners and no change at speed.
-    min_lookahead: 0.8
-    lookahead_ratio: 6.0 #this is he speed at which the car will have max look ahead distance
+    kp_gain: 0.25 #change this if the not enough steering in hair pins or tight corners
+    max_lookahead: 3.0 #increase this if there is more lots of ossilation at high speed
+    min_lookahead: 1.0 # decrease this if the car is very slugish on low speed corners
+    lookahead_ratio: 7.0 #this is he speed at which the car will have max look ahead distance
     speed_topic: "/autodrive/roboracer_1/odom"
-    enable_debug_vis: false
+    enable_debug_vis: true

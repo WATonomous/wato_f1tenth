@@ -618,24 +618,26 @@ void Pure_Persuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_p
     ld.data = look_ahead_distance;
     look_ahead_pub_->publish(ld);
 
-    // publish debug lookahead point for foxglove visualization
-    visualization_msgs::msg::Marker dbg;
-    dbg.header.stamp = this->now();
-    dbg.header.frame_id = local_frame_id; // "base_link"
-    dbg.ns = "lookahead";
-    dbg.id = 0;
-    dbg.type = visualization_msgs::msg::Marker::SPHERE;
-    dbg.action = visualization_msgs::msg::Marker::ADD;
-    dbg.pose.position = look_ahead_point_p;
-    dbg.pose.orientation.w = 1.0;
-    dbg.scale.x = 0.2;
-    dbg.scale.y = 0.2;
-    dbg.scale.z = 0.2;
-    dbg.color.r = 1.0;
-    dbg.color.g = 0.2;
-    dbg.color.b = 0.2;
-    dbg.color.a = 1.0;
-    lookahead_point_pub_->publish(dbg);
+    // publish debug lookahead point for foxglove / rviz visualization
+    const auto stamp = this->now();
+
+    visualization_msgs::msg::Marker lookahead_point;
+    lookahead_point.header.stamp = stamp;
+    lookahead_point.header.frame_id = local_frame_id;
+    lookahead_point.ns = "lookahead";
+    lookahead_point.id = 1;
+    lookahead_point.type = visualization_msgs::msg::Marker::CYLINDER;
+    lookahead_point.action = visualization_msgs::msg::Marker::ADD;
+    lookahead_point.pose.position = look_ahead_point_p;
+    lookahead_point.pose.orientation.w = 1.0;
+    lookahead_point.scale.x = 1.0 / 3.0;
+    lookahead_point.scale.y = 1.0 / 3.0;
+    lookahead_point.scale.z = 0.08 / 3.0;
+    lookahead_point.color.r = 1.0;
+    lookahead_point.color.g = 0.1;
+    lookahead_point.color.b = 0.1;
+    lookahead_point.color.a = 0.95;
+    lookahead_point_pub_->publish(lookahead_point);
 
 }
 

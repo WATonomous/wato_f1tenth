@@ -12,7 +12,6 @@ namespace
 {
 
 constexpr double kPi = 3.14159265358979323846;
-constexpr double kMarginM = 0.05;
 
 std::vector<Point> circleLine(double radius, int count)
 {
@@ -114,8 +113,7 @@ TEST(TrackBoundsChecker, UnknownWideOffsetIsRejected)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto result = checker.check(
@@ -131,8 +129,7 @@ TEST(TrackBoundsChecker, KnownFreeSkipsWidth)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto result = checker.check(
@@ -147,8 +144,7 @@ TEST(TrackBoundsChecker, KnownOccupiedSkipsWidth)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto result = checker.check(
@@ -163,8 +159,7 @@ TEST(TrackBoundsChecker, OutOfGridUsesWidth)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto ego = reference.sampleAtS(2.0);
@@ -174,15 +169,13 @@ TEST(TrackBoundsChecker, OutOfGridUsesWidth)
   EXPECT_GT(result.station_hint_samples, 0u);
 }
 
-TEST(TrackBoundsChecker, UnknownOnRacelineStaysInsideZeroClearance)
+TEST(TrackBoundsChecker, UnknownOnRacelineStaysInsideBounds)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  const double wall = vehicle.collision_radius_m + kMarginM;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, wall, wall), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.0, 0.0), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto result = checker.check(
@@ -198,8 +191,7 @@ TEST(TrackBoundsChecker, KnownPrefixThenUnknownSuffixChecksTheUnseen)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto known = offsetPath(reference, 2.0, 3.0, 0.55);
@@ -223,8 +215,7 @@ TEST(TrackBoundsChecker, PreviousStationSeedsNewtonAfterBadHint)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 1.0, 1.0), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 1.0, 1.0), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   std::vector<CurveSample> path = {
@@ -248,8 +239,7 @@ TEST(TrackBoundsChecker, ProjectFallbackWhenBothHintsMiss)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM,
-      0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   CurveSample sample = offsetSample(reference, 2.0, 0.55);

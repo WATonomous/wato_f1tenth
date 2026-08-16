@@ -1,12 +1,15 @@
 #include "local_planning/planning/local_planner.hpp"
 
 #include "local_planning/speed/velocity_profile.hpp"
+#include "worker_pool.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <iterator>
 #include <limits>
+#include <vector>
 
 namespace local_planning
 {
@@ -142,12 +145,34 @@ LocalPlanResult LocalPlanner::plan(
   }
 
   auto evaluateFrom = [&](std::size_t first) {
-      for (std::size_t i = first; i < result.evaluated.size(); ++i) {
-        auto & evaluated = result.evaluated[i];
+      const std::size_t count = result.evaluated.size() - first;
+      const auto collision_started = std::chrono::steady_clock::now();
+      parallelFor(count, [&](std::size_t k) {
+          auto & evaluated = result.evaluated[first + k];
+          auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+          evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+        });
+      result.profile.collision_check_ms += elapsedMs(collision_started);
+
+      std::vector<TrackBoundsCheckResult> width_checks(count);
+      const auto bounds_started = std::chrono::steady_clock::now();
+      parallelFor(count, [&](std::size_t k) {
+          auto & evaluated = result.evaluated[first + k];
+          if (evaluated.collision.status == CollisionStatus::COLLISION ||
+          evaluated.collision.status == CollisionStatus::OUT_OF_GRID)
+          {
+            return;
+          }
+          auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+          width_checks[k] = track_bounds_checker_.check(candidate.path, grid);
+          evaluated.track_bounds_ok = width_checks[k].ok;
+        });
+      result.profile.track_bounds_ms += elapsedMs(bounds_started);
+
+      const double terminal_s = reference_.wrapS(state.ego_s + builder_.config().horizon_m);
+      for (std::size_t k = 0; k < count; ++k) {
+        auto & evaluated = result.evaluated[first + k];
         auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-        const auto collision_started = std::chrono::steady_clock::now();
-        evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
-        result.profile.collision_check_ms += elapsedMs(collision_started);
         result.profile.collision_poses_checked += evaluated.collision.checked_poses;
         if (evaluated.collision.status == CollisionStatus::COLLISION) {
           ++result.decision.collision_rejected;
@@ -157,19 +182,12 @@ LocalPlanResult LocalPlanner::plan(
           ++result.decision.out_of_grid_rejected;
           continue;
         }
-        const auto bounds_started = std::chrono::steady_clock::now();
-        const TrackBoundsCheckResult width_check = track_bounds_checker_.check(
-          candidate.path, grid);
-        result.profile.track_bounds_ms += elapsedMs(bounds_started);
-        unseen_hint_samples += width_check.station_hint_samples;
-        unseen_hint_fallbacks += width_check.station_hint_fallbacks;
-        if (!width_check.ok) {
-          evaluated.track_bounds_ok = false;
+        unseen_hint_samples += width_checks[k].station_hint_samples;
+        unseen_hint_fallbacks += width_checks[k].station_hint_fallbacks;
+        if (!evaluated.track_bounds_ok) {
           ++result.decision.track_bounds_rejected;
           continue;
         }
-        const double terminal_s = reference_.wrapS(
-          state.ego_s + builder_.config().horizon_m);
         const auto velocity_started = std::chrono::steady_clock::now();
         const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
             terminal_s, profile_intent, reference_, velocity_config_);
