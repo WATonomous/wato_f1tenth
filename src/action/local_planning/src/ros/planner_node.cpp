@@ -218,6 +218,8 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
     "treat_out_of_grid_as_free", false);
   cfg.velocity.friction_coeff = declare_parameter("friction_coeff", 1.0);
   cfg.velocity.min_velocity_mps = declare_parameter("min_velocity_mps", 0.0);
+  cfg.velocity.braking_fallback_min_velocity_mps =
+    declare_parameter("braking_fallback_min_velocity_mps", 1.0);
   cfg.velocity.max_velocity_mps = declare_parameter("max_velocity_mps", 7.7);
   cfg.velocity.max_accel_mps2 = declare_parameter("max_accel_mps2", 5.0);
   cfg.velocity.max_decel_mps2 = declare_parameter("max_decel_mps2", 5.0);
