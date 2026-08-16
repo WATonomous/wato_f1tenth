@@ -144,7 +144,7 @@ TEST(PlannerDiagnostics, IntentFilterIgnoresOtherWindows)
 {
   PlannerDiagnosticsConfig config;
   config.profiling_log_every_n_cycles = 1;
-  config.profiling_intent_filter = PlannerIntent::OVERTAKE;
+  config.profiling_intent_filter = {PlannerIntent::OVERTAKE, PlannerIntent::MERGE};
   auto diagnostics = makeDiagnostics(config);
   LogCapture capture;
 
@@ -158,6 +158,14 @@ TEST(PlannerDiagnostics, IntentFilterIgnoresOtherWindows)
   diagnostics.recordCycle(overtake);
   ASSERT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 1U);
   EXPECT_NE(capture.messages().back().find("intent=OVERTAKE"), std::string::npos);
+
+  // Every listed intent reports, not just the first one matched.
+  CycleProfile merge;
+  merge.outcome.decision.emplace();
+  merge.outcome.decision->requested_intent = PlannerIntent::MERGE;
+  diagnostics.recordCycle(merge);
+  ASSERT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 2U);
+  EXPECT_NE(capture.messages().back().find("intent=MERGE"), std::string::npos);
 }
 
 TEST(PlannerDiagnostics, LogsOnlyEdgeTriggeredControllerVisibleTransitions)

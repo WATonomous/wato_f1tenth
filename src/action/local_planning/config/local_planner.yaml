@@ -102,9 +102,11 @@ planner_node:
     # of magnitude, so they are never pooled into one window.
     profiling_enabled: true
     profiling_log_every_n_cycles: 20
-    # "" reports every intent. Set to FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to
-    # log only that one when the worst case is all that matters.
-    profiling_intent_filter: "OVERTAKE"
+    # [] reports every intent. List any of FOLLOW_RACING_LINE/OVERTAKE/PASS/
+    # MERGE to log only those. The default drops FOLLOW: it is the steady lap,
+    # it dominates the cycle count, and its numbers are never the ones in
+    # question.
+    profiling_intent_filter: ["OVERTAKE", "PASS", "MERGE"]
     # One LOCAL_PLANNER_EVENT line per transition the controller can feel: the
     # intent changing, a path appearing or disappearing, the selected side
     # flipping across the centreline, or the steering start-curvature going

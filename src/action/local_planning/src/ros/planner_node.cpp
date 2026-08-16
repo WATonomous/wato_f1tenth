@@ -204,20 +204,26 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
   cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
   cfg.diagnostics_enabled = declare_parameter("diagnostics_enabled", true);
-  const std::string intent_filter = declare_parameter("profiling_intent_filter", std::string());
-  if (!intent_filter.empty()) {
+  const auto intent_filter = declare_parameter(
+    "profiling_intent_filter", std::vector<std::string>{});
+  for (const std::string & name : intent_filter) {
+    bool matched = false;
     for (const PlannerIntent intent : {PlannerIntent::FOLLOW_RACING_LINE, PlannerIntent::OVERTAKE,
         PlannerIntent::PASS, PlannerIntent::MERGE})
     {
-      if (intentToString(intent) == intent_filter) {
-        cfg.profiling_intent_filter = intent;
+      if (intentToString(intent) == name) {
+        cfg.profiling_intent_filter.push_back(intent);
+        matched = true;
       }
     }
-    if (!cfg.profiling_intent_filter) {
-      RCLCPP_WARN(
-        get_logger(), "Unknown profiling_intent_filter '%s'; profiling every intent",
-        intent_filter.c_str());
+    if (!matched) {
+      RCLCPP_WARN(get_logger(), "Unknown profiling_intent_filter entry '%s'; ignored", name.c_str());
     }
+  }
+  // Every entry unknown is the same mistake as a typo'd single name: report
+  // every intent rather than silently profiling nothing.
+  if (!intent_filter.empty() && cfg.profiling_intent_filter.empty()) {
+    RCLCPP_WARN(get_logger(), "No valid profiling_intent_filter entries; profiling every intent");
   }
   cfg.map_frame = declare_parameter("map_frame", "map");
   cfg.controller_frame = declare_parameter("controller_frame", "base_link");
