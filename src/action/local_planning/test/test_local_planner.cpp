@@ -11,7 +11,6 @@ namespace
 {
 
 constexpr double kPi = 3.14159265358979323846;
-constexpr double kMarginM = 0.05;
 
 std::vector<Point> circleLine(double radius, int count)
 {
@@ -118,7 +117,7 @@ TEST(LocalPlanner, UnknownCellsThatViolateWidthAreRejected)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
 
   OccupancyGrid grid = coveringGrid(-1);
   const LocalPlanResult result = planIntent(
@@ -137,7 +136,7 @@ TEST(LocalPlanner, KnownFreeCellsSkipWidthEvenWhenTheTableIsNarrow)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
 
   OccupancyGrid grid = coveringGrid(0);
   const LocalPlanResult result = planIntent(
@@ -155,7 +154,7 @@ TEST(LocalPlanner, OccupiedCellsDieInCollisionBeforeWidth)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
 
   OccupancyGrid grid = coveringGrid(100);
   const LocalPlanResult result = planIntent(
@@ -177,12 +176,12 @@ TEST(LocalPlanner, UnknownPinchThenOpenKeepsInsideLineAndRejectsWideThroughPinch
   for (std::size_t i = 0; i < widths.size(); ++i) {
     const double s = ds * static_cast<double>(i);
     if (s >= 2.2 && s <= 4.8) {
-      widths[i] = {0.95, 0.95};
+      widths[i] = {0.70, 0.70};
     }
   }
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      widths, vehicle.collision_radius_m, kMarginM, 0.10));
+      widths, 0.10));
 
   OccupancyGrid grid = coveringGrid(-1);
   const LocalPlanResult result = planIntent(
@@ -215,7 +214,7 @@ TEST(LocalPlanner, OutOfGridSamplesUseWidthWhenTheCostmapCannotSee)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), vehicle.collision_radius_m, kMarginM, 0.10));
+      uniformWidths(reference, 0.40, 0.40), 0.10));
 
   const ReferenceGeometrySample ego = reference.sampleAtS(2.0);
   OccupancyGrid grid = makeGrid(16, 16, 0.10, ego.x - 0.80, ego.y - 0.80, 0);
@@ -234,7 +233,7 @@ TEST(LocalPlanner, MergeThroughUnknownNeedsClearanceOnBothSides)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 2.0, 0.25), vehicle.collision_radius_m, kMarginM, 0.10));
+      uniformWidths(reference, 2.0, 0.0), 0.10));
 
   OccupancyGrid unknown = coveringGrid(-1);
   const LocalPlanResult blocked = planIntent(
@@ -256,7 +255,7 @@ TEST(LocalPlanner, DecisionPublishesRawBoundsAtEgo)
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
   ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 1.0, 1.2), vehicle.collision_radius_m, kMarginM, 0.10));
+      uniformWidths(reference, 1.0, 1.2), 0.10));
 
   OccupancyGrid grid = coveringGrid(0);
   const LocalPlanResult result = planIntent(

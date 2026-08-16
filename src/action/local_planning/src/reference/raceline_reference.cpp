@@ -219,8 +219,6 @@ void RacelineReference::clearTrackWidths()
 
 bool RacelineReference::setTrackWidths(
   const std::vector<TrackWidth> & widths,
-  double collision_radius_m,
-  double margin_m,
   double requested_spacing_m)
 {
   clearTrackWidths();
@@ -242,7 +240,6 @@ bool RacelineReference::setTrackWidths(
   width_spacing_m_ = total_length_m_ / static_cast<double>(count);
   raw_right_m_.resize(count);
   raw_left_m_.resize(count);
-  const double clearance = collision_radius_m + margin_m;
 
   for (std::size_t i = 0; i < count; ++i) {
     double t = 0.0;
@@ -251,11 +248,11 @@ bool RacelineReference::setTrackWidths(
     const double alpha = t / segment_length_[segment];
     raw_right_m_[i] = std::max(
       0.0, widths[segment].right_m +
-      alpha * (widths[next].right_m - widths[segment].right_m) - clearance);
+      alpha * (widths[next].right_m - widths[segment].right_m));
     raw_left_m_[i] = std::max(
       0.0,
       widths[segment].left_m +
-      alpha * (widths[next].left_m - widths[segment].left_m) - clearance);
+      alpha * (widths[next].left_m - widths[segment].left_m));
   }
 
   track_widths_valid_ = true;
