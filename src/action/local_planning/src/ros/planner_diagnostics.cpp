@@ -10,7 +10,6 @@ namespace local_planning
 namespace
 {
 constexpr int kRareErrorThrottleMs = 10000;
-constexpr double kStationHintFallbackWarnPct = 2.0;
 constexpr std::size_t kMaxGridProfileSamples = 512;
 
 const PlannerDecisionData & decisionFor(const CycleProfile & sample)
@@ -158,11 +157,17 @@ void PlannerDiagnostics::emitProfile(
   const auto valid_candidates = summarize([](const auto & p) {
         return static_cast<double>(decisionFor(p).valid_candidate_count);
   });
+  // Worst |d| on the executed path.  This replaces the station-hint fallback
+  // rate, which measured how often the Newton offset recovery gave up -- there
+  // is no offset recovery any more, the offset is planned.  What is worth
+  // watching instead is whether the executed path stays inside the offsets it
+  // was told to reach.
+  const auto max_abs_d = summarize([](const auto & p) {
+        return decisionFor(p).selected_max_abs_d_m;
+  });
   std::size_t ready_cycles = 0;
   std::size_t empty_pool_cycles = 0;
   std::size_t out_of_grid_cycles = 0;
-  uint64_t hint_samples = 0;
-  uint64_t hint_fallbacks = 0;
   std::size_t intent_changes = 0;
   std::size_t side_flips = 0;
   std::size_t no_path_cycles = 0;
@@ -173,17 +178,12 @@ void PlannerDiagnostics::emitProfile(
     ready_cycles += item.outcome.inputs_ready ? 1U : 0U;
     empty_pool_cycles += decision.generated_count == 0 ? 1U : 0U;
     out_of_grid_cycles += decision.out_of_grid_rejected > 0 ? 1U : 0U;
-    hint_samples += item.core.station_hint_samples;
-    hint_fallbacks += item.core.station_hint_fallbacks;
     intent_changes += item.outcome.intent_changed ? 1U : 0U;
     side_flips += item.outcome.side_flipped ? 1U : 0U;
     no_path_cycles += item.outcome.path_published ? 0U : 1U;
     steer_stale_cycles += item.outcome.steering_fresh ? 0U : 1U;
     ++mode_counts.at(static_cast<std::size_t>(decision.executed_mode));
   }
-  const double hint_fallback_pct = hint_samples == 0 ? 0.0 :
-    100.0 * static_cast<double>(hint_fallbacks) / static_cast<double>(hint_samples);
-
   const std::size_t grid_updates = grid_updates_since_report_;
   grid_updates_since_report_ = 0;
   std::array<double, 3> grid{0.0, 0.0, 0.0};
@@ -215,7 +215,7 @@ void PlannerDiagnostics::emitProfile(
     "collision_poses=%.1f/%.1f/%.1f "
     "valid=%.1f/%.1f/%.1f collision_rej=%.1f/%.1f/%.1f velocity_rej=%.1f/%.1f/%.1f "
     "empty_pool_cycles=%zu out_of_grid_cycles=%zu "
-    "station_hint_fallback=%llu/%llu(%.2f%%) "
+    "max_abs_d=%.3f/%.3f/%.3f "
     "intent_changes=%zu side_flips=%zu no_path_cycles=%zu steer_stale_cycles=%zu "
     "modes=none:%zu/maneuver:%zu/braking:%zu/unavailable:%zu "
     "grid_updates=%zu grid=%dx%d cells=%zu res=%.4f grid_ms=%.3f/%.3f/%.3f",
@@ -236,21 +236,12 @@ void PlannerDiagnostics::emitProfile(
     collision_rejected.average, collision_rejected.p95, collision_rejected.maximum,
     velocity_rejected.average, velocity_rejected.p95, velocity_rejected.maximum,
     empty_pool_cycles, out_of_grid_cycles,
-    static_cast<unsigned long long>(hint_fallbacks),
-    static_cast<unsigned long long>(hint_samples), hint_fallback_pct,
+    max_abs_d.average, max_abs_d.p95, max_abs_d.maximum,
     intent_changes, side_flips, no_path_cycles, steer_stale_cycles,
     mode_counts[0], mode_counts[1], mode_counts[2], mode_counts[3],
     grid_updates, grid_width_, grid_height_, grid_cells, grid_resolution_,
     grid[0], grid[1], grid[2]);
 
-  if (hint_fallback_pct > kStationHintFallbackWarnPct) {
-    RCLCPP_WARN_THROTTLE(
-      logger_, *clock_, kRareErrorThrottleMs,
-      "Station-hint projection falling back %.1f%% of samples in %s: the cheap "
-      "path is not being taken. Expect candidate_gen_ms up to ~60x. Check the "
-      "raceline's curvature against horizon_m.",
-      hint_fallback_pct, intentToString(intent).c_str());
-  }
   window.clear();
 }
 

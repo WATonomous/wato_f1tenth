@@ -47,7 +47,14 @@ bool raceline_compatible
 uint8 executed_mode
 uint8 candidate_source
 bool selected_offset_tail
+# Worst |d| on the selected path, measured for every intent. It is not implied
+# by terminal_d_m: the connection leaves the measured d' and d'', so a displaced
+# and yawed car swings past the offset it was commanded to reach.
+float64 selected_max_abs_d_m
 bool projection_seed_was_stale
+# Weaker than the flag above: the projection stayed in the seed window, but only
+# after widening the tangent tolerance. ego_s_m is still good; ego was yawed.
+bool projection_heading_check_relaxed
 uint8 clearance_class
 float64 minimum_clearance_m
 float64 max_abs_curvature_inv_m

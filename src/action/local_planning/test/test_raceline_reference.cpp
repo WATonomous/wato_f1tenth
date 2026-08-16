@@ -145,8 +145,10 @@ TEST(RacelineReference, TangentCheckKeepsProjectionOnEgoBranch)
   const double ego_heading = 0.0;          // travelling +x, the outbound branch
   const Point ego(5.0, -0.10, 0.0);        // nearer the return branch at y = -0.6
 
-  // Nearest by distance, orientation ignored: lands on the return branch.
-  const Projection nearest = reference.projectGlobal(ego, ego_heading, false);
+  // Nearest by distance, orientation ignored: lands on the return branch.  A
+  // wrapped angle difference never exceeds pi, so that tolerance is the check
+  // turned off.
+  const Projection nearest = reference.projectGlobal(ego, ego_heading, M_PI);
   ASSERT_LT(reference.sampleAtS(nearest.s).y, 0.0)
     << "test geometry no longer discriminates: the nearest branch is already "
        "the correct one, so this test would pass without the tangent check";
@@ -162,6 +164,79 @@ TEST(RacelineReference, TangentCheckKeepsProjectionOnEgoBranch)
   // And the jump the tangent check prevents is enormous, which is why its
   // absence is silent rather than obviously wrong.
   EXPECT_GT(std::abs(reference.deltaS(seeded.s, nearest.s)), 5.0);
+}
+
+// A yawed car must not cost us the seed.  Ego is on the outbound branch where
+// the seed says it is, but slid to a heading the configured tolerance rejects.
+// The old ordering read that as a stale seed and threw the window away, which
+// is backwards: the window is the reliable input here and the heading is the
+// degraded one.  The ladder widens the angle in place instead.
+TEST(RacelineReference, SlipAngleRelaxesToleranceRatherThanLosingSeed)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(hairpinLine(10.0, 0.6, 0.1)));
+
+  // 1.5 rad of yaw: past the 1.2 rad strict tolerance, still inside the pi/2
+  // cap the ladder tops out at.  Deliberately close to that cap -- it is the
+  // widest slide the in-window escalation is allowed to rescue.
+  const double ego_heading = 1.5;
+  const Point ego(5.0, 0.55, 0.0);   // on the outbound branch, y = +0.6
+
+  // What the discarded window would have cost: nothing on this loop lies within
+  // the strict tolerance of a 1.5 rad heading except the far turn, most of a
+  // straight away from where ego actually is.
+  const Projection global = reference.projectGlobal(ego, ego_heading, 1.2);
+  ASSERT_GT(std::abs(reference.deltaS(5.0, global.s)), 3.0)
+    << "test geometry no longer discriminates: the global answer is already "
+       "the right one, so this would pass without the in-window escalation";
+
+  const Projection seeded = reference.project(ego, ego_heading, 4.9);
+  EXPECT_NEAR(seeded.s, 5.0, 0.5) << "slid car lost its station";
+  EXPECT_GT(reference.sampleAtS(seeded.s).y, 0.0) << "jumped to the return branch";
+  EXPECT_FALSE(seeded.seed_was_stale) << "the seed was fine; only the heading was not";
+  EXPECT_TRUE(seeded.heading_check_relaxed) << "relaxation must be reported, not silent";
+}
+
+// The other half of the same decision.  Escalating in place must not become a
+// way to launder a genuinely stale seed: here the seed points at the return
+// branch while ego drives the outbound one, so every tier in the window sees an
+// antiparallel foot.  The pi/2 cap on the ladder is precisely what makes this
+// window run out of tiers instead of accepting the wrong branch: no rung can
+// ever admit a foot pointing backwards relative to ego.
+TEST(RacelineReference, StaleSeedStillEscalatesToGlobalSearch)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(hairpinLine(10.0, 0.6, 0.1)));
+
+  const double ego_heading = 0.0;    // travelling +x, the outbound branch
+  const Point ego(5.0, 0.55, 0.0);   // and genuinely on it, at s ~ 5
+
+  // Seed sitting on the return branch, which is only 1.2 m away -- too close
+  // for the distance gate to catch, so the angle ladder has to be what refuses
+  // it.
+  const Projection recovered = reference.project(ego, ego_heading, 15.0);
+  EXPECT_TRUE(recovered.seed_was_stale);
+  EXPECT_NEAR(recovered.s, 5.0, 0.5) << "global recovery landed on the wrong branch";
+  EXPECT_GT(reference.sampleAtS(recovered.s).y, 0.0);
+}
+
+// The distance gate covers what the angle ladder cannot: a seed stale by a long
+// way onto track that is parallel to where ego actually is.  Every tier finds a
+// heading-compatible foot, so only implausible distance gives it away.
+TEST(RacelineReference, DistantWindowIsRejectedEvenWhenHeadingAgrees)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(hairpinLine(10.0, 0.6, 0.1)));
+
+  const double ego_heading = 0.0;
+  const Point ego(2.0, 0.6, 0.0);    // outbound branch, s ~ 2
+
+  // Seed nine metres down the same straight: same heading, same branch, so the
+  // tangent check passes at the strict tier and cannot object.
+  const Projection recovered = reference.project(ego, ego_heading, 9.0);
+  EXPECT_TRUE(recovered.seed_was_stale)
+    << "a foot seven metres from ego was accepted because its heading agreed";
+  EXPECT_NEAR(recovered.s, 2.0, 0.5);
 }
 
 // Continuity: replaying poses around the loop, s must advance smoothly and

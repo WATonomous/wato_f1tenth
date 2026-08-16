@@ -18,23 +18,20 @@ constexpr double kDuplicateWaypointToleranceM = 1e-6;
 // this brackets the true foot well inside the basin where Newton converges.
 constexpr int kCoarseSamplesPerSegment = 4;
 constexpr int kNewtonIterations = 8;
-// lateralOffsetAt() converges quadratically once the Newton step is divided by
-// (1 - kappa*d), so a tight tolerance costs iterations rather than fallbacks and
-// there is no reason to trade accuracy away.  Measured on the sim and Mexico
-// City racelines: exact to 1e-9 m, under 1% falling through to the windowed
-// search.  Do not loosen this to chase a fallback rate -- an undivided step was
-// what made 1e-4 unreachable, and loosening to 1e-2 to hide that cost 3.6 cm.
-constexpr int kMaxLateralOffsetSteps = 8;
-constexpr double kLateralOffsetToleranceM = 1e-6;
-// Below this the query point is at the centre of curvature, where the foot of
-// the perpendicular is not unique.
-constexpr double kMinNewtonDenominator = 1e-3;
-// How far the refinement may travel from the hint before declaring it unusable.
-// Comfortably covers connect()'s station-interpolation error, which measured
-// 0.12 m on the sim raceline and 0.81 m on a deliberately worse one, while
-// staying inside the seed window the fallback search would use anyway.
-constexpr double kMaxLateralOffsetExcursionM = 1.0;
-
+constexpr double kPi = 3.14159265358979323846;
+// A wrapped angle difference never exceeds pi, so a tolerance at or above it
+// accepts everything.  This is the top of the escalation ladder and the value
+// callers pass when the query point has no heading of its own.
+constexpr double kTangentCheckDisabled = kPi;
+// Ceiling on the escalation ladder.  A foot more than a quarter turn off the
+// query heading points backwards relative to it, which is never a defensible
+// answer for a local projection however badly the car is sliding.  It is also
+// exactly the bound that keeps the rungs discriminating: a tolerance at or
+// under pi/2 admits the antiparallel foot only when the heading is at least
+// pi/2 off the correct one, so below that the two can never both pass.
+constexpr double kMaxTangentToleranceRad = kPi / 2.0;
+// Floor on the configured tolerance, so the ladder always makes progress.
+constexpr double kMinTangentToleranceRad = 0.05;
 double wrapAngle(double angle)
 {
   return std::atan2(std::sin(angle), std::cos(angle));
@@ -358,7 +355,25 @@ ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
   sample.normal_x = -sample.tangent_y;
   sample.normal_y = sample.tangent_x;
   sample.heading = std::atan2(dy, dx);
-  sample.curvature = (dx * ddy - dy * ddx) / (speed_sq * speed);
+  const double cross = dx * ddy - dy * ddx;
+  sample.curvature = cross / (speed_sq * speed);
+
+  // dk/ds analytically, from coefficients this function has already loaded.
+  // The third derivative of a cubic segment is the constant 6*d, so this is
+  // eight flops on top of the curvature -- no second spline search, no second
+  // polynomial evaluation.  A central difference would have cost two more
+  // sampleAtS() calls for a strictly worse number, since k' genuinely steps at
+  // the knots and differencing would only blur the step.
+  //
+  // k = cross / q^(3/2) with q = speed_sq, so dk/dt = (cross' q - 3 cross dot)
+  // / q^(5/2), and dk/ds divides that by ds/dt = q^(1/2).
+  const double dddx = 6.0 * sx.d;
+  const double dddy = 6.0 * sy.d;
+  const double cross_derivative = dx * dddy - dy * dddx;   // the ddx*ddy terms cancel
+  const double dot = dx * ddx + dy * ddy;
+  sample.curvature_derivative =
+    (cross_derivative * speed_sq - 3.0 * cross * dot) /
+    (speed_sq * speed_sq * speed_sq);
   sample.velocity = velocityOnSegment(i, t);
 
   return sample;
@@ -382,70 +397,6 @@ Point RacelineReference::toCartesian(double s, double d) const
     sample.x + d * sample.normal_x,
     sample.y + d * sample.normal_y,
     sample.velocity);
-}
-
-double RacelineReference::lateralOffsetAt(
-  const Point & p, double s_hint, bool * converged, double * refined_s) const
-{
-  if (converged != nullptr) {
-    *converged = false;
-  }
-  if (!valid_) {
-    return 0.0;
-  }
-
-  // Newton on arc length, seeking the station where the offset vector is
-  // orthogonal to the tangent.  For f(s) = (p - ref(s)) . T(s), the Frenet
-  // relations give f'(s) = -(1 - kappa * d), so the step is along / (1 - kappa*d).
-  //
-  // That denominator is the whole reason this is not simply "subtract the
-  // tangential residual".  Approaching the centre of curvature, kappa*d -> 1 and
-  // the residual goes to zero while the station error does not: at kappa 1.74
-  // and d 0.55 it shrinks by 23x, so an undivided step stalls far from the foot
-  // and reports success.  Dividing recovers true quadratic convergence.
-  double s = s_hint;
-  ReferenceGeometrySample reference = sampleAtS(s);
-  double dx = p.x - reference.x;
-  double dy = p.y - reference.y;
-
-  for (int step = 0; step < kMaxLateralOffsetSteps; ++step) {
-    const double along = dx * reference.tangent_x + dy * reference.tangent_y;
-    if (std::abs(along) <= kLateralOffsetToleranceM) {
-      if (converged != nullptr) {
-        *converged = true;
-      }
-      if (refined_s != nullptr) {
-        *refined_s = s;
-      }
-      break;
-    }
-    const double offset = dx * reference.normal_x + dy * reference.normal_y;
-    // At or past the centre of curvature the foot is not unique and Newton has
-    // no useful direction.  Clamping keeps the step finite; the excursion test
-    // below then rejects it rather than letting it wander.
-    double denominator = 1.0 - reference.curvature * offset;
-    if (std::abs(denominator) < kMinNewtonDenominator) {
-      denominator = std::copysign(kMinNewtonDenominator, denominator);
-    }
-
-    // A small denominator makes the step enormous, and on a closed loop an
-    // unbounded step lands in a different part of the track, where Newton
-    // happily converges to the wrong foot and reports success -- measured 9.7 m
-    // of error before this bound existed.  The contract is "refine a nearby
-    // station", so leaving the neighbourhood means the hint was unusable, not
-    // that the answer is far away.  Say so and let the caller search.
-    const double step_s = std::clamp(
-      along / denominator, -kMaxLateralOffsetExcursionM, kMaxLateralOffsetExcursionM);
-    s = wrapS(s + step_s);
-    if (std::abs(deltaS(s_hint, s)) > kMaxLateralOffsetExcursionM) {
-      break;
-    }
-    reference = sampleAtS(s);
-    dx = p.x - reference.x;
-    dy = p.y - reference.y;
-  }
-
-  return dx * reference.normal_x + dy * reference.normal_y;
 }
 
 double RacelineReference::refineOnSegment(
@@ -489,7 +440,7 @@ double RacelineReference::refineOnSegment(
 bool RacelineReference::scanSegment(
   const Point & p,
   double heading,
-  bool use_tangent_check,
+  double tolerance_rad,
   std::size_t segment,
   Projection & best,
   double & best_dist_sq) const
@@ -511,10 +462,7 @@ bool RacelineReference::scanSegment(
       continue;
     }
 
-    if (use_tangent_check &&
-      std::abs(wrapAngle(sample.heading - heading)) >
-      projection_config_.tangent_tolerance_rad)
-    {
+    if (std::abs(wrapAngle(sample.heading - heading)) > tolerance_rad) {
       continue;
     }
 
@@ -530,14 +478,14 @@ bool RacelineReference::scanSegment(
 Projection RacelineReference::searchArc(
   const Point & p,
   double heading,
-  bool use_tangent_check,
+  double tolerance_rad,
   double start_s,
   double length_m,
-  bool & found) const
+  bool & found,
+  double & best_dist_sq) const
 {
   found = false;
   Projection best;
-  double best_dist_sq = std::numeric_limits<double>::max();
   if (points_.empty() || length_m <= 0.0) {
     return best;
   }
@@ -548,7 +496,7 @@ Projection RacelineReference::searchArc(
   const std::size_t n = points_.size();
   double covered = 0.0;
   for (std::size_t k = 0; k < n; ++k) {
-    found |= scanSegment(p, heading, use_tangent_check, i, best, best_dist_sq);
+    found |= scanSegment(p, heading, tolerance_rad, i, best, best_dist_sq);
     covered += (k == 0) ? (segment_length_[i] - t) : segment_length_[i];
     if (covered >= length_m - kEpsilon) {
       break;
@@ -561,7 +509,7 @@ Projection RacelineReference::searchArc(
 Projection RacelineReference::searchAllSegments(
   const Point & p,
   double heading,
-  bool use_tangent_check,
+  double tolerance_rad,
   bool & found) const
 {
   found = false;
@@ -569,7 +517,7 @@ Projection RacelineReference::searchAllSegments(
   double best_dist_sq = std::numeric_limits<double>::max();
 
   for (std::size_t i = 0; i < points_.size(); ++i) {
-    found |= scanSegment(p, heading, use_tangent_check, i, best, best_dist_sq);
+    found |= scanSegment(p, heading, tolerance_rad, i, best, best_dist_sq);
   }
 
   return best;
@@ -585,15 +533,62 @@ Projection RacelineReference::project(
   }
 
   const double window = projection_config_.seed_window_m;
-  bool found = false;
-  Projection result = searchArc(
-    p, heading, true, seed_s - window, 2.0 * window, found);
-  if (found) {
-    return result;
+  const double start_s = seed_s - window;
+  const double length_m = 2.0 * window;
+  const double gate_sq = projection_config_.max_plausible_offset_m *
+    projection_config_.max_plausible_offset_m;
+
+  // A heading that agrees with no foot in the window means one of two things,
+  // and they want opposite responses.  Either ego is sliding or cutting hard
+  // across the reference, in which case the window is still right and only the
+  // heading has stopped being informative; or the seed has stopped tracking ego
+  // and the window is looking at the wrong stretch of track entirely.  Widening
+  // the angle answers the first.  The distance gate separates it from the
+  // second, because a stale seed leaves the nearest foot in the window far
+  // outside any offset the car could really be at.
+  //
+  // The ladder is capped at kMaxTangentToleranceRad, never run to pi and never
+  // ended with the check switched off.  Two reasons, and the weaker one is the
+  // obvious one: a window that has refused every tier is a window we already
+  // doubt, so disabling the check there is how a stale seed parked on the
+  // return branch of a hairpin gets accepted locally -- the antiparallel foot
+  // is the only one present, and with nothing to reject it, it wins.  Capping
+  // means such a window runs out of tiers and escalates instead.
+  //
+  // The stronger reason is that pi would be the wrong cap even without that.
+  // It only rejects a foot that is *exactly* reversed; one a hundred degrees
+  // off still passes, and that is a foot pointing backwards relative to ego.
+  // A quarter turn is the point past which no amount of slide justifies calling
+  // the foot ego's own, so the ladder stops there and lets the distance gate
+  // and the global search handle the rest.
+  //
+  // The gate applies to the strict tier too.  That is a change in kind, not
+  // just in degree: a stale seed whose window happens to contain a
+  // heading-compatible foot used to be returned silently, and is now caught.
+  const double base_tolerance = std::clamp(
+    projection_config_.tangent_tolerance_rad,
+    kMinTangentToleranceRad,
+    kMaxTangentToleranceRad);
+  bool relaxed = false;
+  for (double tolerance = base_tolerance; ;
+    tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad))
+  {
+    bool found = false;
+    double best_dist_sq = std::numeric_limits<double>::max();
+    Projection result =
+      searchArc(p, heading, tolerance, start_s, length_m, found, best_dist_sq);
+    if (found && best_dist_sq <= gate_sq) {
+      result.heading_check_relaxed = relaxed;
+      return result;
+    }
+    if (tolerance >= kMaxTangentToleranceRad) {
+      break;
+    }
+    relaxed = true;
   }
 
-  // Stale seed: initialization, relocalization, or ego genuinely jumped.
-  result = projectGlobal(p, heading, true);
+  // The window itself is wrong: initialization, relocalization, or ego jumped.
+  Projection result = projectGlobal(p, heading, base_tolerance);
   result.seed_was_stale = true;
   return result;
 }
@@ -604,15 +599,19 @@ Projection RacelineReference::project(const Point & p, double seed_s) const
     return {};
   }
 
+  // No heading to check and no offset worth gating: an occupied cell is
+  // legitimately metres off the reference, so the window is the only
+  // disambiguator and there is nothing for the ladder above to escalate.
   const double window = projection_config_.seed_window_m;
   bool found = false;
+  double best_dist_sq = std::numeric_limits<double>::max();
   Projection result = searchArc(
-    p, 0.0, false, seed_s - window, 2.0 * window, found);
+    p, 0.0, kTangentCheckDisabled, seed_s - window, 2.0 * window, found, best_dist_sq);
   if (found) {
     return result;
   }
 
-  result = projectGlobal(p, 0.0, false);
+  result = projectGlobal(p, 0.0, kTangentCheckDisabled);
   result.seed_was_stale = true;
   return result;
 }
@@ -620,18 +619,19 @@ Projection RacelineReference::project(const Point & p, double seed_s) const
 Projection RacelineReference::projectGlobal(
   const Point & p,
   double heading,
-  bool use_tangent_check) const
+  double tolerance_rad) const
 {
   if (!valid_) {
     return {};
   }
 
   bool found = false;
-  Projection result = searchAllSegments(p, heading, use_tangent_check, found);
-  if (!found && use_tangent_check) {
+  Projection result = searchAllSegments(p, heading, tolerance_rad, found);
+  if (!found && tolerance_rad < kPi) {
     // Nothing on the whole loop agreed with the heading.  Prefer a nearest-point
     // answer over no answer.
-    result = searchAllSegments(p, heading, false, found);
+    result = searchAllSegments(p, heading, kTangentCheckDisabled, found);
+    result.heading_check_relaxed = true;
   }
   return result;
 }
