@@ -46,11 +46,13 @@ planner_node:
     compat_heading_rad: 1.05
 
     front_collision_circle_offset_m: 0.32
-    soft_inflation_distance_m: 0.15
+    soft_inflation_distance_m: 0.22
     occupied_threshold: 50
     treat_unknown_as_free: true
     friction_coeff: 1.0
     min_velocity_mps: 0.0
+    # Braking-fallback floor only (mode=2). Maneuver paths still use min_velocity_mps.
+    braking_fallback_min_velocity_mps: 1.0
     # Hard testing cap. The horizon braking envelope supports 7.7; restore that
     # value to plan at full raceline speed again.
     max_velocity_mps: 2.0
