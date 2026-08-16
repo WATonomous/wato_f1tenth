@@ -4,7 +4,6 @@
 #include "local_planning/core/types.hpp"
 #include "local_planning/reference/raceline_reference.hpp"
 
-#include <cstdint>
 #include <vector>
 
 namespace local_planning
@@ -13,8 +12,6 @@ namespace local_planning
 struct TrackBoundsCheckResult
 {
   bool ok = true;
-  uint64_t station_hint_samples = 0;
-  uint64_t station_hint_fallbacks = 0;
 };
 
 // Width-table prior for poses the costmap cannot see. Occupancy stays in

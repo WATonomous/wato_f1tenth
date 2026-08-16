@@ -154,8 +154,9 @@ void PlannerVisualization::publishProjection(
   std::array<char, 256> label{};
   std::snprintf(
     label.data(), label.size(),
-    "%s%s\ns=%.2f/%.1f d=%+.2f/%.2f\nhead_err=%+.3f/%.3f",
+    "%s%s%s\ns=%.2f/%.1f d=%+.2f/%.2f\nhead_err=%+.3f/%.3f",
     intentToString(state.intent).c_str(), state.ego_seed_was_stale ? " SEED-STALE" : "",
+    state.ego_heading_check_relaxed ? " TANGENT-RELAXED" : "",
     state.ego_s, reference_.totalLength(),
     state.ego_d, config_.vehicle_full_width_m,
     state.heading_error_rad, config_.compat_heading_rad);

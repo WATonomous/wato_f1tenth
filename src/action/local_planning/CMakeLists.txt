@@ -6,6 +6,12 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
+# Without this a clean colcon build defaults to no optimisation flags at all,
+# and every candidate-generation timing measured from it is meaningless.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -40,10 +46,9 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_type
 add_library(local_planning_core
   src/core/types.cpp
   src/reference/raceline_reference.cpp
-  src/curves/curve_connection_generator.cpp
-  src/curves/reference_curve_sampler.cpp
-  src/curves/clothoids_backend.cpp
-  src/curves/upstream/clothoid_g2.cpp
+  src/reference/reference_window.cpp
+  src/curves/frenet_polynomial.cpp
+  src/curves/frenet_connection_generator.cpp
   src/maneuvers/maneuver_builder.cpp
   src/collision/collision_checker.cpp
   src/collision/track_bounds_checker.cpp
@@ -60,7 +65,12 @@ target_include_directories(local_planning_core PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/core
   ${CMAKE_CURRENT_SOURCE_DIR}/src/core/third_party/thread_pool
 )
-target_link_libraries(local_planning_core PUBLIC Threads::Threads)
+# PRIVATE, not PUBLIC: the worker pool is an implementation detail behind a
+# private header (src/core/worker_pool.hpp), so Threads has no business in the
+# exported link interface.  As PUBLIC it landed in export_local_planningExport
+# without a matching find_package, and every downstream consumer -- costmap_test_tools
+# links this for RacelineReference -- failed to configure.
+target_link_libraries(local_planning_core PRIVATE Threads::Threads)
 
 # ---------------------------------------------------------------------------
 # local_planning_ros — the boundary layer plus the nodes.
@@ -130,11 +140,8 @@ if(BUILD_TESTING)
   ament_add_gtest(test_raceline_reference test/test_raceline_reference.cpp)
   target_link_libraries(test_raceline_reference local_planning_core)
 
-  ament_add_gtest(test_curve_connection_generator test/test_curve_connection_generator.cpp)
-  target_link_libraries(test_curve_connection_generator local_planning_core)
-
-  ament_add_gtest(test_reference_curve_sampler test/test_reference_curve_sampler.cpp)
-  target_link_libraries(test_reference_curve_sampler local_planning_core)
+  ament_add_gtest(test_frenet_connection_generator test/test_frenet_connection_generator.cpp)
+  target_link_libraries(test_frenet_connection_generator local_planning_core)
 
   ament_add_gtest(test_maneuver_candidate_builder test/test_maneuver_candidate_builder.cpp)
   target_link_libraries(test_maneuver_candidate_builder local_planning_core)

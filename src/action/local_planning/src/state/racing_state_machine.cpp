@@ -69,6 +69,7 @@ void RacingStateMachine::update(
   state_.ego_s = ego.s;
   state_.ego_d = ego.d;
   state_.ego_seed_was_stale = ego.seed_was_stale;
+  state_.ego_heading_check_relaxed = ego.heading_check_relaxed;
 
   state_.relative_position = detectOpponent(occupancy_grid, ego.s, state_.opponent) ?
     classify(state_.opponent.gap_m) :

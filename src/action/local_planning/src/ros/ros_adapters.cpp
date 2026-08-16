@@ -69,7 +69,9 @@ msg::PlannerDecision plannerDecisionToRos(
   out.executed_mode = static_cast<uint8_t>(data.executed_mode);
   out.candidate_source = static_cast<uint8_t>(data.candidate_source);
   out.selected_offset_tail = data.selected_offset_tail;
+  out.selected_max_abs_d_m = data.selected_max_abs_d_m;
   out.projection_seed_was_stale = data.projection_seed_was_stale;
+  out.projection_heading_check_relaxed = data.projection_heading_check_relaxed;
   out.clearance_class = static_cast<uint8_t>(data.clearance_class);
   out.minimum_clearance_m = data.minimum_clearance_m;
   out.max_abs_curvature_inv_m = data.max_abs_curvature_inv_m;

@@ -46,6 +46,7 @@ void fillSelectedMetrics(
   }
   if (candidate.path.empty()) {return;}
   result.decision.selected_offset_tail = candidate.uses_offset_tail;
+  result.decision.selected_max_abs_d_m = candidate.max_abs_d_m;
   result.decision.min_speed_mps = std::numeric_limits<double>::infinity();
   for (const auto & sample : candidate.path) {
     result.decision.max_abs_curvature_inv_m = std::max(
@@ -53,7 +54,7 @@ void fillSelectedMetrics(
     result.decision.min_speed_mps = std::min(result.decision.min_speed_mps, sample.speed);
     result.decision.max_speed_mps = std::max(result.decision.max_speed_mps, sample.speed);
   }
-  result.decision.terminal_d_m = candidate.target_d;
+  result.decision.terminal_d_m = candidate.terminal_d;
 }
 }  // namespace
 
@@ -96,6 +97,7 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.heading_error_rad = state.heading_error_rad;
   result.decision.raceline_compatible = state.raceline_compatible;
   result.decision.projection_seed_was_stale = state.ego_seed_was_stale;
+  result.decision.projection_heading_check_relaxed = state.ego_heading_check_relaxed;
   result.decision.start_curvature_inv_m = ego.curvature;
   result.decision.start_curvature_from_steering = std::abs(ego.curvature) > 0.0;
   result.decision.track_bounds_ready = reference_.trackWidthsValid();
@@ -108,9 +110,6 @@ LocalPlanResult LocalPlanner::plan(
     return result;
   }
 
-  builder_.resetStationHintStats();
-  uint64_t unseen_hint_samples = 0;
-  uint64_t unseen_hint_fallbacks = 0;
   auto appendGenerated = [&](CandidateSource source, auto generator) {
       const auto generation_started = std::chrono::steady_clock::now();
       auto candidates = generator();
@@ -131,7 +130,7 @@ LocalPlanResult LocalPlanner::plan(
     std::abs(state.ego_d) <= vehicle_geometry_.fullWidthM())
   {
     appendGenerated(CandidateSource::MERGE_ALIGNMENT, [&]() {
-        return builder_.merge(ego, state.ego_s);
+        return builder_.merge(ego, state.ego_s, state.ego_d);
     });
     profile_intent = PlannerIntent::MERGE;
   } else if (state.intent == PlannerIntent::PASS) {
@@ -140,7 +139,7 @@ LocalPlanResult LocalPlanner::plan(
     });
   } else {
     appendGenerated(CandidateSource::MERGE, [&]() {
-        return builder_.merge(ego, state.ego_s);
+        return builder_.merge(ego, state.ego_s, state.ego_d);
     });
   }
 
@@ -182,8 +181,6 @@ LocalPlanResult LocalPlanner::plan(
           ++result.decision.out_of_grid_rejected;
           continue;
         }
-        unseen_hint_samples += width_checks[k].station_hint_samples;
-        unseen_hint_fallbacks += width_checks[k].station_hint_fallbacks;
         if (!evaluated.track_bounds_ok) {
           ++result.decision.track_bounds_rejected;
           continue;
@@ -203,13 +200,19 @@ LocalPlanResult LocalPlanner::plan(
     };
 
   evaluateFrom(0);
+  // Lazy generation, stated directly.  This used to run the PASS *ranking* just
+  // to answer it, which meant selectPass() was called twice a cycle for two
+  // unrelated purposes and the tier machinery had to survive to serve this one.
+  // The question was only ever whether the recovery family is worth generating.
   if (state.intent == PlannerIntent::PASS && profile_intent == PlannerIntent::PASS) {
-    const int preferred = selector_.selectPass(result.pool, result.evaluated);
-    const auto eval = std::find_if(result.evaluated.begin(), result.evaluated.end(),
-        [preferred](const auto & item) {return item.candidate_index == preferred;});
-    if (preferred < 0 || eval == result.evaluated.end() ||
-      eval->collision.status != CollisionStatus::FREE)
-    {
+    const bool preferred_is_free = std::any_of(
+      result.evaluated.begin(), result.evaluated.end(),
+      [](const EvaluatedCandidate & item) {
+        return item.source == CandidateSource::PASS_PREFERRED &&
+               item.velocity_feasible &&
+               item.collision.status == CollisionStatus::FREE;
+      });
+    if (!preferred_is_free) {
       const std::size_t first = result.evaluated.size();
       appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
           return builder_.recover(ego, state.ego_s, state.ego_d);
@@ -217,9 +220,6 @@ LocalPlanResult LocalPlanner::plan(
       evaluateFrom(first);
     }
   }
-  const auto station_hints = builder_.stationHintStats();
-  result.profile.station_hint_samples = station_hints.samples + unseen_hint_samples;
-  result.profile.station_hint_fallbacks = station_hints.fallbacks + unseen_hint_fallbacks;
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
   for (const auto & candidate : result.pool) {
     const auto sample_count = static_cast<uint32_t>(candidate.path.size());
@@ -228,13 +228,10 @@ LocalPlanResult LocalPlanner::plan(
   }
 
   const auto selection_started = std::chrono::steady_clock::now();
-  if (state.intent == PlannerIntent::OVERTAKE) {
-    result.selected_index = selector_.selectOvertake(result.pool, result.evaluated);
-  } else if (state.intent == PlannerIntent::PASS && profile_intent == PlannerIntent::PASS) {
-    result.selected_index = selector_.selectPass(result.pool, result.evaluated);
-  } else {
-    result.selected_index = selector_.selectMerge(result.pool, result.evaluated);
-  }
+  // PASS that was rerouted to MERGE_ALIGNMENT ranks as a merge; everything that
+  // is not OVERTAKE shares the (safety, time) key anyway, so profile_intent is
+  // the right thing to pass.
+  result.selected_index = selector_.select(profile_intent, result.pool, result.evaluated);
 
   std::vector<double> costs;
   for (const auto & evaluated : result.evaluated) {
