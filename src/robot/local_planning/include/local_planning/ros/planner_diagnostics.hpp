@@ -18,7 +18,10 @@ struct PlannerDiagnosticsConfig
   bool profiling_enabled = true;
   int profiling_log_every_n_cycles = 20;
   bool diagnostics_enabled = true;
-  std::optional<PlannerIntent> profiling_intent_filter;
+  // Empty reports every intent. Otherwise only the listed intents are profiled,
+  // so the usual "everything but the steady lap" case is a list, not a choice
+  // of one.
+  std::vector<PlannerIntent> profiling_intent_filter;
   double vehicle_full_width_m = 0.0;
   double compat_heading_rad = 0.0;
 };

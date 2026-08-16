@@ -59,7 +59,11 @@ void PlannerDiagnostics::recordProfile(CycleProfile sample)
     return;
   }
   const PlannerIntent intent = decisionFor(sample).requested_intent;
-  if (config_.profiling_intent_filter && *config_.profiling_intent_filter != intent) {
+  if (!config_.profiling_intent_filter.empty() &&
+    std::find(
+      config_.profiling_intent_filter.begin(), config_.profiling_intent_filter.end(),
+      intent) == config_.profiling_intent_filter.end())
+  {
     return;
   }
 
