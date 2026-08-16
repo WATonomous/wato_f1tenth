@@ -6,19 +6,32 @@ occupancy_grid_frame_adapter_node:
 
 planner_node:
   ros__parameters:
-    horizon_m: 6.0
+    horizon_m: 4.0
     collision_circle_radius_m: 0.14
     overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5]
     passing_d_magnitudes_m: [0.30, 0.55, 0.75]
     overtake_heading_offsets_rad: [-0.15, 0.0, 0.15]
-    pass_transition_distances_m: [6.0, 3.0, 1.0]
-    merge_completion_distances_m: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    pass_transition_distances_m: [4.0, 3.0, 1.0]
+    merge_completion_distances_m: [0.5, 1.0, 2.0, 3.0, 4.0]
 
     corridor_half_width_m: 0.25
-    overlap_gap_m: 0.80
-    clear_gap_m: 1.00
-    overtake_start_gap_m: 3.00
-    # Deliberately loose: lateral offset alone decides the FOLLOW/MERGE handoff.
+    # Stateful tactical bands. Values between each enter/exit pair retain the
+    # committed state instead of turning grid quantization into state chatter.
+    pass_enter_gap_m: 0.65
+    pass_exit_gap_m: 0.95
+    merge_enter_gap_m: -1.20
+    merge_exit_gap_m: -0.80
+    engagement_enter_gap_m: 2.00
+    engagement_exit_gap_m: 2.50
+    follow_enter_abs_d_m: 0.14
+    follow_exit_abs_d_m: 0.28
+    fast_transition_confirmation_s: 0.05
+    slow_transition_confirmation_s: 0.15
+    opponent_confirmation_grids: 2
+    pass_merge_confirmation_grids: 3
+    merge_pass_confirmation_grids: 3
+    merge_probe_confirmation_cycles: 3
+    # Deliberately loose: the banded lateral offset decides the FOLLOW/MERGE handoff.
     # This term used to be sized as a tracking tolerance (asin(vehicle width /
     # min_lookahead) ~ 0.30) and it dominated the gate -- a car sitting on the
     # line and yawing back onto it reads as incompatible, so the intent flapped
@@ -121,6 +134,7 @@ planner_node:
     # base_link copy published only when map→base_link TF is available.
     local_path_topic: "/local_path"
     local_path_map_topic: "/local_path_map"
+    # True selects /local_path_map; false selects the global racing line.
     overtake_ready_topic: "/overtake_ready"
     decision_topic: "/planner_decision"
     visualization_topic: "/local_planner_viz"
@@ -131,3 +145,12 @@ planner_node:
     # publish no path, which is where an unexplained MERGE lives.
     projection_visualization_topic: "/local_planner_projection_viz"
     publish_projection_markers: true
+    # Every candidate the current intent generates, before collision, track
+    # bounds, or velocity has rejected any of it -- which /local_planner_viz
+    # cannot show, since it only publishes on cycles that reached selection.
+    # Exactly one family, picked by intent, the same branch plan() takes:
+    # OVERTAKE -> overtake, PASS -> pass, MERGE -> merge, FOLLOW -> nothing.
+    # A path drawn here may go through a wall; that is the point of the topic.
+    # Costs a second generation pass per cycle, so turn it off for timed running.
+    publish_all_candidates: true
+    all_candidates_visualization_topic: "/local_planner_all_candidates_viz"
