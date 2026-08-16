@@ -6,10 +6,19 @@ FakeOdom::FakeOdom() : Node ("fake_odom") {
     this->declare_parameter<std::string>("child_frame","base_link");
     this->declare_parameter<std::string>("header_frame","odom");
     this->declare_parameter<double>("inital_speed", 0.0);
+    this->declare_parameter<std::string>(
+        "autodrive_odom_topic", "/autodrive/roboracer_1/odom");
+    this->declare_parameter<std::string>(
+        "autodrive_speed_topic", "/autodrive/roboracer_1/speed");
 
     child_frame_name = this->get_parameter("child_frame").as_string();
     header_frame_name = this->get_parameter("header_frame").as_string();
-    current_speed.data = static_cast<float>(this->get_parameter("inital_speed").as_double());
+    linear_speed_x_ = static_cast<float>(this->get_parameter("inital_speed").as_double());
+
+    const auto autodrive_odom_topic =
+        this->get_parameter("autodrive_odom_topic").as_string();
+    const auto autodrive_speed_topic =
+        this->get_parameter("autodrive_speed_topic").as_string();
 
     //publisher
     odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("/odom",10);
@@ -18,11 +27,20 @@ FakeOdom::FakeOdom() : Node ("fake_odom") {
     tf_sub = this->create_subscription<tf2_msgs::msg::TFMessage>(
         "/tf", 10, std::bind(&FakeOdom::tf_listener, this, std::placeholders::_1));
 
+    autodrive_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        autodrive_odom_topic, 10,
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+            linear_speed_x_ = static_cast<float>(msg->twist.twist.linear.x);
+            has_autodrive_odom_speed_ = true;
+        });
+
     speed_sub = this->create_subscription<std_msgs::msg::Float32>(
-        "/autodrive/roboracer_1/speed", 10,
-        [this](const std_msgs::msg::Float32::SharedPtr msg){
-            current_speed = *msg;
-    });
+        autodrive_speed_topic, 10,
+        [this](const std_msgs::msg::Float32::SharedPtr msg) {
+            if (!has_autodrive_odom_speed_) {
+                linear_speed_x_ = msg->data;
+            }
+        });
 
     tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
@@ -68,7 +86,7 @@ void FakeOdom::publish_msgs(const nav_msgs::msg::Odometry &odom_msg) {
 
     current_odom.pose.pose.position = odom_msg.pose.pose.position;
     current_odom.pose.pose.orientation = odom_msg.pose.pose.orientation;
-    current_odom.twist.twist.linear.x = current_speed.data;
+    current_odom.twist.twist.linear.x = linear_speed_x_;
 
     odom_pub->publish(current_odom);
 

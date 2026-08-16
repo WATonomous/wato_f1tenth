@@ -21,6 +21,7 @@ private:
     //publisher and subscribers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
     rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr autodrive_odom_sub_;
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr speed_sub;
 
     //tf2 broadcaster
@@ -35,7 +36,8 @@ private:
     std::string header_frame_name;
 
     //data
-    std_msgs::msg::Float32 current_speed;
+    float linear_speed_x_ = 0.0f;
+    bool has_autodrive_odom_speed_ = false;
 };
 
 #endif
