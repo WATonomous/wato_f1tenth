@@ -13,14 +13,6 @@ pure_persuit_node:
     odom_topic: "/odom"
     overtake_enable: true
     control_rate_hz: 50.0
-    # ~4 planner periods at 30 Hz. /overtake_ready is latched and the planner does
-    # not re-assert it on every failure path, so path age is the only honest
-    # signal that the local path is still steerable. Past this we drop back to the
-    # global line rather than tracking a path planned from a pose we have left.
-    # Deliberately loose: this is a fault detector, not a cycle-skip detector, and
-    # dropping out of LOCAL_FOLLOW mid-overtake on one late cycle is worse than
-    # tracking a path one cycle old.
-    local_path_timeout_s: 0.15
     force_dead_man_active: true
     speed_limit_active: true
     # Hard clamp on the commanded speed, applied to global- and local-path

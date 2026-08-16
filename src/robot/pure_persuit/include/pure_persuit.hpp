@@ -117,16 +117,15 @@ private:
         const nav_msgs::msg::Path &path, bool closed_loop);
     std::optional<geometry_msgs::msg::Point> get_local_waypoint();
     std::optional<geometry_msgs::msg::Point> get_global_waypoint();
-    bool local_path_usable() const;
 
     ackermann_msgs::msg::AckermannDriveStamped calculate_control(const geometry_msgs::msg::Point &target_point);
     ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
     double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
-    // Full scan for the nearest pose. Used directly for the local path, which is
-    // regenerated every planner cycle and so has nothing worth caching.
+    // Full scan for the nearest pose, used by both paths. ~150 points at 50 Hz.
+    // The global path used to get an incremental cached scan instead; it froze
+    // for the length of an overtake and could not catch up afterwards.
     size_t find_closest_index(const nav_msgs::msg::Path &path);
-    size_t find_current_position_index();
     // closed_loop=false stops at the end of the path instead of wrapping to its
     // start: correct for the local path, which is an open horizon, not a lap.
     std::optional<geometry_msgs::msg::Point> find_lookahead(
@@ -153,7 +152,6 @@ private:
     double kp_gain;
     double max_lookahead, min_lookahead, lookahead_ratio;
     double current_velocity;
-    double local_path_timeout_s;
     bool enable_debug_vis, force_dead_man_active;
 
     //internal state and variabels
@@ -162,17 +160,6 @@ private:
     nav_msgs::msg::Path current_global_path;
     nav_msgs::msg::Path current_local_path;
     nav_msgs::msg::Odometry current_pose;
-
-    // Global path only. The local path gets a fresh scan every tick, and this
-    // must not be a function-local static: while in LOCAL_FOLLOW nothing updates
-    // it, so returning to GLOBAL_FOLLOW would resume from a stale index.
-    size_t global_index_cache;
-    bool global_index_cache_valid;
-
-    // /overtake_ready is latched, so it still reads true when the planner stalls
-    // or dies. The path's own age is the only honest signal that it is steerable.
-    rclcpp::Time local_path_stamp;
-    bool has_local_path;
 
 };
 
