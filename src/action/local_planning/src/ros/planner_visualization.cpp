@@ -5,11 +5,48 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <array>
+#include <algorithm>
 #include <cstdio>
 #include <utility>
 
 namespace local_planning
 {
+namespace
+{
+struct FamilyStyle
+{
+  const char * name;
+  float red;
+  float green;
+  float blue;
+};
+
+// Namespaces are per family so each one can be toggled on its own in Foxglove,
+// and the colours are far enough apart to tell two overlapping families apart
+// at 0.02 m line width.
+FamilyStyle styleOf(CandidateSource source)
+{
+  switch (source) {
+    case CandidateSource::OVERTAKE:
+      return {"all/overtake", 1.0F, 0.45F, 0.0F};
+    case CandidateSource::PASS_PREFERRED:
+      return {"all/pass_preferred", 0.0F, 0.9F, 0.9F};
+    case CandidateSource::PASS_RECOVERY:
+      return {"all/pass_recovery", 1.0F, 0.0F, 0.8F};
+    case CandidateSource::MERGE:
+      return {"all/merge", 0.25F, 1.0F, 0.35F};
+    case CandidateSource::MERGE_ALIGNMENT:
+      return {"all/merge_alignment", 0.6F, 1.0F, 0.2F};
+    case CandidateSource::MERGE_PROBE:
+      return {"all/merge_probe", 1.0F, 1.0F, 0.2F};
+    case CandidateSource::BRAKING:
+      return {"all/braking", 1.0F, 0.2F, 0.2F};
+    case CandidateSource::NONE:
+    default:
+      return {"all/unknown", 0.7F, 0.7F, 0.7F};
+  }
+}
+}  // namespace
 
 PlannerVisualization::PlannerVisualization(
   const RacelineReference & reference,
@@ -32,15 +69,22 @@ void PlannerVisualization::publishCandidates(
   for (std::size_t i = 0; i < result.pool.size(); ++i) {
     visualization_msgs::msg::Marker line;
     line.header = clear.header;
-    line.ns = "candidate_paths";
+    const auto evaluation = std::find_if(
+      result.evaluated.begin(), result.evaluated.end(), [i](const EvaluatedCandidate & item) {
+        return item.candidate_index == static_cast<int>(i);
+      });
+    const bool merge_probe = evaluation != result.evaluated.end() &&
+      evaluation->source == CandidateSource::MERGE_PROBE;
+    line.ns = merge_probe ? "merge_probe_paths" : "candidate_paths";
     line.id = static_cast<int>(i);
     line.type = visualization_msgs::msg::Marker::LINE_STRIP;
     line.action = visualization_msgs::msg::Marker::ADD;
     const bool selected = static_cast<int>(i) == result.selected_index;
     line.scale.x = selected ? 0.08 : 0.025;
     line.color.a = selected ? 1.0F : 0.35F;
-    line.color.g = selected ? 1.0F : 0.55F;
-    line.color.b = selected ? 0.1F : 0.9F;
+    line.color.r = merge_probe ? 1.0F : 0.0F;
+    line.color.g = selected ? 1.0F : (merge_probe ? 0.45F : 0.55F);
+    line.color.b = selected ? 0.1F : (merge_probe ? 0.1F : 0.9F);
     line.points.reserve(result.pool[i].path.size());
     for (const auto & sample : result.pool[i].path) {
       geometry_msgs::msg::Point point;
@@ -69,6 +113,51 @@ void PlannerVisualization::publishCandidates(
       terminal.color.r = 1.0F;
       terminal.color.g = 0.75F;
       markers.markers.push_back(std::move(terminal));
+    }
+  }
+  publisher.publish(markers);
+}
+
+void PlannerVisualization::publishAllCandidates(
+  const std::vector<CandidateFamily> & families,
+  const rclcpp::Time & stamp,
+  MarkerPublisher & publisher) const
+{
+  MarkerArray markers;
+  visualization_msgs::msg::Marker clear;
+  clear.header.stamp = stamp;
+  clear.header.frame_id = config_.map_frame;
+  clear.action = visualization_msgs::msg::Marker::DELETEALL;
+  markers.markers.push_back(clear);
+  // DELETEALL alone, on a cycle that generated nothing, is the honest picture:
+  // the families collapse rather than freezing at the last cycle that had them.
+  for (const auto & family : families) {
+    const FamilyStyle style = styleOf(family.source);
+    int id = 0;
+    for (const auto & candidate : family.candidates) {
+      if (candidate.path.empty()) {
+        continue;
+      }
+      visualization_msgs::msg::Marker line;
+      line.header = clear.header;
+      line.ns = style.name;
+      line.id = id++;
+      line.type = visualization_msgs::msg::Marker::LINE_STRIP;
+      line.action = visualization_msgs::msg::Marker::ADD;
+      line.pose.orientation.w = 1.0;
+      line.scale.x = 0.02;
+      line.color.a = 0.55F;
+      line.color.r = style.red;
+      line.color.g = style.green;
+      line.color.b = style.blue;
+      line.points.reserve(candidate.path.size());
+      for (const auto & sample : candidate.path) {
+        geometry_msgs::msg::Point point;
+        point.x = sample.x;
+        point.y = sample.y;
+        line.points.push_back(point);
+      }
+      markers.markers.push_back(std::move(line));
     }
   }
   publisher.publish(markers);
