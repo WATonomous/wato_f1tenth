@@ -22,9 +22,30 @@ enum class ExecutedMode : uint8_t
   BRAKING_UNAVAILABLE = 3
 };
 
+enum class RecoveryReason : uint8_t
+{
+  NONE = 0,
+  MERGE_PATH_UNAVAILABLE = 1,
+  OPPONENT_CLEARANCE_LOST = 2,
+  BRAKING_FALLBACK = 3,
+  NO_SAFE_LOCAL_PATH = 4
+};
+
 struct PlannerDecisionData
 {
   PlannerIntent requested_intent = PlannerIntent::FOLLOW_RACING_LINE;
+  PlannerIntent proposed_intent = PlannerIntent::FOLLOW_RACING_LINE;
+  PlannerIntent executed_intent = PlannerIntent::FOLLOW_RACING_LINE;
+  TransitionClass transition_class = TransitionClass::NONE;
+  TransitionReason transition_reason = TransitionReason::NONE;
+  RecoveryReason recovery_reason = RecoveryReason::NONE;
+  double pending_transition_s = 0.0;
+  uint32_t pending_grid_count = 0;
+  uint32_t merge_probe_valid_cycles = 0;
+  bool merge_probe_available = false;
+  uint64_t costmap_sequence = 0;
+  double costmap_stamp_s = 0.0;
+  uint64_t opponent_observation_sequence = 0;
   RelativePosition relative_position = RelativePosition::NONE;
   bool opponent_detected = false;
   double opponent_gap_m = 0.0;
@@ -91,6 +112,7 @@ struct LocalPlanResult
   std::vector<ManeuverCandidate> pool;
   std::vector<EvaluatedCandidate> evaluated;
   int selected_index = -1;
+  int merge_probe_index = -1;
   PlannerDecisionData decision;
   LocalPlanProfile profile;
 };

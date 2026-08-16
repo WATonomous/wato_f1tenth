@@ -89,6 +89,22 @@ LocalPlanResult LocalPlanner::plan(
     };
   LocalPlanResult result;
   result.decision.requested_intent = state.intent;
+  result.decision.proposed_intent = state.proposed_intent;
+  result.decision.executed_intent = state.intent;
+  result.decision.transition_class = state.transition_class;
+  result.decision.transition_reason = state.transition_reason;
+  result.decision.pending_transition_s = state.pending_duration_s;
+  result.decision.pending_grid_count = state.pending_grid_count;
+  result.decision.merge_probe_valid_cycles = state.merge_probe_valid_cycles;
+  result.decision.merge_probe_available = false;
+  result.decision.costmap_sequence = state.costmap_sequence;
+  result.decision.costmap_stamp_s = state.costmap_stamp_s;
+  result.decision.opponent_observation_sequence = state.opponent_observation_sequence;
+  if (state.intent == PlannerIntent::PASS &&
+    state.committed_transition_reason == TransitionReason::OPPONENT_CLEARANCE_LOST)
+  {
+    result.decision.recovery_reason = RecoveryReason::OPPONENT_CLEARANCE_LOST;
+  }
   result.decision.relative_position = state.relative_position;
   result.decision.opponent_detected = state.opponent.detected;
   result.decision.opponent_gap_m = state.opponent.gap_m;
@@ -117,7 +133,6 @@ LocalPlanResult LocalPlanner::plan(
       appendCandidates(result, std::move(candidates), source);
     };
 
-  PlannerIntent profile_intent = state.intent;
   if (!result.decision.track_bounds_ready) {
     // FOLLOW remains available through the global raceline consumer. Local
     // maneuvers require the matching, index-aligned width message.
@@ -126,13 +141,6 @@ LocalPlanResult LocalPlanner::plan(
         return builder_.overtake(
           ego, state.ego_s, state.ego_d, state.opponent.s);
     });
-  } else if (state.intent == PlannerIntent::PASS &&
-    std::abs(state.ego_d) <= vehicle_geometry_.fullWidthM())
-  {
-    appendGenerated(CandidateSource::MERGE_ALIGNMENT, [&]() {
-        return builder_.merge(ego, state.ego_s, state.ego_d);
-    });
-    profile_intent = PlannerIntent::MERGE;
   } else if (state.intent == PlannerIntent::PASS) {
     appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
         return builder_.pass(ego, state.ego_s, state.ego_d);
@@ -143,7 +151,7 @@ LocalPlanResult LocalPlanner::plan(
     });
   }
 
-  auto evaluateFrom = [&](std::size_t first) {
+  auto evaluateFrom = [&](std::size_t first, PlannerIntent profile_intent) {
       const std::size_t count = result.evaluated.size() - first;
       const auto collision_started = std::chrono::steady_clock::now();
       parallelFor(count, [&](std::size_t k) {
@@ -199,12 +207,12 @@ LocalPlanResult LocalPlanner::plan(
       }
     };
 
-  evaluateFrom(0);
+  evaluateFrom(0, state.intent);
   // Lazy generation, stated directly.  This used to run the PASS *ranking* just
   // to answer it, which meant selectPass() was called twice a cycle for two
   // unrelated purposes and the tier machinery had to survive to serve this one.
   // The question was only ever whether the recovery family is worth generating.
-  if (state.intent == PlannerIntent::PASS && profile_intent == PlannerIntent::PASS) {
+  if (state.intent == PlannerIntent::PASS) {
     const bool preferred_is_free = std::any_of(
       result.evaluated.begin(), result.evaluated.end(),
       [](const EvaluatedCandidate & item) {
@@ -217,21 +225,63 @@ LocalPlanResult LocalPlanner::plan(
       appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
           return builder_.recover(ego, state.ego_s, state.ego_d);
       });
-      evaluateFrom(first);
+      evaluateFrom(first, PlannerIntent::PASS);
     }
   }
-  result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
-  for (const auto & candidate : result.pool) {
-    const auto sample_count = static_cast<uint32_t>(candidate.path.size());
-    result.profile.total_path_samples += sample_count;
-    result.profile.max_path_samples = std::max(result.profile.max_path_samples, sample_count);
+  if (state.intent == PlannerIntent::PASS &&
+    state.proposed_intent == PlannerIntent::MERGE)
+  {
+    const std::size_t first = result.evaluated.size();
+    appendGenerated(CandidateSource::MERGE_PROBE, [&]() {
+        return builder_.merge(ego, state.ego_s, state.ego_d);
+    });
+    evaluateFrom(first, PlannerIntent::MERGE);
+    std::vector<EvaluatedCandidate> probes(
+      result.evaluated.begin() + static_cast<std::ptrdiff_t>(first), result.evaluated.end());
+    result.merge_probe_index = selector_.select(PlannerIntent::MERGE, result.pool, probes);
+    result.decision.merge_probe_available = result.merge_probe_index >= 0;
   }
-
   const auto selection_started = std::chrono::steady_clock::now();
-  // PASS that was rerouted to MERGE_ALIGNMENT ranks as a merge; everything that
-  // is not OVERTAKE shares the (safety, time) key anyway, so profile_intent is
-  // the right thing to pass.
-  result.selected_index = selector_.select(profile_intent, result.pool, result.evaluated);
+  std::vector<EvaluatedCandidate> executable;
+  executable.reserve(result.evaluated.size());
+  for (const auto & evaluated : result.evaluated) {
+    if (evaluated.source != CandidateSource::MERGE_PROBE) {
+      executable.push_back(evaluated);
+    }
+  }
+  result.selected_index = selector_.select(state.intent, result.pool, executable);
+
+  if (state.intent == PlannerIntent::MERGE && result.selected_index < 0 &&
+    result.decision.track_bounds_ready)
+  {
+    const std::size_t recovery_first = result.evaluated.size();
+    appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
+        return builder_.pass(ego, state.ego_s, state.ego_d);
+    });
+    evaluateFrom(recovery_first, PlannerIntent::PASS);
+    const bool preferred_is_free = std::any_of(
+      result.evaluated.begin() + static_cast<std::ptrdiff_t>(recovery_first),
+      result.evaluated.end(), [](const EvaluatedCandidate & item) {
+        return item.source == CandidateSource::PASS_PREFERRED && item.velocity_feasible &&
+               item.collision.status == CollisionStatus::FREE;
+      });
+    if (!preferred_is_free) {
+      const std::size_t fallback_first = result.evaluated.size();
+      appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
+          return builder_.recover(ego, state.ego_s, state.ego_d);
+      });
+      evaluateFrom(fallback_first, PlannerIntent::PASS);
+    }
+    std::vector<EvaluatedCandidate> recovery;
+    for (std::size_t i = recovery_first; i < result.evaluated.size(); ++i) {
+      recovery.push_back(result.evaluated[i]);
+    }
+    result.selected_index = selector_.select(PlannerIntent::PASS, result.pool, recovery);
+    if (result.selected_index >= 0) {
+      result.decision.executed_intent = PlannerIntent::PASS;
+      result.decision.recovery_reason = RecoveryReason::MERGE_PATH_UNAVAILABLE;
+    }
+  }
 
   std::vector<double> costs;
   for (const auto & evaluated : result.evaluated) {
@@ -242,6 +292,12 @@ LocalPlanResult LocalPlanner::plan(
     result.decision.best_cost_s = costs.front();
     result.decision.median_cost_s = costs[costs.size() / 2];
   }
+  result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
+  for (const auto & candidate : result.pool) {
+    const auto sample_count = static_cast<uint32_t>(candidate.path.size());
+    result.profile.total_path_samples += sample_count;
+    result.profile.max_path_samples = std::max(result.profile.max_path_samples, sample_count);
+  }
   result.profile.selection_ms += elapsedMs(selection_started);
 
   const auto finalization_started = std::chrono::steady_clock::now();
@@ -250,7 +306,7 @@ LocalPlanResult LocalPlanner::plan(
   } else {
     const EvaluatedCandidate * safest = nullptr;
     for (const auto & evaluated : result.evaluated) {
-      if (!evaluated.track_bounds_ok ||
+      if (evaluated.source == CandidateSource::MERGE_PROBE || !evaluated.track_bounds_ok ||
         (evaluated.collision.status != CollisionStatus::FREE &&
         evaluated.collision.status != CollisionStatus::SOFT_INFLATION))
       {
@@ -271,9 +327,11 @@ LocalPlanResult LocalPlanner::plan(
             2.0 * velocity_config_.max_decel_mps2 * sample.s)));
       }
       result.decision.executed_mode = ExecutedMode::BRAKING_FALLBACK;
+      result.decision.recovery_reason = RecoveryReason::BRAKING_FALLBACK;
       result.decision.candidate_source = CandidateSource::BRAKING;
     } else {
       result.decision.executed_mode = ExecutedMode::BRAKING_UNAVAILABLE;
+      result.decision.recovery_reason = RecoveryReason::NO_SAFE_LOCAL_PATH;
     }
   }
 

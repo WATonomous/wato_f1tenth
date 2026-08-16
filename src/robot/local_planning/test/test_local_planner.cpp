@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -70,6 +71,19 @@ OccupancyGrid coveringGrid(int8_t fill)
   return makeGrid(400, 400, 0.20, -40.0, -40.0, fill);
 }
 
+void stampRacelineObstacle(
+  OccupancyGrid & grid, const RacelineReference & reference, double start_s, double end_s)
+{
+  for (double s = start_s; s <= end_s; s += 0.05) {
+    const Point point = reference.toCartesian(s, 0.0);
+    const int col = static_cast<int>(std::floor((point.x - grid.origin.x) / grid.resolution));
+    const int row = static_cast<int>(std::floor((point.y - grid.origin.y) / grid.resolution));
+    if (col >= 0 && col < grid.width && row >= 0 && row < grid.height) {
+      grid.data[static_cast<std::size_t>(row * grid.width + col)] = 100;
+    }
+  }
+}
+
 std::vector<TrackWidth> uniformWidths(
   const RacelineReference & reference, double right,
   double left)
@@ -83,7 +97,8 @@ LocalPlanResult planIntent(
   PlannerIntent intent,
   double ego_s,
   double ego_d,
-  double opponent_s = 5.0)
+  double opponent_s = 5.0,
+  PlannerIntent proposed_intent = PlannerIntent::FOLLOW_RACING_LINE)
 {
   const VehicleGeometry vehicle;
   const FrenetConnectionGenerator generator;
@@ -95,6 +110,8 @@ LocalPlanResult planIntent(
 
   TacticalState state;
   state.intent = intent;
+  state.proposed_intent = proposed_intent == PlannerIntent::FOLLOW_RACING_LINE ?
+    intent : proposed_intent;
   state.ego_s = ego_s;
   state.ego_d = ego_d;
   state.opponent.detected = intent == PlannerIntent::OVERTAKE;
@@ -263,6 +280,65 @@ TEST(LocalPlanner, DecisionPublishesRawBoundsAtEgo)
   const SustainableBounds bounds = reference.rawBounds(2.0);
   EXPECT_NEAR(result.decision.sustainable_right_m, bounds.right_magnitude, 1e-12);
   EXPECT_NEAR(result.decision.sustainable_left_m, bounds.left_magnitude, 1e-12);
+}
+
+TEST(LocalPlanner, PassKeepsExecutingPassWhileMergeProbeRuns)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 2.0, 2.0), 0.10));
+  OccupancyGrid grid = coveringGrid(0);
+
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::PASS, 2.0, 0.55, 5.0, PlannerIntent::MERGE);
+
+  ASSERT_GE(result.merge_probe_index, 0);
+  ASSERT_GE(result.selected_index, 0);
+  EXPECT_TRUE(result.decision.merge_probe_available);
+  EXPECT_EQ(result.decision.requested_intent, PlannerIntent::PASS);
+  EXPECT_EQ(result.decision.executed_intent, PlannerIntent::PASS);
+  const auto selected = std::find_if(
+    result.evaluated.begin(), result.evaluated.end(), [&result](const auto & item) {
+      return item.candidate_index == result.selected_index;
+    });
+  ASSERT_NE(selected, result.evaluated.end());
+  EXPECT_NE(selected->source, CandidateSource::MERGE_PROBE);
+}
+
+TEST(LocalPlanner, NoSafeLocalGeometryReportsExplicitUnavailableRecovery)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 2.0, 2.0), 0.10));
+  OccupancyGrid grid = coveringGrid(100);
+
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::MERGE, 2.0, 0.55);
+
+  EXPECT_EQ(result.selected_index, -1);
+  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::BRAKING_UNAVAILABLE);
+  EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::NO_SAFE_LOCAL_PATH);
+}
+
+TEST(LocalPlanner, FailedMergeImmediatelyExecutesPassWithoutChangingTacticalIntent)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 2.0, 2.0), 0.10));
+  OccupancyGrid grid = coveringGrid(0);
+  stampRacelineObstacle(grid, reference, 2.8, 8.0);
+
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::MERGE, 2.0, 0.75);
+
+  ASSERT_GE(result.selected_index, 0);
+  EXPECT_EQ(result.decision.requested_intent, PlannerIntent::MERGE);
+  EXPECT_EQ(result.decision.executed_intent, PlannerIntent::PASS);
+  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::MANEUVER);
+  EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::MERGE_PATH_UNAVAILABLE);
+  EXPECT_TRUE(
+    result.decision.candidate_source == CandidateSource::PASS_PREFERRED ||
+    result.decision.candidate_source == CandidateSource::PASS_RECOVERY);
 }
 
 }  // namespace local_planning
