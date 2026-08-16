@@ -37,6 +37,11 @@ struct ReferenceGeometrySample
   double normal_y = 0.0;
   double heading = 0.0;
   double curvature = 0.0;
+  // d(kappa)/ds, analytic from the spline's own third derivative.  Piecewise
+  // constant on a C2 cubic spline, so it steps at knots -- that is a true
+  // property of the reference, not error.  It reaches the path curvature only
+  // through the term -k' d d', so it is doubly attenuated by d'.
+  double curvature_derivative = 0.0;
   double velocity = 0.0;
   int segment_index = 0;
 };
@@ -120,14 +125,20 @@ struct BoundaryState
   double speed = 0.0;      // m/s
 };
 
-// The curve generator exposes why a requested G2 connection could not be
-// built.  Maneuver sampling simply omits an invalid path.
+// Why a requested connection could not be sampled.  Maneuver sampling simply
+// omits an invalid path.
+//
+// A polynomial always "converges", so there is no solver failure; and d(s) over
+// a fixed reference span cannot run away, so there is no arc-length cap.  What
+// remains are the two ways the Frenet chart itself gives out -- the offset
+// curve degenerating at the centre of curvature, and the path turning so far
+// off the reference tangent that it is doubling back.
 enum class RejectReason : uint8_t
 {
   NONE = 0,
-  SOLVER_FAILED = 1,
-  CURVATURE_LIMIT = 2,
-  ARC_LENGTH_LIMIT = 3
+  CURVATURE_LIMIT = 1,
+  CHART_SINGULAR = 2,
+  HEADING_LIMIT = 3
 };
 
 // One dense sample of a generated curve.  The units the velocity profiler and
@@ -143,6 +154,9 @@ struct CurveSample
   // Raceline station associated with this sample. Maneuver construction owns
   // this mapping so downstream stages never need to project x/y back to s/d.
   double raceline_s = std::numeric_limits<double>::quiet_NaN();
+  // Signed lateral offset from the reference, positive left.  Exact: it is the
+  // quantity the curve was planned in, not one recovered from x/y afterwards.
+  double d = 0.0;
 };
 
 } // namespace local_planning

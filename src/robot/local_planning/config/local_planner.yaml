@@ -47,19 +47,40 @@ planner_node:
     overtake_speed_scale: 1.0
     treat_out_of_grid_as_free: true
 
-    # Fallback only.  Planning samples clothoids at the live costmap resolution
-    # so this cannot run finer than the occupancy grid.
+    # Fallback only.  Planning samples the reference window at the live costmap
+    # resolution so this cannot run finer than the occupancy grid.
     sample_spacing_m: 0.1
     max_curvature_inv_m: 1.74
-    max_arc_length_m: 12.0
-    # Dominates PASS cost: project() is called once per path sample by
-    # staysOnSide/maximumOffsetDeviation, and scans +/- this much line each
-    # time. 2.0 measured 1.5x faster than 3.0 with identical results. Do not
-    # drop below ~1.5: past the window the search silently returns the wrong
-    # station rather than falling back, and 7.7 m/s x 33 ms = 0.257 m per
-    # cycle at 30 Hz, more when a cycle is missed.
+    # How far the path may turn from the reference tangent. This replaces
+    # max_arc_length_m, which capped total curve length as a proxy for "did not
+    # double back" -- a proxy that was only needed because a G2 boundary-value
+    # problem bounds neither length nor lateral excursion. A d(s) polynomial
+    # spans a fixed stretch of reference by construction, so the only thing left
+    # to bound is direction, and this bounds it directly.
+    max_path_angle_deg: 60.0
+    # Ego-pose projection only. This no longer touches path samples at all:
+    # every CurveSample carries its exact (raceline_s, d), so neither the side
+    # sweep nor the track-bounds check projects anything. What remains is
+    # racing_state_machine projecting the measured car, which is the one point
+    # in the system whose station is genuinely unknown. Do not drop below ~1.5:
+    # past the window the search silently returns the wrong station rather than
+    # falling back, and 7.7 m/s x 33 ms = 0.257 m per cycle at 30 Hz, more when
+    # a cycle is missed.
     seed_window_m: 2.0
+    # Starting tolerance only. A window yielding no foot within this angle is
+    # retried at double, capped at pi/2 -- a sliding car should not cost us the
+    # seed. The cap is not tuning: past a quarter turn the foot points backwards
+    # relative to ego, and admitting it would let a stale seed settle on the
+    # antiparallel branch. A window that exhausts the ladder escalates to a
+    # global search instead of ever dropping the check. Raising this to pi/2 or
+    # beyond collapses the ladder to a single tier.
     tangent_tolerance_rad: 1.2
+    # The escalation above is bounded by distance, not angle: if the nearest foot
+    # in the window is further than this, no tolerance makes the window right and
+    # the search goes global. Above the widest real |d| (half width + overtake
+    # excursion + margin), well below the spacing between distinct parts of the
+    # loop.
+    max_plausible_offset_m: 3.0
 
     planner_rate_hz: 30.0
     # The raceline and its offline-computed widths are index-aligned. All

@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <cstddef>
-#include <optional>
 
 namespace local_planning
 {
@@ -58,33 +57,18 @@ TrackBoundsCheckResult TrackBoundsChecker::check(
     return result;
   }
 
-  std::optional<double> previous_s;
   for (const CurveSample & sample : path) {
     if (!footprintUnseen(sample, grid, vehicle_geometry_)) {
-      previous_s = sample.raceline_s;
       continue;
     }
 
-    const Point p(sample.x, sample.y);
-    bool converged = false;
-    double refined_s = sample.raceline_s;
-    double d = reference_.lateralOffsetAt(p, sample.raceline_s, &converged, &refined_s);
-    ++result.station_hint_samples;
-    if (!converged && previous_s) {
-      d = reference_.lateralOffsetAt(p, *previous_s, &converged, &refined_s);
-      ++result.station_hint_samples;
-    }
-    if (!converged) {
-      ++result.station_hint_fallbacks;
-      const Projection projection = reference_.project(p, sample.raceline_s);
-      d = projection.d;
-      refined_s = projection.s;
-    }
-    previous_s = refined_s;
-
-    const SustainableBounds bounds = reference_.rawBounds(refined_s);
-    const double cap = d >= 0.0 ? bounds.left_magnitude : bounds.right_magnitude;
-    if (std::abs(d) > cap + kTrackBoundsToleranceM) {
+    // The three-tier recovery this used to run -- Newton on the sample's own
+    // station, Newton on the previous sample's refined station, then a windowed
+    // project() -- existed only because the path did not know where it was.  It
+    // does now: (raceline_s, d) is what the curve was planned in.
+    const SustainableBounds bounds = reference_.rawBounds(sample.raceline_s);
+    const double cap = sample.d >= 0.0 ? bounds.left_magnitude : bounds.right_magnitude;
+    if (std::abs(sample.d) > cap + kTrackBoundsToleranceM) {
       result.ok = false;
       return result;
     }

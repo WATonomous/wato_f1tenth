@@ -24,6 +24,15 @@ struct ProjectionConfig
   // more than this is on the wrong branch.  The wrong branch of a hairpin is
   // typically anti-parallels
   double tangent_tolerance_rad = 1.2; //69 degrees
+  // How far the nearest foot in the seed window may be before the window
+  // itself, rather than the heading, is judged wrong.  This is what separates
+  // "ego is sliding and its heading has stopped agreeing with the reference"
+  // from "the seed has stopped tracking ego": the first leaves ego a plausible
+  // lateral offset from the raceline, the second puts it arbitrarily far.  Keep
+  // it above the widest real |d| (track half width plus overtake excursion plus
+  // margin) and well below the scale at which a foot could belong to a
+  // different part of the loop.
+  double max_plausible_offset_m = 3.0;
 };
 
 struct Projection
@@ -31,7 +40,14 @@ struct Projection
   double s = 0.0;
   double d = 0.0;   // signed lateral offset, positive left of the reference
 
+  // The seed window was abandoned and the whole loop searched.  Means ego_s is
+  // not to be trusted until it recurs.
   bool seed_was_stale = false;
+  // The answer came from the seed window, but only after the tangent tolerance
+  // was widened past its configured value.  Expected during a slide or a hard
+  // cut across the reference; a run of them outside those means
+  // tangent_tolerance_rad is set tighter than the car actually drives.
+  bool heading_check_relaxed = false;
 };
 
 struct SustainableBounds
@@ -92,24 +108,14 @@ public:
   // Frenet (s, d) -> world, offsetting along the left normal at s.
   Point toCartesian(double s, double d) const;
 
-  // Signed lateral offset of p, positive left, refined from a caller-supplied
-  // station.  Use this wherever the station is already known by construction --
-  // every CurveSample carries raceline_s -- instead of paying project() to
-  // rediscover it by scanning the seed window.  Measured ~50x cheaper.
-  //
-  // The hint only has to be near: Newton on arc length converges to the true
-  // perpendicular foot from a hint off by a metre.  It is not a substitute for
-  // project() when the station is genuinely unknown, and it will not cross to a
-  // far branch of the track.  Pass converged to find out whether it got there;
-  // when it comes back false the hint was not a neighbouring station and the
-  // returned offset is meaningless.  When it converges, refined_s (if given) is
-  // the station of the foot, to seed the next sample.
-  double lateralOffsetAt(
-    const Point & p, double s_hint, bool * converged = nullptr,
-    double * refined_s = nullptr) const;
-
   // Locally-seeded projection with the tangent check.  Use this wherever the
-  // query point has a meaningful heading
+  // query point has a meaningful heading.
+  //
+  // Note there is no cheap station-hinted variant any more.  There used to be
+  // one, for recovering the lateral offset of a path sample whose station was
+  // roughly known; nothing needs it now that every CurveSample carries its
+  // exact (raceline_s, d).  The only remaining query is the measured ego pose,
+  // whose station genuinely is unknown, and that is what project() is for.
   Projection project(const Point & p, double heading, double seed_s) const;
 
   // Locally-seeded projection without the tangent check, for query points that
@@ -118,7 +124,7 @@ public:
   Projection project(const Point & p, double seed_s) const;
 
   // Unseeded fallback.  Correct only when nothing better is available.
-  Projection projectGlobal(const Point & p, double heading, bool use_tangent_check) const;
+  Projection projectGlobal(const Point & p, double heading, double tolerance_rad) const;
 
   // Brings s into [0, total_length).
   double wrapS(double s) const;
@@ -145,31 +151,35 @@ private:
   double velocityOnSegment(std::size_t i, double t) const;
 
   // Coarse-samples one segment, refines each guess, and keeps the result if it
-  // beats best_dist_sq and passes the tangent check.  Returns true if it did.
+  // beats best_dist_sq and lands within tolerance_rad of the query heading.
+  // Returns true if it did.  A tolerance of pi or more can never reject, which
+  // is how callers with no meaningful heading opt out of the check.
   bool scanSegment(
     const Point & p,
     double heading,
-    bool use_tangent_check,
+    double tolerance_rad,
     std::size_t segment,
     Projection & best,
     double & best_dist_sq) const;
 
   // Best projection on the forward arc starting at start_s for length_m.
   // Iterates only the overlapping segment index range.  found is false when
-  // every candidate failed the tangent check.
+  // every candidate failed the tangent check; best_dist_sq then keeps its
+  // incoming value.
   Projection searchArc(
     const Point & p,
     double heading,
-    bool use_tangent_check,
+    double tolerance_rad,
     double start_s,
     double length_m,
-    bool & found) const;
+    bool & found,
+    double & best_dist_sq) const;
 
   // Same, over every segment.  No seed, because there is nothing to seed.
   Projection searchAllSegments(
     const Point & p,
     double heading,
-    bool use_tangent_check,
+    double tolerance_rad,
     bool & found) const;
 
   // Newton refinement of the foot of the perpendicular within one segment.
