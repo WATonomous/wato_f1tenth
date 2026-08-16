@@ -23,6 +23,27 @@ uint8 SOURCE_PASS_RECOVERY=3
 uint8 SOURCE_MERGE_ALIGNMENT=4
 uint8 SOURCE_MERGE=5
 uint8 SOURCE_BRAKING=6
+uint8 SOURCE_MERGE_PROBE=7
+
+uint8 TRANSITION_NONE=0
+uint8 TRANSITION_FAST=1
+uint8 TRANSITION_SLOW=2
+
+uint8 REASON_NONE=0
+uint8 REASON_OPPONENT_ENGAGED=1
+uint8 REASON_PASS_BAND_ENTERED=2
+uint8 REASON_OPPONENT_CLEARED=3
+uint8 REASON_OPPONENT_CLEARANCE_LOST=4
+uint8 REASON_RACELINE_COMPATIBLE=5
+uint8 REASON_RACELINE_DEPARTED=6
+uint8 REASON_OPPONENT_LOST=7
+uint8 REASON_STATE_CORRECTION=8
+
+uint8 RECOVERY_NONE=0
+uint8 RECOVERY_MERGE_PATH_UNAVAILABLE=1
+uint8 RECOVERY_OPPONENT_CLEARANCE_LOST=2
+uint8 RECOVERY_BRAKING_FALLBACK=3
+uint8 RECOVERY_NO_SAFE_LOCAL_PATH=4
 
 uint8 CLEARANCE_FREE=0
 uint8 CLEARANCE_SOFT_INFLATION=1
@@ -30,6 +51,18 @@ uint8 CLEARANCE_COLLISION=2
 uint8 CLEARANCE_OUT_OF_GRID=3
 
 uint8 requested_intent
+uint8 proposed_intent
+uint8 executed_intent
+uint8 transition_class
+uint8 transition_reason
+uint8 recovery_reason
+float64 pending_transition_s
+uint32 pending_grid_count
+uint32 merge_probe_valid_cycles
+bool merge_probe_available
+uint64 costmap_sequence
+float64 costmap_stamp_s
+uint64 opponent_observation_sequence
 uint8 relative_position
 bool opponent_detected
 float64 opponent_gap_m
