@@ -92,7 +92,8 @@ void stampOpponent(
   }
 }
 
-// Intent is a pure function of (ego, grid), so every case is one update.
+// Settle through the configured debounce; the focused tests below inspect the
+// intermediate evidence explicitly.
 struct Cycle
 {
   RacelineReference reference;
@@ -115,7 +116,10 @@ Cycle runOnce(
   }
 
   RacingStateMachine machine(cycle.reference, config, vehicle_geometry, grid_policy);
-  machine.update(cycle.ego, cycle.grid);
+  for (int i = 0; i < 5; ++i) {
+    machine.update(cycle.ego, cycle.grid);
+    machine.reportMergeProbe(true);
+  }
   cycle.state = machine.state();
   return cycle;
 }
@@ -295,7 +299,9 @@ TEST(RacingStateMachine, GapIsWrapAwareAcrossTheStartLine)
 
   RacingStateMachine machine(
     reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
-  machine.update(ego, grid);
+  for (int i = 0; i < 5; ++i) {
+    machine.update(ego, grid);
+  }
   const TacticalState & state = machine.state();
 
   ASSERT_TRUE(state.opponent.detected);
@@ -404,6 +410,176 @@ TEST(RacingStateMachine, EmptyGridDetectsNothing)
   machine.update(ego, OccupancyGrid{});
 
   EXPECT_FALSE(machine.state().opponent.detected);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+}
+
+TEST(RacingStateMachine, ReprocessingOneCostmapDoesNotAddOpponentEvidence)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  OccupancyGrid grid = gridAround(ego.position, 8.0);
+  stampOpponent(grid, reference, 4.0, 5.0);
+  RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+
+  machine.update(ego, grid, StateUpdateContext{0.0, 1});
+  ASSERT_EQ(machine.state().proposed_intent, PlannerIntent::OVERTAKE);
+  EXPECT_EQ(machine.state().pending_grid_count, 1U);
+  machine.update(ego, grid, StateUpdateContext{0.10, 1});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+  EXPECT_EQ(machine.state().pending_grid_count, 1U);
+  machine.update(ego, grid, StateUpdateContext{0.11, 2});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+}
+
+TEST(RacingStateMachine, FollowLateralBandAndMergeCompletionUseLocalizationCycles)
+{
+  const RacelineReference reference = makeReference();
+  RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+  OccupancyGrid grid = gridAround(reference.toCartesian(2.0, 0.0), 8.0);
+
+  machine.update(egoAt(reference, 2.0, 0.20), grid, StateUpdateContext{0.0, 1});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+  machine.update(egoAt(reference, 2.0, 0.30), grid, StateUpdateContext{0.01, 1});
+  machine.update(egoAt(reference, 2.0, 0.30), grid, StateUpdateContext{0.07, 1});
+  ASSERT_EQ(machine.state().intent, PlannerIntent::MERGE);
+
+  machine.update(egoAt(reference, 2.0, 0.20), grid, StateUpdateContext{0.08, 1});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::MERGE);
+  machine.update(egoAt(reference, 2.0, 0.10), grid, StateUpdateContext{0.09, 1});
+  machine.update(egoAt(reference, 2.0, 0.10), grid, StateUpdateContext{0.15, 1});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+}
+
+TEST(RacingStateMachine, PassMergeTransitionsAreSlowAndMergeRequiresAProbe)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.50);
+  RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+  const auto gridAtGap = [&](double gap) {
+      OccupancyGrid grid = gridAround(ego.position, 8.0);
+      const double start = gap >= 0.0 ? 2.0 + gap : 2.0 + gap - 1.0;
+      stampOpponent(grid, reference, start, start + 1.0);
+      return grid;
+    };
+
+  OccupancyGrid pass_grid = gridAtGap(0.20);
+  machine.update(ego, pass_grid, StateUpdateContext{0.00, 1});
+  machine.update(ego, pass_grid, StateUpdateContext{0.16, 2});
+  ASSERT_EQ(machine.state().intent, PlannerIntent::PASS);
+
+  OccupancyGrid clear_grid = gridAtGap(-2.0);
+  machine.update(ego, clear_grid, StateUpdateContext{0.20, 3});
+  machine.reportMergeProbe(true);
+  machine.update(ego, clear_grid, StateUpdateContext{0.25, 4});
+  machine.reportMergeProbe(true);
+  machine.update(ego, clear_grid, StateUpdateContext{0.30, 5});
+  machine.reportMergeProbe(true);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::PASS);
+  machine.update(ego, clear_grid, StateUpdateContext{0.36, 6});
+  ASSERT_EQ(machine.state().intent, PlannerIntent::MERGE);
+
+  machine.update(ego, pass_grid, StateUpdateContext{0.40, 7});
+  machine.update(ego, pass_grid, StateUpdateContext{0.50, 8});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::MERGE);
+  machine.update(ego, pass_grid, StateUpdateContext{0.56, 9});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::PASS);
+}
+
+TEST(RacingStateMachine, ClockRollbackClearsPendingEvidence)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  OccupancyGrid grid = gridAround(ego.position, 8.0);
+  stampOpponent(grid, reference, 4.0, 5.0);
+  RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+
+  machine.update(ego, grid, StateUpdateContext{10.0, 1});
+  ASSERT_EQ(machine.state().pending_grid_count, 1U);
+  machine.update(ego, grid, StateUpdateContext{1.0, 2});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+  EXPECT_EQ(machine.state().pending_grid_count, 1U);
+  EXPECT_DOUBLE_EQ(machine.state().pending_duration_s, 0.0);
+}
+
+TEST(RacingStateMachine, OneOpponentDropoutCannotReturnToFollow)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  OccupancyGrid opponent_grid = gridAround(ego.position, 8.0);
+  stampOpponent(opponent_grid, reference, 4.0, 5.0);
+  const OccupancyGrid empty_grid = gridAround(ego.position, 8.0);
+  RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+
+  machine.update(ego, opponent_grid, StateUpdateContext{0.00, 1});
+  machine.update(ego, opponent_grid, StateUpdateContext{0.06, 2});
+  ASSERT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+  machine.update(ego, empty_grid, StateUpdateContext{0.10, 3});
+  machine.update(ego, empty_grid, StateUpdateContext{0.20, 3});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+  EXPECT_EQ(machine.state().pending_grid_count, 1U);
+}
+
+TEST(RacingStateMachine, GapBandsRetainTheCommittedState)
+{
+  const RacelineReference reference = makeReference();
+  StateMachineConfig config = defaultConfig();
+  config.fast_confirmation_s = 0.0;
+  config.slow_confirmation_s = 0.0;
+  config.opponent_confirmation_grids = 1;
+  config.pass_merge_confirmation_grids = 1;
+  config.merge_pass_confirmation_grids = 1;
+  config.merge_probe_confirmation_cycles = 1;
+  RacingStateMachine machine(reference, config, VehicleGeometry{}, GridPolicy{});
+  const auto updateAtGap = [&](double gap, uint64_t sequence, double ego_d = 0.0) {
+      const Odometry ego = egoAt(reference, 2.0, ego_d);
+      OccupancyGrid grid = gridAround(ego.position, 8.0);
+      const double start = gap >= 0.0 ? 2.0 + gap : 2.0 + gap - 1.0;
+      stampOpponent(grid, reference, start, start + 1.0);
+      machine.update(ego, grid, StateUpdateContext{
+        0.01 * static_cast<double>(sequence), sequence});
+    };
+
+  updateAtGap(2.0, 1);
+  ASSERT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+  updateAtGap(0.80, 2);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+  updateAtGap(0.20, 3, 0.50);
+  ASSERT_EQ(machine.state().intent, PlannerIntent::PASS);
+  updateAtGap(0.80, 4, 0.50);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::PASS);
+  updateAtGap(-1.00, 5, 0.50);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::PASS);
+  updateAtGap(-2.00, 6, 0.50);
+  machine.reportMergeProbe(true);
+  updateAtGap(-2.00, 7, 0.50);
+  ASSERT_EQ(machine.state().intent, PlannerIntent::MERGE);
+  updateAtGap(-1.00, 8, 0.50);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::MERGE);
+}
+
+TEST(RacingStateMachine, EngagementBandRetainsWhetherOpponentIsRelevant)
+{
+  const RacelineReference reference = makeReference();
+  StateMachineConfig config = defaultConfig();
+  config.fast_confirmation_s = 0.0;
+  config.slow_confirmation_s = 0.0;
+  config.opponent_confirmation_grids = 1;
+  RacingStateMachine machine(reference, config, VehicleGeometry{}, GridPolicy{});
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  const auto updateAtGap = [&](double gap, uint64_t sequence) {
+      OccupancyGrid grid = gridAround(ego.position, 8.0);
+      stampOpponent(grid, reference, 2.0 + gap, 3.0 + gap);
+      machine.update(ego, grid, StateUpdateContext{
+        0.01 * static_cast<double>(sequence), sequence});
+    };
+
+  updateAtGap(3.20, 1);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+  updateAtGap(2.00, 2);
+  ASSERT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+  updateAtGap(3.20, 3);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
+  updateAtGap(3.60, 4);
   EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
 }
 
