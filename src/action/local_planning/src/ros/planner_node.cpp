@@ -1,11 +1,13 @@
 #include "local_planning/ros/planner_node.hpp"
 
+#include "local_planning/core/scoped_timer.hpp"
 #include "local_planning/ros/ros_adapters.hpp"
 
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+#include <chrono>
 #include <cmath>
 #include <functional>
 #include <stdexcept>
@@ -38,6 +40,14 @@ void markHeldPathExecution(
   result.decision.braking_effort = 0.0;
   result.decision.braking_lookahead_m = 0.0;
 }
+
+struct RecordCycleOnExit
+{
+  PlannerDiagnostics & diagnostics;
+  CycleProfile & profile;
+
+  ~RecordCycleOnExit() {diagnostics.recordCycle(std::move(profile));}
+};
 }  // namespace
 
 PlannerNode::PlannerNode()
@@ -57,7 +67,6 @@ PlannerNode::PlannerNode()
     config_.profiling_enabled,
     config_.profiling_log_every_n_cycles,
     config_.diagnostics_enabled,
-    config_.profiling_intent_filter,
     config_.state.follow_exit_abs_d_m,
     config_.state.compat_heading_rad}),
   visualization_(
@@ -78,7 +87,6 @@ PlannerNode::PlannerNode()
       [this](nav_msgs::msg::Odometry::SharedPtr msg) {odom_ = std::move(msg);});
   grid_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(config_.occupancy_grid_topic, 1,
       [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-        const auto profile_started = std::chrono::steady_clock::now();
         grid_ = rosToOccupancyGrid(*msg);
         if (grid_.resolution > 0.0) {
           curve_generator_.setSampleSpacingM(grid_.resolution);
@@ -87,10 +95,6 @@ PlannerNode::PlannerNode()
         has_grid_ = true;
         ++costmap_sequence_;
         costmap_stamp_s_ = rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()).seconds();
-        diagnostics_.recordGridUpdate(
-          std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - profile_started).count(),
-          grid_);
       });
   reference_track_sub_ = create_subscription<global_planner::msg::ReferenceTrack>(
     config_.reference_track_topic, latched,
@@ -283,28 +287,6 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
   cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
   cfg.diagnostics_enabled = declare_parameter("diagnostics_enabled", true);
-  const auto intent_filter = declare_parameter(
-    "profiling_intent_filter", std::vector<std::string>{});
-  for (const std::string & name : intent_filter) {
-    bool matched = false;
-    for (const PlannerIntent intent : {PlannerIntent::FOLLOW_RACING_LINE, PlannerIntent::OVERTAKE,
-        PlannerIntent::PASS, PlannerIntent::MERGE})
-    {
-      if (intentToString(intent) == name) {
-        cfg.profiling_intent_filter.push_back(intent);
-        matched = true;
-      }
-    }
-    if (!matched) {
-      RCLCPP_WARN(get_logger(), "Unknown profiling_intent_filter entry '%s'; ignored",
-          name.c_str());
-    }
-  }
-  // Every entry unknown is the same mistake as a typo'd single name: report
-  // every intent rather than silently profiling nothing.
-  if (!intent_filter.empty() && cfg.profiling_intent_filter.empty()) {
-    RCLCPP_WARN(get_logger(), "No valid profiling_intent_filter entries; profiling every intent");
-  }
   cfg.map_frame = declare_parameter("map_frame", "map");
   cfg.controller_frame = declare_parameter("controller_frame", "base_link");
   cfg.local_path_topic = declare_parameter("local_path_topic", "/local_path");
@@ -325,14 +307,10 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
 
 void PlannerNode::planningCycle()
 {
-  const auto cycle_started = std::chrono::steady_clock::now();
   const rclcpp::Time cycle_stamp = now();
   CycleProfile profile;
-  const auto finishProfile = [&]() {
-      profile.ros.cycle_ms = std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - cycle_started).count();
-      diagnostics_.recordCycle(std::move(profile));
-    };
+  RecordCycleOnExit record{diagnostics_, profile};
+  const ScopedTimer cycle_timer{profile.cycle_ms};
   if (!odom_ || !has_grid_ || !reference_.valid()) {
     state_machine_.resetEvidence();
     held_path_.reset();
@@ -347,14 +325,10 @@ void PlannerNode::planningCycle()
     publishDecision(unavailable);
     if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
     publishOvertakeReady(wants_local_path);
-    finishProfile();
     return;
   }
 
-  const auto odom_started = std::chrono::steady_clock::now();
   const auto odom_in_map = odometryInMap();
-  profile.ros.odom_conversion_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - odom_started).count();
   if (!odom_in_map) {
     state_machine_.resetEvidence();
     held_path_.reset();
@@ -369,7 +343,6 @@ void PlannerNode::planningCycle()
     publishDecision(unavailable);
     if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
     publishOvertakeReady(wants_local_path);
-    finishProfile();
     return;
   }
   profile.outcome.inputs_ready = true;
@@ -378,17 +351,11 @@ void PlannerNode::planningCycle()
     std::abs((now() - steering_received_).seconds()) <= config_.steering_command_timeout_s;
   if (profile.outcome.steering_fresh) {odom.steering_angle = steering_angle_;}
 
-  const auto state_started = std::chrono::steady_clock::now();
   state_machine_.update(
     odom, grid_, StateUpdateContext{
       cycle_stamp.seconds(), costmap_sequence_, costmap_stamp_s_});
-  profile.ros.state_update_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - state_started).count();
-  const auto projection_marker_started = std::chrono::steady_clock::now();
   visualization_.publishProjection(
     odom, state_machine_.state(), now(), *projection_visualization_pub_);
-  profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - projection_marker_started).count();
   BoundaryState ego;
   ego.x = odom.position.x;
   ego.y = odom.position.y;
@@ -405,10 +372,7 @@ void PlannerNode::planningCycle()
   // Ahead of plan() and outside its intent branching on purpose: FOLLOW returns
   // from plan() before generating anything, so this is the only place the debug
   // view can see the maneuver families on a steady lap.
-  const auto all_candidates_started = std::chrono::steady_clock::now();
   publishAllCandidates(ego, state_machine_.state(), cycle_stamp);
-  profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - all_candidates_started).count();
 
   const double now_s = cycle_stamp.seconds();
   if (held_path_ && state_machine_.state().intent != held_intent_) {
@@ -426,26 +390,15 @@ void PlannerNode::planningCycle()
   }
   const bool held_usable = held_within_max_age && held_collision_usable;
 
-  const auto planner_started = std::chrono::steady_clock::now();
   auto result = planner_.plan(state_machine_.state(), ego, grid_, held_usable);
   state_machine_.reportMergeProbe(result.decision.merge_probe_available);
-  profile.ros.planner_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - planner_started).count();
-  profile.core = result.profile;
   result.decision.start_curvature_from_steering =
     config_.use_steering_start_curvature && profile.outcome.steering_fresh;
   if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
-    const auto marker_publish_started = std::chrono::steady_clock::now();
     held_path_.reset();
     profile.outcome.decision = result.decision;
-    const auto decision_publish_started = std::chrono::steady_clock::now();
     publishDecision(result.decision);
-    profile.ros.decision_publish_ms = std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - decision_publish_started).count();
     publishOvertakeReady(false);
-    profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - marker_publish_started).count();
-    finishProfile();
     return;
   }
   const Path * publish_path = nullptr;
@@ -474,7 +427,7 @@ void PlannerNode::planningCycle()
       get_logger(), *get_clock(), 1000,
       "MERGE_CHECK requested=1 bounds_ready=%d generated=%u valid=%u "
       "collision_rej=%u out_of_grid_rej=%u track_rej=%u velocity_rej=%u "
-      "selected_pool_index=%d executed_mode=%d path_samples=%u collision_poses=%u "
+      "selected_pool_index=%d executed_mode=%d "
       "ego_s=%.2f ego_d=%.2f terminal_d=%.2f clearance=%d min_clearance=%.2f",
       result.decision.track_bounds_ready ? 1 : 0,
       result.decision.generated_count,
@@ -485,8 +438,6 @@ void PlannerNode::planningCycle()
       result.decision.velocity_rejected,
       result.selected_index,
       static_cast<int>(result.decision.executed_mode),
-      result.profile.total_path_samples,
-      result.profile.collision_poses_checked,
       result.decision.ego_s_m,
       result.decision.ego_d_m,
       result.decision.terminal_d_m,
@@ -499,46 +450,29 @@ void PlannerNode::planningCycle()
       "No collision-free braking path; stopping on the last arc");
   }
   profile.outcome.decision = result.decision;
-  const auto decision_publish_started = std::chrono::steady_clock::now();
   publishDecision(result.decision);
-  profile.ros.decision_publish_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - decision_publish_started).count();
   if (!publish_path) {
     held_path_.reset();
     publishEmptyLocalPath(cycle_stamp);
     publishOvertakeReady(true);
-    finishProfile();
     return;
   }
 
-  const auto path_message_started = std::chrono::steady_clock::now();
   const auto map_path = pathToRos(*publish_path, cycle_stamp, config_.map_frame);
-  profile.ros.path_message_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - path_message_started).count();
   // The controller contract is the map-frame path. Pure pursuit re-transforms
   // the lookahead point every tick, so a missing map→base_link TF must not
   // starve /local_path_map or clear /overtake_ready. /local_path is leftover
   // viz/compat and is only published when that transform is available.
-  const auto path_publish_started = std::chrono::steady_clock::now();
   local_path_map_pub_->publish(map_path);
   profile.outcome.path_published = true;
   nav_msgs::msg::Path controller_path;
-  const auto tf_started = std::chrono::steady_clock::now();
   if (transformPathToControllerFrame(map_path, controller_path)) {
     local_path_pub_->publish(controller_path);
   } else {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Local path transform unavailable");
   }
-  profile.ros.tf_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - tf_started).count();
-  profile.ros.path_publish_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - path_publish_started).count();
-  const auto marker_publish_started = std::chrono::steady_clock::now();
   visualization_.publishCandidates(result, cycle_stamp, *visualization_pub_);
   publishOvertakeReady(true);
-  profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - marker_publish_started).count();
-  finishProfile();
 }
 
 std::optional<Odometry> PlannerNode::odometryInMap()
