@@ -99,7 +99,8 @@ LocalPlanner::LocalPlanner(
   velocity_config_(velocity_config),
   collision_checker_(vehicle_geometry_, grid_policy, collision_config),
   track_bounds_checker_(reference_, vehicle_geometry_),
-  braking_generator_(reference_, braking_config)
+  braking_generator_(reference_, braking_config),
+  selector_(collision_config.soft_inflation_distance_m)
 {
 }
 
@@ -270,7 +271,7 @@ LocalPlanResult LocalPlanner::plan(
     evaluateFrom(first, PlannerIntent::MERGE);
     std::vector<EvaluatedCandidate> probes(
       result.evaluated.begin() + static_cast<std::ptrdiff_t>(first), result.evaluated.end());
-    result.merge_probe_index = selector_.select(PlannerIntent::MERGE, result.pool, probes);
+    result.merge_probe_index = selector_.select(result.pool, probes);
     result.decision.merge_probe_available = result.merge_probe_index >= 0;
   }
   const auto selection_started = std::chrono::steady_clock::now();
@@ -281,7 +282,7 @@ LocalPlanResult LocalPlanner::plan(
       executable.push_back(evaluated);
     }
   }
-  result.selected_index = selector_.select(state.intent, result.pool, executable);
+  result.selected_index = selector_.select(result.pool, executable);
 
   if (state.intent == PlannerIntent::MERGE && result.selected_index < 0 &&
     result.decision.track_bounds_ready)
@@ -308,7 +309,7 @@ LocalPlanResult LocalPlanner::plan(
     for (std::size_t i = recovery_first; i < result.evaluated.size(); ++i) {
       recovery.push_back(result.evaluated[i]);
     }
-    result.selected_index = selector_.select(PlannerIntent::PASS, result.pool, recovery);
+    result.selected_index = selector_.select(result.pool, recovery);
     if (result.selected_index >= 0) {
       result.decision.executed_intent = PlannerIntent::PASS;
       result.decision.recovery_reason = RecoveryReason::MERGE_PATH_UNAVAILABLE;

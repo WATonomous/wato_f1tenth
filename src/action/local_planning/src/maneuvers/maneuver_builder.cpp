@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -78,22 +77,14 @@ void validateConfig(const ManeuverConfig & config, const VehicleGeometry & vehic
 
   if (std::any_of(
       config.passing_d_magnitudes_m.begin(), config.passing_d_magnitudes_m.end(),
-      [](double magnitude) {return magnitude <= 0.0;}))
+      [](double magnitude) {return magnitude < 0.0;}))
   {
-    throw std::invalid_argument("passing_d_magnitudes_m must contain only positive values");
+    throw std::invalid_argument("passing_d_magnitudes_m must contain only non-negative values");
   }
   if (!std::isfinite(vehicle_geometry.collision_radius_m) ||
     vehicle_geometry.collision_radius_m <= 0.0)
   {
     throw std::invalid_argument("collision_circle_radius_m must be finite and positive");
-  }
-  const double side_deadband = vehicle_geometry.fullWidthM();
-  if (std::any_of(
-      config.passing_d_magnitudes_m.begin(), config.passing_d_magnitudes_m.end(),
-      [side_deadband](double magnitude) {return magnitude <= side_deadband;}))
-  {
-    throw std::invalid_argument(
-      "passing_d_magnitudes_m must be greater than vehicle width (2 * collision radius)");
   }
   const auto invalid_distance = [&config](double distance) {
       return distance <= 0.0 || distance > config.horizon_m;
@@ -133,8 +124,9 @@ ManeuverBuilder::ManeuverBuilder(
   removeDuplicates(config_.merge_completion_distances_m);
 }
 
-bool ManeuverBuilder::prepareWindow(double ego_s) const
+bool ManeuverBuilder::prepareWindow(const BoundaryState & ego, double ego_s) const
 {
+  plan_speed_mps_ = ego.speed;
   return window_.build(
     reference_, ego_s, config_.horizon_m, curve_generator_.config().sample_spacing_m);
 }
@@ -208,7 +200,7 @@ bool ManeuverBuilder::connect(
     start.d, start.d_prime, start.d_double_prime,
     end.d, end.d_prime, end.d_double_prime, delta_s);
   const FrenetConnectionResult result =
-    curve_generator_.generate(window_, i_start, i_end, polynomial, path);
+    curve_generator_.generate(window_, i_start, i_end, polynomial, path, plan_speed_mps_);
   if (!result.valid) {
     return false;
   }
@@ -228,8 +220,8 @@ bool ManeuverBuilder::appendOffsetTail(
   }
   // A full-horizon transition leaves no tail to append.  That is success with
   // nothing to do, not a failure: the path already ends where the tail would
-  // have started.  (MERGE's longest completion distance and PASS recovery's
-  // non-preferred full-horizon offsets both land here.)
+  // have started.  (MERGE's longest completion distance lands here; PASS
+  // recovery now skips its full-horizon entry outright, since pass() covers it.)
   if (reference_distance_m <= kTolerance) {
     return true;
   }
@@ -276,23 +268,6 @@ std::vector<double> ManeuverBuilder::offsets(int side) const
   return result;
 }
 
-std::optional<double> ManeuverBuilder::preferredOffset(double ego_d) const
-{
-  std::optional<double> preferred;
-  double nearest = std::numeric_limits<double>::infinity();
-  for (double d : offsets(sideOf(ego_d))) {
-    const double distance = std::abs(d - ego_d);
-    if (distance < nearest - kTolerance ||
-      (std::abs(distance - nearest) <= kTolerance &&
-      (!preferred || std::abs(d) < std::abs(*preferred))))
-    {
-      preferred = d;
-      nearest = distance;
-    }
-  }
-  return preferred;
-}
-
 int ManeuverBuilder::sideOf(double d) const
 {
   if (std::abs(d) <= vehicle_geometry_.fullWidthM()) {
@@ -308,7 +283,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   double opponent_rear_s) const
 {
   std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid() || !prepareWindow(ego_s)) {
+  if (!reference_.valid() || !prepareWindow(ego, ego_s)) {
     return candidates;
   }
   FrenetBoundary start;
@@ -490,25 +465,29 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
 {
   std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
-  if (!reference_.valid() || side == 0 || !prepareWindow(ego_s)) {
+  if (!reference_.valid() || side == 0 || !prepareWindow(ego, ego_s)) {
     return candidates;
   }
   FrenetBoundary start;
   if (!startBoundary(ego, ego_s, ego_d, start)) {
     return candidates;
   }
+  // Every offset on our side is a candidate, and selection picks the smallest
+  // one that is clear.  The target deliberately does not depend on ego_d: a
+  // target derived from the measured offset ratchets outward, because tracking
+  // error pushes ego past the current offset, which promotes the next offset
+  // out, which the quintic then overshoots.  ego_d picks the side and seeds the
+  // start boundary; it does not choose the width.
   const double target_s = reference_.wrapS(ego_s + config_.horizon_m);
-  const std::optional<double> target_d = preferredOffset(ego_d);
-  if (!target_d) {
-    return candidates;
-  }
-  FrenetBoundary target;
-  Path path;
-  double max_abs_d = 0.0;
-  if (boundary(target_s, *target_d, 0.0, target) && connect(path, start, target, max_abs_d)) {
-    if (staysOnSide(path, side)) {
-      candidates.push_back(
-        {std::move(path), *target_d, *target_d, config_.horizon_m, max_abs_d, false});
+  for (double target_d : offsets(side)) {
+    FrenetBoundary target;
+    Path path;
+    double max_abs_d = 0.0;
+    if (boundary(target_s, target_d, 0.0, target) && connect(path, start, target, max_abs_d)) {
+      if (staysOnSide(path, side)) {
+        candidates.push_back(
+          {std::move(path), target_d, target_d, config_.horizon_m, max_abs_d, false});
+      }
     }
   }
   return candidates;
@@ -521,29 +500,22 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
 {
   std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
-  if (!reference_.valid() || side == 0 || !prepareWindow(ego_s)) {
+  if (!reference_.valid() || side == 0 || !prepareWindow(ego, ego_s)) {
     return candidates;
   }
   FrenetBoundary start;
   if (!startBoundary(ego, ego_s, ego_d, start)) {
     return candidates;
   }
-  const std::optional<double> preferred = preferredOffset(ego_d);
-  if (!preferred) {
-    return candidates;
-  }
   const std::vector<double> allowed_offsets = offsets(side);
   for (double transition : config_.pass_transition_distances_m) {
+    // pass() already connects to every same-side offset over the full horizon,
+    // so a full-horizon recovery leg would only duplicate that geometry.  What
+    // recovery adds is the shorter transitions.
+    if (std::abs(transition - config_.horizon_m) <= kTolerance) {
+      continue;
+    }
     for (double d : allowed_offsets) {
-      const bool targets_preferred = std::abs(d - *preferred) <= kTolerance;
-      // The nominal PASS candidate already connects to preferred_d over the
-      // full horizon.  Shorter preferred connections are new recovery options;
-      // the full-horizon instance would only duplicate the nominal geometry.
-      if (targets_preferred &&
-        std::abs(transition - config_.horizon_m) <= kTolerance)
-      {
-        continue;
-      }
       const double target_s = reference_.wrapS(ego_s + transition);
       FrenetBoundary target;
       Path path;
@@ -569,7 +541,7 @@ std::vector<ManeuverCandidate> ManeuverBuilder::merge(
   double ego_d) const
 {
   std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid() || !prepareWindow(ego_s)) {
+  if (!reference_.valid() || !prepareWindow(ego, ego_s)) {
     return candidates;
   }
   FrenetBoundary start;

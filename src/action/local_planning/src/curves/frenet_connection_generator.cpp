@@ -10,6 +10,7 @@ namespace
 
 constexpr double kEpsilon = 1e-9;
 constexpr double kPi = 3.14159265358979323846;
+constexpr double kGravityMps2 = 9.81;
 
 FrenetConnectionResult rejected(RejectReason reason)
 {
@@ -18,12 +19,21 @@ FrenetConnectionResult rejected(RejectReason reason)
 
 }  // namespace
 
+double FrenetConnectionConfig::allowedCurvature(double v) const
+{
+  if (!(v > 0.0) || !std::isfinite(v)) {
+    return max_curvature_inv_m;
+  }
+  return std::min(max_curvature_inv_m, friction_coeff * kGravityMps2 / (v * v));
+}
+
 FrenetConnectionResult FrenetConnectionGenerator::generate(
   const ReferenceWindow & window,
   std::size_t i_start,
   std::size_t i_end,
   const FrenetPolynomial & polynomial,
-  std::vector<CurveSample> & path) const
+  std::vector<CurveSample> & path,
+  double speed_mps) const
 {
   if (!window.valid() || i_end <= i_start || i_end >= window.size() ||
     !(polynomial.delta_s > kEpsilon))
@@ -40,6 +50,7 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
   const double step_ratio = 1.0 / static_cast<double>(i_end - i_start);
   const double reference_step = window.spacingM();
   const double max_path_angle_rad = config_.max_path_angle_deg * kPi / 180.0;
+  const double max_curvature = config_.allowedCurvature(speed_mps);
 
   const auto reject = [&](RejectReason reason) {
       path.resize(restore_to);
@@ -80,7 +91,7 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
     const double speed_factor = std::sqrt(norm_sq);
     const double curvature =
       (tangent_scale * normal_term - d_prime * tangential_term) / (norm_sq * speed_factor);
-    if (!std::isfinite(curvature) || std::abs(curvature) > config_.max_curvature_inv_m) {
+    if (!std::isfinite(curvature) || std::abs(curvature) > max_curvature) {
       return reject(RejectReason::CURVATURE_LIMIT);
     }
 

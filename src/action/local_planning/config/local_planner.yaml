@@ -9,7 +9,7 @@ planner_node:
     horizon_m: 4.0
     collision_circle_radius_m: 0.14
     overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5]
-    passing_d_magnitudes_m: [0.30, 0.55, 0.75]
+    passing_d_magnitudes_m: [0.3, 0.0, 0.55, 0.75]
     overtake_heading_offsets_rad: [-0.15, 0.0, 0.15]
     pass_transition_distances_m: [4.0, 3.0, 1.0]
     merge_completion_distances_m: [0.5, 1.0, 2.0, 3.0, 4.0]

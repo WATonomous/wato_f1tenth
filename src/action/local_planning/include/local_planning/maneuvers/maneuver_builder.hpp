@@ -6,7 +6,6 @@
 #include "local_planning/reference/raceline_reference.hpp"
 #include "local_planning/reference/reference_window.hpp"
 
-#include <optional>
 #include <vector>
 
 namespace local_planning
@@ -88,7 +87,11 @@ private:
   // evaluations it is cheaper than reasoning about when the reference or the
   // station last changed, and it runs at most twice a cycle (PASS, then its
   // recovery family).
-  bool prepareWindow(double ego_s) const;
+  // Also latches the speed the cycle's connections are shaped against, for the
+  // same reason the window is cached here: both are per-cycle facts every leg
+  // of every candidate needs, and threading them through connect() would put
+  // them on the signature of every generation branch instead.
+  bool prepareWindow(const BoundaryState & ego, double ego_s) const;
 
   // The measured car as a Frenet start boundary: its lateral offset, the slope
   // implied by its heading error, and the second derivative that continues the
@@ -120,16 +123,17 @@ private:
   // be interrogated for.
   bool staysOnSide(const Path & path, int side) const;
   std::vector<double> offsets(int side) const;
-  std::optional<double> preferredOffset(double ego_d) const;
   int sideOf(double d) const;
 
   const RacelineReference & reference_;
   const FrenetConnectionGenerator & curve_generator_;
   ManeuverConfig config_;
   VehicleGeometry vehicle_geometry_;
-  // Mutable so the generation entry points stay const: this is a per-cycle
-  // cache of the reference, not part of the builder's configuration.
+  // Mutable so the generation entry points stay const: these are per-cycle
+  // caches of the reference and the measured speed, not part of the builder's
+  // configuration.
   mutable ReferenceWindow window_;
+  mutable double plan_speed_mps_ = 0.0;
 };
 
 } // namespace local_planning
