@@ -250,23 +250,40 @@ TEST(ManeuverBuilder, OvertakeNeverCrossesTheRacelineInATightCorner)
   }
 }
 
-TEST(ManeuverBuilder, PassRecomputesTheNearestOffsetAndLeavesCenterlineRoutingToTheCaller)
+// The ratchet regression.  pass() used to target the single offset nearest to
+// ego_d, so tracking error that pushed ego outward promoted the next offset out,
+// which the quintic then overshot, and the pass walked off the track one
+// magnitude at a time.  The offered set must not depend on ego_d at all: the
+// tight offset stays on the menu no matter how wide ego currently sits, and it
+// is selection, not generation, that decides which one is taken.
+TEST(ManeuverBuilder, PassOffersEveryOffsetOnItsSideRegardlessOfEgoOffset)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const ManeuverBuilder builder = makeBuilder(reference, ManeuverConfig{});
 
-  const std::vector<ManeuverCandidate> first =
-    builder.pass(egoAt(reference, 4.0, 0.65), 4.0, 0.65);
-  ASSERT_EQ(first.size(), 1u);
-  EXPECT_NEAR(endOffset(first.front().path), 0.55, 1e-8);
-  EXPECT_DOUBLE_EQ(first.front().terminal_d, 0.55);
-  EXPECT_DOUBLE_EQ(first.front().maneuver_distance_m, ManeuverConfig{}.horizon_m);
+  const auto terminals = [&](double ego_d) {
+      std::vector<double> result;
+      for (const ManeuverCandidate & candidate : builder.pass(
+          egoAt(reference, 4.0, ego_d), 4.0, ego_d))
+      {
+        EXPECT_DOUBLE_EQ(candidate.maneuver_distance_m, ManeuverConfig{}.horizon_m);
+        EXPECT_NEAR(endOffset(candidate.path), candidate.terminal_d, 1e-8);
+        result.push_back(candidate.terminal_d);
+      }
+      std::sort(result.begin(), result.end());
+      return result;
+    };
 
-  const std::vector<ManeuverCandidate> second =
-    builder.pass(egoAt(reference, 4.2, 0.74), 4.2, 0.74);
-  ASSERT_EQ(second.size(), 1u);
-  EXPECT_NEAR(endOffset(second.front().path), 0.75, 1e-8);
+  const std::vector<double> expected{0.55, 0.75};
+  // Sitting on the tight line, drifted between the two, and pressed right out
+  // against the wide one all offer the same menu.
+  EXPECT_EQ(terminals(0.55), expected);
+  EXPECT_EQ(terminals(0.65), expected);
+  EXPECT_EQ(terminals(0.74), expected);
+  // Mirrored, and never both sides at once.
+  const std::vector<double> mirrored{-0.75, -0.55};
+  EXPECT_EQ(terminals(-0.74), mirrored);
 
   EXPECT_TRUE(builder.pass(egoAt(reference, 4.2, 0.0), 4.2, 0.0).empty());
   EXPECT_FALSE(builder.merge(egoAt(reference, 4.2, 0.0), 4.2, 0.0).empty());
@@ -366,9 +383,9 @@ TEST(ManeuverBuilder, RejectsConfigurationThatCannotRespectTheCommonHorizon)
   invalid_offsets.passing_d_magnitudes_m = {};
   EXPECT_THROW(makeBuilder(reference, invalid_offsets), std::invalid_argument);
 
-  ManeuverConfig offsets_inside_deadband;
-  offsets_inside_deadband.passing_d_magnitudes_m = {0.30, 0.55};
-  EXPECT_THROW(makeBuilder(reference, offsets_inside_deadband), std::invalid_argument);
+  ManeuverConfig negative_offsets;
+  negative_offsets.passing_d_magnitudes_m = {-0.30, 0.55};
+  EXPECT_THROW(makeBuilder(reference, negative_offsets), std::invalid_argument);
 }
 
 TEST(ManeuverBuilder, OvertakeAndMergePreserveForwardTargetsAcrossWrapAround)
@@ -452,7 +469,7 @@ TEST(ManeuverBuilder, PassDeclinesWhenTheCarIsOnTheLine)
   EXPECT_TRUE(builder.recover(egoAt(reference, 4.0, 0.10), 4.0, 0.10).empty());
 }
 
-TEST(ManeuverBuilder, OvertakeGeneratesAllConfiguredOffsetsAndPassPrefersNearest)
+TEST(ManeuverBuilder, OvertakeGeneratesAllConfiguredOffsetsAndPassOffersItsSide)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
@@ -464,9 +481,11 @@ TEST(ManeuverBuilder, OvertakeGeneratesAllConfiguredOffsetsAndPassPrefersNearest
   const auto overtake = builder.overtake(
     egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0);
   // One station x four offsets x (two same-side horizon offsets) = eight
-  // two-leg candidates, plus four tails.  Was twenty before the curvature axis
-  // went away.
-  ASSERT_EQ(overtake.size(), 12u);
+  // two-leg candidates, plus four tails, minus the four whose transition needs
+  // more grip than 3 m/s buys.  Connections are shaped against
+  // FrenetConnectionConfig::allowedCurvature now, so the count is a function of
+  // the fixture's raceline speed and not of geometry alone.
+  ASSERT_EQ(overtake.size(), 8u);
   EXPECT_TRUE(std::any_of(
       overtake.begin(), overtake.end(), [](const ManeuverCandidate & candidate) {
         return candidate.terminal_d < 0.0;
@@ -480,9 +499,13 @@ TEST(ManeuverBuilder, OvertakeGeneratesAllConfiguredOffsetsAndPassPrefersNearest
         return candidate.uses_offset_tail;
       }), 4);
 
+  // Every offset on ego's side, not just the one it happens to sit nearest.
   const auto pass = builder.pass(egoAt(reference, 4.0, 0.74), 4.0, 0.74);
-  ASSERT_EQ(pass.size(), 1u);
-  EXPECT_DOUBLE_EQ(pass.front().terminal_d, 0.75);
+  ASSERT_EQ(pass.size(), 2u);
+  EXPECT_TRUE(std::all_of(
+      pass.begin(), pass.end(), [](const ManeuverCandidate & candidate) {
+        return candidate.terminal_d > 0.0;
+      }));
 }
 
 TEST(ManeuverBuilder, MergeGeneratesWithoutInjectedWidthCaps)

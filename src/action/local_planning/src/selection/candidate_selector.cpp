@@ -1,5 +1,6 @@
 #include "local_planning/selection/candidate_selector.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -18,26 +19,36 @@ bool valid(const EvaluatedCandidate & candidate)
          candidate.collision.status == CollisionStatus::SOFT_INFLATION);
 }
 
-int clearanceRank(const EvaluatedCandidate & candidate)
+// How far into the soft inflation a candidate goes, in metres.  FREE means
+// clearance above the inflation distance, so every free candidate ties at
+// exactly 0 and the geometry keys decide among them; every soft candidate
+// scores above 0 and therefore loses to any free one.  Inside the soft band the
+// actual clearance orders the candidates, because "grazes the inflation" and
+// "nearly touches" are not the same answer and the old binary rank could not
+// tell them apart.
+double inflationDepth(const EvaluatedCandidate & candidate, double soft_inflation_distance_m)
 {
-  return candidate.collision.status == CollisionStatus::FREE ? 0 : 1;
+  if (candidate.collision.status == CollisionStatus::FREE) {
+    return 0.0;
+  }
+  return std::max(
+    kTolerance, soft_inflation_distance_m - candidate.collision.minimum_clearance_m);
 }
 
-// Lower is better in every slot.  Unused slots are zero, which is why one
-// comparator covers all three intents: PASS and MERGE simply tie on the two
-// geometry keys and fall through to time.
+// Lower is better in every slot.  One comparator covers all three intents:
+// MERGE commands d = 0 everywhere, so its geometry keys are constant and it
+// falls through to time on its own, with no intent test needed here.
 using SelectionKey = std::array<double, kKeyCount>;
 
 SelectionKey keyFor(
-  PlannerIntent intent,
   const ManeuverCandidate & geometry,
-  const EvaluatedCandidate & evaluated)
+  const EvaluatedCandidate & evaluated,
+  double soft_inflation_distance_m)
 {
-  const bool rank_on_geometry = intent == PlannerIntent::OVERTAKE;
   return {
-    static_cast<double>(clearanceRank(evaluated)),
-    rank_on_geometry ? std::abs(geometry.passing_d) : 0.0,
-    rank_on_geometry ? std::abs(geometry.terminal_d) : 0.0,
+    inflationDepth(evaluated, soft_inflation_distance_m),
+    std::abs(geometry.passing_d),
+    std::abs(geometry.terminal_d),
     evaluated.traversal_time_s};
 }
 
@@ -59,8 +70,12 @@ bool better(const SelectionKey & candidate, const SelectionKey & best)
 
 }  // namespace
 
+CandidateSelector::CandidateSelector(double soft_inflation_distance_m)
+: soft_inflation_distance_m_(soft_inflation_distance_m)
+{
+}
+
 int CandidateSelector::select(
-  PlannerIntent intent,
   const std::vector<ManeuverCandidate> & pool,
   const std::vector<EvaluatedCandidate> & evaluated) const
 {
@@ -69,7 +84,7 @@ int CandidateSelector::select(
   for (const auto & candidate : evaluated) {
     if (!valid(candidate)) {continue;}
     const auto & geometry = pool.at(static_cast<std::size_t>(candidate.candidate_index));
-    const SelectionKey key = keyFor(intent, geometry, candidate);
+    const SelectionKey key = keyFor(geometry, candidate, soft_inflation_distance_m_);
     if (best_index < 0 || better(key, best_key)) {
       best_index = candidate.candidate_index;
       best_key = key;
