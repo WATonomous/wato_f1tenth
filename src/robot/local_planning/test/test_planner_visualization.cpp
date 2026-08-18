@@ -1,4 +1,5 @@
 #include "local_planning/ros/planner_visualization.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <gtest/gtest.h>
 
@@ -24,7 +25,6 @@ using namespace std::chrono_literals;
 
 std::vector<Point> circleLine(double radius, int count)
 {
-  constexpr double kPi = 3.14159265358979323846;
   std::vector<Point> points;
   for (int i = 0; i < count; ++i) {
     const double angle = 2.0 * kPi * static_cast<double>(i) / static_cast<double>(count);

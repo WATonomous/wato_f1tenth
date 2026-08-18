@@ -2,6 +2,7 @@
 
 #include "local_planning/curves/frenet_connection_generator.hpp"
 #include "local_planning/curves/frenet_polynomial.hpp"
+#include "local_planning/core/geometry.hpp"
 #include "local_planning/reference/raceline_reference.hpp"
 #include "local_planning/reference/reference_window.hpp"
 
@@ -13,7 +14,6 @@ namespace local_planning
 namespace
 {
 
-constexpr double kPi = 3.14159265358979323846;
 
 // A circle is the one reference whose Frenet geometry has a closed form:
 // kappa = 1/R exactly, kappa' = 0 exactly.  Every analytic claim in the port is

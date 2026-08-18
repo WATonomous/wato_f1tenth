@@ -1,5 +1,7 @@
 #include "local_planning/speed/velocity_profile.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -11,7 +13,7 @@ namespace local_planning
 namespace
 {
 
-constexpr double kEpsilon = 1e-6;
+constexpr double kEpsilon = kGridEps;
 constexpr double kGravityMps2 = 9.81;
 
 double interiorSpeedScale(PlannerIntent intent, const VelocityProfileConfig & config)

@@ -176,75 +176,13 @@ LocalPlanResult LocalPlanner::plan(
     });
   }
 
-  auto evaluateFrom = [&](std::size_t first, PlannerIntent profile_intent) {
-      const std::size_t count = result.evaluated.size() - first;
-      parallelFor(count, [&](std::size_t k) {
-          auto & evaluated = result.evaluated[first + k];
-          auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-          evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
-        });
-
-      std::vector<TrackBoundsCheckResult> width_checks(count);
-      parallelFor(count, [&](std::size_t k) {
-          auto & evaluated = result.evaluated[first + k];
-          if (evaluated.collision.status == CollisionStatus::COLLISION ||
-          evaluated.collision.status == CollisionStatus::OUT_OF_GRID)
-          {
-            return;
-          }
-          auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-          width_checks[k] = track_bounds_checker_.check(candidate.path, grid);
-          evaluated.track_bounds_ok = width_checks[k].ok;
-        });
-
-      const double terminal_s = reference_.wrapS(state.ego_s + builder_.config().horizon_m);
-      for (std::size_t k = 0; k < count; ++k) {
-        auto & evaluated = result.evaluated[first + k];
-        auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-        if (evaluated.collision.status == CollisionStatus::COLLISION) {
-          ++result.decision.collision_rejected;
-          continue;
-        }
-        if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID) {
-          ++result.decision.out_of_grid_rejected;
-          continue;
-        }
-        if (!evaluated.track_bounds_ok) {
-          ++result.decision.track_bounds_rejected;
-          continue;
-        }
-        const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
-            terminal_s, profile_intent, reference_, velocity_config_);
-        evaluated.velocity_feasible = velocity.feasible;
-        evaluated.traversal_time_s = velocity.traversal_time_s;
-        if (!velocity.feasible) {
-          ++result.decision.velocity_rejected;
-        } else {
-          ++result.decision.valid_candidate_count;
-        }
-      }
-    };
-
-  evaluateFrom(0, state.intent);
+  evaluateFrom(result, 0, state.intent, grid, ego, state.ego_s);
   // Lazy generation, stated directly.  This used to run the PASS *ranking* just
   // to answer it, which meant selectPass() was called twice a cycle for two
   // unrelated purposes and the tier machinery had to survive to serve this one.
   // The question was only ever whether the recovery family is worth generating.
   if (state.intent == PlannerIntent::PASS) {
-    const bool preferred_is_free = std::any_of(
-      result.evaluated.begin(), result.evaluated.end(),
-      [](const EvaluatedCandidate & item) {
-        return item.source == CandidateSource::PASS_PREFERRED &&
-               item.velocity_feasible &&
-               item.collision.status == CollisionStatus::FREE;
-      });
-    if (!preferred_is_free) {
-      const std::size_t first = result.evaluated.size();
-      appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
-          return builder_.recover(ego, state.ego_s, state.ego_d);
-      });
-      evaluateFrom(first, PlannerIntent::PASS);
-    }
+    tryPassFamily(result, 0, ego, state.ego_s, state.ego_d, grid);
   }
   if (state.intent == PlannerIntent::PASS &&
     state.proposed_intent == PlannerIntent::MERGE)
@@ -253,7 +191,7 @@ LocalPlanResult LocalPlanner::plan(
     appendGenerated(CandidateSource::MERGE_PROBE, [&]() {
         return builder_.merge(ego, state.ego_s, state.ego_d);
     });
-    evaluateFrom(first, PlannerIntent::MERGE);
+    evaluateFrom(result, first, PlannerIntent::MERGE, grid, ego, state.ego_s);
     std::vector<EvaluatedCandidate> probes(
       result.evaluated.begin() + static_cast<std::ptrdiff_t>(first), result.evaluated.end());
     result.merge_probe_index = selector_.select(result.pool, probes);
@@ -275,20 +213,8 @@ LocalPlanResult LocalPlanner::plan(
     appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
         return builder_.pass(ego, state.ego_s, state.ego_d);
     });
-    evaluateFrom(recovery_first, PlannerIntent::PASS);
-    const bool preferred_is_free = std::any_of(
-      result.evaluated.begin() + static_cast<std::ptrdiff_t>(recovery_first),
-      result.evaluated.end(), [](const EvaluatedCandidate & item) {
-        return item.source == CandidateSource::PASS_PREFERRED && item.velocity_feasible &&
-               item.collision.status == CollisionStatus::FREE;
-      });
-    if (!preferred_is_free) {
-      const std::size_t fallback_first = result.evaluated.size();
-      appendGenerated(CandidateSource::PASS_RECOVERY, [&]() {
-          return builder_.recover(ego, state.ego_s, state.ego_d);
-      });
-      evaluateFrom(fallback_first, PlannerIntent::PASS);
-    }
+    evaluateFrom(result, recovery_first, PlannerIntent::PASS, grid, ego, state.ego_s);
+    tryPassFamily(result, recovery_first, ego, state.ego_s, state.ego_d, grid);
     std::vector<EvaluatedCandidate> recovery;
     for (std::size_t i = recovery_first; i < result.evaluated.size(); ++i) {
       recovery.push_back(result.evaluated[i]);
@@ -325,6 +251,86 @@ LocalPlanResult LocalPlanner::plan(
   }
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
   return result;
+}
+
+void LocalPlanner::evaluateFrom(
+  LocalPlanResult & result,
+  std::size_t first,
+  PlannerIntent profile_intent,
+  const OccupancyGrid & grid,
+  const BoundaryState & ego,
+  double ego_s) const
+{
+  const std::size_t count = result.evaluated.size() - first;
+  parallelFor(count, [&](std::size_t k) {
+      auto & evaluated = result.evaluated[first + k];
+      auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+      evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+    });
+
+  std::vector<TrackBoundsCheckResult> width_checks(count);
+  parallelFor(count, [&](std::size_t k) {
+      auto & evaluated = result.evaluated[first + k];
+      if (evaluated.collision.status == CollisionStatus::COLLISION ||
+        evaluated.collision.status == CollisionStatus::OUT_OF_GRID)
+      {
+        return;
+      }
+      auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+      width_checks[k] = track_bounds_checker_.check(candidate.path, grid);
+      evaluated.track_bounds_ok = width_checks[k].ok;
+    });
+
+  const double terminal_s = reference_.wrapS(ego_s + builder_.config().horizon_m);
+  for (std::size_t k = 0; k < count; ++k) {
+    auto & evaluated = result.evaluated[first + k];
+    auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+    if (evaluated.collision.status == CollisionStatus::COLLISION) {
+      ++result.decision.collision_rejected;
+      continue;
+    }
+    if (evaluated.collision.status == CollisionStatus::OUT_OF_GRID) {
+      ++result.decision.out_of_grid_rejected;
+      continue;
+    }
+    if (!evaluated.track_bounds_ok) {
+      ++result.decision.track_bounds_rejected;
+      continue;
+    }
+    const auto velocity = assignVelocityProfile(
+      candidate.path, ego.speed, ego_s, terminal_s, profile_intent, reference_, velocity_config_);
+    evaluated.velocity_feasible = velocity.feasible;
+    evaluated.traversal_time_s = velocity.traversal_time_s;
+    if (!velocity.feasible) {
+      ++result.decision.velocity_rejected;
+    } else {
+      ++result.decision.valid_candidate_count;
+    }
+  }
+}
+
+void LocalPlanner::tryPassFamily(
+  LocalPlanResult & result,
+  std::size_t first,
+  const BoundaryState & ego,
+  double ego_s,
+  double ego_d,
+  const OccupancyGrid & grid) const
+{
+  const bool preferred_is_free = std::any_of(
+    result.evaluated.begin() + static_cast<std::ptrdiff_t>(first),
+    result.evaluated.end(),
+    [](const EvaluatedCandidate & item) {
+      return item.source == CandidateSource::PASS_PREFERRED &&
+             item.velocity_feasible &&
+             item.collision.status == CollisionStatus::FREE;
+    });
+  if (preferred_is_free) {
+    return;
+  }
+  const std::size_t recovery_first = result.evaluated.size();
+  appendCandidates(result, builder_.recover(ego, ego_s, ego_d), CandidateSource::PASS_RECOVERY);
+  evaluateFrom(result, recovery_first, PlannerIntent::PASS, grid, ego, ego_s);
 }
 
 void LocalPlanner::selectBraking(
