@@ -6,6 +6,7 @@
 #include "local_planning/state/racing_state_machine.hpp"
 
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/header.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <string>
@@ -64,6 +65,14 @@ public:
     MarkerPublisher & publisher) const;
 
 private:
+  // Extra layers that only exist on a braking cycle: the executed arc redrawn
+  // as a speed gradient, and the numbers behind it. No-op otherwise, so the
+  // namespaces vanish the moment a real maneuver comes back.
+  void appendBrakingDetail(
+    const LocalPlanResult & result,
+    const std_msgs::msg::Header & header,
+    MarkerArray & markers) const;
+
   const RacelineReference & reference_;
   const PlannerVisualizationConfig config_;
 };

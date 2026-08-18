@@ -33,6 +33,10 @@ struct ReferenceGeometrySample
   double y = 0.0;
   double tangent_x = 0.0;
   double tangent_y = 0.0;
+  // Magnitude of the spline derivative with respect to the reference's
+  // chord-length station parameter.  That parameter is close to, but not
+  // exactly, spline arc length and Newton corrections must account for it.
+  double parameter_speed = 0.0;
   double normal_x = 0.0;
   double normal_y = 0.0;
   double heading = 0.0;

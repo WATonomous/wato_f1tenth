@@ -15,6 +15,7 @@ uint8 NO_LOCAL_PATH=0
 uint8 MANEUVER=1
 uint8 BRAKING_FALLBACK=2
 uint8 BRAKING_UNAVAILABLE=3
+uint8 HELD_PATH=4
 
 uint8 SOURCE_NONE=0
 uint8 SOURCE_OVERTAKE=1
@@ -107,4 +108,9 @@ float64 sustainable_left_m
 float64 sustainable_right_m
 uint32 track_bounds_rejected
 uint32 valid_candidate_count
+# Effort of the winning braking arc, 1.0 being as hard as the car can turn at
+# that speed. Meaningful only when executed_mode is BRAKING_FALLBACK/UNAVAILABLE.
+float64 braking_effort
+# Reference-carrot distance used by the winning braking arc.
+float64 braking_lookahead_m
 float64 cycle_time_ms

@@ -137,7 +137,28 @@ TEST(PlannerDiagnostics, CycleWithoutDecisionUsesDefaultFollowOutcome)
   const std::string & message = capture.messages().back();
   EXPECT_NE(message.find("intent=FOLLOW_RACING_LINE"), std::string::npos);
   EXPECT_NE(message.find("candidates=0.0/0.0/0.0"), std::string::npos);
-  EXPECT_NE(message.find("modes=none:1/maneuver:0/braking:0/unavailable:0"), std::string::npos);
+  EXPECT_NE(
+    message.find("modes=none:1/maneuver:0/braking:0/unavailable:0/held:0"),
+    std::string::npos);
+}
+
+TEST(PlannerDiagnostics, CountsHeldPathMode)
+{
+  PlannerDiagnosticsConfig config;
+  config.profiling_log_every_n_cycles = 1;
+  auto diagnostics = makeDiagnostics(config);
+  LogCapture capture;
+
+  CycleProfile sample;
+  sample.outcome.decision.emplace();
+  sample.outcome.decision->executed_mode = ExecutedMode::HELD_PATH;
+  diagnostics.recordCycle(std::move(sample));
+
+  ASSERT_EQ(capture.count("LOCAL_PLANNER_PROFILE"), 1U);
+  EXPECT_NE(
+    capture.messages().back().find(
+      "modes=none:0/maneuver:0/braking:0/unavailable:0/held:1"),
+    std::string::npos);
 }
 
 TEST(PlannerDiagnostics, IntentFilterIgnoresOtherWindows)
