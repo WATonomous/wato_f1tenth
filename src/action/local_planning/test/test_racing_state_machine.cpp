@@ -157,12 +157,15 @@ TEST(RacingStateMachine, NoOpponentOffTheLineMerges)
   EXPECT_EQ(cycle.state.intent, PlannerIntent::MERGE);
 }
 
+// The gap is deliberately inside engagement_enter_gap_m rather than on it: at
+// the boundary the detected face lands within an ULP of the threshold and the
+// strict comparison in proposedIntent decides the test, not the behaviour.
 TEST(RacingStateMachine, BehindInsideStartGapOvertakes)
 {
-  const Cycle cycle = runWithOpponentAtGap(2.0, 0.0, 2.0);
+  const Cycle cycle = runWithOpponentAtGap(2.0, 0.0, 1.5);
   ASSERT_TRUE(cycle.state.opponent.detected);
   EXPECT_EQ(cycle.state.relative_position, RelativePosition::BEHIND);
-  EXPECT_NEAR(cycle.state.opponent.gap_m, 2.0, kFaceTolerance);
+  EXPECT_NEAR(cycle.state.opponent.gap_m, 1.5, kFaceTolerance);
   EXPECT_EQ(cycle.state.intent, PlannerIntent::OVERTAKE);
 }
 
@@ -443,7 +446,7 @@ TEST(RacingStateMachine, ReprocessingOneCostmapDoesNotAddOpponentEvidence)
   const RacelineReference reference = makeReference();
   const Odometry ego = egoAt(reference, 2.0, 0.0);
   OccupancyGrid grid = gridAround(ego.position, 8.0);
-  stampOpponent(grid, reference, 4.0, 5.0);
+  stampOpponent(grid, reference, 3.5, 4.5);
   RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
 
   machine.update(ego, grid, StateUpdateContext{0.0, 1});
@@ -515,7 +518,7 @@ TEST(RacingStateMachine, ClockRollbackClearsPendingEvidence)
   const RacelineReference reference = makeReference();
   const Odometry ego = egoAt(reference, 2.0, 0.0);
   OccupancyGrid grid = gridAround(ego.position, 8.0);
-  stampOpponent(grid, reference, 4.0, 5.0);
+  stampOpponent(grid, reference, 3.5, 4.5);
   RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
 
   machine.update(ego, grid, StateUpdateContext{10.0, 1});
@@ -531,7 +534,7 @@ TEST(RacingStateMachine, OneOpponentDropoutCannotReturnToFollow)
   const RacelineReference reference = makeReference();
   const Odometry ego = egoAt(reference, 2.0, 0.0);
   OccupancyGrid opponent_grid = gridAround(ego.position, 8.0);
-  stampOpponent(opponent_grid, reference, 4.0, 5.0);
+  stampOpponent(opponent_grid, reference, 3.5, 4.5);
   const OccupancyGrid empty_grid = gridAround(ego.position, 8.0);
   RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
 
@@ -561,10 +564,10 @@ TEST(RacingStateMachine, GapBandsRetainTheCommittedState)
       const double start = gap >= 0.0 ? 2.0 + gap : 2.0 + gap - 1.0;
       stampOpponent(grid, reference, start, start + 1.0);
       machine.update(ego, grid, StateUpdateContext{
-        0.01 * static_cast<double>(sequence), sequence});
+          0.01 * static_cast<double>(sequence), sequence});
     };
 
-  updateAtGap(2.0, 1);
+  updateAtGap(1.5, 1);
   ASSERT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
   updateAtGap(0.80, 2);
   EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
@@ -595,16 +598,19 @@ TEST(RacingStateMachine, EngagementBandRetainsWhetherOpponentIsRelevant)
       OccupancyGrid grid = gridAround(ego.position, 8.0);
       stampOpponent(grid, reference, 2.0 + gap, 3.0 + gap);
       machine.update(ego, grid, StateUpdateContext{
-        0.01 * static_cast<double>(sequence), sequence});
+          0.01 * static_cast<double>(sequence), sequence});
     };
 
-  updateAtGap(3.20, 1);
+  // Beyond engagement_enter_gap_m: the opponent is visible but not yet relevant.
+  updateAtGap(2.20, 1);
   EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
-  updateAtGap(2.00, 2);
+  updateAtGap(1.50, 2);
   ASSERT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
-  updateAtGap(3.20, 3);
+  // Inside the hysteresis band: past the enter gap, short of the exit gap.
+  updateAtGap(2.30, 3);
   EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
-  updateAtGap(3.60, 4);
+  // Past engagement_exit_gap_m: the engagement is released.
+  updateAtGap(2.80, 4);
   EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
 }
 
