@@ -66,10 +66,6 @@ private:
     // answers "how long", this answers "what changed", and when the car twitches
     // the second question is the one that matters.
     bool diagnostics_enabled = true;
-    // Empty means report every intent on its own line.  List any of
-    // FOLLOW_RACING_LINE/OVERTAKE/PASS/MERGE to log only those, which is what
-    // you want when only the maneuvering states matter.
-    std::vector<PlannerIntent> profiling_intent_filter;
     std::string reference_track_topic;
     std::string occupancy_grid_topic;
     std::string odom_topic;
