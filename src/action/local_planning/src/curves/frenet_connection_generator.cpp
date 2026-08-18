@@ -1,5 +1,7 @@
 #include "local_planning/curves/frenet_connection_generator.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -8,8 +10,7 @@ namespace local_planning
 namespace
 {
 
-constexpr double kEpsilon = 1e-9;
-constexpr double kPi = 3.14159265358979323846;
+constexpr double kEpsilon = kSpacingEps;
 constexpr double kGravityMps2 = 9.81;
 
 FrenetConnectionResult rejected(RejectReason reason)

@@ -1,5 +1,7 @@
 #include "local_planning/reference/reference_window.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -7,7 +9,7 @@ namespace local_planning
 {
 namespace
 {
-constexpr double kTolerance = 1e-9;
+constexpr double kTolerance = kSpacingEps;
 }  // namespace
 
 bool ReferenceWindow::build(

@@ -10,6 +10,7 @@
 #include "local_planning/state/racing_state_machine.hpp"
 
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 namespace local_planning
@@ -157,6 +158,21 @@ public:
   }
 
 private:
+  void evaluateFrom(
+    LocalPlanResult & result,
+    std::size_t first,
+    PlannerIntent profile_intent,
+    const OccupancyGrid & grid,
+    const BoundaryState & ego,
+    double ego_s) const;
+  // Generate PASS_RECOVERY if no PASS_PREFERRED in [first, end) is free and feasible.
+  void tryPassFamily(
+    LocalPlanResult & result,
+    std::size_t first,
+    const BoundaryState & ego,
+    double ego_s,
+    double ego_d,
+    const OccupancyGrid & grid) const;
   // Braking's own family, generated only once nothing else was selectable and
   // ranked by its own rule -- clearance and closeness to the line, not
   // traversal time, because these paths are not competing for a lap.

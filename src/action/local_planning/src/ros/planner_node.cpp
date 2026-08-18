@@ -312,37 +312,13 @@ void PlannerNode::planningCycle()
   RecordCycleOnExit record{diagnostics_, profile};
   const ScopedTimer cycle_timer{profile.cycle_ms};
   if (!odom_ || !has_grid_ || !reference_.valid()) {
-    state_machine_.resetEvidence();
-    held_path_.reset();
-    PlannerDecisionData unavailable;
-    unavailable.requested_intent = state_machine_.state().intent;
-    unavailable.proposed_intent = state_machine_.state().intent;
-    unavailable.executed_intent = state_machine_.state().intent;
-    const bool wants_local_path =
-      state_machine_.state().intent != PlannerIntent::FOLLOW_RACING_LINE;
-    unavailable.recovery_reason = wants_local_path ?
-      RecoveryReason::NO_SAFE_LOCAL_PATH : RecoveryReason::NONE;
-    publishDecision(unavailable);
-    if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
-    publishOvertakeReady(wants_local_path);
+    publishUnavailable(cycle_stamp);
     return;
   }
 
   const auto odom_in_map = odometryInMap();
   if (!odom_in_map) {
-    state_machine_.resetEvidence();
-    held_path_.reset();
-    PlannerDecisionData unavailable;
-    unavailable.requested_intent = state_machine_.state().intent;
-    unavailable.proposed_intent = state_machine_.state().intent;
-    unavailable.executed_intent = state_machine_.state().intent;
-    const bool wants_local_path =
-      state_machine_.state().intent != PlannerIntent::FOLLOW_RACING_LINE;
-    unavailable.recovery_reason = wants_local_path ?
-      RecoveryReason::NO_SAFE_LOCAL_PATH : RecoveryReason::NONE;
-    publishDecision(unavailable);
-    if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
-    publishOvertakeReady(wants_local_path);
+    publishUnavailable(cycle_stamp);
     return;
   }
   profile.outcome.inputs_ready = true;
@@ -574,6 +550,23 @@ void PlannerNode::publishAllCandidates(
       break;
   }
   visualization_.publishAllCandidates(families, stamp, *all_candidates_visualization_pub_);
+}
+
+void PlannerNode::publishUnavailable(const rclcpp::Time & cycle_stamp)
+{
+  state_machine_.resetEvidence();
+  held_path_.reset();
+  PlannerDecisionData unavailable;
+  unavailable.requested_intent = state_machine_.state().intent;
+  unavailable.proposed_intent = state_machine_.state().intent;
+  unavailable.executed_intent = state_machine_.state().intent;
+  const bool wants_local_path =
+    state_machine_.state().intent != PlannerIntent::FOLLOW_RACING_LINE;
+  unavailable.recovery_reason = wants_local_path ?
+    RecoveryReason::NO_SAFE_LOCAL_PATH : RecoveryReason::NONE;
+  publishDecision(unavailable);
+  if (wants_local_path) {publishEmptyLocalPath(cycle_stamp);}
+  publishOvertakeReady(wants_local_path);
 }
 
 void PlannerNode::publishDecision(const PlannerDecisionData & data)

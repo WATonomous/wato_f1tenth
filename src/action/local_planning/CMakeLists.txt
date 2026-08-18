@@ -149,6 +149,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_geometry test/test_geometry.cpp)
+  target_link_libraries(test_geometry local_planning_core)
+
   ament_add_gtest(test_raceline_reference test/test_raceline_reference.cpp)
   target_link_libraries(test_raceline_reference local_planning_core)
 
