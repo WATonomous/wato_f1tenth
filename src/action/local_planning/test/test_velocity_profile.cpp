@@ -216,7 +216,11 @@ TEST(VelocityProfile, StartIsNotAnEchoOfTheMeasuredSpeed)
   }
 }
 
-TEST(VelocityProfile, InfeasibleMeasuredStartRejected)
+// A measured speed above what the path can accept is a request to decelerate,
+// not grounds to throw the path away.  This is the rule the braking family was
+// already exempt from, and denying it to every other family is what left the
+// candidate pool empty at speed.
+TEST(VelocityProfile, MeasuredStartAboveTheCeilingCommandsASlowdownInsteadOfRejecting)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 2.0)));
@@ -230,15 +234,20 @@ TEST(VelocityProfile, InfeasibleMeasuredStartRejected)
     sample.speed = -1.0;
   }
 
-  // Terminal 2 m/s with only 2 m to decelerate at 1 m/s^2 from 10 m/s is impossible:
-  // required distance = (100-4)/(2*1) = 48 m.
+  // 10 m/s measured against a 2 m/s raceline with 2 m of path and 1 m/s^2 of
+  // decel: the car cannot reach the ceiling within the horizon.  It is still a
+  // usable path -- it is the only thing that tells the car to slow down.
   const VelocityProfileResult result = assignVelocityProfile(
     path, 10.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
-  EXPECT_FALSE(result.feasible);
+  ASSERT_TRUE(result.feasible);
   for (const CurveSample & sample : path) {
-    EXPECT_NEAR(sample.speed, -1.0, 1e-12);
+    EXPECT_GT(sample.speed, 0.0);
+    EXPECT_LT(sample.speed, 10.0);
   }
+  // The sample at the car commands the ceiling, which here is the raceline
+  // speed, so the controller sees a slowdown of 8 m/s rather than nothing.
+  EXPECT_NEAR(path.front().speed, 2.0, 1e-6);
 }
 
 TEST(VelocityProfile, RacelineWrapAroundSequentialProjection)

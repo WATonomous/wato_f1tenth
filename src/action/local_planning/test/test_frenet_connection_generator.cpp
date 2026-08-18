@@ -307,6 +307,53 @@ TEST(FrenetConnectionGenerator, RejectsCurvatureBeyondTheSteeringLimit)
   EXPECT_TRUE(path.empty()) << "a rejected connection must leave no samples behind";
 }
 
+// The steering stop is not the binding limit at racing speed -- the friction
+// circle is, and by a wide margin.  Shaping against it here is what stops the
+// builder emitting geometry the velocity profile then has to slow the car
+// through, which is the asymmetry that made the braking family the only one
+// that reliably survived.
+TEST(FrenetConnectionGenerator, ShapesAgainstGripNotJustTheSteeringStop)
+{
+  const RacelineReference reference = makeCircle();   // R = 10 m, kappa = 0.1
+  ReferenceWindow window;
+  ASSERT_TRUE(window.build(reference, 0.0, 6.0, 0.1));
+  const FrenetConnectionGenerator generator;
+
+  // A constant 0.55 m offset holds kappa = 0.1 / (1 - 0.055) ~ 0.106: nowhere
+  // near the 1.74 steering stop, but mu*g/kappa puts grip out at only ~9.6 m/s.
+  const FrenetPolynomial polynomial = constantOffset(0.55, 6.0);
+  const std::size_t last = window.size() - 1;
+
+  std::vector<CurveSample> slow;
+  EXPECT_TRUE(generator.generate(window, 0, last, polynomial, slow, 3.0).valid);
+
+  std::vector<CurveSample> fast;
+  const auto result = generator.generate(window, 0, last, polynomial, fast, 10.0);
+  EXPECT_FALSE(result.valid);
+  EXPECT_EQ(result.reject_reason, RejectReason::CURVATURE_LIMIT);
+  EXPECT_TRUE(fast.empty());
+
+  // An unspecified speed means "not known", not "stopped": it must leave the
+  // kinematic cap in place rather than clamping to mu*g/0.
+  std::vector<CurveSample> unspecified;
+  EXPECT_TRUE(generator.generate(window, 0, last, polynomial, unspecified).valid);
+}
+
+TEST(FrenetConnectionConfigTest, AllowedCurvatureTakesTheBindingLimit)
+{
+  FrenetConnectionConfig config;
+  config.max_curvature_inv_m = 1.74;
+  config.friction_coeff = 1.0;
+
+  // Standstill and "unknown" both fall back to the steering stop.
+  EXPECT_DOUBLE_EQ(config.allowedCurvature(0.0), 1.74);
+  EXPECT_DOUBLE_EQ(config.allowedCurvature(-1.0), 1.74);
+  // Below ~2.4 m/s the steering stop still binds; above it, grip does.
+  EXPECT_DOUBLE_EQ(config.allowedCurvature(1.0), 1.74);
+  EXPECT_NEAR(config.allowedCurvature(5.0), 9.81 / 25.0, 1e-12);
+  EXPECT_NEAR(config.allowedCurvature(3.0), 9.81 / 9.0, 1e-12);
+}
+
 TEST(FrenetConnectionGenerator, RejectsAHeadingBeyondTheLimit)
 {
   const RacelineReference reference = makeCircle();
