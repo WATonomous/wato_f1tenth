@@ -51,16 +51,34 @@ planner_node:
     treat_unknown_as_free: true
     friction_coeff: 1.0
     min_velocity_mps: 0.0
-    # Braking-fallback floor only (mode=2). Maneuver paths still use min_velocity_mps.
-    braking_fallback_min_velocity_mps: 1.0
     # Hard testing cap. The horizon braking envelope supports 7.7; restore that
     # value to plan at full raceline speed again.
-    max_velocity_mps: 2.0
+    max_velocity_mps: 6.0
     max_accel_mps2: 5.0
     max_decel_mps2: 5.0
     # 1.0 = OVERTAKE/PASS/MERGE plan at the same speed as FOLLOW.
     overtake_speed_scale: 1.0
     treat_out_of_grid_as_free: true
+
+    # --- Braking fallback (executed_mode 2/3) ---------------------------------
+    # Fired only when no maneuver candidate and no usable held path survives.
+    # Forward-integrates arcs that turn toward the racing line as hard as speed
+    # and friction permit while decelerating; slowing raises the achievable
+    # curvature, which is what recovers the line. Horizon, sample spacing,
+    # friction and wheelbase are shared with the rest of the planner, so only
+    # these are braking's own.
+    braking_decel_mps2: 5.0
+    # Floor, not zero: a stopped car cannot steer itself back onto the line.
+    braking_min_velocity_mps: 1.0
+    # Carrot distance along the reference. Short chases hard and oscillates;
+    # long converges lazily.
+    braking_pursuit_lookaheads_m: [1.0, 2.0, 3.0]
+    # Fraction of the physical turning budget each arc may spend. 1.0 is the arc
+    # we want and also the one most likely to be collision-rejected (a hard cut
+    # crosses the apex); 0.0 is a straight brake and always exists. Add
+    # intermediate levels if sim shows the hard cut rejected where a gentler arc
+    # would have been free.
+    braking_effort_levels: [1.0, 0.0]
 
     # Fallback only.  Planning samples the reference window at the live costmap
     # resolution so this cannot run finer than the occupancy grid.
@@ -120,6 +138,9 @@ planner_node:
     steering_command_timeout_s: 0.06
     odom_timeout_s: 0.25
     wheelbase_m: 0.33
+    # Steering stop at the wheel. With the wheelbase this is the tightest arc
+    # the car can hold; tan(0.52)/0.33 = 1.74, matching max_curvature_inv_m.
+    max_steering_angle_rad: 0.52
     use_steering_start_curvature: true
     # Emits one machine-readable aggregate profile line per intent, every N
     # cycles *of that intent*. FOLLOW and OVERTAKE differ by more than an order

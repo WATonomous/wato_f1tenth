@@ -103,6 +103,8 @@ msg::PlannerDecision plannerDecisionToRos(
   out.sustainable_right_m = data.sustainable_right_m;
   out.track_bounds_rejected = data.track_bounds_rejected;
   out.valid_candidate_count = data.valid_candidate_count;
+  out.braking_effort = data.braking_effort;
+  out.braking_lookahead_m = data.braking_lookahead_m;
   out.cycle_time_ms = data.cycle_time_ms;
   return out;
 }

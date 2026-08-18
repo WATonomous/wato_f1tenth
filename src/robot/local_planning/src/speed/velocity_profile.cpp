@@ -162,11 +162,25 @@ VelocityProfileResult assignVelocityProfile(
   const double measured_start = std::max(0.0, start_velocity_mps);
   // After the backward pass, speeds[0] is the highest start that can still
   // satisfy the future constraints.  A faster measured start is infeasible.
+  //
+  // That is the only thing the measured speed is used for.  It is deliberately
+  // NOT written back into speeds[0]: the controller reads the speed of the
+  // sample nearest the car, and these paths start at the car, so pinning the
+  // measured speed there made the command an echo of the measurement --
+  // v_cmd == v_measured, a fixed point with no authority to accelerate.  At a
+  // standstill that is a hard deadlock: 0 in, 0 out, the car never moves and
+  // the path regenerates from 0 forever.
+  //
+  // Leaving speeds[0] at the backward-pass ceiling means the near sample now
+  // commands "the fastest you are allowed to be here given what is ahead",
+  // which is what the controller should be tracking.  The deceleration
+  // anticipation is untouched (it lives in the backward pass).  What is lost is
+  // the acceleration ramp off the measured speed -- the profile no longer
+  // launches from where the car actually is, so a standing start is a step
+  // command that the ESC and the forward pass below have to absorb.
   if (measured_start > speeds[0] + kEpsilon) {
     return reject();
   }
-
-  speeds[0] = measured_start;
 
   const double max_accel = config.max_accel_mps2;
   for (std::size_t i = 1; i < path.size(); ++i) {

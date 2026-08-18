@@ -79,6 +79,8 @@ TEST(RosAdapters, DecisionPreservesEveryField)
   data.sustainable_right_m = 1.9;
   data.track_bounds_rejected = 20;
   data.valid_candidate_count = 21;
+  data.braking_effort = 0.75;
+  data.braking_lookahead_m = 2.0;
   data.cycle_time_ms = 2.2;
   const rclcpp::Time stamp(987, 654, RCL_ROS_TIME);
 
@@ -129,6 +131,8 @@ TEST(RosAdapters, DecisionPreservesEveryField)
   EXPECT_DOUBLE_EQ(message.sustainable_right_m, data.sustainable_right_m);
   EXPECT_EQ(message.track_bounds_rejected, data.track_bounds_rejected);
   EXPECT_EQ(message.valid_candidate_count, data.valid_candidate_count);
+  EXPECT_DOUBLE_EQ(message.braking_effort, data.braking_effort);
+  EXPECT_DOUBLE_EQ(message.braking_lookahead_m, data.braking_lookahead_m);
   EXPECT_DOUBLE_EQ(message.cycle_time_ms, data.cycle_time_ms);
 }
 

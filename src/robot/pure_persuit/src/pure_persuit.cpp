@@ -211,6 +211,23 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_waypoint_from_pa
 
     }
 
+    /*
+    x/y steer, z is the speed, and both are read at the lookahead point -- so the
+    car executes the speed the planner wants it to have 1-3 m from now.
+
+    reading the speed at the pose nearest the car instead is not an option: the
+    planner's paths start at the car, so the near sample is whatever the car is
+    already doing and the command becomes an echo of the measurement with no
+    authority to change it. at a standstill that deadlocks outright.
+
+    the cost of reading ahead is that a ramp collapses into a step. the maneuver
+    profile no longer has one (it publishes the backward-pass ceiling, not a ramp
+    off the measured speed), so this only bites the braking fallback, whose arcs
+    really are a decel ramp from ego.speed: stepping to their far end means
+    braking to the floor in one command rather than easing into it. deliberate
+    for now -- over-braking on the fallback is the safe direction. the honest fix
+    is a short speed lead, decoupled from the steering lookahead.
+    */
     const std::optional<geometry_msgs::msg::Point> converted_waypoint =
         Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
 

@@ -16,10 +16,6 @@ struct VelocityProfileConfig
   double max_velocity_mps = 10.0;
   double max_accel_mps2 = 5.0;
   double max_decel_mps2 = 5.0;
-  // Floor speed on braking-fallback paths only. Maneuver profiles still use
-  // min_velocity_mps. Keeps pure pursuit from dead-stopping when no candidate
-  // wins selection but a collision-free slow-along path exists.
-  double braking_fallback_min_velocity_mps = 1.0;
   // Interior/terminal racing-speed multiplier for OVERTAKE/PASS, and MERGE
   // interiors only. MERGE's horizon terminal stays at unscaled raceline speed.
   double overtake_speed_scale = 1.1;

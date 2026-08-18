@@ -349,6 +349,7 @@ ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
 
   const double speed_sq = dx * dx + dy * dy;
   const double speed = std::sqrt(std::max(speed_sq, kEpsilon));
+  sample.parameter_speed = speed;
   sample.tangent_x = dx / speed;
   sample.tangent_y = dy / speed;
   // Left normal, so positive d is left of travel.
