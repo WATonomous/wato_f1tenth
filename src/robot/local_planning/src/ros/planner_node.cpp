@@ -119,8 +119,7 @@ PlannerNode::PlannerNode()
       for (const auto & width : msg->widths) {
         widths.push_back({width.right_m, width.left_m});
       }
-      if (!reference_.setTrackWidths(widths, config_.width_lookup_spacing_m))
-      {
+      if (!reference_.setTrackWidths(widths, config_.width_lookup_spacing_m)) {
         RCLCPP_ERROR(
           get_logger(),
           "Invalid reference widths (%zu widths for %zu spline waypoints); "
@@ -297,7 +296,8 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
       }
     }
     if (!matched) {
-      RCLCPP_WARN(get_logger(), "Unknown profiling_intent_filter entry '%s'; ignored", name.c_str());
+      RCLCPP_WARN(get_logger(), "Unknown profiling_intent_filter entry '%s'; ignored",
+          name.c_str());
     }
   }
   // Every entry unknown is the same mistake as a typo'd single name: report

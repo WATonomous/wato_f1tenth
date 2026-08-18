@@ -124,7 +124,8 @@ TEST(RacelineReference, VelocityAtSMatchesSampleAtSOnVaryingSpeeds)
     EXPECT_NEAR(reference.velocityAtS(s), reference.sampleAtS(s).velocity, 1e-12) << "s=" << s;
   }
   EXPECT_NEAR(reference.velocityAtS(-0.3), reference.sampleAtS(-0.3).velocity, 1e-12);
-  EXPECT_NEAR(reference.velocityAtS(length + 1.7), reference.sampleAtS(length + 1.7).velocity, 1e-12);
+  EXPECT_NEAR(reference.velocityAtS(length + 1.7), reference.sampleAtS(length + 1.7).velocity,
+      1e-12);
 }
 
 // The reason the tangent check exists, and the whole reason global-nearest is
