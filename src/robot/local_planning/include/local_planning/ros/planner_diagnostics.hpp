@@ -5,7 +5,6 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <array>
 #include <cstdint>
 #include <optional>
 #include <vector>
@@ -18,25 +17,8 @@ struct PlannerDiagnosticsConfig
   bool profiling_enabled = true;
   int profiling_log_every_n_cycles = 20;
   bool diagnostics_enabled = true;
-  // Empty reports every intent. Otherwise only the listed intents are profiled,
-  // so the usual "everything but the steady lap" case is a list, not a choice
-  // of one.
-  std::vector<PlannerIntent> profiling_intent_filter;
   double vehicle_full_width_m = 0.0;
   double compat_heading_rad = 0.0;
-};
-
-struct RosBoundaryProfile
-{
-  double cycle_ms = 0.0;
-  double odom_conversion_ms = 0.0;
-  double state_update_ms = 0.0;
-  double planner_ms = 0.0;
-  double decision_publish_ms = 0.0;
-  double path_message_ms = 0.0;
-  double tf_ms = 0.0;
-  double path_publish_ms = 0.0;
-  double marker_publish_ms = 0.0;
 };
 
 struct CycleOutcome
@@ -51,8 +33,7 @@ struct CycleOutcome
 
 struct CycleProfile
 {
-  LocalPlanProfile core;
-  RosBoundaryProfile ros;
+  double cycle_ms = 0.0;
   CycleOutcome outcome;
 };
 
@@ -64,23 +45,17 @@ public:
     rclcpp::Clock::SharedPtr clock,
     PlannerDiagnosticsConfig config);
 
-  void recordGridUpdate(double update_ms, const OccupancyGrid & grid);
   void recordCycle(CycleProfile sample);
 
 private:
   void recordProfile(CycleProfile sample);
-  void emitProfile(PlannerIntent intent, std::vector<CycleProfile> & window);
+  void emitProfile();
   void noteTransitions(CycleProfile & sample);
 
   rclcpp::Logger logger_;
   rclcpp::Clock::SharedPtr clock_;
   PlannerDiagnosticsConfig config_;
-  std::array<std::vector<CycleProfile>, 4> profiling_windows_;
-  std::vector<double> grid_profiling_window_;
-  std::size_t grid_updates_since_report_ = 0;
-  int grid_width_ = 0;
-  int grid_height_ = 0;
-  double grid_resolution_ = 0.0;
+  std::vector<CycleProfile> profiling_window_;
   bool has_previous_cycle_ = false;
   PlannerIntent previous_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
   PlannerIntent previous_proposed_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
