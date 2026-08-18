@@ -17,6 +17,27 @@ namespace local_planning
 namespace
 {
 constexpr int kRareErrorThrottleMs = 10000;
+
+void markHeldPathExecution(
+  LocalPlanResult & result,
+  const CollisionCheckResult & validation,
+  PlannerIntent held_executed_intent)
+{
+  result.selected_index = -1;
+  result.decision.executed_mode = ExecutedMode::HELD_PATH;
+  result.decision.candidate_source = CandidateSource::NONE;
+  result.decision.executed_intent = held_executed_intent;
+  result.decision.selected_offset_tail = false;
+  result.decision.selected_max_abs_d_m = 0.0;
+  result.decision.clearance_class = validation.status;
+  result.decision.minimum_clearance_m = validation.minimum_clearance_m;
+  result.decision.max_abs_curvature_inv_m = 0.0;
+  result.decision.min_speed_mps = 0.0;
+  result.decision.max_speed_mps = 0.0;
+  result.decision.terminal_d_m = 0.0;
+  result.decision.braking_effort = 0.0;
+  result.decision.braking_lookahead_m = 0.0;
+}
 }  // namespace
 
 PlannerNode::PlannerNode()
@@ -29,7 +50,7 @@ PlannerNode::PlannerNode()
     reference_, config_.state, config_.vehicle_geometry, config_.grid_policy),
   planner_(
     reference_, maneuver_builder_, config_.vehicle_geometry, config_.grid_policy,
-    config_.collision, config_.velocity),
+    config_.collision, config_.velocity, config_.braking),
   diagnostics_(
     get_logger(), get_clock(),
     PlannerDiagnosticsConfig{
@@ -218,8 +239,6 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
     "treat_out_of_grid_as_free", false);
   cfg.velocity.friction_coeff = declare_parameter("friction_coeff", 1.0);
   cfg.velocity.min_velocity_mps = declare_parameter("min_velocity_mps", 0.0);
-  cfg.velocity.braking_fallback_min_velocity_mps =
-    declare_parameter("braking_fallback_min_velocity_mps", 1.0);
   cfg.velocity.max_velocity_mps = declare_parameter("max_velocity_mps", 7.7);
   cfg.velocity.max_accel_mps2 = declare_parameter("max_accel_mps2", 5.0);
   cfg.velocity.max_decel_mps2 = declare_parameter("max_decel_mps2", 5.0);
@@ -244,6 +263,20 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.steering_command_timeout_s = declare_parameter("steering_command_timeout_s", 0.06);
   cfg.odom_timeout_s = declare_parameter("odom_timeout_s", 0.25);
   cfg.wheelbase_m = declare_parameter("wheelbase_m", 0.33);
+  cfg.max_steering_angle_rad = declare_parameter("max_steering_angle_rad", 0.52);
+  // Braking shares the horizon, sampling, friction and geometry the rest of the
+  // planner runs on; only what is genuinely its own is declared separately.
+  cfg.braking.horizon_m = cfg.maneuver.horizon_m;
+  cfg.braking.sample_spacing_m = cfg.curve.sample_spacing_m;
+  cfg.braking.friction_coeff = cfg.velocity.friction_coeff;
+  cfg.braking.wheelbase_m = cfg.wheelbase_m;
+  cfg.braking.max_steering_angle_rad = cfg.max_steering_angle_rad;
+  cfg.braking.decel_mps2 = declare_parameter("braking_decel_mps2", 5.0);
+  cfg.braking.min_velocity_mps = declare_parameter("braking_min_velocity_mps", 1.0);
+  cfg.braking.pursuit_lookaheads_m = declare_parameter(
+    "braking_pursuit_lookaheads_m", std::vector<double>{1.0, 2.0, 3.0});
+  cfg.braking.effort_levels = declare_parameter(
+    "braking_effort_levels", std::vector<double>{1.0, 0.0});
   cfg.use_steering_start_curvature = declare_parameter("use_steering_start_curvature", true);
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
   cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
@@ -374,12 +407,65 @@ void PlannerNode::planningCycle()
   profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - all_candidates_started).count();
 
+  const double now_s = cycle_stamp.seconds();
+  if (held_path_ && state_machine_.state().intent != held_intent_) {
+    held_path_.reset();
+  }
+  const double hold_age_s = now_s - held_path_stamp_s_;
+  CollisionCheckResult held_validation;
+  bool held_collision_usable = false;
+  const bool held_within_max_age = held_path_ && hold_age_s >= 0.0 &&
+    hold_age_s < config_.path_max_hold_s;
+  if (held_within_max_age) {
+    held_validation = planner_.validatePath(*held_path_, grid_);
+    held_collision_usable = held_validation.status == CollisionStatus::FREE ||
+      held_validation.status == CollisionStatus::SOFT_INFLATION;
+  }
+  const bool held_usable = held_within_max_age && held_collision_usable;
+
   const auto planner_started = std::chrono::steady_clock::now();
-  auto result = planner_.plan(state_machine_.state(), ego, grid_);
+  auto result = planner_.plan(state_machine_.state(), ego, grid_, held_usable);
   state_machine_.reportMergeProbe(result.decision.merge_probe_available);
   profile.ros.planner_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - planner_started).count();
   profile.core = result.profile;
+  result.decision.start_curvature_from_steering =
+    config_.use_steering_start_curvature && profile.outcome.steering_fresh;
+  if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
+    const auto marker_publish_started = std::chrono::steady_clock::now();
+    held_path_.reset();
+    profile.outcome.decision = result.decision;
+    const auto decision_publish_started = std::chrono::steady_clock::now();
+    publishDecision(result.decision);
+    profile.ros.decision_publish_ms = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - decision_publish_started).count();
+    publishOvertakeReady(false);
+    profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - marker_publish_started).count();
+    finishProfile();
+    return;
+  }
+  const Path * publish_path = nullptr;
+  const ExecutedMode planned_mode = result.decision.executed_mode;
+  const PublishedPathChoice path_choice = choosePublishedPath(
+    planned_mode, result.selected_index >= 0, held_path_.has_value(), held_collision_usable,
+    hold_age_s, config_.path_min_hold_s, config_.path_max_hold_s);
+  if (path_choice == PublishedPathChoice::HELD) {
+    publish_path = &*held_path_;
+    markHeldPathExecution(result, held_validation, held_executed_intent_);
+  } else if (path_choice == PublishedPathChoice::SELECTED) {
+    auto & selected = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
+    if (planned_mode == ExecutedMode::MANEUVER) {
+      held_path_ = selected;
+      held_path_stamp_s_ = now_s;
+      held_intent_ = result.decision.requested_intent;
+      held_executed_intent_ = result.decision.executed_intent;
+      publish_path = &*held_path_;
+    } else {
+      held_path_.reset();
+      publish_path = &selected;
+    }
+  }
   if (result.decision.requested_intent == PlannerIntent::MERGE) {
     RCLCPP_INFO_THROTTLE(
       get_logger(), *get_clock(), 1000,
@@ -404,60 +490,16 @@ void PlannerNode::planningCycle()
       static_cast<int>(result.decision.clearance_class),
       result.decision.minimum_clearance_m);
   }
-  result.decision.start_curvature_from_steering =
-    config_.use_steering_start_curvature && profile.outcome.steering_fresh;
+  if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
+    RCLCPP_ERROR_THROTTLE(
+      get_logger(), *get_clock(), kRareErrorThrottleMs,
+      "No collision-free braking path; stopping on the last arc");
+  }
   profile.outcome.decision = result.decision;
   const auto decision_publish_started = std::chrono::steady_clock::now();
   publishDecision(result.decision);
   profile.ros.decision_publish_ms = std::chrono::duration<double, std::milli>(
     std::chrono::steady_clock::now() - decision_publish_started).count();
-
-  if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
-    const auto marker_publish_started = std::chrono::steady_clock::now();
-    held_path_.reset();
-    publishOvertakeReady(false);
-    profile.ros.marker_publish_ms += std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - marker_publish_started).count();
-    finishProfile();
-    return;
-  }
-  if (result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
-    RCLCPP_ERROR_THROTTLE(
-      get_logger(), *get_clock(), kRareErrorThrottleMs, "Braking path unavailable");
-    held_path_.reset();
-    publishEmptyLocalPath(cycle_stamp);
-    publishOvertakeReady(true);
-    finishProfile();
-    return;
-  }
-  // --- INTENT OVERRIDE: comment out this block to let a held path survive an
-  // --- intent change (it would then only expire on collision or on max hold).
-  if (held_path_ && result.decision.requested_intent != held_intent_) {
-    held_path_.reset();
-  }
-  // --- END INTENT OVERRIDE
-
-  const double now_s = cycle_stamp.seconds();
-  const double hold_age_s = now_s - held_path_stamp_s_;
-  const Path * publish_path = nullptr;
-  // Commit window: below min hold we keep the current path even when a newer
-  // plan exists; between min and max we keep it only when this cycle found
-  // nothing; past max it expires regardless.  SOFT_INFLATION stays acceptable,
-  // matching how plan() ranks candidates.
-  if (held_path_ && hold_age_s >= 0.0 && hold_age_s < config_.path_max_hold_s &&
-    (hold_age_s < config_.path_min_hold_s || result.selected_index < 0))
-  {
-    const auto status = planner_.validatePath(*held_path_, grid_).status;
-    if (status != CollisionStatus::COLLISION && status != CollisionStatus::OUT_OF_GRID) {
-      publish_path = &*held_path_;
-    }
-  }
-  if (!publish_path && result.selected_index >= 0) {
-    held_path_ = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
-    held_path_stamp_s_ = now_s;
-    held_intent_ = result.decision.requested_intent;
-    publish_path = &*held_path_;
-  }
   if (!publish_path) {
     held_path_.reset();
     publishEmptyLocalPath(cycle_stamp);

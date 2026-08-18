@@ -9,10 +9,39 @@
 #include <cstddef>
 #include <iterator>
 #include <limits>
+#include <tuple>
 #include <vector>
 
 namespace local_planning
 {
+PublishedPathChoice choosePublishedPath(
+  ExecutedMode planned_mode,
+  bool selected_available,
+  bool held_available,
+  bool held_collision_usable,
+  double hold_age_s,
+  double path_min_hold_s,
+  double path_max_hold_s)
+{
+  const bool held_usable = held_available && held_collision_usable && hold_age_s >= 0.0 &&
+    hold_age_s < path_max_hold_s;
+  if (planned_mode == ExecutedMode::HELD_PATH) {
+    return held_usable ? PublishedPathChoice::HELD : PublishedPathChoice::NONE;
+  }
+  if (planned_mode == ExecutedMode::MANEUVER) {
+    if (held_usable && hold_age_s < path_min_hold_s) {
+      return PublishedPathChoice::HELD;
+    }
+    return selected_available ? PublishedPathChoice::SELECTED : PublishedPathChoice::NONE;
+  }
+  if (planned_mode == ExecutedMode::BRAKING_FALLBACK ||
+    planned_mode == ExecutedMode::BRAKING_UNAVAILABLE)
+  {
+    return selected_available ? PublishedPathChoice::SELECTED : PublishedPathChoice::NONE;
+  }
+  return PublishedPathChoice::NONE;
+}
+
 namespace
 {
 void appendCandidates(
@@ -64,11 +93,13 @@ LocalPlanner::LocalPlanner(
   VehicleGeometry vehicle_geometry,
   GridPolicy grid_policy,
   CollisionConfig collision_config,
-  VelocityProfileConfig velocity_config)
+  VelocityProfileConfig velocity_config,
+  BrakingConfig braking_config)
 : reference_(reference), builder_(builder), vehicle_geometry_(vehicle_geometry),
   velocity_config_(velocity_config),
   collision_checker_(vehicle_geometry_, grid_policy, collision_config),
-  track_bounds_checker_(reference_, vehicle_geometry_)
+  track_bounds_checker_(reference_, vehicle_geometry_),
+  braking_generator_(reference_, braking_config)
 {
 }
 
@@ -80,7 +111,8 @@ void LocalPlanner::buildGridCache(OccupancyGrid & grid) const
 LocalPlanResult LocalPlanner::plan(
   const TacticalState & state,
   const BoundaryState & ego,
-  const OccupancyGrid & grid) const
+  const OccupancyGrid & grid,
+  bool held_path_usable) const
 {
   const auto started = std::chrono::steady_clock::now();
   const auto elapsedMs = [](const auto begin) {
@@ -292,56 +324,109 @@ LocalPlanResult LocalPlanner::plan(
     result.decision.best_cost_s = costs.front();
     result.decision.median_cost_s = costs[costs.size() / 2];
   }
+  result.profile.selection_ms += elapsedMs(selection_started);
+
+  const auto finalization_started = std::chrono::steady_clock::now();
+  if (result.selected_index >= 0) {
+    result.decision.executed_mode = ExecutedMode::MANEUVER;
+  } else if (held_path_usable) {
+    result.decision.executed_mode = ExecutedMode::HELD_PATH;
+  } else {
+    selectBraking(result, ego, state.ego_s, state.ego_d, grid);
+  }
+
+  fillSelectedMetrics(result);
+  if (result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK ||
+    result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE)
+  {
+    result.decision.candidate_source = CandidateSource::BRAKING;
+  }
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
   for (const auto & candidate : result.pool) {
     const auto sample_count = static_cast<uint32_t>(candidate.path.size());
     result.profile.total_path_samples += sample_count;
     result.profile.max_path_samples = std::max(result.profile.max_path_samples, sample_count);
   }
-  result.profile.selection_ms += elapsedMs(selection_started);
-
-  const auto finalization_started = std::chrono::steady_clock::now();
-  if (result.selected_index >= 0) {
-    result.decision.executed_mode = ExecutedMode::MANEUVER;
-  } else {
-    const EvaluatedCandidate * safest = nullptr;
-    for (const auto & evaluated : result.evaluated) {
-      if (evaluated.source == CandidateSource::MERGE_PROBE || !evaluated.track_bounds_ok ||
-        (evaluated.collision.status != CollisionStatus::FREE &&
-        evaluated.collision.status != CollisionStatus::SOFT_INFLATION))
-      {
-        continue;
-      }
-      if (!safest || evaluated.collision.minimum_clearance_m >
-        safest->collision.minimum_clearance_m)
-      {
-        safest = &evaluated;
-      }
-    }
-    if (safest) {
-      result.selected_index = safest->candidate_index;
-      auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
-      for (auto & sample : path) {
-        sample.speed = std::max(velocity_config_.braking_fallback_min_velocity_mps,
-            std::sqrt(std::max(0.0, ego.speed * ego.speed -
-            2.0 * velocity_config_.max_decel_mps2 * sample.s)));
-      }
-      result.decision.executed_mode = ExecutedMode::BRAKING_FALLBACK;
-      result.decision.recovery_reason = RecoveryReason::BRAKING_FALLBACK;
-      result.decision.candidate_source = CandidateSource::BRAKING;
-    } else {
-      result.decision.executed_mode = ExecutedMode::BRAKING_UNAVAILABLE;
-      result.decision.recovery_reason = RecoveryReason::NO_SAFE_LOCAL_PATH;
-    }
-  }
-
-  fillSelectedMetrics(result);
-  if (result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK) {
-    result.decision.candidate_source = CandidateSource::BRAKING;
-  }
   result.profile.finalization_ms = elapsedMs(finalization_started);
   result.decision.cycle_time_ms = elapsedMs(started);
   return result;
+}
+
+void LocalPlanner::selectBraking(
+  LocalPlanResult & result,
+  const BoundaryState & ego,
+  double ego_s,
+  double ego_d,
+  const OccupancyGrid & grid) const
+{
+  const std::size_t first = result.evaluated.size();
+  appendCandidates(
+    result, braking_generator_.generate(ego, ego_s, ego_d), CandidateSource::BRAKING);
+  const std::size_t count = result.evaluated.size() - first;
+  if (count == 0) {
+    result.decision.executed_mode = ExecutedMode::BRAKING_UNAVAILABLE;
+    result.decision.recovery_reason = RecoveryReason::NO_SAFE_LOCAL_PATH;
+    return;
+  }
+
+  parallelFor(count, [&](std::size_t k) {
+      auto & evaluated = result.evaluated[first + k];
+      const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+      evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+      evaluated.track_bounds_ok = track_bounds_checker_.check(candidate.path, grid).ok;
+      // Deliberately no assignVelocityProfile: braking owns its speeds, and the
+      // nominal profiler rejects an infeasible start speed -- which is the one
+      // condition braking exists to answer.
+    });
+  for (std::size_t k = 0; k < count; ++k) {
+    result.profile.collision_poses_checked += result.evaluated[first + k].collision.checked_poses;
+  }
+
+  // Only a seen obstacle disqualifies an arc.  Running off the grid does not:
+  // the horizon is 4 m and the costmap is a 15 m window, so leaving it is
+  // routine, and refusing to brake because the map ran out is worse than
+  // braking into a cell nobody has looked at.  Ranking still prefers the arcs
+  // the costmap could vouch for -- OUT_OF_GRID carries -inf clearance, so it
+  // sorts below anything seen and free.
+  //
+  // The honest version of this is a Frenet bounds lookup: convert the arc to
+  // (s, d) and check it against the raceline width table where the grid has
+  // nothing to say. Worth doing if unseen tails start mattering; for a
+  // last-resort mode it is more machinery than the decision deserves.
+  const auto score = [&](std::size_t k) {
+      const auto & evaluated = result.evaluated[first + k];
+      const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+      const bool free = evaluated.collision.status == CollisionStatus::FREE;
+      const bool usable = evaluated.collision.status != CollisionStatus::COLLISION;
+      return std::make_tuple(
+        usable, free, evaluated.track_bounds_ok,
+        evaluated.collision.minimum_clearance_m, -std::abs(candidate.terminal_d));
+    };
+  std::size_t best = 0;
+  for (std::size_t k = 1; k < count; ++k) {
+    if (score(k) > score(best)) {best = k;}
+  }
+
+  const auto & winner = result.evaluated[first + best];
+  result.selected_index = winner.candidate_index;
+  const auto params = braking_generator_.arcParams();
+  if (best < params.size()) {
+    result.decision.braking_effort = params[best].effort;
+    result.decision.braking_lookahead_m = params[best].lookahead_m;
+  }
+  if (std::get<0>(score(best))) {
+    result.decision.executed_mode = ExecutedMode::BRAKING_FALLBACK;
+    result.decision.recovery_reason = RecoveryReason::BRAKING_FALLBACK;
+    return;
+  }
+  // Nowhere free to go.  Publish the geometry anyway with the speeds zeroed:
+  // stopping with a coherent steering angle beats the controller's dead_stop(),
+  // which zeroes the wheel too and abandons the corner mid-turn.
+  for (auto & sample : result.pool.at(static_cast<std::size_t>(result.selected_index)).path) {
+    sample.speed = 0.0;
+  }
+  result.decision.executed_mode = ExecutedMode::BRAKING_UNAVAILABLE;
+  result.decision.recovery_reason = RecoveryReason::NO_SAFE_LOCAL_PATH;
 }
 
 }  // namespace local_planning

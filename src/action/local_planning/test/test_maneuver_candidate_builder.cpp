@@ -261,7 +261,7 @@ TEST(ManeuverBuilder, PassRecomputesTheNearestOffsetAndLeavesCenterlineRoutingTo
   ASSERT_EQ(first.size(), 1u);
   EXPECT_NEAR(endOffset(first.front().path), 0.55, 1e-8);
   EXPECT_DOUBLE_EQ(first.front().terminal_d, 0.55);
-  EXPECT_DOUBLE_EQ(first.front().maneuver_distance_m, 6.0);
+  EXPECT_DOUBLE_EQ(first.front().maneuver_distance_m, ManeuverConfig{}.horizon_m);
 
   const std::vector<ManeuverCandidate> second =
     builder.pass(egoAt(reference, 4.2, 0.74), 4.2, 0.74);
@@ -307,6 +307,7 @@ TEST(ManeuverBuilder, RecoveryAddsShortPreferredTailsWithoutDuplicatingNominalPa
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   ManeuverConfig config;
+  config.horizon_m = 6.0;
   config.pass_transition_distances_m = {6.0, 3.0, 1.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
@@ -333,6 +334,7 @@ TEST(ManeuverBuilder, MergeUsesEveryUniqueCompletionDistanceAndAnExactRacelineTa
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   ManeuverConfig config;
+  config.horizon_m = 6.0;
   config.merge_completion_distances_m = {1.0, 2.0, 6.0, 2.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 

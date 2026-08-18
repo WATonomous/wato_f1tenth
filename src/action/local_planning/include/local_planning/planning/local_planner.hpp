@@ -4,6 +4,7 @@
 #include "local_planning/collision/collision_checker.hpp"
 #include "local_planning/collision/track_bounds_checker.hpp"
 #include "local_planning/maneuvers/maneuver_builder.hpp"
+#include "local_planning/planning/braking_path_generator.hpp"
 #include "local_planning/selection/candidate_selector.hpp"
 #include "local_planning/speed/velocity_profile.hpp"
 #include "local_planning/state/racing_state_machine.hpp"
@@ -19,8 +20,25 @@ enum class ExecutedMode : uint8_t
   NO_LOCAL_PATH = 0,
   MANEUVER = 1,
   BRAKING_FALLBACK = 2,
-  BRAKING_UNAVAILABLE = 3
+  BRAKING_UNAVAILABLE = 3,
+  HELD_PATH = 4
 };
+
+enum class PublishedPathChoice : uint8_t
+{
+  NONE,
+  HELD,
+  SELECTED
+};
+
+PublishedPathChoice choosePublishedPath(
+  ExecutedMode planned_mode,
+  bool selected_available,
+  bool held_available,
+  bool held_collision_usable,
+  double hold_age_s,
+  double path_min_hold_s,
+  double path_max_hold_s);
 
 enum class RecoveryReason : uint8_t
 {
@@ -88,6 +106,12 @@ struct PlannerDecisionData
   double sustainable_right_m = 0.0;
   uint32_t track_bounds_rejected = 0;
   uint32_t valid_candidate_count = 0;
+  // Effort of the braking arc that won, 1.0 being as hard as the car can turn
+  // at that speed.  Reads at a glance as nudge versus max-effort recovery.
+  // Meaningful only on the two braking modes.
+  double braking_effort = 0.0;
+  // Reference-carrot distance used by the winning braking arc.
+  double braking_lookahead_m = 0.0;
   double cycle_time_ms = 0.0;
 };
 
@@ -126,7 +150,8 @@ public:
     VehicleGeometry vehicle_geometry,
     GridPolicy grid_policy,
     CollisionConfig collision_config,
-    VelocityProfileConfig velocity_config);
+    VelocityProfileConfig velocity_config,
+    BrakingConfig braking_config);
 
   LocalPlanner(const LocalPlanner &) = delete;
   LocalPlanner(LocalPlanner &&) = delete;
@@ -137,7 +162,8 @@ public:
   LocalPlanResult plan(
     const TacticalState & state,
     const BoundaryState & ego,
-    const OccupancyGrid & grid) const;
+    const OccupancyGrid & grid,
+    bool held_path_usable = false) const;
 
   // Re-check an already-selected path against a newer grid.  Same checker and
   // config plan() ranks with, so a held path is judged by the same rule that
@@ -148,12 +174,23 @@ public:
   }
 
 private:
+  // Braking's own family, generated only once nothing else was selectable and
+  // ranked by its own rule -- clearance and closeness to the line, not
+  // traversal time, because these paths are not competing for a lap.
+  void selectBraking(
+    LocalPlanResult & result,
+    const BoundaryState & ego,
+    double ego_s,
+    double ego_d,
+    const OccupancyGrid & grid) const;
+
   const RacelineReference & reference_;
   const ManeuverBuilder & builder_;
   VehicleGeometry vehicle_geometry_;
   VelocityProfileConfig velocity_config_;
   CollisionChecker collision_checker_;
   TrackBoundsChecker track_bounds_checker_;
+  BrakingPathGenerator braking_generator_;
   CandidateSelector selector_;
 };
 

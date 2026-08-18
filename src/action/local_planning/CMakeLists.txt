@@ -55,6 +55,7 @@ add_library(local_planning_core
   src/speed/velocity_profile.cpp
   src/state/racing_state_machine.cpp
   src/selection/candidate_selector.cpp
+  src/planning/braking_path_generator.cpp
   src/planning/local_planner.cpp
 )
 target_include_directories(local_planning_core PUBLIC
@@ -160,6 +161,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_candidate_selector test/test_candidate_selector.cpp)
   target_link_libraries(test_candidate_selector local_planning_core)
+
+  ament_add_gtest(test_braking_path_generator test/test_braking_path_generator.cpp)
+  target_link_libraries(test_braking_path_generator local_planning_core)
 
   ament_add_gtest(test_local_planner test/test_local_planner.cpp)
   target_link_libraries(test_local_planner local_planning_core)

@@ -38,6 +38,9 @@ BoundaryState egoAt(const RacelineReference & reference, double s, double d)
 ManeuverConfig testConfig()
 {
   ManeuverConfig config;
+  // The fixture's pass transition runs the full window, so the window has to be
+  // long enough to hold it; the default horizon has since dropped to 4.0.
+  config.horizon_m = 6.0;
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.overtake_heading_offsets_rad = {0.0};
   config.passing_d_magnitudes_m = {0.55, 0.75};
@@ -98,14 +101,15 @@ LocalPlanResult planIntent(
   double ego_s,
   double ego_d,
   double opponent_s = 5.0,
-  PlannerIntent proposed_intent = PlannerIntent::FOLLOW_RACING_LINE)
+  PlannerIntent proposed_intent = PlannerIntent::FOLLOW_RACING_LINE,
+  bool held_path_usable = false)
 {
   const VehicleGeometry vehicle;
   const FrenetConnectionGenerator generator;
   const ManeuverBuilder builder(reference, generator, testConfig(), vehicle);
   LocalPlanner planner(
     reference, builder, vehicle, productionGridPolicy(), CollisionConfig{},
-    VelocityProfileConfig{});
+    VelocityProfileConfig{}, BrakingConfig{});
   planner.buildGridCache(grid);
 
   TacticalState state;
@@ -117,13 +121,21 @@ LocalPlanResult planIntent(
   state.opponent.detected = intent == PlannerIntent::OVERTAKE;
   state.opponent.s = opponent_s;
   state.opponent.gap_m = opponent_s - ego_s;
-  return planner.plan(state, egoAt(reference, ego_s, ego_d), grid);
+  return planner.plan(state, egoAt(reference, ego_s, ego_d), grid, held_path_usable);
 }
 
 bool offsetTailAt(const ManeuverCandidate & candidate, double magnitude)
 {
   return candidate.uses_offset_tail &&
          std::abs(std::abs(candidate.passing_d) - magnitude) <= 1e-9;
+}
+
+std::size_t nonBrakingCandidateCount(const LocalPlanResult & result)
+{
+  return static_cast<std::size_t>(std::count_if(
+    result.evaluated.begin(), result.evaluated.end(), [](const auto & item) {
+             return item.source != CandidateSource::BRAKING;
+    }));
 }
 
 }  // namespace
@@ -142,9 +154,11 @@ TEST(LocalPlanner, UnknownCellsThatViolateWidthAreRejected)
 
   ASSERT_GT(result.decision.generated_count, 0u);
   EXPECT_EQ(result.decision.collision_rejected, 0u);
-  EXPECT_EQ(result.decision.track_bounds_rejected, result.decision.generated_count);
+  EXPECT_EQ(result.decision.track_bounds_rejected, nonBrakingCandidateCount(result));
   EXPECT_EQ(result.decision.valid_candidate_count, 0u);
-  EXPECT_EQ(result.selected_index, -1);
+  // No maneuver survives, so the ladder falls through to braking rather than
+  // leaving nothing selected.
+  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::BRAKING_FALLBACK);
 }
 
 TEST(LocalPlanner, KnownFreeCellsSkipWidthEvenWhenTheTableIsNarrow)
@@ -178,7 +192,7 @@ TEST(LocalPlanner, OccupiedCellsDieInCollisionBeforeWidth)
     reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.0);
 
   ASSERT_GT(result.decision.generated_count, 0u);
-  EXPECT_EQ(result.decision.collision_rejected, result.decision.generated_count);
+  EXPECT_EQ(result.decision.collision_rejected, nonBrakingCandidateCount(result));
   EXPECT_EQ(result.decision.track_bounds_rejected, 0u);
   EXPECT_EQ(result.decision.valid_candidate_count, 0u);
 }
@@ -240,7 +254,7 @@ TEST(LocalPlanner, OutOfGridSamplesUseWidthWhenTheCostmapCannotSee)
 
   ASSERT_GT(result.decision.generated_count, 0u);
   EXPECT_EQ(result.decision.collision_rejected, 0u);
-  EXPECT_EQ(result.decision.track_bounds_rejected, result.decision.generated_count);
+  EXPECT_EQ(result.decision.track_bounds_rejected, nonBrakingCandidateCount(result));
   EXPECT_EQ(result.decision.valid_candidate_count, 0u);
 }
 
@@ -315,9 +329,98 @@ TEST(LocalPlanner, NoSafeLocalGeometryReportsExplicitUnavailableRecovery)
   const LocalPlanResult result = planIntent(
     reference, grid, PlannerIntent::MERGE, 2.0, 0.55);
 
-  EXPECT_EQ(result.selected_index, -1);
   EXPECT_EQ(result.decision.executed_mode, ExecutedMode::BRAKING_UNAVAILABLE);
   EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::NO_SAFE_LOCAL_PATH);
+  EXPECT_EQ(result.decision.candidate_source, CandidateSource::BRAKING);
+  // Nowhere free to go still publishes geometry: full-length so the controller
+  // keeps a lookahead point, and zero speed so it stops on a coherent steering
+  // angle instead of the empty path that made it zero the wheel mid-corner.
+  ASSERT_GE(result.selected_index, 0);
+  const auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
+  ASSERT_FALSE(path.empty());
+  EXPECT_GE(path.back().s, 4.0);
+  for (const auto & sample : path) {
+    EXPECT_DOUBLE_EQ(sample.speed, 0.0);
+  }
+}
+
+TEST(LocalPlanner, BrakingFallbackTurnsTowardTheRacelineWhenNoManeuverSurvives)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  // Track narrower than every offset the builder passes at, so no maneuver
+  // survives the width check -- the off-line, nothing-selectable state braking
+  // exists for.  The car sits inside the corridor, just off the line.
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
+  OccupancyGrid grid = coveringGrid(-1);
+
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.35);
+
+  ASSERT_EQ(result.decision.executed_mode, ExecutedMode::BRAKING_FALLBACK);
+  EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::BRAKING_FALLBACK);
+  EXPECT_EQ(result.decision.candidate_source, CandidateSource::BRAKING);
+  const auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
+  ASSERT_FALSE(path.empty());
+  EXPECT_GE(path.back().s, 4.0);
+  // Speeds are braking's own, not the nominal profile's.
+  EXPECT_LT(path.back().speed, path.front().speed);
+  EXPECT_LE(std::abs(path.back().d), std::abs(path.front().d));
+}
+
+TEST(LocalPlanner, UsableHeldPathSkipsBrakingWhenNoManeuverSurvives)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
+  OccupancyGrid grid = coveringGrid(-1);
+
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::OVERTAKE, 2.0, 0.35, 5.0,
+    PlannerIntent::FOLLOW_RACING_LINE, true);
+
+  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::HELD_PATH);
+  EXPECT_EQ(result.selected_index, -1);
+  EXPECT_EQ(result.decision.candidate_source, CandidateSource::NONE);
+  EXPECT_TRUE(std::none_of(result.evaluated.begin(), result.evaluated.end(), [](const auto & item) {
+      return item.source == CandidateSource::BRAKING;
+  }));
+}
+
+TEST(HeldPathPolicy, ReportsEveryActualHeldPublication)
+{
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::HELD_PATH, false, true, true, 0.12, 0.10, 0.15),
+    PublishedPathChoice::HELD);
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::MANEUVER, true, true, true, 0.05, 0.10, 0.15),
+    PublishedPathChoice::HELD);
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::MANEUVER, true, true, true, 0.11, 0.10, 0.15),
+    PublishedPathChoice::SELECTED);
+}
+
+TEST(HeldPathPolicy, RejectsInvalidExpiredAndIntentClearedHolds)
+{
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::HELD_PATH, false, true, false, 0.05, 0.10, 0.15),
+    PublishedPathChoice::NONE);
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::HELD_PATH, false, true, true, 0.15, 0.10, 0.15),
+    PublishedPathChoice::NONE);
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::HELD_PATH, false, false, true, 0.05, 0.10, 0.15),
+    PublishedPathChoice::NONE);
+  EXPECT_EQ(
+    choosePublishedPath(
+      ExecutedMode::BRAKING_FALLBACK, true, true, true, 0.05, 0.10, 0.15),
+    PublishedPathChoice::SELECTED);
 }
 
 TEST(LocalPlanner, FailedMergeImmediatelyExecutesPassWithoutChangingTacticalIntent)
