@@ -1,4 +1,5 @@
 #include "local_planning/reference/raceline_reference.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <gtest/gtest.h>
 
@@ -9,8 +10,6 @@ namespace local_planning
 {
 namespace
 {
-
-constexpr double kPi = 3.14159265358979323846;
 
 // A closed circle of radius R sampled at `count` points.  Analytic ground
 // truth: curvature is 1/R everywhere and arc length is 2*pi*R.

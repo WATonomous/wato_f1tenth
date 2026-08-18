@@ -1,5 +1,6 @@
 #include "local_planning/maneuvers/maneuver_builder.hpp"
 
+#include "local_planning/core/geometry.hpp"
 #include "local_planning/curves/frenet_polynomial.hpp"
 #include "worker_pool.hpp"
 
@@ -14,16 +15,11 @@ namespace local_planning
 namespace
 {
 
-constexpr double kTolerance = 1e-6;
+constexpr double kTolerance = kGridEps;
 // Past this the heading error is effectively perpendicular to the reference and
 // tan() stops being a usable encoding of it.  The generator's max_path_angle_deg
 // rejects long before here; this only keeps the arithmetic finite.
 constexpr double kMaxStartHeadingErrorRad = 1.5;
-
-double wrapAngle(double angle)
-{
-  return std::atan2(std::sin(angle), std::cos(angle));
-}
 
 void removeDuplicates(std::vector<double> & values)
 {
@@ -146,7 +142,7 @@ bool ManeuverBuilder::startBoundary(
   if (!(tangent_scale > kTolerance) || !std::isfinite(tangent_scale)) {
     return false;
   }
-  const double heading_error = wrapAngle(ego.heading - reference.heading);
+  const double heading_error = shortestAngleDiff(ego.heading, reference.heading);
   if (!std::isfinite(heading_error) || std::abs(heading_error) >= kMaxStartHeadingErrorRad) {
     return false;
   }

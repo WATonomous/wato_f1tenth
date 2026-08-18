@@ -1,4 +1,5 @@
 #include "local_planning/planning/local_planner.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <gtest/gtest.h>
 
@@ -10,8 +11,6 @@ namespace local_planning
 {
 namespace
 {
-
-constexpr double kPi = 3.14159265358979323846;
 
 std::vector<Point> circleLine(double radius, int count)
 {

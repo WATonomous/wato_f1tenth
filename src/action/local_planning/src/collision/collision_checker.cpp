@@ -1,5 +1,7 @@
 #include "local_planning/collision/collision_checker.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -11,8 +13,7 @@ namespace local_planning
 namespace
 {
 
-constexpr double kEpsilon = 1e-6;
-constexpr double kPi = 3.14159265358979323846;
+constexpr double kEpsilon = kGridEps;
 constexpr double kInfDistanceSqCells = 1.0e20;
 
 int gridIndex(int row, int col, int width)
@@ -32,18 +33,6 @@ bool euclideanTransformValid(const OccupancyGrid & grid)
   }
   const size_t cell_count = static_cast<size_t>(grid.width) * static_cast<size_t>(grid.height);
   return grid.data.size() >= cell_count && grid.obstacle_distance_m.size() >= cell_count;
-}
-
-double shortestAngleDiff(double from, double to)
-{
-  double delta = to - from;
-  while (delta > kPi) {
-    delta -= 2.0 * kPi;
-  }
-  while (delta < -kPi) {
-    delta += 2.0 * kPi;
-  }
-  return delta;
 }
 
 CollisionStatus worseStatus(CollisionStatus a, CollisionStatus b)
@@ -309,7 +298,7 @@ CollisionCheckResult CollisionChecker::collisionCheck(
     const double dx = b.x - a.x;
     const double dy = b.y - a.y;
     const double segment_length = std::sqrt(dx * dx + dy * dy);
-    const double heading_delta = shortestAngleDiff(a.heading, b.heading);
+    const double heading_delta = shortestAngleDiff(b.heading, a.heading);
     const int step_count = std::max(
       1,
       static_cast<int>(std::ceil(segment_length / std::max(max_step_m, kEpsilon))));

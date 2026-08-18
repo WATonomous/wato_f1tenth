@@ -1,8 +1,11 @@
 #ifndef LOCAL_PLANNING_CORE_TYPES_HPP
 #define LOCAL_PLANNING_CORE_TYPES_HPP
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -69,6 +72,25 @@ struct OccupancyGrid
   // Euclidean distance transform: meters to nearest occupied cell.
   std::vector<float> obstacle_distance_m;
   bool has_euclidean_transform = false;
+
+  std::optional<std::size_t> cellAt(const Point & p) const
+  {
+    if (width <= 0 || height <= 0 || resolution <= 0.0) {
+      return std::nullopt;
+    }
+    const int col = static_cast<int>(std::floor((p.x - origin.x) / resolution));
+    const int row = static_cast<int>(std::floor((p.y - origin.y) / resolution));
+    if (col < 0 || col >= width || row < 0 || row >= height) {
+      return std::nullopt;
+    }
+    const std::size_t index =
+      static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
+      static_cast<std::size_t>(col);
+    if (index >= data.size()) {
+      return std::nullopt;
+    }
+    return index;
+  }
 };
 
 struct VehicleGeometry

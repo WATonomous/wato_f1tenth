@@ -1,12 +1,14 @@
 #include "local_planning/curves/frenet_polynomial.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <cmath>
 
 namespace local_planning
 {
 namespace
 {
-constexpr double kEpsilon = 1e-6;
+constexpr double kEpsilon = kGridEps;
 }  // namespace
 
 double FrenetPolynomial::evaluate(double t) const
