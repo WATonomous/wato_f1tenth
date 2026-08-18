@@ -1,10 +1,10 @@
 #include "local_planning/planning/local_planner.hpp"
 
+#include "local_planning/core/scoped_timer.hpp"
 #include "local_planning/speed/velocity_profile.hpp"
 #include "worker_pool.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <iterator>
@@ -115,12 +115,8 @@ LocalPlanResult LocalPlanner::plan(
   const OccupancyGrid & grid,
   bool held_path_usable) const
 {
-  const auto started = std::chrono::steady_clock::now();
-  const auto elapsedMs = [](const auto begin) {
-      return std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - begin).count();
-    };
   LocalPlanResult result;
+  const ScopedTimer cycle_timer{result.decision.cycle_time_ms};
   result.decision.requested_intent = state.intent;
   result.decision.proposed_intent = state.proposed_intent;
   result.decision.executed_intent = state.intent;
@@ -155,15 +151,11 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.sustainable_right_m = bounds.right_magnitude;
 
   if (state.intent == PlannerIntent::FOLLOW_RACING_LINE) {
-    result.decision.cycle_time_ms = elapsedMs(started);
     return result;
   }
 
   auto appendGenerated = [&](CandidateSource source, auto generator) {
-      const auto generation_started = std::chrono::steady_clock::now();
-      auto candidates = generator();
-      result.profile.candidate_generation_ms += elapsedMs(generation_started);
-      appendCandidates(result, std::move(candidates), source);
+      appendCandidates(result, generator(), source);
     };
 
   if (!result.decision.track_bounds_ready) {
@@ -186,16 +178,13 @@ LocalPlanResult LocalPlanner::plan(
 
   auto evaluateFrom = [&](std::size_t first, PlannerIntent profile_intent) {
       const std::size_t count = result.evaluated.size() - first;
-      const auto collision_started = std::chrono::steady_clock::now();
       parallelFor(count, [&](std::size_t k) {
           auto & evaluated = result.evaluated[first + k];
           auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
           evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
         });
-      result.profile.collision_check_ms += elapsedMs(collision_started);
 
       std::vector<TrackBoundsCheckResult> width_checks(count);
-      const auto bounds_started = std::chrono::steady_clock::now();
       parallelFor(count, [&](std::size_t k) {
           auto & evaluated = result.evaluated[first + k];
           if (evaluated.collision.status == CollisionStatus::COLLISION ||
@@ -207,13 +196,11 @@ LocalPlanResult LocalPlanner::plan(
           width_checks[k] = track_bounds_checker_.check(candidate.path, grid);
           evaluated.track_bounds_ok = width_checks[k].ok;
         });
-      result.profile.track_bounds_ms += elapsedMs(bounds_started);
 
       const double terminal_s = reference_.wrapS(state.ego_s + builder_.config().horizon_m);
       for (std::size_t k = 0; k < count; ++k) {
         auto & evaluated = result.evaluated[first + k];
         auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-        result.profile.collision_poses_checked += evaluated.collision.checked_poses;
         if (evaluated.collision.status == CollisionStatus::COLLISION) {
           ++result.decision.collision_rejected;
           continue;
@@ -226,10 +213,8 @@ LocalPlanResult LocalPlanner::plan(
           ++result.decision.track_bounds_rejected;
           continue;
         }
-        const auto velocity_started = std::chrono::steady_clock::now();
         const auto velocity = assignVelocityProfile(candidate.path, ego.speed, state.ego_s,
             terminal_s, profile_intent, reference_, velocity_config_);
-        result.profile.velocity_profile_ms += elapsedMs(velocity_started);
         evaluated.velocity_feasible = velocity.feasible;
         evaluated.traversal_time_s = velocity.traversal_time_s;
         if (!velocity.feasible) {
@@ -274,7 +259,6 @@ LocalPlanResult LocalPlanner::plan(
     result.merge_probe_index = selector_.select(result.pool, probes);
     result.decision.merge_probe_available = result.merge_probe_index >= 0;
   }
-  const auto selection_started = std::chrono::steady_clock::now();
   std::vector<EvaluatedCandidate> executable;
   executable.reserve(result.evaluated.size());
   for (const auto & evaluated : result.evaluated) {
@@ -325,9 +309,6 @@ LocalPlanResult LocalPlanner::plan(
     result.decision.best_cost_s = costs.front();
     result.decision.median_cost_s = costs[costs.size() / 2];
   }
-  result.profile.selection_ms += elapsedMs(selection_started);
-
-  const auto finalization_started = std::chrono::steady_clock::now();
   if (result.selected_index >= 0) {
     result.decision.executed_mode = ExecutedMode::MANEUVER;
   } else if (held_path_usable) {
@@ -343,13 +324,6 @@ LocalPlanResult LocalPlanner::plan(
     result.decision.candidate_source = CandidateSource::BRAKING;
   }
   result.decision.generated_count = static_cast<uint32_t>(result.pool.size());
-  for (const auto & candidate : result.pool) {
-    const auto sample_count = static_cast<uint32_t>(candidate.path.size());
-    result.profile.total_path_samples += sample_count;
-    result.profile.max_path_samples = std::max(result.profile.max_path_samples, sample_count);
-  }
-  result.profile.finalization_ms = elapsedMs(finalization_started);
-  result.decision.cycle_time_ms = elapsedMs(started);
   return result;
 }
 
@@ -379,9 +353,6 @@ void LocalPlanner::selectBraking(
       // nominal profiler rejects an infeasible start speed -- which is the one
       // condition braking exists to answer.
     });
-  for (std::size_t k = 0; k < count; ++k) {
-    result.profile.collision_poses_checked += result.evaluated[first + k].collision.checked_poses;
-  }
 
   // Only a seen obstacle disqualifies an arc.  Running off the grid does not:
   // the horizon is 4 m and the costmap is a 15 m window, so leaving it is
