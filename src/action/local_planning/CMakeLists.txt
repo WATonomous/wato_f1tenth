@@ -135,6 +135,17 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
+  # colcon is run from inside this package, so build/, install/ and log/ land in
+  # the source tree and every linter walks into them: the rosidl-generated
+  # headers and the Python message bindings get linted as if they were ours, and
+  # the ~200 failures they raise bury the handful that are real.  AMENT_IGNORE is
+  # the one exclusion mechanism all of them honour -- AMENT_LINT_AUTO_FILE_EXCLUDE
+  # is matched against exact file paths by uncrustify and lint_cmake, so naming
+  # the directories there does nothing.  Written from here rather than committed
+  # so that wiping the generated trees restores the markers on the next configure.
+  foreach(_generated_dir build install log)
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/${_generated_dir}/AMENT_IGNORE "")
+  endforeach()
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gtest REQUIRED)
