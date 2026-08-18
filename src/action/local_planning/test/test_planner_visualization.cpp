@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <filesystem>
 #include <memory>
@@ -136,6 +138,99 @@ TEST_F(PlannerVisualizationTest, PublishesCandidatePoolSelectionAndTerminal)
   EXPECT_DOUBLE_EQ(message->markers[2].points[0].x, 3.0);
   EXPECT_EQ(message->markers[3].ns, "selected_terminal_offset");
   EXPECT_DOUBLE_EQ(message->markers[3].pose.position.y, 4.0);
+}
+
+TEST_F(PlannerVisualizationTest, BrakingArcsDrawByOutcomeAndCarryASpeedGradient)
+{
+  RacelineReference reference;
+  PlannerVisualization visualization(reference, {"map", true, 0.4, 1.05});
+  MarkerReceiver receiver("braking_visualization_test");
+
+  LocalPlanResult result;
+  result.pool.resize(2);
+  for (int arc = 0; arc < 2; ++arc) {
+    for (int i = 0; i < 3; ++i) {
+      CurveSample sample;
+      sample.x = static_cast<double>(i);
+      sample.y = static_cast<double>(arc);
+      sample.speed = 4.0 - static_cast<double>(i);
+      result.pool[static_cast<std::size_t>(arc)].path.push_back(sample);
+    }
+  }
+  for (int arc = 0; arc < 2; ++arc) {
+    EvaluatedCandidate evaluated;
+    evaluated.candidate_index = arc;
+    evaluated.source = CandidateSource::BRAKING;
+    evaluated.collision.status = arc == 0 ?
+      CollisionStatus::COLLISION : CollisionStatus::FREE;
+    result.evaluated.push_back(evaluated);
+  }
+  result.selected_index = 1;
+  result.decision.executed_mode = ExecutedMode::BRAKING_FALLBACK;
+  result.decision.braking_effort = 1.0;
+  result.decision.braking_lookahead_m = 2.0;
+
+  visualization.publishCandidates(result, receiver.now(), receiver.publisher());
+  const auto message = receiver.take();
+  ASSERT_NE(message, nullptr);
+
+  const auto find = [&message](const std::string & ns) {
+      return std::find_if(
+        message->markers.begin(), message->markers.end(),
+        [&ns](const auto & marker) {return marker.ns == ns;});
+    };
+  const auto arcs = find("braking_paths");
+  ASSERT_NE(arcs, message->markers.end());
+  // The rejected arc is drawn too, in red, so an unavailable cycle is readable.
+  EXPECT_FLOAT_EQ(arcs->color.r, 1.0F);
+  EXPECT_FLOAT_EQ(arcs->color.g, 0.15F);
+
+  const auto ramp = find("braking_speed");
+  ASSERT_NE(ramp, message->markers.end());
+  ASSERT_EQ(ramp->colors.size(), ramp->points.size());
+  // Green at the entry speed, red at the floor.
+  EXPECT_GT(ramp->colors.front().g, ramp->colors.back().g);
+  EXPECT_LT(ramp->colors.front().r, ramp->colors.back().r);
+
+  const auto text = find("braking_text");
+  ASSERT_NE(text, message->markers.end());
+  EXPECT_NE(text->text.find("lookahead=2.00"), std::string::npos);
+}
+
+TEST_F(PlannerVisualizationTest, ManeuverCyclesPublishNoBrakingLayers)
+{
+  RacelineReference reference;
+  PlannerVisualization visualization(reference, {"map", true, 0.4, 1.05});
+  MarkerReceiver receiver("braking_absent_visualization_test");
+
+  LocalPlanResult result;
+  result.pool.resize(1);
+  result.pool[0].path.push_back(CurveSample{});
+  result.selected_index = 0;
+  result.decision.executed_mode = ExecutedMode::MANEUVER;
+
+  visualization.publishCandidates(result, receiver.now(), receiver.publisher());
+  const auto message = receiver.take();
+  ASSERT_NE(message, nullptr);
+  for (const auto & marker : message->markers) {
+    EXPECT_EQ(marker.ns.rfind("braking", 0), std::string::npos);
+  }
+}
+
+TEST_F(PlannerVisualizationTest, HeldCyclesPublishNoBrakingLayers)
+{
+  RacelineReference reference;
+  PlannerVisualization visualization(reference, {"map", true, 0.4, 1.05});
+  MarkerReceiver receiver("held_braking_absent_visualization_test");
+
+  LocalPlanResult result;
+  result.decision.executed_mode = ExecutedMode::HELD_PATH;
+  visualization.publishCandidates(result, receiver.now(), receiver.publisher());
+  const auto message = receiver.take();
+  ASSERT_NE(message, nullptr);
+  for (const auto & marker : message->markers) {
+    EXPECT_EQ(marker.ns.rfind("braking", 0), std::string::npos);
+  }
 }
 
 TEST_F(PlannerVisualizationTest, ProjectionHonorsEnableAndValidityAndPublishesFiveMarkers)

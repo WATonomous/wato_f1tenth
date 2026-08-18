@@ -189,7 +189,10 @@ TEST(VelocityProfile, TerminalCapPropagatesBackward)
   EXPECT_LT(path[mid].speed, 8.0 - 0.5);
 }
 
-TEST(VelocityProfile, ForwardAccelerationFromMeasuredSpeed)
+// The profile no longer launches from the measured speed -- see the comment on
+// the feasibility check in assignVelocityProfile.  What survives is that the
+// forward pass still bounds how fast speeds may rise between samples.
+TEST(VelocityProfile, StartIsNotAnEchoOfTheMeasuredSpeed)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(straightLoop(30.0, 10.0)));
@@ -203,12 +206,12 @@ TEST(VelocityProfile, ForwardAccelerationFromMeasuredSpeed)
     path, 0.0, 0.0, 4.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
-  EXPECT_NEAR(path.front().speed, 0.0, 1e-9);
-  // v^2 = 2 a s => at s=2, v <= sqrt(8) ≈ 2.83
-  double s = 0.0;
+  // Measured start was 0.0.  A command of 0.0 here would stall the car forever.
+  EXPECT_GT(path.front().speed, 0.0);
   for (std::size_t i = 1; i < path.size(); ++i) {
-    s += std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
-    const double max_from_accel = std::sqrt(2.0 * config.max_accel_mps2 * s);
+    const double ds = std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+    const double max_from_accel = std::sqrt(
+      path[i - 1].speed * path[i - 1].speed + 2.0 * config.max_accel_mps2 * ds);
     EXPECT_LE(path[i].speed, max_from_accel + 1e-6);
   }
 }

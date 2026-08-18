@@ -42,6 +42,7 @@ private:
     ManeuverConfig maneuver;
     CollisionConfig collision;
     VelocityProfileConfig velocity;
+    BrakingConfig braking;
     FrenetConnectionConfig curve;
     ProjectionConfig projection;
     StateMachineConfig state;
@@ -54,6 +55,9 @@ private:
     double steering_command_timeout_s = 0.06;
     double odom_timeout_s = 0.25;
     double wheelbase_m = 0.33;
+    // Steering stop at the wheel. With the wheelbase this is the car's hardest
+    // achievable arc, which is what braking spends its effort budget against.
+    double max_steering_angle_rad = 0.52;
     double width_lookup_spacing_m = 0.10;
     bool use_steering_start_curvature = true;
     bool profiling_enabled = true;
@@ -124,6 +128,7 @@ private:
   std::optional<Path> held_path_;
   double held_path_stamp_s_ = 0.0;
   PlannerIntent held_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
+  PlannerIntent held_executed_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;

@@ -176,7 +176,7 @@ void PlannerDiagnostics::emitProfile(
   std::size_t side_flips = 0;
   std::size_t no_path_cycles = 0;
   std::size_t steer_stale_cycles = 0;
-  std::array<std::size_t, 4> mode_counts{};
+  std::array<std::size_t, 5> mode_counts{};
   for (const auto & item : window) {
     const PlannerDecisionData & decision = decisionFor(item);
     ready_cycles += item.outcome.inputs_ready ? 1U : 0U;
@@ -221,7 +221,7 @@ void PlannerDiagnostics::emitProfile(
     "empty_pool_cycles=%zu out_of_grid_cycles=%zu "
     "max_abs_d=%.3f/%.3f/%.3f "
     "intent_changes=%zu side_flips=%zu no_path_cycles=%zu steer_stale_cycles=%zu "
-    "modes=none:%zu/maneuver:%zu/braking:%zu/unavailable:%zu "
+    "modes=none:%zu/maneuver:%zu/braking:%zu/unavailable:%zu/held:%zu "
     "grid_updates=%zu grid=%dx%d cells=%zu res=%.4f grid_ms=%.3f/%.3f/%.3f",
     intentToString(intent).c_str(), window.size(), ready_cycles,
     cycle[0], cycle[1], cycle[2], odom[0], odom[1], odom[2], state[0], state[1], state[2],
@@ -242,7 +242,7 @@ void PlannerDiagnostics::emitProfile(
     empty_pool_cycles, out_of_grid_cycles,
     max_abs_d.average, max_abs_d.p95, max_abs_d.maximum,
     intent_changes, side_flips, no_path_cycles, steer_stale_cycles,
-    mode_counts[0], mode_counts[1], mode_counts[2], mode_counts[3],
+    mode_counts[0], mode_counts[1], mode_counts[2], mode_counts[3], mode_counts[4],
     grid_updates, grid_width_, grid_height_, grid_cells, grid_resolution_,
     grid[0], grid[1], grid[2]);
 
