@@ -6,8 +6,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <stdexcept>
-#include <string>
 #include <utility>
 
 namespace local_planning
@@ -35,70 +33,6 @@ void removeDuplicates(std::vector<double> & values)
   values = std::move(unique);
 }
 
-void requireNonEmpty(const std::vector<double> & values, const char * name)
-{
-  if (values.empty()) {
-    throw std::invalid_argument(std::string(name) + " must not be empty");
-  }
-}
-
-void requireFinite(const std::vector<double> & values, const char * name)
-{
-  if (std::any_of(values.begin(), values.end(), [](double value) {return !std::isfinite(value);})) {
-    throw std::invalid_argument(std::string(name) + " must contain only finite values");
-  }
-}
-
-void validateConfig(const ManeuverConfig & config, const VehicleGeometry & vehicle_geometry)
-{
-  if (!std::isfinite(config.horizon_m) || config.horizon_m <= 0.0) {
-    throw std::invalid_argument("horizon_m must be finite and positive");
-  }
-
-  requireNonEmpty(
-    config.overtake_s_offsets_from_opponent_rear_m,
-    "overtake_s_offsets_from_opponent_rear_m");
-  requireNonEmpty(config.passing_d_magnitudes_m, "passing_d_magnitudes_m");
-  requireNonEmpty(config.overtake_heading_offsets_rad, "overtake_heading_offsets_rad");
-  requireNonEmpty(config.pass_transition_distances_m, "pass_transition_distances_m");
-  requireNonEmpty(config.merge_completion_distances_m, "merge_completion_distances_m");
-
-  requireFinite(
-    config.overtake_s_offsets_from_opponent_rear_m,
-    "overtake_s_offsets_from_opponent_rear_m");
-  requireFinite(config.passing_d_magnitudes_m, "passing_d_magnitudes_m");
-  requireFinite(config.overtake_heading_offsets_rad, "overtake_heading_offsets_rad");
-  requireFinite(config.pass_transition_distances_m, "pass_transition_distances_m");
-  requireFinite(config.merge_completion_distances_m, "merge_completion_distances_m");
-
-  if (std::any_of(
-      config.passing_d_magnitudes_m.begin(), config.passing_d_magnitudes_m.end(),
-      [](double magnitude) {return magnitude < 0.0;}))
-  {
-    throw std::invalid_argument("passing_d_magnitudes_m must contain only non-negative values");
-  }
-  if (!std::isfinite(vehicle_geometry.collision_radius_m) ||
-    vehicle_geometry.collision_radius_m <= 0.0)
-  {
-    throw std::invalid_argument("collision_circle_radius_m must be finite and positive");
-  }
-  const auto invalid_distance = [&config](double distance) {
-      return distance <= 0.0 || distance > config.horizon_m;
-    };
-  if (std::any_of(
-      config.pass_transition_distances_m.begin(), config.pass_transition_distances_m.end(),
-      invalid_distance))
-  {
-    throw std::invalid_argument("pass transition distances must be in (0, horizon_m]");
-  }
-  if (std::any_of(
-      config.merge_completion_distances_m.begin(), config.merge_completion_distances_m.end(),
-      invalid_distance))
-  {
-    throw std::invalid_argument("merge completion distances must be in (0, horizon_m]");
-  }
-}
-
 } // namespace
 
 ManeuverBuilder::ManeuverBuilder(
@@ -109,7 +43,6 @@ ManeuverBuilder::ManeuverBuilder(
 : reference_(reference), curve_generator_(curve_generator), config_(std::move(config)),
   vehicle_geometry_(vehicle_geometry)
 {
-  validateConfig(config_, vehicle_geometry_);
   removeDuplicates(config_.overtake_s_offsets_from_opponent_rear_m);
   removeDuplicates(config_.passing_d_magnitudes_m);
   removeDuplicates(config_.overtake_heading_offsets_rad);
