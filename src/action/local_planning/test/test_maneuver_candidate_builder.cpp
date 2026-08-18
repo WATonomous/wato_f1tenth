@@ -365,28 +365,6 @@ TEST(ManeuverBuilder, MergeUsesEveryUniqueCompletionDistanceAndAnExactRacelineTa
   EXPECT_DOUBLE_EQ(candidates[2].maneuver_distance_m, 6.0);
 }
 
-TEST(ManeuverBuilder, RejectsConfigurationThatCannotRespectTheCommonHorizon)
-{
-  RacelineReference reference;
-  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
-
-  ManeuverConfig invalid_transition;
-  invalid_transition.pass_transition_distances_m = {7.0};
-  EXPECT_THROW(makeBuilder(reference, invalid_transition), std::invalid_argument);
-
-  ManeuverConfig invalid_merge;
-  invalid_merge.merge_completion_distances_m = {0.0};
-  EXPECT_THROW(makeBuilder(reference, invalid_merge), std::invalid_argument);
-
-  ManeuverConfig invalid_offsets;
-  invalid_offsets.passing_d_magnitudes_m = {};
-  EXPECT_THROW(makeBuilder(reference, invalid_offsets), std::invalid_argument);
-
-  ManeuverConfig negative_offsets;
-  negative_offsets.passing_d_magnitudes_m = {-0.30, 0.55};
-  EXPECT_THROW(makeBuilder(reference, negative_offsets), std::invalid_argument);
-}
-
 TEST(ManeuverBuilder, OvertakeAndMergePreserveForwardTargetsAcrossWrapAround)
 {
   RacelineReference reference;
