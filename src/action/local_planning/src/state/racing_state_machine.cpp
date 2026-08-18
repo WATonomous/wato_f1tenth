@@ -1,5 +1,7 @@
 #include "local_planning/state/racing_state_machine.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <cmath>
 #include <cstddef>
 #include <algorithm>
@@ -9,31 +11,6 @@ namespace local_planning
 {
 namespace
 {
-
-constexpr double kPi = 3.14159265358979323846;
-
-double wrapAngle(double angle)
-{
-  while (angle > kPi) {
-    angle -= 2.0 * kPi;
-  }
-  while (angle < -kPi) {
-    angle += 2.0 * kPi;
-  }
-  return angle;
-}
-
-bool gridIndex(const OccupancyGrid & grid, const Point & p, std::size_t & index)
-{
-  const int col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
-  const int row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
-  if (col < 0 || col >= grid.width || row < 0 || row >= grid.height) {
-    return false;
-  }
-  index = static_cast<std::size_t>(row) * static_cast<std::size_t>(grid.width) +
-    static_cast<std::size_t>(col);
-  return index < grid.data.size();
-}
 
 bool gridUsable(const OccupancyGrid & grid)
 {
@@ -196,8 +173,7 @@ bool RacingStateMachine::detectOpponent(
       const double s = ego_s + direction * offset;
 
       // Leaving the grid ends this direction: nothing further out was observable.
-      std::size_t unused = 0;
-      if (!gridIndex(occupancy_grid, reference_.toCartesian(s, 0.0), unused)) {
+      if (!occupancy_grid.cellAt(reference_.toCartesian(s, 0.0))) {
         break;
       }
 
@@ -224,10 +200,9 @@ bool RacingStateMachine::corridorOccupied(
   double s) const
 {
   const double half_width = config_.corridor_half_width_m;
-  for (double d = -half_width; d <= half_width + 1e-9; d += occupancy_grid.resolution) {
-    std::size_t index = 0;
-    if (gridIndex(occupancy_grid, reference_.toCartesian(s, d), index) &&
-      grid_policy_.isOccupied(occupancy_grid.data[index]))
+  for (double d = -half_width; d <= half_width + kSpacingEps; d += occupancy_grid.resolution) {
+    if (const auto index = occupancy_grid.cellAt(reference_.toCartesian(s, d));
+      index && grid_policy_.isOccupied(occupancy_grid.data[*index]))
     {
       return true;
     }
@@ -257,7 +232,7 @@ bool RacingStateMachine::isRacelineCompatible(
   // Computed before the lateral early-out so the telemetry is populated on
   // every cycle, not only the ones that reach the heading test.
   const ReferenceGeometrySample sample = reference_.sampleAtS(ego_s);
-  state_.heading_error_rad = wrapAngle(ego_odom.heading - sample.heading);
+  state_.heading_error_rad = shortestAngleDiff(ego_odom.heading, sample.heading);
 
   const double lateral_limit = state_.intent == PlannerIntent::FOLLOW_RACING_LINE ?
     config_.follow_exit_abs_d_m : config_.follow_enter_abs_d_m;

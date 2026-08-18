@@ -1,5 +1,7 @@
 #include "local_planning/reference/raceline_reference.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -9,7 +11,7 @@ namespace local_planning
 namespace
 {
 
-constexpr double kEpsilon = 1e-12;
+constexpr double kEpsilon = kSplineEps;
 // Minimum waypoints for a meaningful periodic cubic.
 constexpr std::size_t kMinWaypoints = 4;
 // Two waypoints closer than this are the same point, not a real segment.
@@ -18,7 +20,6 @@ constexpr double kDuplicateWaypointToleranceM = 1e-6;
 // this brackets the true foot well inside the basin where Newton converges.
 constexpr int kCoarseSamplesPerSegment = 4;
 constexpr int kNewtonIterations = 8;
-constexpr double kPi = 3.14159265358979323846;
 // A wrapped angle difference never exceeds pi, so a tolerance at or above it
 // accepts everything.  This is the top of the escalation ladder and the value
 // callers pass when the query point has no heading of its own.
@@ -32,10 +33,6 @@ constexpr double kTangentCheckDisabled = kPi;
 constexpr double kMaxTangentToleranceRad = kPi / 2.0;
 // Floor on the configured tolerance, so the ladder always makes progress.
 constexpr double kMinTangentToleranceRad = 0.05;
-double wrapAngle(double angle)
-{
-  return std::atan2(std::sin(angle), std::cos(angle));
-}
 
 // Solves the cyclic tridiagonal system for a periodic cubic spline's second
 // derivatives.  sub/diag/super are the three bands; corner_top_right and
@@ -463,7 +460,7 @@ bool RacelineReference::scanSegment(
       continue;
     }
 
-    if (std::abs(wrapAngle(sample.heading - heading)) > tolerance_rad) {
+    if (std::abs(shortestAngleDiff(sample.heading, heading)) > tolerance_rad) {
       continue;
     }
 

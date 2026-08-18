@@ -1,5 +1,7 @@
 #include "local_planning/selection/candidate_selector.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -9,7 +11,7 @@ namespace local_planning
 {
 namespace
 {
-constexpr double kTolerance = 1e-6;
+constexpr double kTolerance = kGridEps;
 constexpr std::size_t kKeyCount = 4;
 
 bool valid(const EvaluatedCandidate & candidate)

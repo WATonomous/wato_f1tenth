@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "local_planning/state/racing_state_machine.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -11,7 +12,6 @@ namespace local_planning
 namespace
 {
 
-constexpr double kPi = 3.14159265358979323846;
 constexpr double kRadius = 20.0;
 constexpr double kResolution = 0.05;
 

@@ -1,5 +1,7 @@
 #include "local_planning/collision/track_bounds_checker.hpp"
 
+#include "local_planning/core/geometry.hpp"
+
 #include <cmath>
 #include <cstddef>
 
@@ -7,25 +9,12 @@ namespace local_planning
 {
 namespace
 {
-constexpr double kTrackBoundsToleranceM = 1e-6;
+constexpr double kTrackBoundsToleranceM = kGridEps;
 
 bool cellKnown(const OccupancyGrid & grid, const Point & p)
 {
-  if (grid.width <= 0 || grid.height <= 0 || grid.resolution <= 0.0) {
-    return false;
-  }
-  const int col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
-  const int row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
-  if (col < 0 || col >= grid.width || row < 0 || row >= grid.height) {
-    return false;
-  }
-  const std::size_t index =
-    static_cast<std::size_t>(row) * static_cast<std::size_t>(grid.width) +
-    static_cast<std::size_t>(col);
-  if (index >= grid.data.size()) {
-    return false;
-  }
-  return grid.data[index] >= 0;
+  const auto index = grid.cellAt(p);
+  return index && grid.data[*index] >= 0;
 }
 
 bool footprintUnseen(

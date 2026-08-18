@@ -95,6 +95,7 @@ private:
     nav_msgs::msg::Path & controller_path);
   void publishAllCandidates(
     const BoundaryState & ego, const TacticalState & state, const rclcpp::Time & stamp);
+  void publishUnavailable(const rclcpp::Time & cycle_stamp);
   void publishDecision(const PlannerDecisionData & data);
   void publishOvertakeReady(bool ready);
   void publishEmptyLocalPath(const rclcpp::Time & stamp);

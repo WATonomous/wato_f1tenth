@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "local_planning/maneuvers/maneuver_builder.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -11,8 +12,6 @@ namespace local_planning
 {
 namespace
 {
-
-constexpr double kPi = 3.14159265358979323846;
 
 std::vector<Point> circleLine(double radius, int count)
 {

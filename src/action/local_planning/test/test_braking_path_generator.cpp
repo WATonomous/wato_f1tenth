@@ -1,4 +1,5 @@
 #include "local_planning/planning/braking_path_generator.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <gtest/gtest.h>
 
@@ -11,7 +12,6 @@ namespace local_planning
 namespace
 {
 
-constexpr double kPi = 3.14159265358979323846;
 constexpr double kRadiusM = 10.0;
 
 RacelineReference circleReference()

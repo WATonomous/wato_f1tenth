@@ -1,4 +1,5 @@
 #include "local_planning/speed/velocity_profile.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <gtest/gtest.h>
 
@@ -11,7 +12,6 @@ namespace local_planning
 namespace
 {
 
-constexpr double kPi = 3.14159265358979323846;
 constexpr double kGravity = 9.81;
 
 std::vector<Point> straightLoop(double length, double speed, double spacing = 0.5)

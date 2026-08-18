@@ -1,4 +1,5 @@
 #include "local_planning/collision/collision_checker.hpp"
+#include "local_planning/core/geometry.hpp"
 
 #include <gtest/gtest.h>
 
@@ -10,8 +11,6 @@ namespace local_planning
 {
 namespace
 {
-
-constexpr double kPi = 3.14159265358979323846;
 
 OccupancyGrid makeGrid(int width, int height, double resolution, double origin_x, double origin_y)
 {
@@ -66,6 +65,21 @@ OccupancyGrid freeField()
 }
 
 } // namespace
+
+TEST(OccupancyGrid, CellAtMapsWorldPointAndRejectsOutOfBounds)
+{
+  OccupancyGrid grid = makeGrid(4, 3, 0.5, 1.0, 2.0);
+  EXPECT_FALSE(grid.cellAt(Point(0.9, 2.1)).has_value());
+  const auto origin_cell = grid.cellAt(Point(1.0, 2.0));
+  ASSERT_TRUE(origin_cell.has_value());
+  EXPECT_EQ(*origin_cell, 0u);
+  const auto last = grid.cellAt(Point(2.9, 3.4));
+  ASSERT_TRUE(last.has_value());
+  EXPECT_EQ(*last, 2u * 4u + 3u);
+  EXPECT_FALSE(grid.cellAt(Point(3.0, 2.1)).has_value());
+  grid.data.resize(2);
+  EXPECT_FALSE(grid.cellAt(Point(2.6, 2.6)).has_value());
+}
 
 TEST(CollisionChecker, FreePath)
 {
