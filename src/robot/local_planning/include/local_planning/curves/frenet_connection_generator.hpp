@@ -29,11 +29,23 @@ struct FrenetConnectionConfig
   double sample_spacing_m = 0.1;
   // Kinematic cap: 0.52 rad of steering over a 0.33 m wheelbase.
   double max_curvature_inv_m = 1.74;
+  // Shared with the velocity profile and the braking family, because a
+  // disagreement about grip between the family that shapes a path and the one
+  // that speeds it is exactly the seam paths fall through.
+  double friction_coeff = 1.0;
   // How far the path may turn away from the reference tangent.  This is what
   // stops a connection doubling back, which is the job the clothoid family's
   // arc-length cap was standing in for -- badly, since it bounded total length
   // rather than direction.
   double max_path_angle_deg = 60.0;
+
+  // Tightest arc the car can actually hold at speed v: the steering stop, and
+  // the friction circle, whichever binds.  Deliberately the same rule
+  // BrakingConfig::allowedCurvature applies -- braking shapes its arcs against
+  // grip and drives well, while connections used to be shaped against the
+  // steering stop alone and then vetoed downstream for being too fast for their
+  // own geometry.  v <= 0 means "no speed known", which leaves the kinematic cap.
+  double allowedCurvature(double v) const;
 };
 
 struct FrenetConnectionResult
@@ -70,12 +82,19 @@ public:
   // i_start when path is already non-empty so legs concatenate without a
   // duplicated join sample.  On rejection path is restored to its prior size,
   // so a partially sampled connection never leaks into a candidate.
+  // speed_mps is the speed the connection is shaped against, and it is the
+  // measured speed at the start of the path rather than the speed at each
+  // sample.  That is conservative: the profile may slow down later, which would
+  // free up curvature this cap does not hand back.  Erring tight is the right
+  // side to err on -- the alternative is emitting geometry that needs grip the
+  // car does not have and discovering it as a downstream rejection.
   FrenetConnectionResult generate(
     const ReferenceWindow & window,
     std::size_t i_start,
     std::size_t i_end,
     const FrenetPolynomial & polynomial,
-    std::vector<CurveSample> & path) const;
+    std::vector<CurveSample> & path,
+    double speed_mps = 0.0) const;
 
 private:
   FrenetConnectionConfig config_;

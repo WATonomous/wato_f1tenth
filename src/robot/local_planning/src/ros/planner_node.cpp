@@ -246,6 +246,9 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
 
   cfg.curve.sample_spacing_m = declare_parameter("sample_spacing_m", 0.1);
   cfg.curve.max_curvature_inv_m = declare_parameter("max_curvature_inv_m", 1.74);
+  // Not its own parameter: connections, the velocity profile and braking must
+  // agree about grip or a path shaped by one gets vetoed by the next.
+  cfg.curve.friction_coeff = cfg.velocity.friction_coeff;
   cfg.curve.max_path_angle_deg = declare_parameter("max_path_angle_deg", 60.0);
   cfg.projection.seed_window_m = declare_parameter("seed_window_m", 2.0);
   cfg.projection.tangent_tolerance_rad = declare_parameter("tangent_tolerance_rad", 1.2);

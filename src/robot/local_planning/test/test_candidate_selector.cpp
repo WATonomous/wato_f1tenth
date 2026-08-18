@@ -20,40 +20,39 @@ ManeuverCandidate geometry(
   return result;
 }
 
-EvaluatedCandidate evaluated(int index, CandidateSource source, CollisionStatus status, double time)
+constexpr double kSoftInflationM = 0.18;
+
+// clearance defaults to a value consistent with status, so tests that do not
+// care about the margin do not have to state one: free sits beyond the
+// inflation, soft sits halfway into it.
+EvaluatedCandidate evaluated(
+  int index,
+  CandidateSource source,
+  CollisionStatus status,
+  double time,
+  double clearance = -1.0)
 {
   EvaluatedCandidate result;
   result.candidate_index = index;
   result.source = source;
   result.collision.status = status;
+  result.collision.minimum_clearance_m = clearance >= 0.0 ?
+    clearance :
+    (status == CollisionStatus::FREE ? 2.0 * kSoftInflationM : 0.5 * kSoftInflationM);
   result.velocity_feasible = true;
   result.traversal_time_s = time;
   return result;
 }
 
-int selectOvertake(
+int select(
   const std::vector<ManeuverCandidate> & pool,
   const std::vector<EvaluatedCandidate> & candidates)
 {
-  return CandidateSelector().select(PlannerIntent::OVERTAKE, pool, candidates);
-}
-
-int selectPass(
-  const std::vector<ManeuverCandidate> & pool,
-  const std::vector<EvaluatedCandidate> & candidates)
-{
-  return CandidateSelector().select(PlannerIntent::PASS, pool, candidates);
-}
-
-int selectMerge(
-  const std::vector<ManeuverCandidate> & pool,
-  const std::vector<EvaluatedCandidate> & candidates)
-{
-  return CandidateSelector().select(PlannerIntent::MERGE, pool, candidates);
+  return CandidateSelector(kSoftInflationM).select(pool, candidates);
 }
 }  // namespace
 
-// --- Safety is binary, and it outranks everything --------------------------
+// --- Safety outranks everything, and it is graded ---------------------------
 
 TEST(CandidateSelector, FreeBeatsFasterSoftInflation)
 {
@@ -61,7 +60,7 @@ TEST(CandidateSelector, FreeBeatsFasterSoftInflation)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::SOFT_INFLATION, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, FreeAtLargerPassingOffsetBeatsSoftAtSmaller)
@@ -71,7 +70,7 @@ TEST(CandidateSelector, FreeAtLargerPassingOffsetBeatsSoftAtSmaller)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::SOFT_INFLATION, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, RejectsCollidingAndInfeasibleCandidates)
@@ -82,7 +81,7 @@ TEST(CandidateSelector, RejectsCollidingAndInfeasibleCandidates)
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::OUT_OF_GRID, 0.1),
     evaluated(2, CandidateSource::OVERTAKE, CollisionStatus::FREE, 0.1)};
   candidates[2].velocity_feasible = false;
-  EXPECT_EQ(selectOvertake(pool, candidates), -1);
+  EXPECT_EQ(select(pool, candidates), -1);
 }
 
 // --- OVERTAKE ranks on geometry before time --------------------------------
@@ -95,7 +94,7 @@ TEST(CandidateSelector, OvertakePrefersSmallerPassingOffset)
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0)};
   // Slower, but it tucks closer to the line.
-  EXPECT_EQ(selectOvertake(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, OvertakeRanksPassingOffsetByMagnitudeNotSign)
@@ -105,7 +104,7 @@ TEST(CandidateSelector, OvertakeRanksPassingOffsetByMagnitudeNotSign)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 0);
+  EXPECT_EQ(select(pool, candidates), 0);
 }
 
 TEST(CandidateSelector, OvertakeBreaksPassingTiesOnTerminalOffset)
@@ -115,7 +114,7 @@ TEST(CandidateSelector, OvertakeBreaksPassingTiesOnTerminalOffset)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, OvertakeBreaksGeometryTiesOnTime)
@@ -125,7 +124,7 @@ TEST(CandidateSelector, OvertakeBreaksGeometryTiesOnTime)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 2.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 // The offset tail used to win on identity alone.  After the port it is an
@@ -138,7 +137,7 @@ TEST(CandidateSelector, OvertakeTailNoLongerWinsForBeingATail)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, OvertakeKeepsFirstSeenOnAnExactTie)
@@ -148,21 +147,46 @@ TEST(CandidateSelector, OvertakeKeepsFirstSeenOnAnExactTie)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0),
     evaluated(1, CandidateSource::OVERTAKE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectOvertake(pool, candidates), 0);
+  EXPECT_EQ(select(pool, candidates), 0);
 }
 
 // --- PASS and MERGE are (safety, time) and nothing else --------------------
 
-TEST(CandidateSelector, PassIgnoresOffsetGeometryAndTakesTheFastest)
+// The regression that mattered on track: PASS used to rank on time alone, so a
+// wider offset could win for being marginally quicker.  Nothing then opposed the
+// drift outward, and each cycle promoted the next offset out.  Geometry now
+// leads, so the tightest clear offset wins even when it is slower.
+TEST(CandidateSelector, PassPrefersTheTightestClearOffsetOverTheFasterWiderOne)
 {
-  // Candidate 1 settles further out, which the old max_offset_deviation key
-  // would have punished.  Flat ranking takes the faster one.
   const std::vector<ManeuverCandidate> pool{
     geometry(0.55, 0.55, 6.0), geometry(0.75, 0.75, 3.0)};
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::PASS_PREFERRED, CollisionStatus::FREE, 2.0),
     evaluated(1, CandidateSource::PASS_RECOVERY, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectPass(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 0);
+}
+
+// ...and it gives way when the tight offset is not actually clear.
+TEST(CandidateSelector, PassFallsOutToTheNextOffsetWhenTheTightestIsNotFree)
+{
+  const std::vector<ManeuverCandidate> pool{
+    geometry(0.55, 0.55, 6.0), geometry(0.75, 0.75, 3.0)};
+  const std::vector<EvaluatedCandidate> candidates{
+    evaluated(0, CandidateSource::PASS_PREFERRED, CollisionStatus::SOFT_INFLATION, 2.0),
+    evaluated(1, CandidateSource::PASS_RECOVERY, CollisionStatus::FREE, 3.0)};
+  EXPECT_EQ(select(pool, candidates), 1);
+}
+
+// Soft inflation is graded, not binary: with no free candidate anywhere, the
+// shallower intrusion wins even though it is wider and slower.
+TEST(CandidateSelector, SoftInflationRanksOnActualClearanceNotJustStatus)
+{
+  const std::vector<ManeuverCandidate> pool{
+    geometry(0.55, 0.55, 6.0), geometry(0.75, 0.75, 3.0)};
+  const std::vector<EvaluatedCandidate> candidates{
+    evaluated(0, CandidateSource::PASS_PREFERRED, CollisionStatus::SOFT_INFLATION, 1.0, 0.02),
+    evaluated(1, CandidateSource::PASS_RECOVERY, CollisionStatus::SOFT_INFLATION, 3.0, 0.16)};
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 // The inversion the old tier loop forbade outright: a recovery candidate with a
@@ -174,16 +198,16 @@ TEST(CandidateSelector, PassLetsALongerTransitionWinWhenItIsFaster)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::PASS_RECOVERY, CollisionStatus::FREE, 2.0),
     evaluated(1, CandidateSource::PASS_RECOVERY, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectPass(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
-TEST(CandidateSelector, PassPreferredNoLongerShortCircuitsAFasterRecovery)
+TEST(CandidateSelector, PassBreaksGeometryTiesOnTimeRegardlessOfSource)
 {
   const std::vector<ManeuverCandidate> pool{geometry(), geometry()};
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::PASS_PREFERRED, CollisionStatus::FREE, 3.0),
     evaluated(1, CandidateSource::PASS_RECOVERY, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectPass(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, PassStillTakesSafetyOverTime)
@@ -192,7 +216,7 @@ TEST(CandidateSelector, PassStillTakesSafetyOverTime)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::PASS_RECOVERY, CollisionStatus::SOFT_INFLATION, 1.0),
     evaluated(1, CandidateSource::PASS_PREFERRED, CollisionStatus::FREE, 5.0)};
-  EXPECT_EQ(selectPass(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, MergeTakesTheFastestAndIgnoresCompletionDistance)
@@ -203,7 +227,7 @@ TEST(CandidateSelector, MergeTakesTheFastestAndIgnoresCompletionDistance)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::MERGE, CollisionStatus::FREE, 1.0),
     evaluated(1, CandidateSource::MERGE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectMerge(pool, candidates), 0);
+  EXPECT_EQ(select(pool, candidates), 0);
 }
 
 TEST(CandidateSelector, MergePrefersTheFasterCompletion)
@@ -213,16 +237,16 @@ TEST(CandidateSelector, MergePrefersTheFasterCompletion)
   const std::vector<EvaluatedCandidate> candidates{
     evaluated(0, CandidateSource::MERGE, CollisionStatus::FREE, 2.0),
     evaluated(1, CandidateSource::MERGE, CollisionStatus::FREE, 1.0)};
-  EXPECT_EQ(selectMerge(pool, candidates), 1);
+  EXPECT_EQ(select(pool, candidates), 1);
 }
 
 TEST(CandidateSelector, EmptyPoolSelectsNothing)
 {
   const std::vector<ManeuverCandidate> pool;
   const std::vector<EvaluatedCandidate> candidates;
-  EXPECT_EQ(selectOvertake(pool, candidates), -1);
-  EXPECT_EQ(selectPass(pool, candidates), -1);
-  EXPECT_EQ(selectMerge(pool, candidates), -1);
+  EXPECT_EQ(select(pool, candidates), -1);
+  EXPECT_EQ(select(pool, candidates), -1);
+  EXPECT_EQ(select(pool, candidates), -1);
 }
 
 }  // namespace local_planning
