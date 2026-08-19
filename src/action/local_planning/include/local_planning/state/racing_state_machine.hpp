@@ -28,9 +28,7 @@ struct StateMachineConfig
   uint32_t merge_pass_confirmation_grids = 3;
   uint32_t merge_probe_confirmation_cycles = 3;
 
-  // A wrong-way backstop, not a tracking tolerance: lateral offset alone decides
-  // the handoff. See local_planner.yaml for why this sits at 60 deg.
-  double compat_heading_rad = 1.05;
+  double compat_heading_rad = 1.05;  // wrong-way guard; see local_planner.yaml
 };
 
 enum class TransitionClass : uint8_t
@@ -63,10 +61,8 @@ struct StateUpdateContext
 struct OpponentObservation
 {
   bool detected = false;
-  // Nearest observed station: the visible near face, and the anchor
-  // ManeuverBuilder::overtake wants.
-  double s = 0.0;
-  double gap_m = 0.0;   // deltaS(ego_s, s); positive when the opponent is ahead
+  double s = 0.0;       // opponent near face; overtake anchor
+  double gap_m = 0.0;   // deltaS(ego_s, s); positive = ahead
 };
 
 struct TacticalState
@@ -86,29 +82,17 @@ struct TacticalState
   RelativePosition relative_position = RelativePosition::NONE;
   OpponentObservation opponent;
 
-  // Outputs, not telemetry: the planner reads these instead of projecting again.
-  double ego_s = 0.0;
+  double ego_s = 0.0;  // from projection; consumed by planner (not re-projected)
   double ego_d = 0.0;
 
   double heading_error_rad = 0.0;
   bool raceline_compatible = false;
 
-  // The seed window held no plausible foot and the whole loop had to be
-  // searched.  Steady laps never set this, so a run of them means the seed has
-  // stopped tracking ego and ego_s -- with every threshold that reads it -- is
-  // not to be trusted.
-  bool ego_seed_was_stale = false;
-
-  // The projection stayed in the seed window but needed a wider tangent
-  // tolerance than configured to find a foot there.  Distinct from the flag
-  // above and much weaker: ego_s is still trustworthy, ego was just yawed away
-  // from the reference.  Expected mid-slide; persistent outside a slide means
-  // tangent_tolerance_rad is tighter than the car actually drives.
-  bool ego_heading_check_relaxed = false;
+  bool ego_seed_was_stale = false;          // full-loop search; ego_s untrusted
+  bool ego_heading_check_relaxed = false;   // tangent tolerance widened; ego_s still ok
 };
 
-// Stateful tactical layer. Safety remains in LocalPlanner; this class only
-// debounces tactical intent.
+// Debounces tactical intent; collision safety stays in LocalPlanner.
 class RacingStateMachine
 {
 public:
@@ -124,13 +108,10 @@ public:
   RacingStateMachine & operator=(const RacingStateMachine &) = delete;
   RacingStateMachine & operator=(RacingStateMachine &&) = delete;
 
-  // Must be called before state(): the ego projection is computed here.
   void update(
     const Odometry & ego_odom,
     const OccupancyGrid & occupancy_grid,
-    StateUpdateContext context);
-  // Convenience for callers that do not own timestamps/sequences. Each call is
-  // treated as one new observation at the configured fast interval.
+    StateUpdateContext context);  // computes ego projection; call before state()
   void update(const Odometry & ego_odom, const OccupancyGrid & occupancy_grid);
   void reportMergeProbe(bool available);
   void resetEvidence();
@@ -148,8 +129,6 @@ private:
 
   RelativePosition classify(double gap_m) const;
 
-  // Records heading_error_rad and raceline_compatible on state_ as a side
-  // effect, so the decision and the numbers behind it cannot drift apart.
   bool isRacelineCompatible(const Odometry & ego_odom, double ego_s, double ego_d);
 
   PlannerIntent proposedIntent(const Odometry & ego_odom) const;
@@ -172,9 +151,7 @@ private:
   bool has_time_ = false;
   bool opponent_engaged_ = false;
 
-  // Carried between cycles. Stale-seed recovery inside RacelineReference handles
-  // startup and relocalization.
-  double ego_seed_s_ = 0.0;
+  double ego_seed_s_ = 0.0;  // projection seed; carried between cycles
 };
 
 } // namespace local_planning

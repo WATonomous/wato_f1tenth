@@ -47,25 +47,17 @@ private:
     ProjectionConfig projection;
     StateMachineConfig state;
     double planner_rate_hz = 20.0;
-    // Commit window for the published local path.  Below min the current path
-    // is kept even when a newer plan exists; between min and max it is kept
-    // only to bridge a cycle that found nothing; past max it expires.
-    double path_min_hold_s = 0.10;
+    double path_min_hold_s = 0.10;  // min/max commit window for published path
     double path_max_hold_s = 0.15;
     double steering_command_timeout_s = 0.06;
     double odom_timeout_s = 0.25;
     double wheelbase_m = 0.33;
-    // Steering stop at the wheel. With the wheelbase this is the car's hardest
-    // achievable arc, which is what braking spends its effort budget against.
     double max_steering_angle_rad = 0.52;
     double width_lookup_spacing_m = 0.10;
     bool use_steering_start_curvature = true;
     bool profiling_enabled = true;
     int profiling_log_every_n_cycles = 20;
-    // Per-transition event lines.  Independent of profiling_enabled: profiling
-    // answers "how long", this answers "what changed", and when the car twitches
-    // the second question is the one that matters.
-    bool diagnostics_enabled = true;
+    bool diagnostics_enabled = true;  // per-transition event lines (independent of profiling)
     std::string reference_track_topic;
     std::string occupancy_grid_topic;
     std::string odom_topic;
@@ -80,10 +72,7 @@ private:
     std::string track_bounds_visualization_topic;
     std::string projection_visualization_topic;
     bool publish_projection_markers = true;
-    // Debug view: the current intent's candidates as the builder produced them,
-    // before any filtering. Off by default -- it repeats the generation pass
-    // plan() is about to run.
-    bool publish_all_candidates = false;
+    bool publish_all_candidates = false;  // repeats generation pass; costly
     std::string all_candidates_visualization_topic;
   };
 
@@ -117,9 +106,7 @@ private:
   uint64_t costmap_sequence_ = 0;
   double costmap_stamp_s_ = 0.0;
   double steering_angle_ = 0.0;
-  // ROS clock, not steady_clock: under use_sim_time the two are unrelated, and
-  // steering_command_timeout_s is a budget in simulated seconds.
-  rclcpp::Time steering_received_;
+  rclcpp::Time steering_received_;  // ROS clock (respects use_sim_time)
   bool has_steering_ = false;
   std::optional<bool> last_overtake_ready_;
   std::optional<Path> held_path_;

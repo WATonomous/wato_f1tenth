@@ -14,9 +14,7 @@ struct TrackBoundsCheckResult
   bool ok = true;
 };
 
-// Width-table prior for poses the costmap cannot see. Occupancy stays in
-// CollisionChecker; this is the Frenet counterpart: unknown / out-of-grid
-// samples must stay inside rawBounds. Known cells are skipped.
+// Width-table prior for unknown/out-of-grid samples; known cells skip this check.
 class TrackBoundsChecker
 {
 public:
