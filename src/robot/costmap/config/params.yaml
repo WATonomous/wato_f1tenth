@@ -1,9 +1,10 @@
 occupancy_grid_generator:
   ros__parameters:
-    # Grid dimensions and resolution
-    grid_width: 20.0        # meters
-    grid_height: 20.0       # meters
-    resolution: 0.05         # meters per cell
+    # Robot-relative grid extents: +x is forward and +y is left.
+    forward_distance: 8.0       # meters in front of base_link
+    behind_distance: 1.0        # meters behind base_link
+    lateral_half_width: 6.1     # meters to both the left and right
+    resolution: 0.10         # meters per cell
 
     # Frame IDs
     robot_frame: "base_link"
@@ -16,3 +17,9 @@ occupancy_grid_generator:
     obstacle_value: 100     # value for occupied cells (0-100)
     free_value: 0           # value for free cells (0-100)
     unknown_value: -1       # value for unknown cells
+
+    # endpoints inside of the rectangle bounded below are excluded
+    self_filter_enabled: true
+    self_filter_min_x_m: -0.10 # distance behind base link
+    self_filter_max_x_m: 0.42 # distance ahead of base link
+    self_filter_half_width_m: 0.18 # distance to left and to right of base link
