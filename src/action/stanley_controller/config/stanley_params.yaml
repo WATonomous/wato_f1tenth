@@ -33,7 +33,7 @@ stanley_controller_node:
     # ---- Stanley gains (the main tuning knobs) ----
     # k_h : heading gain - how hard it corrects pointing the wrong way.
     #        understeers / turns too late -> raise.   whips wheel too hard -> lower.
-    k_h: 0.75
+    k_h: 0.5
     # k_e : cross-track gain - how hard it pulls back onto the line.
     #        drifts off and stays off -> raise.   weaves on straights -> lower.
     k_e: 0.2
