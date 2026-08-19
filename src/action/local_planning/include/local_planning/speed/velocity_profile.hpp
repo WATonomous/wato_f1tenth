@@ -16,9 +16,7 @@ struct VelocityProfileConfig
   double max_velocity_mps = 10.0;
   double max_accel_mps2 = 5.0;
   double max_decel_mps2 = 5.0;
-  // Interior/terminal racing-speed multiplier for OVERTAKE/PASS, and MERGE
-  // interiors only. MERGE's horizon terminal stays at unscaled raceline speed.
-  double overtake_speed_scale = 1.1;
+  double overtake_speed_scale = 1.1;  // OVERTAKE/PASS interior; MERGE terminal unscaled
 };
 
 struct VelocityProfileResult
@@ -27,11 +25,7 @@ struct VelocityProfileResult
   double traversal_time_s = 0.0;
 };
 
-// Builds a dynamically feasible speed profile on a complete candidate path.
-// Uses the raceline station retained during maneuver construction, applies
-// intent-scaled raceline / vehicle / friction caps, an explicit terminal speed policy, then backward deceleration
-// and forward acceleration passes.  Speeds are written to `path` only when the
-// profile is feasible.
+// Feasible speed profile on a complete path; writes speeds only when feasible.
 VelocityProfileResult assignVelocityProfile(
   std::vector<CurveSample> & path,
   double start_velocity_mps,
