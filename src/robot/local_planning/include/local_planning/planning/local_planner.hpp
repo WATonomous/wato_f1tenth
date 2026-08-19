@@ -1,0 +1,177 @@
+#ifndef LOCAL_PLANNING_PLANNING_LOCAL_PLANNER_HPP
+#define LOCAL_PLANNING_PLANNING_LOCAL_PLANNER_HPP
+
+#include "local_planning/collision/collision_checker.hpp"
+#include "local_planning/collision/track_bounds_checker.hpp"
+#include "local_planning/maneuvers/maneuver_builder.hpp"
+#include "local_planning/planning/braking_path_generator.hpp"
+#include "local_planning/selection/candidate_selector.hpp"
+#include "local_planning/speed/velocity_profile.hpp"
+#include "local_planning/state/racing_state_machine.hpp"
+
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+
+namespace local_planning
+{
+
+enum class ExecutedMode : uint8_t
+{
+  NO_LOCAL_PATH = 0,
+  MANEUVER = 1,
+  BRAKING_FALLBACK = 2,
+  BRAKING_UNAVAILABLE = 3,
+  HELD_PATH = 4
+};
+
+enum class PublishedPathChoice : uint8_t
+{
+  NONE,
+  HELD,
+  SELECTED
+};
+
+PublishedPathChoice choosePublishedPath(
+  ExecutedMode planned_mode,
+  bool selected_available,
+  bool held_available,
+  bool held_collision_usable,
+  double hold_age_s,
+  double path_min_hold_s,
+  double path_max_hold_s);
+
+enum class RecoveryReason : uint8_t
+{
+  NONE = 0,
+  MERGE_PATH_UNAVAILABLE = 1,
+  OPPONENT_CLEARANCE_LOST = 2,
+  BRAKING_FALLBACK = 3,
+  NO_SAFE_LOCAL_PATH = 4
+};
+
+struct PlannerDecisionData
+{
+  PlannerIntent requested_intent = PlannerIntent::FOLLOW_RACING_LINE;
+  PlannerIntent proposed_intent = PlannerIntent::FOLLOW_RACING_LINE;
+  PlannerIntent executed_intent = PlannerIntent::FOLLOW_RACING_LINE;
+  TransitionClass transition_class = TransitionClass::NONE;
+  TransitionReason transition_reason = TransitionReason::NONE;
+  RecoveryReason recovery_reason = RecoveryReason::NONE;
+  double pending_transition_s = 0.0;
+  uint32_t pending_grid_count = 0;
+  uint32_t merge_probe_valid_cycles = 0;
+  bool merge_probe_available = false;
+  uint64_t costmap_sequence = 0;
+  double costmap_stamp_s = 0.0;
+  uint64_t opponent_observation_sequence = 0;
+  RelativePosition relative_position = RelativePosition::NONE;
+  bool opponent_detected = false;
+  double opponent_gap_m = 0.0;
+  double ego_s_m = 0.0;
+  double ego_d_m = 0.0;
+  double heading_error_rad = 0.0;
+  bool raceline_compatible = false;  // FOLLOW/MERGE gate
+  ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
+  CandidateSource candidate_source = CandidateSource::NONE;
+  bool selected_offset_tail = false;
+  double selected_max_abs_d_m = 0.0;  // worst |d| along selected path
+  bool projection_seed_was_stale = false;
+  bool projection_heading_check_relaxed = false;
+  CollisionStatus clearance_class = CollisionStatus::OUT_OF_GRID;
+  double minimum_clearance_m = 0.0;
+  double max_abs_curvature_inv_m = 0.0;
+  double min_speed_mps = 0.0;
+  double max_speed_mps = 0.0;
+  double start_curvature_inv_m = 0.0;
+  bool start_curvature_from_steering = false;
+  double terminal_d_m = 0.0;
+  double best_cost_s = 0.0;
+  double median_cost_s = 0.0;
+  uint32_t generated_count = 0;
+  uint32_t collision_rejected = 0;
+  uint32_t out_of_grid_rejected = 0;
+  uint32_t velocity_rejected = 0;
+  bool track_bounds_ready = false;
+  double sustainable_left_m = 0.0;
+  double sustainable_right_m = 0.0;
+  uint32_t track_bounds_rejected = 0;
+  uint32_t valid_candidate_count = 0;
+  double braking_effort = 0.0;       // braking modes only; 1.0 = max turn
+  double braking_lookahead_m = 0.0;
+  double cycle_time_ms = 0.0;
+};
+
+struct LocalPlanResult
+{
+  std::vector<ManeuverCandidate> pool;
+  std::vector<EvaluatedCandidate> evaluated;
+  int selected_index = -1;
+  int merge_probe_index = -1;
+  PlannerDecisionData decision;
+};
+
+class LocalPlanner
+{
+public:
+  LocalPlanner(
+    const RacelineReference & reference,
+    const ManeuverBuilder & builder,
+    VehicleGeometry vehicle_geometry,
+    GridPolicy grid_policy,
+    CollisionConfig collision_config,
+    VelocityProfileConfig velocity_config,
+    BrakingConfig braking_config);
+
+  LocalPlanner(const LocalPlanner &) = delete;
+  LocalPlanner(LocalPlanner &&) = delete;
+  LocalPlanner & operator=(const LocalPlanner &) = delete;
+  LocalPlanner & operator=(LocalPlanner &&) = delete;
+
+  void buildGridCache(OccupancyGrid & grid) const;
+  LocalPlanResult plan(
+    const TacticalState & state,
+    const BoundaryState & ego,
+    const OccupancyGrid & grid,
+    bool held_path_usable = false) const;
+
+  CollisionCheckResult validatePath(const Path & path, const OccupancyGrid & grid) const
+  {
+    return collision_checker_.collisionCheck(path, grid);
+  }
+
+private:
+  void evaluateFrom(
+    LocalPlanResult & result,
+    std::size_t first,
+    PlannerIntent profile_intent,
+    const OccupancyGrid & grid,
+    const BoundaryState & ego,
+    double ego_s) const;
+  void tryPassFamily(
+    LocalPlanResult & result,
+    std::size_t first,
+    const BoundaryState & ego,
+    double ego_s,
+    double ego_d,
+    const OccupancyGrid & grid) const;
+  void selectBraking(
+    LocalPlanResult & result,
+    const BoundaryState & ego,
+    double ego_s,
+    double ego_d,
+    const OccupancyGrid & grid) const;
+
+  const RacelineReference & reference_;
+  const ManeuverBuilder & builder_;
+  VehicleGeometry vehicle_geometry_;
+  VelocityProfileConfig velocity_config_;
+  CollisionChecker collision_checker_;
+  TrackBoundsChecker track_bounds_checker_;
+  BrakingPathGenerator braking_generator_;
+  CandidateSelector selector_;
+};
+
+}  // namespace local_planning
+
+#endif  // LOCAL_PLANNING_PLANNING_LOCAL_PLANNER_HPP

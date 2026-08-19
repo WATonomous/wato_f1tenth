@@ -44,7 +44,9 @@
 
 
 #include <chrono>
+#include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <string>
@@ -83,7 +85,7 @@ private:
 
     //publishers
     rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr velocity_lookahead_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr look_ahead_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr lookahead_point_pub_;
 
     //subscription
@@ -111,6 +113,8 @@ private:
     void init_parameters();
 
     void update_controller_state();
+    std::optional<geometry_msgs::msg::Point> get_waypoint_from_path(
+        const nav_msgs::msg::Path &path, bool closed_loop);
     std::optional<geometry_msgs::msg::Point> get_local_waypoint();
     std::optional<geometry_msgs::msg::Point> get_global_waypoint();
 
@@ -118,21 +122,23 @@ private:
     ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
     double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
-    size_t find_current_position_index();
-    std::optional<geometry_msgs::msg::Point> find_lookahead_global(size_t current_vehicle_index, double current_lookahead);
-
+    // Full scan for the nearest pose, used by both paths. ~150 points at 50 Hz.
+    // The global path used to get an incremental cached scan instead; it froze
+    // for the length of an overtake and could not catch up afterwards.
+    size_t find_closest_index(const nav_msgs::msg::Path &path);
+    // closed_loop=false stops at the end of the path instead of wrapping to its
+    // start: correct for the local path, which is an open horizon, not a lap.
+    std::optional<geometry_msgs::msg::Point> find_lookahead(
+        const nav_msgs::msg::Path &path, size_t current_vehicle_index, bool closed_loop);
     geometry_msgs::msg::Point interpolate_lookahead_point(
         const geometry_msgs::msg::Point &prev_pt,
         const geometry_msgs::msg::Point &curr_pt,
         double ref_x, double ref_y,
         double lookahead);
-
     std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point &global_point);
     geometry_msgs::msg::Point transfrom_point_ (const geometry_msgs::msg::Point &point_, const geometry_msgs::msg::Transform &t_);
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
     void update_lookahead_distance();
-    void update_velocity_lookahead();
-    size_t init_position_index_cache();
     void publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p);
 
     //parameters
@@ -141,14 +147,12 @@ private:
     std::string overtake_ready_topic, dead_man_active_topic;
     std::string ackermann_control_topic, odom_topic;
     std::string speed_topic;
-    double controller_rate;
     bool overtaking_enable, speed_limit_enable;
-    double look_ahead_distance, speed_limit, max_steering_angle;
+    double look_ahead_distance, speed_limit, max_steering_angle, control_rate_hz;
     double kp_gain;
     double max_lookahead, min_lookahead, lookahead_ratio;
     double current_velocity;
-    bool enable_debug_vis;
-    double velocity_lookahead;
+    bool enable_debug_vis, force_dead_man_active;
 
     //internal state and variabels
     state_ controller_state ;

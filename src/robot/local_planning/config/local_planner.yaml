@@ -1,0 +1,88 @@
+occupancy_grid_frame_adapter_node:
+  ros__parameters:
+    raw_grid_topic: "/costmap"
+    grid_topic: "/occupancy_grid"
+    frame_id: "map"
+
+planner_node:
+  ros__parameters:
+    horizon_m: 4.0
+    collision_circle_radius_m: 0.14
+    overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5]
+    passing_d_magnitudes_m: [0.3, 0.0, 0.55, 0.75]
+    overtake_heading_offsets_rad: [-0.15, 0.0, 0.15]
+    pass_transition_distances_m: [4.0, 3.0, 1.0]
+    merge_completion_distances_m: [0.5, 1.0, 2.0, 3.0, 4.0]
+
+    corridor_half_width_m: 0.25
+    pass_enter_gap_m: 0.65
+    pass_exit_gap_m: 0.95
+    merge_enter_gap_m: -1.20
+    merge_exit_gap_m: -0.80
+    engagement_enter_gap_m: 2.00
+    engagement_exit_gap_m: 2.50
+    follow_enter_abs_d_m: 0.14
+    follow_exit_abs_d_m: 0.28
+    fast_transition_confirmation_s: 0.05
+    slow_transition_confirmation_s: 0.15
+    opponent_confirmation_grids: 2
+    pass_merge_confirmation_grids: 3
+    merge_pass_confirmation_grids: 3
+    merge_probe_confirmation_cycles: 3
+    # Wrong-way guard only; lateral offset drives FOLLOW/MERGE. Keep below tangent_tolerance_rad (1.2 rad).
+    compat_heading_rad: 1.05
+
+    front_collision_circle_offset_m: 0.32
+    soft_inflation_distance_m: 0.22
+    occupied_threshold: 50
+    treat_unknown_as_free: true
+    friction_coeff: 1.0
+    min_velocity_mps: 0.0
+    max_velocity_mps: 3.0  # Orin hardware cap for initial track testing
+    max_accel_mps2: 5.0
+    max_decel_mps2: 5.0
+    overtake_speed_scale: 1.0  # 1.0 = same speed as FOLLOW
+    treat_out_of_grid_as_free: true
+
+    braking_decel_mps2: 5.0
+    braking_min_velocity_mps: 0.5
+    braking_pursuit_lookaheads_m: [1.0, 2.0, 3.0]  # reference carrot distance
+    braking_effort_levels: [1.0, 0.0]  # consider more levels for gentler fallback arcs
+
+    sample_spacing_m: 0.1
+    max_curvature_inv_m: 1.74
+    max_path_angle_deg: 60.0
+    seed_window_m: 2.0  # too small → wrong s without seed_was_stale
+    tangent_tolerance_rad: 1.2
+    max_plausible_offset_m: 3.0  # stale seed if nearest foot farther than this
+
+    planner_rate_hz: 30.0
+    path_min_hold_s: 0.10  # published-path commit window [min, max]
+    path_max_hold_s: 0.15
+
+    reference_track_topic: "/global_planner/reference_track"  # index-aligned with width table
+    width_lookup_spacing_m: 0.10
+    occupancy_grid_topic: "/occupancy_grid"
+    odom_topic: "/pf/pose/odom"
+    steering_command_topic: "/drive/autonomy"
+    steering_command_timeout_s: 0.06
+    odom_timeout_s: 0.25
+    wheelbase_m: 0.33
+    max_steering_angle_rad: 0.52
+    use_steering_start_curvature: true
+    profiling_enabled: true
+    profiling_log_every_n_cycles: 20
+    diagnostics_enabled: true
+    map_frame: "map"
+    controller_frame: "base_link"
+
+    local_path_topic: "/local_path"
+    local_path_map_topic: "/local_path_map"
+    overtake_ready_topic: "/overtake_ready"
+    decision_topic: "/planner_decision"
+    visualization_topic: "/local_planner_viz"
+    track_bounds_visualization_topic: "/local_planner_track_bounds_viz"
+    projection_visualization_topic: "/local_planner_projection_viz"
+    publish_projection_markers: true
+    publish_all_candidates: false  # costly: repeats generation pass
+    all_candidates_visualization_topic: "/local_planner_all_candidates_viz"

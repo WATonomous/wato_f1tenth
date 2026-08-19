@@ -14,9 +14,15 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 #find_package(visualization_msgs REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/TrackWidth.msg"
+  "msg/ReferenceTrack.msg"
+  DEPENDENCIES std_msgs nav_msgs)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -32,10 +38,15 @@ endif()
 
 add_executable(global_planner_node src/global_planner.cpp)
 target_include_directories(global_planner_node PUBLIC include)
+target_link_libraries(global_planner_node ${cpp_typesupport_target})
 ament_target_dependencies(global_planner_node rclcpp std_msgs nav_msgs geometry_msgs ament_index_cpp)
 
 install(DIRECTORY assets/
   DESTINATION share/${PROJECT_NAME}/assets
+)
+
+install(PROGRAMS scripts/generate_raceline_reference.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(TARGETS
@@ -43,4 +54,5 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+ament_export_dependencies(rosidl_default_runtime)
 ament_package()
