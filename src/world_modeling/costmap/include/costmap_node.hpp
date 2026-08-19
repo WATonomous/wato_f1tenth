@@ -19,8 +19,9 @@
  * Occupancy Grid Generator Node
  *
  * This node subscribes to LiDAR LaserScan messages and produces a 2D
- * occupancy grid (nav_msgs/OccupancyGrid) centered on the robot's base_link
- * frame. Each incoming scan triggers a fresh grid publication so the costmap
+ * occupancy grid (nav_msgs/OccupancyGrid) in the robot's base_link frame. The
+ * grid extents relative to the robot are configurable, and each incoming scan
+ * triggers a fresh grid publication so the costmap
  * stays in sync with sensor data at full LiDAR rate.
  *
  * Implementation overview:
@@ -45,6 +46,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -64,13 +66,18 @@ public:
 
 private:
   // Parameters
-  double grid_width_;
-  double grid_height_;
+  double forward_distance_;
+  double behind_distance_;
+  double lateral_half_width_;
   double resolution_;
   std::string robot_frame_;
   int8_t obstacle_value_;
   int8_t free_value_;
   int8_t unknown_value_;
+  bool self_filter_enabled_;
+  double self_filter_min_x_m_;
+  double self_filter_max_x_m_;
+  double self_filter_half_width_m_;
   uint32_t grid_cols_;
   uint32_t grid_rows_;
 
@@ -85,6 +92,7 @@ private:
   void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
   void publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr & scan);
   void bresenham(int x0, int y0, int x1, int y1, std::vector<int8_t> & grid_data);
+  bool is_in_self_filter_footprint(double x, double y) const;
 };
 
 #endif
