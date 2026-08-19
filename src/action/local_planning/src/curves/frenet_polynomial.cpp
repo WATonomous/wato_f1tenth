@@ -70,8 +70,7 @@ double frenetSecondDerivativeForVehicleCurvature(
   const double tangent_scale = 1.0 - reference_curvature * lateral_offset;
   if (std::abs(tangent_scale) <= kEpsilon) {
     // The Frenet chart is singular here.  Fall back to the small-angle
-    // conversion instead of amplifying numerical error; the sampling loop
-    // rejects the connection on CHART_SINGULAR anyway.
+    // conversion instead of amplifying numerical error
     return vehicle_curvature - reference_curvature;
   }
 

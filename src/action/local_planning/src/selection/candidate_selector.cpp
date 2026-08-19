@@ -21,13 +21,7 @@ bool valid(const EvaluatedCandidate & candidate)
          candidate.collision.status == CollisionStatus::SOFT_INFLATION);
 }
 
-// How far into the soft inflation a candidate goes, in metres.  FREE means
-// clearance above the inflation distance, so every free candidate ties at
-// exactly 0 and the geometry keys decide among them; every soft candidate
-// scores above 0 and therefore loses to any free one.  Inside the soft band the
-// actual clearance orders the candidates, because "grazes the inflation" and
-// "nearly touches" are not the same answer and the old binary rank could not
-// tell them apart.
+// How far into the soft inflation a candidate goes, in metres. 
 double inflationDepth(const EvaluatedCandidate & candidate, double soft_inflation_distance_m)
 {
   if (candidate.collision.status == CollisionStatus::FREE) {
@@ -37,9 +31,7 @@ double inflationDepth(const EvaluatedCandidate & candidate, double soft_inflatio
     kTolerance, soft_inflation_distance_m - candidate.collision.minimum_clearance_m);
 }
 
-// Lower is better in every slot.  One comparator covers all three intents:
-// MERGE commands d = 0 everywhere, so its geometry keys are constant and it
-// falls through to time on its own, with no intent test needed here.
+// Lower is better in every slot. 
 using SelectionKey = std::array<double, kKeyCount>;
 
 SelectionKey keyFor(

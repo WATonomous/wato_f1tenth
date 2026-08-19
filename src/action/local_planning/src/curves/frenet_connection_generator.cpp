@@ -28,6 +28,7 @@ double FrenetConnectionConfig::allowedCurvature(double v) const
   return std::min(max_curvature_inv_m, friction_coeff * kGravityMps2 / (v * v));
 }
 
+//convert frenet to cartesian path
 FrenetConnectionResult FrenetConnectionGenerator::generate(
   const ReferenceWindow & window,
   std::size_t i_start,
@@ -59,9 +60,7 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
     };
 
   // Trapezoidal accumulation of the exact differential
-  // ds_path = sqrt(A^2 + d'^2) ds_ref, reusing the n2 the curvature needs
-  // anyway.  s must stay *true path* arc length: the velocity profile
-  // differences it for the accel/decel integration.
+  // ds_path = sqrt(A^2 + d'^2) ds_ref
   double path_s = s_offset;
   double previous_speed_factor = 0.0;
   double max_abs_d = 0.0;

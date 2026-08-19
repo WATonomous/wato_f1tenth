@@ -177,10 +177,7 @@ LocalPlanResult LocalPlanner::plan(
   }
 
   evaluateFrom(result, 0, state.intent, grid, ego, state.ego_s);
-  // Lazy generation, stated directly.  This used to run the PASS *ranking* just
-  // to answer it, which meant selectPass() was called twice a cycle for two
-  // unrelated purposes and the tier machinery had to survive to serve this one.
-  // The question was only ever whether the recovery family is worth generating.
+  // Lazy generation
   if (state.intent == PlannerIntent::PASS) {
     tryPassFamily(result, 0, ego, state.ego_s, state.ego_d, grid);
   }
@@ -355,22 +352,11 @@ void LocalPlanner::selectBraking(
       const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
       evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
       evaluated.track_bounds_ok = track_bounds_checker_.check(candidate.path, grid).ok;
-      // Deliberately no assignVelocityProfile: braking owns its speeds, and the
-      // nominal profiler rejects an infeasible start speed -- which is the one
-      // condition braking exists to answer.
+      // Deliberately no assignVelocityProfile: braking owns its speeds
     });
 
-  // Only a seen obstacle disqualifies an arc.  Running off the grid does not:
-  // the horizon is 4 m and the costmap is a 15 m window, so leaving it is
-  // routine, and refusing to brake because the map ran out is worse than
-  // braking into a cell nobody has looked at.  Ranking still prefers the arcs
-  // the costmap could vouch for -- OUT_OF_GRID carries -inf clearance, so it
-  // sorts below anything seen and free.
-  //
-  // The honest version of this is a Frenet bounds lookup: convert the arc to
-  // (s, d) and check it against the raceline width table where the grid has
-  // nothing to say. Worth doing if unseen tails start mattering; for a
-  // last-resort mode it is more machinery than the decision deserves.
+  // Only a seen obstacle disqualifies an arc. 
+
   const auto score = [&](std::size_t k) {
       const auto & evaluated = result.evaluated[first + k];
       const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
