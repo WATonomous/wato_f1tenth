@@ -46,7 +46,7 @@ stanley_controller_node:
     # window : waypoints searched forward each tick. Bigger for denser paths /
     #          higher speed; too big can jump to the wrong leg of a hairpin.
     #          20 is fine for ~100-150 waypoint tracks.
-    closest_point_window: 20
+    closest_point_window: 40
     # recovery_dist : if nearest waypoint in the window is farther than this (m),
     #          do a full re-scan (assumes teleport / localization jump).
     #          Raise if it false-fires mid-corner on a sparse track.
