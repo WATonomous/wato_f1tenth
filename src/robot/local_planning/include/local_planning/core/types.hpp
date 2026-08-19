@@ -36,19 +36,12 @@ struct ReferenceGeometrySample
   double y = 0.0;
   double tangent_x = 0.0;
   double tangent_y = 0.0;
-  // Magnitude of the spline derivative with respect to the reference's
-  // chord-length station parameter.  That parameter is close to, but not
-  // exactly, spline arc length and Newton corrections must account for it.
-  double parameter_speed = 0.0;
+  double parameter_speed = 0.0;  // |dr/ds| for chord-length station (Newton uses this)
   double normal_x = 0.0;
   double normal_y = 0.0;
   double heading = 0.0;
   double curvature = 0.0;
-  // d(kappa)/ds, analytic from the spline's own third derivative.  Piecewise
-  // constant on a C2 cubic spline, so it steps at knots -- that is a true
-  // property of the reference, not error.  It reaches the path curvature only
-  // through the term -k' d d', so it is doubly attenuated by d'.
-  double curvature_derivative = 0.0;
+  double curvature_derivative = 0.0;  // dkappa/ds; piecewise constant on C2 cubic
   double velocity = 0.0;
   int segment_index = 0;
 };
@@ -113,9 +106,7 @@ struct GridPolicy
   }
 };
 
-// What the tactical layer asks the planner to do this cycle.  Nothing
-// serializes it today; Phase 6 mirrors it as uint8 constants in
-// PlannerDecision.msg, and those must then be kept in step.
+// Keep in sync with PlannerDecision.msg intent constants.
 enum class PlannerIntent : uint8_t
 {
   FOLLOW_RACING_LINE = 0,
@@ -126,9 +117,7 @@ enum class PlannerIntent : uint8_t
 
 std::string intentToString(PlannerIntent intent);
 
-// Purely longitudinal: the boundaries are gaps measured with deltaS, and they
-// absorb both vehicles' extents rather than modelling either one.
-enum class RelativePosition : uint8_t
+enum class RelativePosition : uint8_t  // longitudinal gap bands (deltaS, includes extents)
 {
   NONE = 0,
   BEHIND = 1,
@@ -139,10 +128,7 @@ enum class RelativePosition : uint8_t
 
 std::string relativePositionToString(RelativePosition position);
 
-// The complete vehicle state a curve is anchored to at one end.  Two of these
-// fully determine a G2 connection: position, tangent, and curvature agree at
-// the join, and the speed rides along for the velocity profile.
-struct BoundaryState
+struct BoundaryState  // G2 anchor: pose + curvature + speed
 {
   double x = 0.0;
   double y = 0.0;
@@ -151,15 +137,7 @@ struct BoundaryState
   double speed = 0.0;      // m/s
 };
 
-// Why a requested connection could not be sampled.  Maneuver sampling simply
-// omits an invalid path.
-//
-// A polynomial always "converges", so there is no solver failure; and d(s) over
-// a fixed reference span cannot run away, so there is no arc-length cap.  What
-// remains are the two ways the Frenet chart itself gives out -- the offset
-// curve degenerating at the centre of curvature, and the path turning so far
-// off the reference tangent that it is doubling back.
-enum class RejectReason : uint8_t
+enum class RejectReason : uint8_t  // invalid connections are omitted from the pool
 {
   NONE = 0,
   CURVATURE_LIMIT = 1,
@@ -167,22 +145,16 @@ enum class RejectReason : uint8_t
   HEADING_LIMIT = 3
 };
 
-// One dense sample of a generated curve.  The units the velocity profiler and
-// collision checker both consume.
 struct CurveSample
 {
-  double s = 0.0;          // arc length from the start of the candidate, m
+  double s = 0.0;          // arc length from candidate start, m
   double x = 0.0;
   double y = 0.0;
   double heading = 0.0;    // rad
   double curvature = 0.0;  // 1/m
-  double speed = 0.0;      // m/s, filled by the velocity profile
-  // Raceline station associated with this sample. Maneuver construction owns
-  // this mapping so downstream stages never need to project x/y back to s/d.
-  double raceline_s = std::numeric_limits<double>::quiet_NaN();
-  // Signed lateral offset from the reference, positive left.  Exact: it is the
-  // quantity the curve was planned in, not one recovered from x/y afterwards.
-  double d = 0.0;
+  double speed = 0.0;      // m/s; filled by velocity profile
+  double raceline_s = std::numeric_limits<double>::quiet_NaN();  // exact station; no re-projection
+  double d = 0.0;          // signed lateral offset, positive left
 };
 
 } // namespace local_planning

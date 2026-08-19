@@ -68,24 +68,14 @@ struct PlannerDecisionData
   RelativePosition relative_position = RelativePosition::NONE;
   bool opponent_detected = false;
   double opponent_gap_m = 0.0;
-  // The two inputs to the FOLLOW/MERGE gate, plus its result.  Published so a
-  // flapping intent can be read off a bag without rebuilding.
-  // Where the gate thinks the car is.  Published alongside its own inputs
-  // because a wrong station makes ego_d and heading_error_rad wrong together,
-  // and that pair is indistinguishable from a genuine excursion without it.
   double ego_s_m = 0.0;
   double ego_d_m = 0.0;
   double heading_error_rad = 0.0;
-  bool raceline_compatible = false;
+  bool raceline_compatible = false;  // FOLLOW/MERGE gate
   ExecutedMode executed_mode = ExecutedMode::NO_LOCAL_PATH;
   CandidateSource candidate_source = CandidateSource::NONE;
   bool selected_offset_tail = false;
-  // The selected candidate's overshoot: worst |d| along its path.  On the wire
-  // because it is what the port is judged on, and because it is the one part of
-  // the executed geometry that terminal_d_m does not imply -- the connection
-  // starts from the measured d' and d'', which can carry it wide of the offset
-  // it was commanded to reach.
-  double selected_max_abs_d_m = 0.0;
+  double selected_max_abs_d_m = 0.0;  // worst |d| along selected path
   bool projection_seed_was_stale = false;
   bool projection_heading_check_relaxed = false;
   CollisionStatus clearance_class = CollisionStatus::OUT_OF_GRID;
@@ -107,11 +97,7 @@ struct PlannerDecisionData
   double sustainable_right_m = 0.0;
   uint32_t track_bounds_rejected = 0;
   uint32_t valid_candidate_count = 0;
-  // Effort of the braking arc that won, 1.0 being as hard as the car can turn
-  // at that speed.  Reads at a glance as nudge versus max-effort recovery.
-  // Meaningful only on the two braking modes.
-  double braking_effort = 0.0;
-  // Reference-carrot distance used by the winning braking arc.
+  double braking_effort = 0.0;       // braking modes only; 1.0 = max turn
   double braking_lookahead_m = 0.0;
   double cycle_time_ms = 0.0;
 };
@@ -149,9 +135,6 @@ public:
     const OccupancyGrid & grid,
     bool held_path_usable = false) const;
 
-  // Re-check an already-selected path against a newer grid.  Same checker and
-  // config plan() ranks with, so a held path is judged by the same rule that
-  // admitted it.
   CollisionCheckResult validatePath(const Path & path, const OccupancyGrid & grid) const
   {
     return collision_checker_.collisionCheck(path, grid);
@@ -165,7 +148,6 @@ private:
     const OccupancyGrid & grid,
     const BoundaryState & ego,
     double ego_s) const;
-  // Generate PASS_RECOVERY if no PASS_PREFERRED in [first, end) is free and feasible.
   void tryPassFamily(
     LocalPlanResult & result,
     std::size_t first,
@@ -173,9 +155,6 @@ private:
     double ego_s,
     double ego_d,
     const OccupancyGrid & grid) const;
-  // Braking's own family, generated only once nothing else was selectable and
-  // ranked by its own rule -- clearance and closeness to the line, not
-  // traversal time, because these paths are not competing for a lap.
   void selectBraking(
     LocalPlanResult & result,
     const BoundaryState & ego,
