@@ -1,9 +1,19 @@
+
+/*
+  if we cant see a point we check the track bounds for that frenet s value
+*/
+
+
+
+
 #include "local_planning/collision/track_bounds_checker.hpp"
 
 #include "local_planning/core/geometry.hpp"
 
 #include <cmath>
 #include <cstddef>
+
+
 
 namespace local_planning
 {
@@ -51,10 +61,7 @@ TrackBoundsCheckResult TrackBoundsChecker::check(
       continue;
     }
 
-    // The three-tier recovery this used to run -- Newton on the sample's own
-    // station, Newton on the previous sample's refined station, then a windowed
-    // project() -- existed only because the path did not know where it was.  It
-    // does now: (raceline_s, d) is what the curve was planned in.
+   
     const SustainableBounds bounds = reference_.rawBounds(sample.raceline_s);
     const double cap = sample.d >= 0.0 ? bounds.left_magnitude : bounds.right_magnitude;
     if (std::abs(sample.d) > cap + kTrackBoundsToleranceM) {

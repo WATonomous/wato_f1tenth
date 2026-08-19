@@ -4,6 +4,12 @@
 #include <cmath>
 #include <cstddef>
 
+
+/*
+all this does is brake and drive towards the raceline in the safest possible path and we brute force
+some possible paths 
+
+*/
 namespace local_planning
 {
 namespace
