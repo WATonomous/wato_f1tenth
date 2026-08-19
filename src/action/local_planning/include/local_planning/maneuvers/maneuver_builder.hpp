@@ -49,6 +49,7 @@ struct ManeuverConfig
 
   std::vector<double> overtake_s_offsets_from_opponent_rear_m{0.0, 0.5};
   std::vector<double> passing_d_magnitudes_m{0.55, 0.75};
+  // Must include 0.0 (offset-tail entry leg).
   std::vector<double> overtake_heading_offsets_rad{-0.15, 0.0, 0.15};
   std::vector<double> pass_transition_distances_m{4.0, 3.0, 1.0};
   std::vector<double> merge_completion_distances_m{0.5, 1.0, 2.0, 3.0, 4.0};
@@ -124,6 +125,31 @@ private:
   bool staysOnSide(const Path & path, int side) const;
   std::vector<double> offsets(int side) const;
   int sideOf(double d) const;
+
+  struct Waypoint
+  {
+    double s = 0.0;
+    double d = 0.0;
+    double heading_offset = 0.0;
+  };
+  struct ChainSpec
+  {
+    std::vector<Waypoint> waypoints;
+    double passing_d = 0.0;
+    double terminal_d = 0.0;
+    double maneuver_distance_m = 0.0;
+    bool uses_offset_tail = false;
+    int side = 0;
+    bool append_tail = false;
+    double tail_start_s = 0.0;
+    double tail_distance_m = 0.0;
+    double tail_d = 0.0;
+  };
+
+  bool beginGeneration(
+    const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & start) const;
+  std::vector<ManeuverCandidate> sampleChains(
+    const FrenetBoundary & start, const std::vector<ChainSpec> & chains) const;
 
   const RacelineReference & reference_;
   const FrenetConnectionGenerator & curve_generator_;
