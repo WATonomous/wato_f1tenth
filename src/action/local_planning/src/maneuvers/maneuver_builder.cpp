@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <utility>
 
 namespace local_planning
@@ -51,6 +52,14 @@ ManeuverBuilder::ManeuverBuilder(
     config_.pass_transition_distances_m.begin(), config_.pass_transition_distances_m.end(),
     std::greater<double>());
   removeDuplicates(config_.merge_completion_distances_m);
+
+  const bool has_zero_heading = std::any_of(
+    config_.overtake_heading_offsets_rad.begin(),
+    config_.overtake_heading_offsets_rad.end(),
+    [](double heading) {return std::abs(heading) <= kTolerance;});
+  if (!has_zero_heading) {
+    throw std::invalid_argument("overtake_heading_offsets_rad must include 0.0");
+  }
 }
 
 bool ManeuverBuilder::prepareWindow(const BoundaryState & ego, double ego_s) const
@@ -205,179 +214,92 @@ int ManeuverBuilder::sideOf(double d) const
   return d > 0.0 ? 1 : -1;
 }
 
-std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
-  const BoundaryState & ego,
-  double ego_s,
-  double ego_d,
-  double opponent_rear_s) const
+bool ManeuverBuilder::beginGeneration(
+  const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & start) const
 {
-  std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid() || !prepareWindow(ego, ego_s)) {
-    return candidates;
+  return reference_.valid() && prepareWindow(ego, ego_s) &&
+         startBoundary(ego, ego_s, ego_d, start);
+}
+
+std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
+  const FrenetBoundary & start, const std::vector<ChainSpec> & chains) const
+{
+  std::vector<Waypoint> prefixes;
+  std::vector<std::size_t> chain_prefix(chains.size(), 0);
+  prefixes.reserve(chains.size());
+  const auto sameWaypoint = [](const Waypoint & a, const Waypoint & b) {
+      return std::abs(a.s - b.s) <= kTolerance &&
+             std::abs(a.d - b.d) <= kTolerance &&
+             std::abs(a.heading_offset - b.heading_offset) <= kTolerance;
+    };
+  for (std::size_t i = 0; i < chains.size(); ++i) {
+    const std::size_t found = [&]() {
+        const Waypoint & first = chains[i].waypoints.front();
+        for (std::size_t p = 0; p < prefixes.size(); ++p) {
+          if (sameWaypoint(prefixes[p], first)) {
+            return p;
+          }
+        }
+        prefixes.push_back(first);
+        return prefixes.size() - 1;
+      }();
+    chain_prefix[i] = found;
   }
-  FrenetBoundary start;
-  if (!startBoundary(ego, ego_s, ego_d, start)) {
-    return candidates;
-  }
-  const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
-  const std::vector<double> lateral_offsets = offsets(0);
-  // The first leg is a function of (intermediate_s, intermediate_d,
-  // heading_offset).  It does not depend on horizon_d, so each distinct first
-  // leg is sampled once and reused as the prefix for every same-side horizon
-  // offset.  The two waves are job lists on the persistent pool; enumeration
-  // stays in the original nested-loop order because selection breaks ties on
-  // first-seen.
-  //
-  // The old (curvature mode) axis of this product is gone: with d'' = 0 the two
-  // modes were the same boundary, and it was only ever a hedge against the G2
-  // solver failing to converge on one of them.
-  struct FirstLeg
+
+  struct Prefix
   {
     Path path;
     FrenetBoundary join;
-    // Carried with the leg so each completion that reuses this prefix starts
-    // its own accumulation from the prefix's worst |d|.
     double max_abs_d = 0.0;
     bool valid = false;
   };
-  const std::size_t heading_count = config_.overtake_heading_offsets_rad.size();
-  // The tail family attaches to a leg that arrives tangent to the offset lane,
-  // so it needs the zero-heading first leg.  When the configured grid contains
-  // one, reuse it; otherwise build a separate entry leg for the tails alone.
-  const auto zero_heading = std::find_if(
-    config_.overtake_heading_offsets_rad.begin(),
-    config_.overtake_heading_offsets_rad.end(),
-    [](double heading) {return std::abs(heading) <= kTolerance;});
-  const bool has_zero_heading =
-    zero_heading != config_.overtake_heading_offsets_rad.end();
-  const std::size_t zero_heading_index = has_zero_heading ?
-    static_cast<std::size_t>(zero_heading - config_.overtake_heading_offsets_rad.begin()) :
-    0U;
-
-  const std::size_t station_count = config_.overtake_s_offsets_from_opponent_rear_m.size();
-  const std::size_t offset_count = lateral_offsets.size();
-  std::vector<FirstLeg> first_legs(station_count * offset_count * heading_count);
-  std::vector<FirstLeg> exact_entries(station_count * offset_count);
-
-  struct Station
-  {
-    double intermediate_s = 0.0;
-    double progress = 0.0;
-    bool ok = false;
-  };
-  std::vector<Station> stations(station_count);
-  for (std::size_t s = 0; s < station_count; ++s) {
-    stations[s].intermediate_s = reference_.wrapS(
-      opponent_rear_s + config_.overtake_s_offsets_from_opponent_rear_m[s]);
-    stations[s].progress = reference_.deltaS(ego_s, stations[s].intermediate_s);
-    stations[s].ok = stations[s].progress > 0.0 && stations[s].progress < config_.horizon_m;
-  }
-
-  struct FirstJob
-  {
-    FirstLeg * leg = nullptr;
-    FrenetBoundary end;
-  };
-  std::vector<FirstJob> first_jobs;
-  first_jobs.reserve(first_legs.size() + exact_entries.size());
-  for (std::size_t s = 0; s < station_count; ++s) {
-    if (!stations[s].ok) {
-      continue;
-    }
-    for (std::size_t d = 0; d < offset_count; ++d) {
-      for (std::size_t h = 0; h < heading_count; ++h) {
-        FrenetBoundary intermediate;
-        if (!boundary(
-            stations[s].intermediate_s, lateral_offsets[d],
-            config_.overtake_heading_offsets_rad[h], intermediate))
-        {
-          continue;
-        }
-        FirstLeg & leg = first_legs[(s * offset_count + d) * heading_count + h];
-        first_jobs.push_back({&leg, intermediate});
+  std::vector<Prefix> sampled(prefixes.size());
+  parallelFor(prefixes.size(), [&](std::size_t i) {
+      FrenetBoundary end;
+      if (!boundary(prefixes[i].s, prefixes[i].d, prefixes[i].heading_offset, end)) {
+        return;
       }
-      if (!has_zero_heading) {
-        FrenetBoundary intermediate;
-        if (boundary(stations[s].intermediate_s, lateral_offsets[d], 0.0, intermediate)) {
-          first_jobs.push_back({&exact_entries[s * offset_count + d], intermediate});
-        }
-      }
-    }
-  }
-  parallelFor(first_jobs.size(), [&](std::size_t i) {
-      FirstJob & job = first_jobs[i];
-      job.leg->join = job.end;
-      job.leg->valid = connect(job.leg->path, start, job.end, job.leg->max_abs_d);
+      sampled[i].join = end;
+      sampled[i].valid = connect(sampled[i].path, start, end, sampled[i].max_abs_d);
     });
 
-  struct CompletionJob
-  {
-    const FirstLeg * leg = nullptr;
-    FrenetBoundary horizon;
-    double intermediate_s = 0.0;
-    double passing_d = 0.0;
-    double terminal_d = 0.0;
-    bool offset_tail = false;
-    double tail_distance = 0.0;
-  };
-  std::vector<CompletionJob> completions;
-  completions.reserve(station_count * offset_count * offset_count * heading_count);
-  for (std::size_t s = 0; s < station_count; ++s) {
-    if (!stations[s].ok) {
-      continue;
-    }
-    for (std::size_t d = 0; d < offset_count; ++d) {
-      for (std::size_t horizon_i = 0; horizon_i < offset_count; ++horizon_i) {
-        // Both legs stay on one side of the raceline.  Selection ranks on
-        // |passing_d| and relies on this: no candidate reaching it straddles.
-        if (lateral_offsets[d] * lateral_offsets[horizon_i] <= 0.0) {
-          continue;
-        }
-        FrenetBoundary horizon;
-        if (!boundary(horizon_s, lateral_offsets[horizon_i], 0.0, horizon)) {
-          continue;
-        }
-        for (std::size_t h = 0; h < heading_count; ++h) {
-          const FirstLeg & leg = first_legs[(s * offset_count + d) * heading_count + h];
-          if (!leg.valid) {
-            continue;
-          }
-          completions.push_back({
-              &leg, horizon, stations[s].intermediate_s,
-              lateral_offsets[d], lateral_offsets[horizon_i], false, 0.0});
-        }
+  std::vector<ManeuverCandidate> slots(chains.size());
+  std::vector<char> slot_ok(chains.size(), 0);
+  parallelFor(chains.size(), [&](std::size_t i) {
+      const ChainSpec & chain = chains[i];
+      const Prefix & prefix = sampled[chain_prefix[i]];
+      if (!prefix.valid) {
+        return;
       }
-
-      const FirstLeg * const entry = has_zero_heading ?
-        &first_legs[(s * offset_count + d) * heading_count + zero_heading_index] :
-        &exact_entries[s * offset_count + d];
-      if (entry->valid) {
-        completions.push_back({
-            entry, FrenetBoundary{}, stations[s].intermediate_s,
-            lateral_offsets[d], lateral_offsets[d], true,
-            config_.horizon_m - stations[s].progress});
+      Path path = prefix.path;
+      double max_abs_d = prefix.max_abs_d;
+      FrenetBoundary join = prefix.join;
+      for (std::size_t w = 1; w < chain.waypoints.size(); ++w) {
+        const Waypoint & waypoint = chain.waypoints[w];
+        FrenetBoundary end;
+        if (!boundary(waypoint.s, waypoint.d, waypoint.heading_offset, end) ||
+          !connect(path, join, end, max_abs_d))
+        {
+          return;
+        }
+        join = end;
       }
-    }
-  }
-
-  std::vector<ManeuverCandidate> slots(completions.size());
-  std::vector<char> slot_ok(completions.size(), 0);
-  parallelFor(completions.size(), [&](std::size_t i) {
-      const CompletionJob & job = completions[i];
-      Path path = job.leg->path;
-      double max_abs_d = job.leg->max_abs_d;
-      const bool ok = job.offset_tail ?
-      appendOffsetTail(path, job.intermediate_s, job.tail_distance, job.passing_d, max_abs_d) :
-      connect(path, job.leg->join, job.horizon, max_abs_d);
-      if (!ok) {
+      if (chain.append_tail &&
+        !appendOffsetTail(
+          path, chain.tail_start_s, chain.tail_distance_m, chain.tail_d, max_abs_d))
+      {
+        return;
+      }
+      if (chain.side != 0 && !staysOnSide(path, chain.side)) {
         return;
       }
       slots[i] = {
-        std::move(path), job.passing_d, job.terminal_d, config_.horizon_m,
-        max_abs_d, job.offset_tail};
+        std::move(path), chain.passing_d, chain.terminal_d, chain.maneuver_distance_m,
+        max_abs_d, chain.uses_offset_tail};
       slot_ok[i] = 1;
     });
 
+  std::vector<ManeuverCandidate> candidates;
   candidates.reserve(slots.size());
   for (std::size_t i = 0; i < slots.size(); ++i) {
     if (slot_ok[i]) {
@@ -387,110 +309,109 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   return candidates;
 }
 
-std::vector<ManeuverCandidate> ManeuverBuilder::pass(
+std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   const BoundaryState & ego,
   double ego_s,
-  double ego_d) const
+  double ego_d,
+  double opponent_rear_s) const
 {
-  std::vector<ManeuverCandidate> candidates;
-  const int side = sideOf(ego_d);
-  if (!reference_.valid() || side == 0 || !prepareWindow(ego, ego_s)) {
-    return candidates;
-  }
   FrenetBoundary start;
-  if (!startBoundary(ego, ego_s, ego_d, start)) {
-    return candidates;
+  if (!beginGeneration(ego, ego_s, ego_d, start)) {
+    return {};
   }
-  // Every offset on our side is a candidate, and selection picks the smallest
-  // one that is clear.  The target deliberately does not depend on ego_d: a
-  // target derived from the measured offset ratchets outward, because tracking
-  // error pushes ego past the current offset, which promotes the next offset
-  // out, which the quintic then overshoots.  ego_d picks the side and seeds the
-  // start boundary; it does not choose the width.
-  const double target_s = reference_.wrapS(ego_s + config_.horizon_m);
-  for (double target_d : offsets(side)) {
-    FrenetBoundary target;
-    Path path;
-    double max_abs_d = 0.0;
-    if (boundary(target_s, target_d, 0.0, target) && connect(path, start, target, max_abs_d)) {
-      if (staysOnSide(path, side)) {
-        candidates.push_back(
-          {std::move(path), target_d, target_d, config_.horizon_m, max_abs_d, false});
+  const double horizon_s = reference_.wrapS(ego_s + config_.horizon_m);
+  const std::vector<double> lateral_offsets = offsets(0);
+  std::vector<ChainSpec> chains;
+  for (double s_offset : config_.overtake_s_offsets_from_opponent_rear_m) {
+    const double intermediate_s = reference_.wrapS(opponent_rear_s + s_offset);
+    const double progress = reference_.deltaS(ego_s, intermediate_s);
+    if (!(progress > 0.0 && progress < config_.horizon_m)) {
+      continue;
+    }
+    for (double passing_d : lateral_offsets) {
+      for (double terminal_d : lateral_offsets) {
+        if (passing_d * terminal_d <= 0.0) {
+          continue;
+        }
+        for (double heading : config_.overtake_heading_offsets_rad) {
+          chains.push_back({
+              {{intermediate_s, passing_d, heading}, {horizon_s, terminal_d, 0.0}},
+              passing_d, terminal_d, config_.horizon_m, false});
+        }
       }
+      chains.push_back({
+          {{intermediate_s, passing_d, 0.0}},
+          passing_d, passing_d, config_.horizon_m, true, 0, true,
+          intermediate_s, config_.horizon_m - progress, passing_d});
     }
   }
-  return candidates;
+  return sampleChains(start, chains);
+}
+
+std::vector<ManeuverCandidate> ManeuverBuilder::pass(
+  const BoundaryState & ego, double ego_s, double ego_d) const
+{
+  const int side = sideOf(ego_d);
+  if (side == 0) {
+    return {};
+  }
+  FrenetBoundary start;
+  if (!beginGeneration(ego, ego_s, ego_d, start)) {
+    return {};
+  }
+  const double target_s = reference_.wrapS(ego_s + config_.horizon_m);
+  std::vector<ChainSpec> chains;
+  for (double target_d : offsets(side)) {
+    chains.push_back({
+        {{target_s, target_d, 0.0}},
+        target_d, target_d, config_.horizon_m, false, side});
+  }
+  return sampleChains(start, chains);
 }
 
 std::vector<ManeuverCandidate> ManeuverBuilder::recover(
-  const BoundaryState & ego,
-  double ego_s,
-  double ego_d) const
+  const BoundaryState & ego, double ego_s, double ego_d) const
 {
-  std::vector<ManeuverCandidate> candidates;
   const int side = sideOf(ego_d);
-  if (!reference_.valid() || side == 0 || !prepareWindow(ego, ego_s)) {
-    return candidates;
+  if (side == 0) {
+    return {};
   }
   FrenetBoundary start;
-  if (!startBoundary(ego, ego_s, ego_d, start)) {
-    return candidates;
+  if (!beginGeneration(ego, ego_s, ego_d, start)) {
+    return {};
   }
-  const std::vector<double> allowed_offsets = offsets(side);
+  std::vector<ChainSpec> chains;
   for (double transition : config_.pass_transition_distances_m) {
-    // pass() already connects to every same-side offset over the full horizon,
-    // so a full-horizon recovery leg would only duplicate that geometry.  What
-    // recovery adds is the shorter transitions.
     if (std::abs(transition - config_.horizon_m) <= kTolerance) {
       continue;
     }
-    for (double d : allowed_offsets) {
+    for (double d : offsets(side)) {
       const double target_s = reference_.wrapS(ego_s + transition);
-      FrenetBoundary target;
-      Path path;
-      double max_abs_d = 0.0;
-      if (boundary(target_s, d, 0.0, target) &&
-        connect(path, start, target, max_abs_d) &&
-        appendOffsetTail(path, target_s, config_.horizon_m - transition, d, max_abs_d))
-      {
-        if (staysOnSide(path, side)) {
-          candidates.push_back(
-            {std::move(path), d, d, transition, max_abs_d,
-              transition < config_.horizon_m - kTolerance});
-        }
-      }
+      chains.push_back({
+          {{target_s, d, 0.0}},
+          d, d, transition, transition < config_.horizon_m - kTolerance, side, true,
+          target_s, config_.horizon_m - transition, d});
     }
   }
-  return candidates;
+  return sampleChains(start, chains);
 }
 
 std::vector<ManeuverCandidate> ManeuverBuilder::merge(
-  const BoundaryState & ego,
-  double ego_s,
-  double ego_d) const
+  const BoundaryState & ego, double ego_s, double ego_d) const
 {
-  std::vector<ManeuverCandidate> candidates;
-  if (!reference_.valid() || !prepareWindow(ego, ego_s)) {
-    return candidates;
-  }
   FrenetBoundary start;
-  if (!startBoundary(ego, ego_s, ego_d, start)) {
-    return candidates;
+  if (!beginGeneration(ego, ego_s, ego_d, start)) {
+    return {};
   }
+  std::vector<ChainSpec> chains;
   for (double completion : config_.merge_completion_distances_m) {
     const double target_s = reference_.wrapS(ego_s + completion);
-    FrenetBoundary target;
-    Path path;
-    double max_abs_d = 0.0;
-    if (boundary(target_s, 0.0, 0.0, target) &&
-      connect(path, start, target, max_abs_d) &&
-      appendOffsetTail(path, target_s, config_.horizon_m - completion, 0.0, max_abs_d))
-    {
-      candidates.push_back(
-        {std::move(path), 0.0, 0.0, completion, max_abs_d, false});
-    }
+    chains.push_back({
+        {{target_s, 0.0, 0.0}},
+        0.0, 0.0, completion, false, 0, true,
+        target_s, config_.horizon_m - completion, 0.0});
   }
-  return candidates;
+  return sampleChains(start, chains);
 }
 
 } // namespace local_planning
