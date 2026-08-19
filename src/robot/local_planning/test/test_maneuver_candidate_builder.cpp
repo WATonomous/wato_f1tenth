@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <stdexcept>
 #include <vector>
 
 namespace local_planning
@@ -120,15 +121,11 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
   ManeuverConfig config;
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.passing_d_magnitudes_m = {0.55};
-  config.overtake_heading_offsets_rad = {0.15};
+  config.overtake_heading_offsets_rad = {0.15, 0.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
   const std::vector<ManeuverCandidate> candidates =
     builder.overtake(egoAt(reference, 2.0, 0.0), 2.0, 0.0, 5.0);
-  // Four, not the old six: the (curvature mode) axis of the product is gone.
-  // It existed as a solver hedge, and with d'' = 0 both of its values request
-  // the same boundary, so it was producing exact duplicates.
-  ASSERT_EQ(candidates.size(), 4u);
   const ReferenceGeometrySample reference_sample = reference.sampleAtS(5.0);
   for (double d : {-0.55, 0.55}) {
     // d'' = 0 at the intermediate boundary gives kappa_ref / (1 - d kappa_ref)
@@ -137,7 +134,18 @@ TEST(ManeuverBuilder, OvertakeConnectsViaAnOffsetIntermediateTarget)
       reference_sample.curvature / (1.0 - d * reference_sample.curvature);
     std::vector<const ManeuverCandidate *> two_leg;
     for (const ManeuverCandidate & candidate : candidates) {
-      if (!candidate.uses_offset_tail && std::abs(candidate.passing_d - d) <= 1e-8) {
+      if (candidate.uses_offset_tail || std::abs(candidate.passing_d - d) > 1e-8) {
+        continue;
+      }
+      const CurveSample * const intermediate =
+        sampleAt(candidate.path, reference.toCartesian(5.0, d));
+      if (intermediate == nullptr) {
+        continue;
+      }
+      const double heading_error = std::atan2(
+        std::sin(intermediate->heading - reference_sample.heading),
+        std::cos(intermediate->heading - reference_sample.heading));
+      if (std::abs(heading_error - 0.15) <= 1e-8) {
         two_leg.push_back(&candidate);
       }
     }
@@ -175,8 +183,7 @@ TEST(ManeuverBuilder, OvertakeOffsetTailsAreExactAndG2Continuous)
   ManeuverConfig config;
   config.overtake_s_offsets_from_opponent_rear_m = {0.0};
   config.passing_d_magnitudes_m = {0.55};
-  // The exact-tail entry is intentionally independent of this exploratory grid.
-  config.overtake_heading_offsets_rad = {0.15};
+  config.overtake_heading_offsets_rad = {0.15, 0.0};
   const ManeuverBuilder builder = makeBuilder(reference, config);
 
   const auto candidates = builder.overtake(
@@ -483,6 +490,15 @@ TEST(ManeuverBuilder, OvertakeGeneratesAllConfiguredOffsetsAndPassOffersItsSide)
       pass.begin(), pass.end(), [](const ManeuverCandidate & candidate) {
         return candidate.terminal_d > 0.0;
       }));
+}
+
+TEST(ManeuverBuilder, RequiresZeroHeadingOffset)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ManeuverConfig config;
+  config.overtake_heading_offsets_rad = {0.15};
+  EXPECT_THROW(makeBuilder(reference, config), std::invalid_argument);
 }
 
 TEST(ManeuverBuilder, MergeGeneratesWithoutInjectedWidthCaps)
