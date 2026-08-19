@@ -15,9 +15,6 @@ namespace
 {
 
 constexpr double kTolerance = kGridEps;
-// Past this the heading error is effectively perpendicular to the reference and
-// tan() stops being a usable encoding of it.  The generator's max_path_angle_deg
-// rejects long before here; this only keeps the arithmetic finite.
 constexpr double kMaxStartHeadingErrorRad = 1.5;
 
 void removeDuplicates(std::vector<double> & values)
@@ -53,12 +50,13 @@ ManeuverBuilder::ManeuverBuilder(
     std::greater<double>());
   removeDuplicates(config_.merge_completion_distances_m);
 
+  //we need 0 for a branch in my code
   const bool has_zero_heading = std::any_of(
     config_.overtake_heading_offsets_rad.begin(),
     config_.overtake_heading_offsets_rad.end(),
     [](double heading) {return std::abs(heading) <= kTolerance;});
   if (!has_zero_heading) {
-    throw std::invalid_argument("overtake_heading_offsets_rad must include 0.0");
+    throw std::invalid_argument("overtake_heading_offsets_rad must have 0.0");
   }
 }
 
@@ -69,6 +67,10 @@ bool ManeuverBuilder::prepareWindow(const BoundaryState & ego, double ego_s) con
     reference_, ego_s, config_.horizon_m, curve_generator_.config().sample_spacing_m);
 }
 
+
+/*
+convert vehicle state into frenet conditions
+*/
 bool ManeuverBuilder::startBoundary(
   const BoundaryState & ego,
   double ego_s,
@@ -99,6 +101,7 @@ bool ManeuverBuilder::startBoundary(
   return std::isfinite(result.d_prime) && std::isfinite(result.d_double_prime);
 }
 
+//generalized case of above except this is desired the above is measured 
 bool ManeuverBuilder::boundary(
   double s,
   double d,
@@ -121,6 +124,7 @@ bool ManeuverBuilder::boundary(
   return std::isfinite(result.d_prime);
 }
 
+//builds the frenet curve connecting the stuff
 bool ManeuverBuilder::connect(
   Path & path,
   const FrenetBoundary & start,
@@ -145,7 +149,7 @@ bool ManeuverBuilder::connect(
   max_abs_d = std::max(max_abs_d, result.max_abs_d);
   return true;
 }
-
+  //add the offset raceline tail at coordinates s,d for a particular distance
 bool ManeuverBuilder::appendOffsetTail(
   Path & path,
   double start_s,
@@ -156,35 +160,23 @@ bool ManeuverBuilder::appendOffsetTail(
   if (path.empty()) {
     return false;
   }
-  // A full-horizon transition leaves no tail to append.  That is success with
-  // nothing to do, not a failure: the path already ends where the tail would
-  // have started.  (MERGE's longest completion distance lands here; PASS
-  // recovery now skips its full-horizon entry outright, since pass() covers it.)
+  // A full-horizon transition leaves no tail to append.  That is success
   if (reference_distance_m <= kTolerance) {
     return true;
   }
-  // A constant offset is just a connection whose two boundaries agree, so this
-  // is the same sampler and the same code path as every other leg.  The join is
-  // C2 by construction: the leg that ended here ended with d' = d'' = 0 at this
-  // same d, which is precisely what these boundaries request.  That is what
-  // makes the old matches() continuity gate unnecessary rather than merely
-  // loose.
+
   const FrenetBoundary start{start_s, d, 0.0, 0.0};
   const FrenetBoundary end{start_s + reference_distance_m, d, 0.0, 0.0};
   return connect(path, start, end, max_abs_d);
 }
 
+//come back to this idk if I like how im treating this
 bool ManeuverBuilder::staysOnSide(const Path & path, int side) const
 {
   const double deadband = vehicle_geometry_.fullWidthM();
   for (const CurveSample & sample : path) {
-    // sample.d is exact and free: it is the quantity the curve was planned in.
-    // This used to be a Newton refinement per sample with a windowed-search
-    // fallback, which at two sweeps per candidate was the dominant cost of
-    // PASS.
-    //
-    // Inside ±deadband is still "on the line"; only reject a clear
-    // opposite-side excursion beyond one vehicle width.
+
+    // Inside deadband is still "on the line";
     if (side * sample.d <= -deadband) {
       return false;
     }
@@ -199,6 +191,7 @@ std::vector<double> ManeuverBuilder::offsets(int side) const
     if (side != 0 && sign != side) {
       continue;
     }
+    //only add the things that are actually on my side 
     for (double magnitude : config_.passing_d_magnitudes_m) {
       result.push_back(sign * magnitude);
     }
@@ -214,6 +207,7 @@ int ManeuverBuilder::sideOf(double d) const
   return d > 0.0 ? 1 : -1;
 }
 
+//determines if we have a valid start 
 bool ManeuverBuilder::beginGeneration(
   const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & start) const
 {
@@ -221,6 +215,9 @@ bool ManeuverBuilder::beginGeneration(
          startBoundary(ego, ego_s, ego_d, start);
 }
 
+/*
+  convert maneuver descriptions (ChainSpec) into actual sampled paths
+*/
 std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
   const FrenetBoundary & start, const std::vector<ChainSpec> & chains) const
 {
@@ -232,6 +229,9 @@ std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
              std::abs(a.d - b.d) <= kTolerance &&
              std::abs(a.heading_offset - b.heading_offset) <= kTolerance;
     };
+
+
+  //get all the unique waypoints 
   for (std::size_t i = 0; i < chains.size(); ++i) {
     const std::size_t found = [&]() {
         const Waypoint & first = chains[i].waypoints.front();
@@ -253,16 +253,22 @@ std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
     double max_abs_d = 0.0;
     bool valid = false;
   };
+
+  //one result per unique prefix
   std::vector<Prefix> sampled(prefixes.size());
+
+  //generate all unique first legs in parallel
   parallelFor(prefixes.size(), [&](std::size_t i) {
       FrenetBoundary end;
       if (!boundary(prefixes[i].s, prefixes[i].d, prefixes[i].heading_offset, end)) {
         return;
       }
+      //convert prefix waypoints ito frenet boundary
       sampled[i].join = end;
       sampled[i].valid = connect(sampled[i].path, start, end, sampled[i].max_abs_d);
     });
-
+    //atp all shared first legs have been computed
+    //now we generate all second leg chains
   std::vector<ManeuverCandidate> slots(chains.size());
   std::vector<char> slot_ok(chains.size(), 0);
   parallelFor(chains.size(), [&](std::size_t i) {
@@ -308,6 +314,13 @@ std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
   }
   return candidates;
 }
+
+/*
+all the difficult logic was before now all we do is basically get
+stuff in the chainspec format for each mode and then use that
+all the bottom functions are just how do we represent our data 
+so the generic function above can just iterate through and build stuff
+*/
 
 std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
   const BoundaryState & ego,

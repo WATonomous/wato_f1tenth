@@ -6,38 +6,27 @@
 #include <cmath>
 #include <limits>
 
+
+/*
+  Make sure the way we treat loops is the same like if
+  we duplicate the start and end point
+*/
 namespace local_planning
 {
 namespace
 {
 
 constexpr double kEpsilon = kSplineEps;
-// Minimum waypoints for a meaningful periodic cubic.
-constexpr std::size_t kMinWaypoints = 4;
-// Two waypoints closer than this are the same point, not a real segment.
+constexpr std::size_t kMinWaypoints = 4; //for a meaningful spline
 constexpr double kDuplicateWaypointToleranceM = 1e-6;
-// Coarse samples per segment before Newton refinement.  Segments are ~0.2 m, so
-// this brackets the true foot well inside the basin where Newton converges.
-constexpr int kCoarseSamplesPerSegment = 4;
+
+constexpr int kCoarseSamplesPerSegment = 4; //samples per segment before newton refinement
 constexpr int kNewtonIterations = 8;
-// A wrapped angle difference never exceeds pi, so a tolerance at or above it
-// accepts everything.  This is the top of the escalation ladder and the value
-// callers pass when the query point has no heading of its own.
 constexpr double kTangentCheckDisabled = kPi;
-// Ceiling on the escalation ladder.  A foot more than a quarter turn off the
-// query heading points backwards relative to it, which is never a defensible
-// answer for a local projection however badly the car is sliding.  It is also
-// exactly the bound that keeps the rungs discriminating: a tolerance at or
-// under pi/2 admits the antiparallel foot only when the heading is at least
-// pi/2 off the correct one, so below that the two can never both pass.
-constexpr double kMaxTangentToleranceRad = kPi / 2.0;
-// Floor on the configured tolerance, so the ladder always makes progress.
+constexpr double kMaxTangentToleranceRad = kPi / 2.0; //this should lowkey be smaller cant even lie twin
 constexpr double kMinTangentToleranceRad = 0.05;
 
-// Solves the cyclic tridiagonal system for a periodic cubic spline's second
-// derivatives.  sub/diag/super are the three bands; corner_top_right and
-// corner_bottom_left close the loop.  Sherman-Morrison reduces it to two
-// ordinary tridiagonal solves.
+// Solves the cyclic tridiagonal system for a periodic cubic spline's second derivatives. 
 std::vector<double> solveCyclicTridiagonal(
   const std::vector<double> & sub,
   const std::vector<double> & diag,
@@ -91,8 +80,7 @@ std::vector<double> solveCyclicTridiagonal(
   return x;
 }
 
-// Second derivatives of the periodic cubic through `values`.  h[i] is the
-// length of segment i, which wraps from the last waypoint back to the first.
+// Second derivatives of the periodic cubic through `values`. 
 std::vector<double> secondDerivatives(
   const std::vector<double> & values,
   const std::vector<double> & h)
@@ -121,12 +109,7 @@ std::vector<double> secondDerivatives(
 
 } // namespace
 
-SustainableBounds SustainableBounds::unbounded()
-{
-  const double infinity = std::numeric_limits<double>::infinity();
-  return {infinity, infinity};
-}
-
+//when you get a new raceline
 bool RacelineReference::setRacingLine(const std::vector<Point> & points)
 {
   clearTrackWidths();
@@ -138,10 +121,7 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
   spline_y_.clear();
   total_length_m_ = 0.0;
 
-  // Some exporters repeat the first waypoint to close the loop.  The loop is
-  // implicit here, and keeping the repeat leaves a zero-length segment that
-  // makes the spline system singular.  Remember that we dropped it so
-  // setTrackWidths() can accept the matching, still-closed width vector.
+ //we need to drop the duplicate waypoint to make the system full rank
   dropped_closing_waypoint_ = false;
   points_ = points;
   if (points_.size() >= 2 &&
@@ -211,15 +191,15 @@ void RacelineReference::clearTrackWidths()
   raw_left_m_.clear();
 }
 
+/*
+build a lookup table for left and right space along the raceline
+*/
 bool RacelineReference::setTrackWidths(
   const std::vector<TrackWidth> & widths,
   double requested_spacing_m)
 {
   clearTrackWidths();
-  // A closed-loop export carries one width per original waypoint, including
-  // the repeated closing waypoint that setRacingLine() dropped.  That trailing
-  // width duplicates the first and is simply ignored; interpolation below only
-  // indexes widths [0, points_.size()).
+
   const std::size_t expected_count =
     points_.size() + (dropped_closing_waypoint_ ? 1U : 0U);
   if (!valid_ ||
@@ -252,7 +232,11 @@ bool RacelineReference::setTrackWidths(
   track_widths_valid_ = true;
   return true;
 }
-
+/*
+get the spacing for a point you cant currently see
+the idea is that you only have one opponent so everywhere else that is supposed to be
+free is free 
+*/
 SustainableBounds RacelineReference::rawBounds(double s) const
 {
   if (!track_widths_valid_) {
@@ -302,9 +286,10 @@ double RacelineReference::deltaS(double from_s, double to_s) const
   return delta;
 }
 
+//get the start of the segment in s value and the t value is the distance along the segment
 std::size_t RacelineReference::segmentAt(double s_wrapped, double & t) const
 {
-  // cumulative_s_ is sorted; find the last knot at or before s.
+  // cumulative_s_ is sorted find the last knot at or before s.
   const auto upper = std::upper_bound(cumulative_s_.begin(), cumulative_s_.end(), s_wrapped);
   std::size_t index = static_cast<std::size_t>(upper - cumulative_s_.begin());
   index = (index == 0) ? 0 : index - 1;
@@ -320,6 +305,10 @@ double RacelineReference::velocityOnSegment(std::size_t i, double t) const
   return points_[i].velocity + alpha * (points_[next].velocity - points_[i].velocity);
 }
 
+
+/*
+  calculate a bunch of info about all the geometric properties at point s
+*/
 ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
 {
   ReferenceGeometrySample sample;
@@ -356,15 +345,7 @@ ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
   const double cross = dx * ddy - dy * ddx;
   sample.curvature = cross / (speed_sq * speed);
 
-  // dk/ds analytically, from coefficients this function has already loaded.
-  // The third derivative of a cubic segment is the constant 6*d, so this is
-  // eight flops on top of the curvature -- no second spline search, no second
-  // polynomial evaluation.  A central difference would have cost two more
-  // sampleAtS() calls for a strictly worse number, since k' genuinely steps at
-  // the knots and differencing would only blur the step.
-  //
-  // k = cross / q^(3/2) with q = speed_sq, so dk/dt = (cross' q - 3 cross dot)
-  // / q^(5/2), and dk/ds divides that by ds/dt = q^(1/2).
+  
   const double dddx = 6.0 * sx.d;
   const double dddy = 6.0 * sy.d;
   const double cross_derivative = dx * dddy - dy * dddx;   // the ddx*ddy terms cancel
@@ -396,7 +377,10 @@ Point RacelineReference::toCartesian(double s, double d) const
     sample.y + d * sample.normal_y,
     sample.velocity);
 }
-
+/*
+  once we lock in on a segment we can refine to find the best point
+  along it
+*/
 double RacelineReference::refineOnSegment(
   const Point & p,
   std::size_t segment,
@@ -425,8 +409,9 @@ double RacelineReference::refineOnSegment(
     }
 
     const double step = f / df;
+    //clamp steps to prevent diabolical jumps
     const double next_t = std::clamp(t - step, 0.0, h);
-    if (std::abs(next_t - t) < 1e-10) {
+    if (std::abs(next_t - t) < 1e-5) { 
       t = next_t;
       break;
     }
@@ -435,6 +420,8 @@ double RacelineReference::refineOnSegment(
   return t;
 }
 
+
+//similiar to above but consider angle too
 bool RacelineReference::scanSegment(
   const Point & p,
   double heading,
@@ -473,6 +460,7 @@ bool RacelineReference::scanSegment(
   return improved;
 }
 
+//same as above but over multiple segments
 Projection RacelineReference::searchArc(
   const Point & p,
   double heading,
@@ -504,6 +492,7 @@ Projection RacelineReference::searchArc(
   return best;
 }
 
+//globla search
 Projection RacelineReference::searchAllSegments(
   const Point & p,
   double heading,
@@ -536,40 +525,17 @@ Projection RacelineReference::project(
   const double gate_sq = projection_config_.max_plausible_offset_m *
     projection_config_.max_plausible_offset_m;
 
-  // A heading that agrees with no foot in the window means one of two things,
-  // and they want opposite responses.  Either ego is sliding or cutting hard
-  // across the reference, in which case the window is still right and only the
-  // heading has stopped being informative; or the seed has stopped tracking ego
-  // and the window is looking at the wrong stretch of track entirely.  Widening
-  // the angle answers the first.  The distance gate separates it from the
-  // second, because a stale seed leaves the nearest foot in the window far
-  // outside any offset the car could really be at.
-  //
-  // The ladder is capped at kMaxTangentToleranceRad, never run to pi and never
-  // ended with the check switched off.  Two reasons, and the weaker one is the
-  // obvious one: a window that has refused every tier is a window we already
-  // doubt, so disabling the check there is how a stale seed parked on the
-  // return branch of a hairpin gets accepted locally -- the antiparallel foot
-  // is the only one present, and with nothing to reject it, it wins.  Capping
-  // means such a window runs out of tiers and escalates instead.
-  //
-  // The stronger reason is that pi would be the wrong cap even without that.
-  // It only rejects a foot that is *exactly* reversed; one a hundred degrees
-  // off still passes, and that is a foot pointing backwards relative to ego.
-  // A quarter turn is the point past which no amount of slide justifies calling
-  // the foot ego's own, so the ladder stops there and lets the distance gate
-  // and the global search handle the rest.
-  //
-  // The gate applies to the strict tier too.  That is a change in kind, not
-  // just in degree: a stale seed whose window happens to contain a
-  // heading-compatible foot used to be returned silently, and is now caught.
+  // Relax the heading check for sliding or aggressive cornering, but keep a
+  // distance gate to reject stale seed windows. Never disable the heading
+  // check; failed local searches fall back to the global search.
   const double base_tolerance = std::clamp(
     projection_config_.tangent_tolerance_rad,
     kMinTangentToleranceRad,
     kMaxTangentToleranceRad);
   bool relaxed = false;
   for (double tolerance = base_tolerance; ;
-    tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad))
+    tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad)) //this is a little chopped
+    //we might want kMaxTangentToleranceRad to be smaller pi/2 is obviously pushing it
   {
     bool found = false;
     double best_dist_sq = std::numeric_limits<double>::max();
@@ -585,7 +551,7 @@ Projection RacelineReference::project(
     relaxed = true;
   }
 
-  // The window itself is wrong: initialization, relocalization, or ego jumped.
+  // The seed window is stale or invalid; use the global search.
   Projection result = projectGlobal(p, heading, base_tolerance);
   result.seed_was_stale = true;
   return result;
