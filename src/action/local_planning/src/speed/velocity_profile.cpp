@@ -161,30 +161,16 @@ VelocityProfileResult assignVelocityProfile(
     speeds[prev_index] = std::min(speeds[prev_index], allowed_velocity);
   }
 
-  // After the backward pass, speeds[0] is the highest start that can still
-  // satisfy the future constraints.  A faster measured start used to reject the
-  // candidate outright, and that was the single largest source of empty
-  // candidate pools: being too fast for a path is not a property of the path,
-  // it is a request to decelerate, and speeds[0] already says by how much.
-  // Rejecting instead left the car on the braking family -- which is exempt
-  // from this function for exactly this reason -- so the one rule that made
-  // braking usable was the rule denied to every family competing with it.
-  //
-  // speeds[0] is deliberately NOT the measured speed: the controller reads the
-  // speed of the sample nearest the car, and these paths start at the car, so
-  // pinning the measurement there made the command an echo of the measurement
-  // -- v_cmd == v_measured, a fixed point with no authority to accelerate.  At
-  // a standstill that is a hard deadlock: 0 in, 0 out, the car never moves.
-  //
-  // Leaving speeds[0] at the backward-pass ceiling means the near sample
-  // commands "the fastest you are allowed to be here given what is ahead".
-  // When the car is above that ceiling the command is now a slowdown the
-  // controller can act on, which is the behaviour braking already had.
-  //
-  // start_velocity_mps therefore no longer gates admission.  It is still
-  // validated as finite above, because a NaN measurement means the odometry
-  // this path was anchored to is untrustworthy.
+/*
+IMPORTANT: Make it like backward pass initial velocity must be 1m/s or smth
+like that above my current velocity like it needs to be within a range to be valid
+i dont like the current behaviour I think its dangerous
+smth like this ]
 
+if (start_velocity_mps > speeds[0] + tolerance) {
+  return reject();
+}
+*/
   const double max_accel = config.max_accel_mps2;
   for (std::size_t i = 1; i < path.size(); ++i) {
     const double ds = segment_lengths[i - 1];

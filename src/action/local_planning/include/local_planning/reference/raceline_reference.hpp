@@ -54,8 +54,6 @@ struct SustainableBounds
 {
   double right_magnitude = 0.0;
   double left_magnitude = 0.0;
-
-  static SustainableBounds unbounded();
 };
 
 struct WidthLookupSample

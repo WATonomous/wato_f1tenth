@@ -219,19 +219,13 @@ CollisionCheckResult CollisionChecker::collisionCheck(
   const double soft_inflation_distance_m = std::max(0.0, config_.soft_inflation_distance_m);
   const double cell_half_diagonal = 0.5 * std::sqrt(2.0) * resolution;
   const double front_offset_m = vehicle_geometry_.front_circle_offset_m;
-  // The EDT is piecewise-constant per cell, so samples finer than the grid
-  // repeat the same lookup.  Walk at cell size; coarser path samples are still
-  // densified up to this step so a long chord cannot skip an occupied cell.
+
   const double max_step_m = resolution;
 
   CollisionStatus aggregated_status = CollisionStatus::FREE;
   double minimum_clearance_m = std::numeric_limits<double>::infinity();
   uint32_t checked_poses = 0;
 
-  // One circle vs the EDT. This is the old collisionCheckPose body, minus the
-  // per-call reload of resolution / radius / EDT pointer (those are locals
-  // above) and minus the sin/cos that placed the front circle (the caller
-  // passes the center already).
   auto checkCircle = [&](double x, double y) -> CollisionStatus {
       const int col = static_cast<int>(std::floor((x - origin_x) / resolution));
       const int row = static_cast<int>(std::floor((y - origin_y) / resolution));
@@ -253,8 +247,7 @@ CollisionCheckResult CollisionChecker::collisionCheck(
     };
 
   // Rear circle at (x, y), front circle at (x, y) + (front_dx, front_dy).
-  // Returns false on OUT_OF_GRID so the path walk can abort. COLLISION on one
-  // pose still continues so the reported minimum_clearance_m is the worst pose.
+
   auto checkPose = [&](double x, double y, double front_dx, double front_dy) -> bool {
       ++checked_poses;
       const CollisionStatus rear_status = checkCircle(x, y);
@@ -313,8 +306,7 @@ CollisionCheckResult CollisionChecker::collisionCheck(
     seedFrontOffset(a.heading, front_dx, front_dy);
 
     for (int step = 0; step <= step_count; ++step) {
-      // Skip the shared endpoint already evaluated at the end of the previous
-      // segment, except for the first segment.
+      // Skip the shared endpoint already evaluated at the end of the prev
       if (!(i > 0 && step == 0)) {
         const double t = static_cast<double>(step) / static_cast<double>(step_count);
         const double x = a.x + t * dx;

@@ -12,6 +12,11 @@ namespace
 constexpr double kTolerance = kSpacingEps;
 }  // namespace
 
+
+/*
+sample the raceline from s start to s_start + length
+get position, tangent, normal, cruvature, speed along sampled points along racelien
+*/
 bool ReferenceWindow::build(
   const RacelineReference & reference,
   double s_start,
@@ -27,9 +32,7 @@ bool ReferenceWindow::build(
     return false;
   }
 
-  // Round the interval count up so the actual spacing is never coarser than
-  // requested; the caller's spacing is the costmap resolution and planning must
-  // not sample below it.
+  // Space points to the resolution of the costmap
   const auto interval_count = static_cast<std::size_t>(
     std::max(1.0, std::ceil(length_m / spacing_m - kTolerance)));
   s_start_ = s_start;

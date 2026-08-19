@@ -1,3 +1,33 @@
+/*
+ * RacingStateMachine coordinates the planner's tactical intent from the ego
+ * vehicle's position, raceline compatibility, and the nearest occupied
+ * station in the raceline corridor.  Each update projects the ego pose onto
+ * the raceline, refreshes opponent detection only for a new costmap, and
+ * recomputes the live longitudinal gap before selecting a proposed intent.
+ *
+ * The state machine uses four intents:
+ *   FOLLOW_RACING_LINE - remain on the raceline when the vehicle is compatible
+ *                         and no close opponent requires a maneuver.
+ *   OVERTAKE           - establish or maintain a lateral offset while the
+ *                         opponent is ahead and the gap is in the pass band.
+ *   PASS               - hold the established offset while alongside or ahead
+ *                         of the opponent; this state does not create an
+ *                         offset itself.
+ *   MERGE              - leave the maneuver and return toward the raceline,
+ *                         including when the ego vehicle is incompatible with
+ *                         the raceline or the opponent is no longer clear.
+ *
+ * proposedIntent() applies gap thresholds, raceline compatibility, and the
+ * current maneuver state to decide the next intent.  A proposal is not
+ * committed immediately: it must remain valid for the required confirmation
+ * duration and, when applicable, a number of distinct costmap observations.
+ * Fast transitions handle normal maneuver progression; slow transitions add
+ * extra evidence to prevent noisy localization or occupancy observations from
+ * causing state flapping.  Once confirmed, the intent is committed and all
+ * pending transition evidence is reset.  Invalid raceline data resets the
+ * machine to its default state.
+ */
+
 #include "local_planning/state/racing_state_machine.hpp"
 
 #include "local_planning/core/geometry.hpp"
@@ -145,8 +175,7 @@ void RacingStateMachine::resetEvidence()
   pending_last_grid_sequence_ = 0;
 }
 
-// Nearest occupied station in the raceline corridor. See PRD 5 "As built" for why
-// nearest-station is equivalent to grouping components and taking the near face.
+
 bool RacingStateMachine::detectOpponent(
   const OccupancyGrid & occupancy_grid,
   double ego_s,
@@ -162,7 +191,7 @@ bool RacingStateMachine::detectOpponent(
 
   bool found = false;
   double nearest_offset_m = 0.0;
-
+  //might need to change below to go all the way forward then all the way back idk
   // Forward first, so an equidistant tie resolves to the opponent ahead.
   for (const int direction : {1, -1}) {
     for (double offset = step; offset <= limit; offset += step) {
@@ -229,8 +258,7 @@ bool RacingStateMachine::isRacelineCompatible(
   double ego_s,
   double ego_d)
 {
-  // Computed before the lateral early-out so the telemetry is populated on
-  // every cycle, not only the ones that reach the heading test.
+
   const ReferenceGeometrySample sample = reference_.sampleAtS(ego_s);
   state_.heading_error_rad = shortestAngleDiff(ego_odom.heading, sample.heading);
 
@@ -258,20 +286,8 @@ PlannerIntent RacingStateMachine::proposedIntent(const Odometry & ego_odom) cons
     return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
   }
 
-  /*
-  PASS holds a lateral offset; it does not create one.  ManeuverBuilder::pass
-  and ::recover both return nothing while |d| is inside a vehicle width, so
-  entering PASS centred is entering a state that cannot generate geometry: the
-  pool is empty, there is no candidate for the braking fallback to slow along,
-  and the controller is handed an empty path and stops.  Stopping freezes the
-  gap, so PASS never releases either.
-
-  While the opponent is still ahead, the state that answers this is OVERTAKE --
-  it is the family that establishes the offset PASS then holds.  The gate is
-  restricted to gap > 0 on purpose: at overlap or once ego is ahead there is no
-  overtake to propose, PASS remains the correct intent, and an empty pool there
-  is a braking question rather than a state question.
-  */
+  /* OVERTAKE creates the lateral offset; PASS only maintains it.  Do not enter
+   * PASS while centred, because no valid maneuver geometry can be generated. */
   const bool displaced_for_pass =
     std::abs(state_.ego_d) > vehicle_geometry_.fullWidthM();
   const auto passUnlessCentred = [&](PlannerIntent centred_alternative) {
