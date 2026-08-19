@@ -7,26 +7,21 @@
 #include <limits>
 
 
-/*
-  Make sure the way we treat loops is the same like if
-  we duplicate the start and end point
-*/
 namespace local_planning
 {
 namespace
 {
 
 constexpr double kEpsilon = kSplineEps;
-constexpr std::size_t kMinWaypoints = 4; //for a meaningful spline
+constexpr std::size_t kMinWaypoints = 4;
 constexpr double kDuplicateWaypointToleranceM = 1e-6;
 
-constexpr int kCoarseSamplesPerSegment = 4; //samples per segment before newton refinement
+constexpr int kCoarseSamplesPerSegment = 4;
 constexpr int kNewtonIterations = 8;
 constexpr double kTangentCheckDisabled = kPi;
-constexpr double kMaxTangentToleranceRad = kPi / 2.0; //this should lowkey be smaller cant even lie twin
+constexpr double kMaxTangentToleranceRad = kPi / 2.0;
 constexpr double kMinTangentToleranceRad = 0.05;
 
-// Solves the cyclic tridiagonal system for a periodic cubic spline's second derivatives. 
 std::vector<double> solveCyclicTridiagonal(
   const std::vector<double> & sub,
   const std::vector<double> & diag,
@@ -42,7 +37,7 @@ std::vector<double> solveCyclicTridiagonal(
   modified_diag[0] -= gamma;
   modified_diag[n - 1] -= corner_bottom_left * corner_top_right / gamma;
 
-  // Thomas algorithm, run twice against the same modified matrix.
+  // Thomas algorithm on modified cyclic matrix.
   auto solve_tridiagonal = [&](const std::vector<double> & b) {
       std::vector<double> c_prime(n, 0.0);
       std::vector<double> d_prime(n, 0.0);
@@ -68,7 +63,6 @@ std::vector<double> solveCyclicTridiagonal(
   const std::vector<double> y = solve_tridiagonal(rhs);
   const std::vector<double> z = solve_tridiagonal(u);
 
-  // v = (1, 0, ..., 0, corner_top_right / gamma)
   const double v_dot_y = y[0] + corner_top_right / gamma * y[n - 1];
   const double v_dot_z = z[0] + corner_top_right / gamma * z[n - 1];
   const double factor = v_dot_y / (1.0 + v_dot_z);
@@ -80,7 +74,6 @@ std::vector<double> solveCyclicTridiagonal(
   return x;
 }
 
-// Second derivatives of the periodic cubic through `values`. 
 std::vector<double> secondDerivatives(
   const std::vector<double> & values,
   const std::vector<double> & h)
@@ -109,7 +102,6 @@ std::vector<double> secondDerivatives(
 
 } // namespace
 
-//when you get a new raceline
 bool RacelineReference::setRacingLine(const std::vector<Point> & points)
 {
   clearTrackWidths();
@@ -121,7 +113,6 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
   spline_y_.clear();
   total_length_m_ = 0.0;
 
- //we need to drop the duplicate waypoint to make the system full rank
   dropped_closing_waypoint_ = false;
   points_ = points;
   if (points_.size() >= 2 &&
@@ -191,9 +182,6 @@ void RacelineReference::clearTrackWidths()
   raw_left_m_.clear();
 }
 
-/*
-build a lookup table for left and right space along the raceline
-*/
 bool RacelineReference::setTrackWidths(
   const std::vector<TrackWidth> & widths,
   double requested_spacing_m)
@@ -232,11 +220,7 @@ bool RacelineReference::setTrackWidths(
   track_widths_valid_ = true;
   return true;
 }
-/*
-get the spacing for a point you cant currently see
-the idea is that you only have one opponent so everywhere else that is supposed to be
-free is free 
-*/
+
 SustainableBounds RacelineReference::rawBounds(double s) const
 {
   if (!track_widths_valid_) {
@@ -286,10 +270,8 @@ double RacelineReference::deltaS(double from_s, double to_s) const
   return delta;
 }
 
-//get the start of the segment in s value and the t value is the distance along the segment
 std::size_t RacelineReference::segmentAt(double s_wrapped, double & t) const
 {
-  // cumulative_s_ is sorted find the last knot at or before s.
   const auto upper = std::upper_bound(cumulative_s_.begin(), cumulative_s_.end(), s_wrapped);
   std::size_t index = static_cast<std::size_t>(upper - cumulative_s_.begin());
   index = (index == 0) ? 0 : index - 1;
@@ -306,9 +288,6 @@ double RacelineReference::velocityOnSegment(std::size_t i, double t) const
 }
 
 
-/*
-  calculate a bunch of info about all the geometric properties at point s
-*/
 ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
 {
   ReferenceGeometrySample sample;
@@ -345,10 +324,9 @@ ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
   const double cross = dx * ddy - dy * ddx;
   sample.curvature = cross / (speed_sq * speed);
 
-  
   const double dddx = 6.0 * sx.d;
   const double dddy = 6.0 * sy.d;
-  const double cross_derivative = dx * dddy - dy * dddx;   // the ddx*ddy terms cancel
+  const double cross_derivative = dx * dddy - dy * dddx;
   const double dot = dx * ddx + dy * ddy;
   sample.curvature_derivative =
     (cross_derivative * speed_sq - 3.0 * cross * dot) /
@@ -377,10 +355,7 @@ Point RacelineReference::toCartesian(double s, double d) const
     sample.y + d * sample.normal_y,
     sample.velocity);
 }
-/*
-  once we lock in on a segment we can refine to find the best point
-  along it
-*/
+
 double RacelineReference::refineOnSegment(
   const Point & p,
   std::size_t segment,
@@ -399,7 +374,7 @@ double RacelineReference::refineOnSegment(
     const double ddx = 2.0 * sx.c + 6.0 * t * sx.d;
     const double ddy = 2.0 * sy.c + 6.0 * t * sy.d;
 
-    // Foot of the perpendicular: (P(t) - p) . P'(t) = 0.
+    // Foot of perpendicular: (P(t) - p) . P'(t) = 0
     const double rx = x - p.x;
     const double ry = y - p.y;
     const double f = rx * dx + ry * dy;
@@ -409,7 +384,6 @@ double RacelineReference::refineOnSegment(
     }
 
     const double step = f / df;
-    //clamp steps to prevent diabolical jumps
     const double next_t = std::clamp(t - step, 0.0, h);
     if (std::abs(next_t - t) < 1e-5) { 
       t = next_t;
@@ -421,7 +395,6 @@ double RacelineReference::refineOnSegment(
 }
 
 
-//similiar to above but consider angle too
 bool RacelineReference::scanSegment(
   const Point & p,
   double heading,
@@ -460,7 +433,6 @@ bool RacelineReference::scanSegment(
   return improved;
 }
 
-//same as above but over multiple segments
 Projection RacelineReference::searchArc(
   const Point & p,
   double heading,
@@ -492,7 +464,6 @@ Projection RacelineReference::searchArc(
   return best;
 }
 
-//globla search
 Projection RacelineReference::searchAllSegments(
   const Point & p,
   double heading,
@@ -525,17 +496,13 @@ Projection RacelineReference::project(
   const double gate_sq = projection_config_.max_plausible_offset_m *
     projection_config_.max_plausible_offset_m;
 
-  // Relax the heading check for sliding or aggressive cornering, but keep a
-  // distance gate to reject stale seed windows. Never disable the heading
-  // check; failed local searches fall back to the global search.
   const double base_tolerance = std::clamp(
     projection_config_.tangent_tolerance_rad,
     kMinTangentToleranceRad,
     kMaxTangentToleranceRad);
   bool relaxed = false;
   for (double tolerance = base_tolerance; ;
-    tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad)) //this is a little chopped
-    //we might want kMaxTangentToleranceRad to be smaller pi/2 is obviously pushing it
+    tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad))
   {
     bool found = false;
     double best_dist_sq = std::numeric_limits<double>::max();
@@ -551,7 +518,6 @@ Projection RacelineReference::project(
     relaxed = true;
   }
 
-  // The seed window is stale or invalid; use the global search.
   Projection result = projectGlobal(p, heading, base_tolerance);
   result.seed_was_stale = true;
   return result;
@@ -563,9 +529,6 @@ Projection RacelineReference::project(const Point & p, double seed_s) const
     return {};
   }
 
-  // No heading to check and no offset worth gating: an occupied cell is
-  // legitimately metres off the reference, so the window is the only
-  // disambiguator and there is nothing for the ladder above to escalate.
   const double window = projection_config_.seed_window_m;
   bool found = false;
   double best_dist_sq = std::numeric_limits<double>::max();
@@ -592,8 +555,6 @@ Projection RacelineReference::projectGlobal(
   bool found = false;
   Projection result = searchAllSegments(p, heading, tolerance_rad, found);
   if (!found && tolerance_rad < kPi) {
-    // Nothing on the whole loop agreed with the heading.  Prefer a nearest-point
-    // answer over no answer.
     result = searchAllSegments(p, heading, kTangentCheckDisabled, found);
     result.heading_check_relaxed = true;
   }

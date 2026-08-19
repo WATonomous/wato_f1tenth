@@ -23,9 +23,7 @@ struct PlannerVisualizationConfig
   double compat_heading_rad = 0.0;
 };
 
-// One maneuver family exactly as ManeuverBuilder returned it: before collision,
-// track-bounds, or velocity filtering, and before selection ever sees it.
-struct CandidateFamily
+struct CandidateFamily  // pre-filter candidates from ManeuverBuilder
 {
   CandidateSource source = CandidateSource::NONE;
   std::vector<ManeuverCandidate> candidates;
@@ -45,12 +43,6 @@ public:
     const LocalPlanResult & result,
     const rclcpp::Time & stamp,
     MarkerPublisher & publisher) const;
-  // Generated paths, unfiltered, one namespace per family. A raw view of what
-  // ManeuverBuilder produced: nothing here has been collision checked, bounds
-  // checked, or ranked, and a drawn path is not a drivable one. publishCandidates
-  // is the opposite view -- only what survived to selection, and only on the
-  // cycles that reached it. Callers decide which families belong on the picture;
-  // an empty list clears the topic.
   void publishAllCandidates(
     const std::vector<CandidateFamily> & families,
     const rclcpp::Time & stamp,
@@ -65,9 +57,6 @@ public:
     MarkerPublisher & publisher) const;
 
 private:
-  // Extra layers that only exist on a braking cycle: the executed arc redrawn
-  // as a speed gradient, and the numbers behind it. No-op otherwise, so the
-  // namespaces vanish the moment a real maneuver comes back.
   void appendBrakingDetail(
     const LocalPlanResult & result,
     const std_msgs::msg::Header & header,

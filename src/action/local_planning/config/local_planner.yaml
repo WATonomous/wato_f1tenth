@@ -15,8 +15,6 @@ planner_node:
     merge_completion_distances_m: [0.5, 1.0, 2.0, 3.0, 4.0]
 
     corridor_half_width_m: 0.25
-    # Stateful tactical bands. Values between each enter/exit pair retain the
-    # committed state instead of turning grid quantization into state chatter.
     pass_enter_gap_m: 0.65
     pass_exit_gap_m: 0.95
     merge_enter_gap_m: -1.20
@@ -31,18 +29,7 @@ planner_node:
     pass_merge_confirmation_grids: 3
     merge_pass_confirmation_grids: 3
     merge_probe_confirmation_cycles: 3
-    # Deliberately loose: the banded lateral offset decides the FOLLOW/MERGE handoff.
-    # This term used to be sized as a tracking tolerance (asin(vehicle width /
-    # min_lookahead) ~ 0.30) and it dominated the gate -- a car sitting on the
-    # line and yawing back onto it reads as incompatible, so the intent flapped
-    # at the yaw frequency while ego_d never left the deadband. Heading is now
-    # only a wrong-way check: a spun or backwards car must not be handed to a
-    # pure pursuit that would chase a lookahead point behind it.
-    # 60 deg is not arbitrary. It must stay under tangent_tolerance_rad (1.2 rad
-    # / 69 deg), past which the seeded projection rejects every candidate station
-    # and falls back to a full-loop search -- so beyond that the ego_d this gate
-    # actually runs on is already untrustworthy. Raise tangent_tolerance_rad
-    # first if you ever need this higher.
+    # Wrong-way guard only; lateral offset drives FOLLOW/MERGE. Keep below tangent_tolerance_rad (1.2 rad).
     compat_heading_rad: 1.05
 
     front_collision_circle_offset_m: 0.32
@@ -51,131 +38,51 @@ planner_node:
     treat_unknown_as_free: true
     friction_coeff: 1.0
     min_velocity_mps: 0.0
-    # Hard testing cap. The horizon braking envelope supports 7.7; restore that
-    # value to plan at full raceline speed again.
-    max_velocity_mps: 6.0
+    max_velocity_mps: 6.0  # testing cap; envelope supports ~7.7
     max_accel_mps2: 5.0
     max_decel_mps2: 5.0
-    # 1.0 = OVERTAKE/PASS/MERGE plan at the same speed as FOLLOW.
-    overtake_speed_scale: 1.0
+    overtake_speed_scale: 1.0  # 1.0 = same speed as FOLLOW
     treat_out_of_grid_as_free: true
 
-    # --- Braking fallback (executed_mode 2/3) ---------------------------------
-    # Fired only when no maneuver candidate and no usable held path survives.
-    # Forward-integrates arcs that turn toward the racing line as hard as speed
-    # and friction permit while decelerating; slowing raises the achievable
-    # curvature, which is what recovers the line. Horizon, sample spacing,
-    # friction and wheelbase are shared with the rest of the planner, so only
-    # these are braking's own.
     braking_decel_mps2: 5.0
-    # Floor, not zero: a stopped car cannot steer itself back onto the line.
-    braking_min_velocity_mps: 1.0
-    # Carrot distance along the reference. Short chases hard and oscillates;
-    # long converges lazily.
-    braking_pursuit_lookaheads_m: [1.0, 2.0, 3.0]
-    # Fraction of the physical turning budget each arc may spend. 1.0 is the arc
-    # we want and also the one most likely to be collision-rejected (a hard cut
-    # crosses the apex); 0.0 is a straight brake and always exists. Add
-    # intermediate levels if sim shows the hard cut rejected where a gentler arc
-    # would have been free.
-    braking_effort_levels: [1.0, 0.0]
+    braking_min_velocity_mps: 0.5
+    braking_pursuit_lookaheads_m: [1.0, 2.0, 3.0]  # reference carrot distance
+    braking_effort_levels: [1.0, 0.0]  # consider more levels for gentler fallback arcs
 
-    # Fallback only.  Planning samples the reference window at the live costmap
-    # resolution so this cannot run finer than the occupancy grid.
     sample_spacing_m: 0.1
     max_curvature_inv_m: 1.74
-    # How far the path may turn from the reference tangent. This replaces
-    # max_arc_length_m, which capped total curve length as a proxy for "did not
-    # double back" -- a proxy that was only needed because a G2 boundary-value
-    # problem bounds neither length nor lateral excursion. A d(s) polynomial
-    # spans a fixed stretch of reference by construction, so the only thing left
-    # to bound is direction, and this bounds it directly.
     max_path_angle_deg: 60.0
-    # Ego-pose projection only. This no longer touches path samples at all:
-    # every CurveSample carries its exact (raceline_s, d), so neither the side
-    # sweep nor the track-bounds check projects anything. What remains is
-    # racing_state_machine projecting the measured car, which is the one point
-    # in the system whose station is genuinely unknown. Do not drop below ~1.5:
-    # past the window the search silently returns the wrong station rather than
-    # falling back, and 7.7 m/s x 33 ms = 0.257 m per cycle at 30 Hz, more when
-    # a cycle is missed.
-    seed_window_m: 2.0
-    # Starting tolerance only. A window yielding no foot within this angle is
-    # retried at double, capped at pi/2 -- a sliding car should not cost us the
-    # seed. The cap is not tuning: past a quarter turn the foot points backwards
-    # relative to ego, and admitting it would let a stale seed settle on the
-    # antiparallel branch. A window that exhausts the ladder escalates to a
-    # global search instead of ever dropping the check. Raising this to pi/2 or
-    # beyond collapses the ladder to a single tier.
+    seed_window_m: 2.0  # too small → wrong s without seed_was_stale
     tangent_tolerance_rad: 1.2
-    # The escalation above is bounded by distance, not angle: if the nearest foot
-    # in the window is further than this, no tolerance makes the window right and
-    # the search goes global. Above the widest real |d| (half width + overtake
-    # excursion + margin), well below the spacing between distinct parts of the
-    # loop.
-    max_plausible_offset_m: 3.0
+    max_plausible_offset_m: 3.0  # stale seed if nearest foot farther than this
 
     planner_rate_hz: 30.0
-    # Commit window for the published local path. Below min_hold the current
-    # path is kept even when a newer plan exists (stops cycle-to-cycle target
-    # flip); between min and max it is kept only to bridge a cycle that found
-    # nothing; past max it expires and a fresh path must be found. The held
-    # path is re-collision-checked against the newest costmap every cycle and
-    # republished with a fresh stamp, so /local_path_map rate is unchanged.
-    # An intent change drops it immediately. Set both to 0.0 to disable.
-    path_min_hold_s: 0.10
+    path_min_hold_s: 0.10  # published-path commit window [min, max]
     path_max_hold_s: 0.15
-    # The raceline and its offline-computed widths are index-aligned. All
-    # planner s/d values remain raceline-relative.
-    reference_track_topic: "/global_planner/reference_track"
+
+    reference_track_topic: "/global_planner/reference_track"  # index-aligned with width table
     width_lookup_spacing_m: 0.10
-    # Width table is the prior for unknown / out-of-grid poses; known cells stay
-    # with the costmap. Dense G2-overshoot into an unseen wall is caught;
-    # overshoot into a seen wall is already collision.
     occupancy_grid_topic: "/occupancy_grid"
     odom_topic: "/odom"
     steering_command_topic: "/drive/autonomy"
     steering_command_timeout_s: 0.06
     odom_timeout_s: 0.25
     wheelbase_m: 0.33
-    # Steering stop at the wheel. With the wheelbase this is the tightest arc
-    # the car can hold; tan(0.52)/0.33 = 1.74, matching max_curvature_inv_m.
     max_steering_angle_rad: 0.52
     use_steering_start_curvature: true
-    # Mean wall time of the planning cycle, every N ticks.
     profiling_enabled: true
     profiling_log_every_n_cycles: 20
-    # One LOCAL_PLANNER_EVENT line per transition the controller can feel: the
-    # intent changing, a path appearing or disappearing, the selected side
-    # flipping across the centreline, or the steering start-curvature going
-    # stale. Silent on a steady lap by construction, so leave it on -- the
-    # volume is itself the measurement.
     diagnostics_enabled: true
     map_frame: "map"
     controller_frame: "base_link"
-    # Ego XY/heading is latest map ← controller_frame TF, not /odom pose.
-    # /odom supplies speed and the odom_timeout_s freshness gate.
-    # /local_path_map is the controller contract (map frame). /local_path is a
-    # base_link copy published only when map→base_link TF is available.
+
     local_path_topic: "/local_path"
     local_path_map_topic: "/local_path_map"
-    # True selects /local_path_map; false selects the global racing line.
     overtake_ready_topic: "/overtake_ready"
     decision_topic: "/planner_decision"
     visualization_topic: "/local_planner_viz"
     track_bounds_visualization_topic: "/local_planner_track_bounds_viz"
-    # Where the FOLLOW/MERGE gate thinks the car is on the reference: the foot
-    # of the projection, the offset that becomes ego_d, and the two headings its
-    # error is the difference of. Published every cycle, including the ones that
-    # publish no path, which is where an unexplained MERGE lives.
     projection_visualization_topic: "/local_planner_projection_viz"
     publish_projection_markers: true
-    # Every candidate the current intent generates, before collision, track
-    # bounds, or velocity has rejected any of it -- which /local_planner_viz
-    # cannot show, since it only publishes on cycles that reached selection.
-    # Exactly one family, picked by intent, the same branch plan() takes:
-    # OVERTAKE -> overtake, PASS -> pass, MERGE -> merge, FOLLOW -> nothing.
-    # A path drawn here may go through a wall; that is the point of the topic.
-    # Costs a second generation pass per cycle, so turn it off for timed running.
-    publish_all_candidates: true
+    publish_all_candidates: true  # costly: repeats generation pass; disable for timed runs
     all_candidates_visualization_topic: "/local_planner_all_candidates_viz"
