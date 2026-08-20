@@ -79,6 +79,8 @@ private:
   void bresenham(int x0, int y0, int x1, int y1,
                  std::vector<int8_t> &grid_data);
   bool is_in_self_filter_footprint(double x, double y) const;
+  void clear_self_filter_footprint(
+    double origin_x, double origin_y, std::vector<int8_t> &grid_data) const;
 };
 
 #endif

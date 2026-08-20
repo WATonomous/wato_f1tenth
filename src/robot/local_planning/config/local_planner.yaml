@@ -6,22 +6,22 @@ occupancy_grid_frame_adapter_node:
 
 planner_node:
   ros__parameters:
-    horizon_m: 4.0
+    horizon_m: 5.0
     collision_circle_radius_m: 0.14
     overtake_s_offsets_from_opponent_rear_m: [0.0, 0.5]
-    passing_d_magnitudes_m: [0.3, 0.0, 0.55, 0.75]
-    overtake_heading_offsets_rad: [-0.15, 0.0, 0.15]
+    passing_d_magnitudes_m: [0.5, 0.6, 0.7, 0.8]
+    overtake_heading_offsets_rad: [0.0]
     pass_transition_distances_m: [4.0, 3.0, 1.0]
     merge_completion_distances_m: [0.5, 1.0, 2.0, 3.0, 4.0]
 
-    corridor_half_width_m: 0.25
+    corridor_half_width_m: 0.05
     pass_enter_gap_m: 0.65
     pass_exit_gap_m: 0.95
-    merge_enter_gap_m: -1.20
-    merge_exit_gap_m: -0.80
-    engagement_enter_gap_m: 2.00
-    engagement_exit_gap_m: 2.50
-    follow_enter_abs_d_m: 0.14
+    merge_enter_gap_m: -2.00
+    merge_exit_gap_m: -1.50
+    engagement_enter_gap_m: 4.00
+    engagement_exit_gap_m: 4.50
+    follow_enter_abs_d_m: 0.28
     follow_exit_abs_d_m: 0.28
     fast_transition_confirmation_s: 0.05
     slow_transition_confirmation_s: 0.15
@@ -45,9 +45,9 @@ planner_node:
     treat_out_of_grid_as_free: true
 
     braking_decel_mps2: 5.0
-    braking_min_velocity_mps: 0.5
+    braking_min_velocity_mps: 1.0
     braking_pursuit_lookaheads_m: [1.0, 2.0, 3.0]  # reference carrot distance
-    braking_effort_levels: [1.0, 0.0]  # consider more levels for gentler fallback arcs
+    braking_effort_levels: [1.0, 0.5, 0.25, 0.0]
 
     sample_spacing_m: 0.1
     max_curvature_inv_m: 1.74

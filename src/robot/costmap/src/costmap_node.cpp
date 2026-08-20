@@ -147,9 +147,9 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
       marks_obstacle = false;
     }
 
-    if (!std::isfinite(range) || range < scan->range_min || range > scan->range_max) {
-      continue;
-    }
+    // if (!std::isfinite(range) || range < scan->range_min || range > scan->range_max) {
+    //   continue;
+    // }
 
     float angle = scan->angle_min + i * scan->angle_increment;
 
@@ -189,6 +189,12 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
       }
     }
   }
+
+  // Enforce the ego footprint after all rays have been processed. Endpoint
+  // filtering above avoids creating self-obstacles in the first place, while
+  // this final pass guarantees that no occupied or unknown cell remains in
+  // the configured vehicle box regardless of ray order or discretization.
+  clear_self_filter_footprint(origin_x, origin_y, grid_msg.data);
 
   costmap_pub_->publish(grid_msg);
 }
@@ -240,6 +246,31 @@ bool CostmapNode::is_in_self_filter_footprint(double x, double y) const
          x <= self_filter_max_x_m_ &&
          y >= -self_filter_half_width_m_ &&
          y <= self_filter_half_width_m_;
+}
+
+void CostmapNode::clear_self_filter_footprint(
+  double origin_x, double origin_y, std::vector<int8_t> &grid_data) const
+{
+  if (!self_filter_enabled_) {
+    return;
+  }
+
+  for (uint32_t y = 0; y < grid_rows_; ++y) {
+    const double cell_min_y = origin_y + static_cast<double>(y) * resolution_;
+    const double cell_max_y = cell_min_y + resolution_;
+    if (cell_max_y < -self_filter_half_width_m_ ||
+        cell_min_y > self_filter_half_width_m_) {
+      continue;
+    }
+
+    for (uint32_t x = 0; x < grid_cols_; ++x) {
+      const double cell_min_x = origin_x + static_cast<double>(x) * resolution_;
+      const double cell_max_x = cell_min_x + resolution_;
+      if (cell_max_x >= self_filter_min_x_m_ && cell_min_x <= self_filter_max_x_m_) {
+        grid_data[static_cast<size_t>(y) * grid_cols_ + x] = free_value_;
+      }
+    }
+  }
 }
 
 int main(int argc, char *argv[])

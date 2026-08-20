@@ -7,7 +7,7 @@
 GlobalPlanner::GlobalPlanner()
 : Node("global_planner_node")
 {
-  declare_parameter<std::string>("file_directory", "/assets/e7_raceline_reference.csv");
+  declare_parameter<std::string>("file_directory", "/assets/e7_fifth_big_reference.csv");
   declare_parameter<std::string>("path_topic", "/global_planner/path");
   declare_parameter<std::string>("reference_track_topic", "/global_planner/reference_track");
   declare_parameter<std::string>("waypoint_frame_id", "map");

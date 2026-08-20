@@ -278,12 +278,12 @@ def generate_launch_description():
     ld.add_action(joy)
     ld.add_action(gamepad)
     ld.add_action(ackermann_mux_node)
-    ld.add_action(ebreak)
+    #ld.add_action(ebreak)
     #pf suff
     ld.add_action(pf_node)
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
-    ld.add_action(ekf)
+    # ld.add_action(ekf)
     ld.add_action(costmap_node)
     ld.add_action(global_planner)
     

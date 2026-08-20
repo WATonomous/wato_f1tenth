@@ -11,7 +11,7 @@ namespace local_planning
 
 struct StateMachineConfig
 {
-  double corridor_half_width_m = 0.25;
+  double corridor_half_width_m = 0.05;
 
   double pass_enter_gap_m = 0.65;
   double pass_exit_gap_m = 0.95;
@@ -19,7 +19,7 @@ struct StateMachineConfig
   double merge_exit_gap_m = -0.80;
   double engagement_enter_gap_m = 2.00;
   double engagement_exit_gap_m = 2.50;
-  double follow_enter_abs_d_m = 0.14;
+  double follow_enter_abs_d_m = 0.28;
   double follow_exit_abs_d_m = 0.28;
   double fast_confirmation_s = 0.05;
   double slow_confirmation_s = 0.15;
