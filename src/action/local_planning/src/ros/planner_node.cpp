@@ -195,14 +195,14 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.maneuver.merge_completion_distances_m = declare_parameter(
     "merge_completion_distances_m", std::vector<double>{0.5, 1.0, 2.0, 3.0, 4.0});
 
-  cfg.state.corridor_half_width_m = declare_parameter("corridor_half_width_m", 0.25);
+  cfg.state.corridor_half_width_m = declare_parameter("corridor_half_width_m", 0.05);
   cfg.state.pass_enter_gap_m = declare_parameter("pass_enter_gap_m", 0.65);
   cfg.state.pass_exit_gap_m = declare_parameter("pass_exit_gap_m", 0.95);
   cfg.state.merge_enter_gap_m = declare_parameter("merge_enter_gap_m", -1.20);
   cfg.state.merge_exit_gap_m = declare_parameter("merge_exit_gap_m", -0.80);
   cfg.state.engagement_enter_gap_m = declare_parameter("engagement_enter_gap_m", 2.00);
   cfg.state.engagement_exit_gap_m = declare_parameter("engagement_exit_gap_m", 2.50);
-  cfg.state.follow_enter_abs_d_m = declare_parameter("follow_enter_abs_d_m", 0.14);
+  cfg.state.follow_enter_abs_d_m = declare_parameter("follow_enter_abs_d_m", 0.28);
   cfg.state.follow_exit_abs_d_m = declare_parameter("follow_exit_abs_d_m", 0.28);
   cfg.state.fast_confirmation_s = declare_parameter("fast_transition_confirmation_s", 0.05);
   cfg.state.slow_confirmation_s = declare_parameter("slow_transition_confirmation_s", 0.15);
@@ -282,7 +282,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.braking.pursuit_lookaheads_m = declare_parameter(
     "braking_pursuit_lookaheads_m", std::vector<double>{1.0, 2.0, 3.0});
   cfg.braking.effort_levels = declare_parameter(
-    "braking_effort_levels", std::vector<double>{1.0, 0.0});
+    "braking_effort_levels", std::vector<double>{1.0, 0.5, 0.25, 0.0});
   cfg.use_steering_start_curvature = declare_parameter("use_steering_start_curvature", true);
   cfg.profiling_enabled = declare_parameter("profiling_enabled", true);
   cfg.profiling_log_every_n_cycles = declare_parameter("profiling_log_every_n_cycles", 20);
@@ -370,7 +370,7 @@ void PlannerNode::planningCycle()
   state_machine_.reportMergeProbe(result.decision.merge_probe_available);
   result.decision.start_curvature_from_steering =
     config_.use_steering_start_curvature && profile.outcome.steering_fresh;
-  if (result.decision.requested_intent == PlannerIntent::FOLLOW_RACING_LINE) {
+  if (result.decision.executed_intent == PlannerIntent::FOLLOW_RACING_LINE) {
     held_path_.reset();
     profile.outcome.decision = result.decision;
     publishDecision(result.decision);

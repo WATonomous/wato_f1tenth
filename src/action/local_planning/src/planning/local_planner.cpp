@@ -203,26 +203,6 @@ LocalPlanResult LocalPlanner::plan(
   }
   result.selected_index = selector_.select(result.pool, executable);
 
-  if (state.intent == PlannerIntent::MERGE && result.selected_index < 0 &&
-    result.decision.track_bounds_ready)
-  {
-    const std::size_t recovery_first = result.evaluated.size();
-    appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
-        return builder_.pass(ego, state.ego_s, state.ego_d);
-    });
-    evaluateFrom(result, recovery_first, PlannerIntent::PASS, grid, ego, state.ego_s);
-    tryPassFamily(result, recovery_first, ego, state.ego_s, state.ego_d, grid);
-    std::vector<EvaluatedCandidate> recovery;
-    for (std::size_t i = recovery_first; i < result.evaluated.size(); ++i) {
-      recovery.push_back(result.evaluated[i]);
-    }
-    result.selected_index = selector_.select(result.pool, recovery);
-    if (result.selected_index >= 0) {
-      result.decision.executed_intent = PlannerIntent::PASS;
-      result.decision.recovery_reason = RecoveryReason::MERGE_PATH_UNAVAILABLE;
-    }
-  }
-
   std::vector<double> costs;
   for (const auto & evaluated : result.evaluated) {
     if (evaluated.velocity_feasible) {costs.push_back(evaluated.traversal_time_s);}
@@ -236,6 +216,12 @@ LocalPlanResult LocalPlanner::plan(
     result.decision.executed_mode = ExecutedMode::MANEUVER;
   } else if (held_path_usable) {
     result.decision.executed_mode = ExecutedMode::HELD_PATH;
+  } else if (state.intent == PlannerIntent::MERGE) {
+    // No merge was usable. Hand control directly back to the global raceline;
+    // the tactical intent remains MERGE so a local merge is retried next cycle.
+    result.decision.executed_intent = PlannerIntent::FOLLOW_RACING_LINE;
+    result.decision.executed_mode = ExecutedMode::NO_LOCAL_PATH;
+    result.decision.recovery_reason = RecoveryReason::MERGE_PATH_UNAVAILABLE;
   } else {
     selectBraking(result, ego, state.ego_s, state.ego_d, grid);
   }

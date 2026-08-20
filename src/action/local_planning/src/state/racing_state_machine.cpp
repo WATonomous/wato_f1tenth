@@ -328,6 +328,12 @@ PlannerIntent RacingStateMachine::proposedIntent(const Odometry & ego_odom) cons
 
 TransitionClass RacingStateMachine::transitionClass(PlannerIntent proposed) const
 {
+  // Returning control to the raceline is always the permissive path. Once the
+  // pose is compatible, do not make FOLLOW wait behind a slow tactical
+  // transition (notably PASS after an opponent disappears).
+  if (proposed == PlannerIntent::FOLLOW_RACING_LINE) {
+    return TransitionClass::FAST;
+  }
   const bool normal_fast =
     (state_.intent == PlannerIntent::FOLLOW_RACING_LINE &&
     proposed == PlannerIntent::OVERTAKE) ||
@@ -364,6 +370,10 @@ TransitionReason RacingStateMachine::transitionReason(PlannerIntent proposed) co
 
 bool RacingStateMachine::proposalUsesOpponent(PlannerIntent proposed) const
 {
+  // FOLLOW is justified by the live raceline-compatible ego pose. Stale or
+  // disappearing opponent observations must not require extra costmap frames
+  // before handing control back to the global raceline follower.
+  if (proposed == PlannerIntent::FOLLOW_RACING_LINE) {return false;}
   if (state_.transition_reason == TransitionReason::OPPONENT_LOST) {return true;}
   return state_.opponent.detected && !(state_.intent == PlannerIntent::MERGE &&
          proposed == PlannerIntent::FOLLOW_RACING_LINE);
