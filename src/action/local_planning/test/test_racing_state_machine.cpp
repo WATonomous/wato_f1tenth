@@ -168,12 +168,15 @@ TEST(RacingStateMachine, NoOpponentOnTheLineFollows)
   EXPECT_EQ(cycle.state.intent, PlannerIntent::FOLLOW_RACING_LINE);
 }
 
-TEST(RacingStateMachine, NearbyWallOutsideFiveCentimetreCorridorDoesNotTriggerOvertake)
+// The detection corridor is one car half-width, so only an obstacle actually
+// sitting on the racing line counts as an opponent. A wall running alongside
+// must not be mistaken for one.
+TEST(RacingStateMachine, WallBesideTheRacingLineDoesNotTriggerOvertake)
 {
   const RacelineReference reference = makeReference();
   const Odometry ego = egoAt(reference, 2.0, 0.0);
   OccupancyGrid grid = gridAround(ego.position, 8.0);
-  stampOffsetWall(grid, reference, 3.0, 5.0, 0.15);
+  stampOffsetWall(grid, reference, 3.0, 5.0, 0.30);
 
   RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
   for (int i = 0; i < 5; ++i) {
