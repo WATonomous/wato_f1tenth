@@ -92,6 +92,25 @@ void stampOpponent(
   }
 }
 
+void stampOffsetWall(
+  OccupancyGrid & grid,
+  const RacelineReference & reference,
+  double s_start,
+  double s_end,
+  double d)
+{
+  const double step = 0.5 * kResolution;
+  for (double s = s_start; s <= s_end + 1e-9; s += step) {
+    const Point p = reference.toCartesian(s, d);
+    const int col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
+    const int row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
+    if (col >= 0 && col < grid.width && row >= 0 && row < grid.height) {
+      grid.data[static_cast<std::size_t>(row) * static_cast<std::size_t>(grid.width) +
+        static_cast<std::size_t>(col)] = 100;
+    }
+  }
+}
+
 // Settle through the configured debounce; the focused tests below inspect the
 // intermediate evidence explicitly.
 struct Cycle
@@ -147,6 +166,22 @@ TEST(RacingStateMachine, NoOpponentOnTheLineFollows)
   EXPECT_FALSE(cycle.state.opponent.detected);
   EXPECT_EQ(cycle.state.relative_position, RelativePosition::NONE);
   EXPECT_EQ(cycle.state.intent, PlannerIntent::FOLLOW_RACING_LINE);
+}
+
+TEST(RacingStateMachine, NearbyWallOutsideFiveCentimetreCorridorDoesNotTriggerOvertake)
+{
+  const RacelineReference reference = makeReference();
+  const Odometry ego = egoAt(reference, 2.0, 0.0);
+  OccupancyGrid grid = gridAround(ego.position, 8.0);
+  stampOffsetWall(grid, reference, 3.0, 5.0, 0.15);
+
+  RacingStateMachine machine(reference, defaultConfig(), VehicleGeometry{}, GridPolicy{});
+  for (int i = 0; i < 5; ++i) {
+    machine.update(ego, grid);
+  }
+
+  EXPECT_FALSE(machine.state().opponent.detected);
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
 }
 
 // PRD 5: an offset car is never handed to the global follower.
@@ -529,7 +564,7 @@ TEST(RacingStateMachine, ClockRollbackClearsPendingEvidence)
   EXPECT_DOUBLE_EQ(machine.state().pending_duration_s, 0.0);
 }
 
-TEST(RacingStateMachine, OneOpponentDropoutCannotReturnToFollow)
+TEST(RacingStateMachine, CompatiblePoseReturnsToFollowWithoutExtraCostmapEvidence)
 {
   const RacelineReference reference = makeReference();
   const Odometry ego = egoAt(reference, 2.0, 0.0);
@@ -542,9 +577,10 @@ TEST(RacingStateMachine, OneOpponentDropoutCannotReturnToFollow)
   machine.update(ego, opponent_grid, StateUpdateContext{0.06, 2});
   ASSERT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
   machine.update(ego, empty_grid, StateUpdateContext{0.10, 3});
-  machine.update(ego, empty_grid, StateUpdateContext{0.20, 3});
   EXPECT_EQ(machine.state().intent, PlannerIntent::OVERTAKE);
-  EXPECT_EQ(machine.state().pending_grid_count, 1U);
+  machine.update(ego, empty_grid, StateUpdateContext{0.16, 3});
+  EXPECT_EQ(machine.state().intent, PlannerIntent::FOLLOW_RACING_LINE);
+  EXPECT_EQ(machine.state().pending_grid_count, 0U);
 }
 
 TEST(RacingStateMachine, GapBandsRetainTheCommittedState)
