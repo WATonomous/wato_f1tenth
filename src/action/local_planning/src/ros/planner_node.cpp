@@ -185,7 +185,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.vehicle_geometry.collision_radius_m = declare_parameter(
     "collision_circle_radius_m", 0.20);
   cfg.maneuver.overtake_s_offsets_from_opponent_rear_m = declare_parameter(
-    "overtake_s_offsets_from_opponent_rear_m", std::vector<double>{0.0, 0.5});
+    "overtake_s_offsets_from_opponent_rear_m", std::vector<double>{-0.5, 0.0});
   cfg.maneuver.passing_d_magnitudes_m = declare_parameter(
     "passing_d_magnitudes_m", std::vector<double>{0.55, 0.75});
   cfg.maneuver.overtake_heading_offsets_rad = declare_parameter(
@@ -195,7 +195,7 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.maneuver.merge_completion_distances_m = declare_parameter(
     "merge_completion_distances_m", std::vector<double>{0.5, 1.0, 2.0, 3.0, 4.0});
 
-  cfg.state.corridor_half_width_m = declare_parameter("corridor_half_width_m", 0.05);
+  cfg.state.corridor_half_width_m = declare_parameter("corridor_half_width_m", 0.14);
   cfg.state.pass_enter_gap_m = declare_parameter("pass_enter_gap_m", 0.65);
   cfg.state.pass_exit_gap_m = declare_parameter("pass_exit_gap_m", 0.95);
   cfg.state.merge_enter_gap_m = declare_parameter("merge_enter_gap_m", -1.20);
