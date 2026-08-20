@@ -22,4 +22,4 @@ occupancy_grid_generator:
     self_filter_enabled: true
     self_filter_min_x_m: -0.10 # distance behind base link
     self_filter_max_x_m: 0.42 # distance ahead of base link
-    self_filter_half_width_m: 0.18 # distance to left and to right of base link
+    self_filter_half_width_m: 0.25 # distance to left and to right of base link

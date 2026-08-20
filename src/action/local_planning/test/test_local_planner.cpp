@@ -422,7 +422,7 @@ TEST(HeldPathPolicy, RejectsInvalidExpiredAndIntentClearedHolds)
     PublishedPathChoice::SELECTED);
 }
 
-TEST(LocalPlanner, FailedMergeImmediatelyExecutesPassWithoutChangingTacticalIntent)
+TEST(LocalPlanner, FailedMergeFallsBackToGlobalRacelineWithoutTryingPass)
 {
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
@@ -433,14 +433,35 @@ TEST(LocalPlanner, FailedMergeImmediatelyExecutesPassWithoutChangingTacticalInte
   const LocalPlanResult result = planIntent(
     reference, grid, PlannerIntent::MERGE, 2.0, 0.75);
 
-  ASSERT_GE(result.selected_index, 0);
+  EXPECT_EQ(result.selected_index, -1);
   EXPECT_EQ(result.decision.requested_intent, PlannerIntent::MERGE);
-  EXPECT_EQ(result.decision.executed_intent, PlannerIntent::PASS);
-  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::MANEUVER);
+  EXPECT_EQ(result.decision.executed_intent, PlannerIntent::FOLLOW_RACING_LINE);
+  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::NO_LOCAL_PATH);
   EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::MERGE_PATH_UNAVAILABLE);
-  EXPECT_TRUE(
-    result.decision.candidate_source == CandidateSource::PASS_PREFERRED ||
-    result.decision.candidate_source == CandidateSource::PASS_RECOVERY);
+  EXPECT_TRUE(std::none_of(result.evaluated.begin(), result.evaluated.end(), [](const auto & item) {
+      return item.source == CandidateSource::PASS_PREFERRED ||
+             item.source == CandidateSource::PASS_RECOVERY;
+  }));
+}
+
+TEST(LocalPlanner, TrackRejectedMergeFallsBackToGlobalRaceline)
+{
+  RacelineReference reference;
+  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
+  OccupancyGrid grid = coveringGrid(-1);
+
+  const LocalPlanResult result = planIntent(
+    reference, grid, PlannerIntent::MERGE, 2.0, 0.75);
+
+  EXPECT_EQ(result.selected_index, -1);
+  EXPECT_EQ(result.decision.requested_intent, PlannerIntent::MERGE);
+  EXPECT_EQ(result.decision.executed_intent, PlannerIntent::FOLLOW_RACING_LINE);
+  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::NO_LOCAL_PATH);
+  EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::MERGE_PATH_UNAVAILABLE);
+  EXPECT_TRUE(std::none_of(result.evaluated.begin(), result.evaluated.end(), [](const auto & item) {
+      return item.source == CandidateSource::BRAKING;
+  }));
 }
 
 }  // namespace local_planning
