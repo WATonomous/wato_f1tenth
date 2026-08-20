@@ -11,7 +11,7 @@ namespace local_planning
 
 struct StateMachineConfig
 {
-  double corridor_half_width_m = 0.05;
+  double corridor_half_width_m = 0.14;  // one car half-width: see cars on the line, not walls beside it
 
   double pass_enter_gap_m = 0.65;
   double pass_exit_gap_m = 0.95;
