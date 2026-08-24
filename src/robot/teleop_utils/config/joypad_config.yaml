@@ -1,4 +1,8 @@
-joypad_node:
+# Wildcard node name: launch files start this node as 'gamepad_node'
+# (jetson_pf/jetson_up/jetson_mapping) or 'joypad_node' (car_up). A
+# non-matching key makes ROS 2 silently ignore the whole file and the node
+# falls back to its compiled-in defaults (reverse on L1, not O).
+/**:
   ros__parameters:
     # Topic names
     gamepad_topic: "/drive/joystick"
@@ -10,12 +14,12 @@ joypad_node:
     steering_gain: 0.5236
     max_steering_rate: 3.2
     
-    # Joystick axis mappings
-    steering_axis: 0
-    throttel_axis: 5
-    break_axis: 4
+    # Joystick axis mappings (DualShock layout under ros2 joy)
+    steering_axis: 0   # left stick X
+    throttel_axis: 5   # R2
+    break_axis: 2      # L2 (axis 4 is right-stick Y, which rests at 0 and would add constant brake)
     
     # Button mappings
-    safety_button: 0
-    reverse_button: 1
-    pit_limit_button: 2
+    safety_button: 0     # X: arm / hand back to autonomy
+    reverse_button: 1    # O: reverse (toggle while joy sticky_buttons is on)
+    pit_limit_button: 2  # triangle
