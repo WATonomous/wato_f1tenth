@@ -4,7 +4,10 @@ ackermann_mux:
       joystick:
         topic   : /drive/joystick
         timeout : 0.2
-        priority: 25
+        # Highest priority: manual override must beat autonomy. Ties in
+        # ackermann_mux are broken by list order, so this must be strictly
+        # greater than keyboard/autonomy, not equal.
+        priority: 50
       keyboard:
         topic: /drive/keyboard
         timeout: 0.2

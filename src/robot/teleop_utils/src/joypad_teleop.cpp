@@ -70,16 +70,26 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     drive_msg.header.stamp = msg->header.stamp;
 
     bool pit_speed_limit = false;
+    bool armed = msg->buttons.at(ba.safety_button);
 
-    //emergancy / deadman switch
-    if (!msg->buttons.at(ba.safety_button)) {
-        drive_msg.drive = emergancy_drive_msg;
-        ackerman_pub->publish(drive_msg);
-        dead_man_bool.data = false;
-        dead_man_pub_->publish(dead_man_bool);
+    //emergancy / deadman switch: on the arm->disarm edge, publish one zero
+    //command so the last thing downstream sees is a stop, then go quiet on
+    //gamepad_topic. ackermann_mux (timeout: 0.2s in mux.yaml) then sees the
+    //topic expire and falls through to autonomy. Publishing zero every
+    //message here (instead of once) would keep gamepad_topic fresh forever
+    //and permanently lock out autonomy regardless of arm state.
+    if (!armed) {
+        if (was_armed_) {
+            drive_msg.drive = emergancy_drive_msg;
+            ackerman_pub->publish(drive_msg);
+            dead_man_bool.data = false;
+            dead_man_pub_->publish(dead_man_bool);
+            was_armed_ = false;
+        }
         //RCLCPP_INFO(this->get_logger(),"press x to activate drive");
         return;
     }
+    was_armed_ = true;
 
     float current_steering = JOYPAD::steering_mapper(msg->axes.at(ba.steering_axis));
     float current_throtel = JOYPAD::trigger_maper(msg->axes.at(ba.throttle_axis));
