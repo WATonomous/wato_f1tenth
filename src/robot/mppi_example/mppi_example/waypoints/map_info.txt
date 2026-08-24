@@ -1,0 +1,3 @@
+# wpt_path|wpt_deliminator|wpt_rowskip|wpt_x_index|wpt_y_index|wpt_theta_inedx|wpt_velocity_ind
+0|levine/levine.csv|;|3|1|2|3|5
+1|levine/levine.csv|;|3|1|2|3|5

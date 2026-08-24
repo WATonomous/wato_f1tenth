@@ -13,9 +13,9 @@ joypad_node:
     # Joystick axis mappings
     steering_axis: 0
     throttel_axis: 5
-    break_axis: 2
+    break_axis: 4
     
     # Button mappings
     safety_button: 0
-    reverse_button: 4
-    pit_limit_button: 5
+    reverse_button: 1
+    pit_limit_button: 2

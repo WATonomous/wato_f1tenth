@@ -71,8 +71,21 @@ def generate_launch_description():
         output='screen'
     )
 
+    occupancy_grid_adapter = Node(
+        package='local_planning',
+        executable='occupancy_grid_frame_adapter_node',
+        name='occupancy_grid_frame_adapter_node',
+        parameters=[{
+            'raw_grid_topic': '/costmap',
+            'grid_topic': '/occupancy_grid',
+            'frame_id': 'map',
+        }],
+        output='screen'
+    )
+
     ld.add_action(state_manager)
     ld.add_action(local_planning)
     ld.add_action(pure_persuit)
+    ld.add_action(occupancy_grid_adapter)
 
     return ld

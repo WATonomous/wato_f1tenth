@@ -25,7 +25,10 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /dev:/dev
     environment:
-      - DISPLAY=${DISPLAY}
+      # Do this for particle filter terminal only
+      # - OPENBLAS_NUM_THREADS=1
+      # - OMP_NUM_THREADS=1
+      - DISPLAY=:0
       - NVIDIA_VISIBLE_DEVICES=all
     device_cgroup_rules:
       - 'c 13:* rmw' 

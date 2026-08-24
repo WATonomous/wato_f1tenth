@@ -104,18 +104,9 @@ def generate_launch_description():
     deadzone_value = LaunchConfiguration('deadzone')
     sticky_button_value = LaunchConfiguration('sticky_button')
 
-    costmap_pkg_prefix = get_package_share_directory('costmap')
-    costmap_param_file = os.path.join(
-        costmap_pkg_prefix, 'config', 'params.yaml')
+    # costmap package is no longer in this workspace; the costmap_node below
+    # stays disabled, so its param file lookup is gone too.
 
-    costmap_param = DeclareLaunchArgument(
-        'costmap_param_file',
-        default_value=costmap_param_file,
-        description='Path to config file for costmap node'
-    )
-
-    ld.add_action(costmap_param)
-    
     ackermann_to_vesc_node = Node(
         package='vesc_ackermann',
         executable='ackermann_to_vesc_node',
@@ -185,12 +176,12 @@ def generate_launch_description():
         #remappings=[('ackermann_cmd_out', 'ackermann_drive')]
     )    
     
-    ebreak = Node (
-        package='safety_node',
-        executable='ebreak',
-        name='ebreak',
-        output='screen',
-    )
+    # ebreak = Node (
+    #     package='safety_node',
+    #     executable='ebreak',
+    #     name='ebreak',
+    #     output='screen',
+    # )
     
     ekf = Node (
         package="ackermann_ekf",
@@ -215,8 +206,8 @@ def generate_launch_description():
     ld.add_action(joy)
     ld.add_action(gamepad)
     ld.add_action(ackermann_mux_node)
-    ld.add_action(ebreak)
+    # ld.add_action(ebreak)
     ld.add_action(ekf)
-    ld.add_action(costmap_node)
+    # ld.add_action(costmap_node)
 
     return ld

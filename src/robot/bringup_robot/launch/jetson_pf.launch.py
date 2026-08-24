@@ -122,18 +122,9 @@ def generate_launch_description():
     deadzone_value = LaunchConfiguration('deadzone')
     sticky_button_value = LaunchConfiguration('sticky_button')
 
-    costmap_pkg_prefix = get_package_share_directory('costmap')
-    costmap_param_file = os.path.join(
-        costmap_pkg_prefix, 'config', 'params.yaml')
+    # costmap package is no longer in this workspace; the costmap_node below
+    # stays disabled, so its param file lookup is gone too.
 
-    costmap_param = DeclareLaunchArgument(
-        'costmap_param_file',
-        default_value=costmap_param_file,
-        description='Path to config file for costmap node'
-    )
-
-    ld.add_action(costmap_param)
-    
     ackermann_to_vesc_node = Node(
         package='vesc_ackermann',
         executable='ackermann_to_vesc_node',
@@ -166,6 +157,13 @@ def generate_launch_description():
         executable='static_transform_publisher',
         name='static_baselink_to_laser',
         arguments=['0.27', '0.0', '0.11', '0.0', '0.0', '0.0', 'base_link', 'laser']
+    )
+
+    static_tf_camerea_node = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_baselink_to_laser',
+        arguments=['0.27', '0.0', '0.18', '0.0', '0.0', '0.0', 'base_link', 'camera_link']
     )
 
     joy = Node (
@@ -240,12 +238,12 @@ def generate_launch_description():
         output='screen',
     )
     
-    ekf = Node (
-        package="ackermann_ekf",
-        executable="ekf",
-        name ="ekf",
-        output="screen"
-    )    
+    # ekf = Node (
+    #     package="ackermann_ekf",
+    #     executable="ekf",
+    #     name ="ekf",
+    #     output="screen"
+    # )    
 
     global_planner = Node (
 
@@ -259,12 +257,12 @@ def generate_launch_description():
 
     )
 
-    costmap_node = Node(
-        package='costmap',
-        name='occupancy_grid_generator',
-        executable='costmap_node',
-        parameters=[LaunchConfiguration('costmap_param_file')],
-    )
+    # costmap_node = Node(
+    #     package='costmap',
+    #     name='occupancy_grid_generator',
+    #     executable='costmap_node',
+    #     parameters=[LaunchConfiguration('costmap_param_file')],
+    # )
 
     # vesc drivers and odom stuff
     ld.add_action(ackermann_to_vesc_node)
@@ -272,19 +270,20 @@ def generate_launch_description():
     ld.add_action(vesc_driver_node)
     ld.add_action(urg_node)
     ld.add_action(static_tf_node)
+    ld.add_action(static_tf_camerea_node)
     # this space for ekf
     ld.add_action(rviz2_node)
     #teleop stuff
     ld.add_action(joy)
     ld.add_action(gamepad)
     ld.add_action(ackermann_mux_node)
-    ld.add_action(ebreak)
+    # ld.add_action(ebreak)
     #pf suff
     ld.add_action(pf_node)
     ld.add_action(map_server_node)
     ld.add_action(nav_lifecycle_node)
-    ld.add_action(ekf)
-    ld.add_action(costmap_node)
-    ld.add_action(global_planner)
-    
+    #ld.add_action(ekf)
+    # ld.add_action(costmap_node)
+    # ld.add_action(global_planner)
+
     return ld

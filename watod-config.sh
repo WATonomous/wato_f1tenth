@@ -15,7 +15,7 @@
 ##   - robot            :   starts up robot nodes
 ##   - samples          :   starts up sample nodes for reference
 
-ACTIVE_MODULES="robot vis_tools"
+ACTIVE_MODULES="robot"
 
 ################################# MODE OF OPERATION #################################
 ## Possible modes of operation when running watod.

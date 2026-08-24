@@ -1,0 +1,30 @@
+region_manager:
+  ros__parameters:
+    # ── Where the region_manager listens for the car's pose ──
+    pose_topic: '/pf/pose/odom'
+
+    # 50 Hz — matches PF output (no aliasing); cheap (sqrt + compare).
+    publish_rate_hz: 50.0
+
+    # Region we boot in. Default 'under' so the car starts on the lower track.
+    initial_region: 'under'
+    require_pose_before_publish: true
+
+    # ── Bubble A: UNDER → OVER trigger ──
+    # When the car (PF pose) enters this circle, region switches to 'over'.
+    # TODO: set this to (x, y) on flat ground BEFORE the ramp up, in world frame.
+    enter_over_x: 7.9          # TODO: world-frame X (m)
+    enter_over_y: 0.0          # TODO: world-frame Y (m)
+    enter_over_radius: 0.5     # TODO: m — typical 0.30–0.70 m
+
+    # ── Bubble B: OVER → UNDER trigger ──
+    # When the car enters this circle while in 'over', region switches back.
+    # TODO: set this on the OVER raceline AFTER the ramp down,
+    # so PF is already back on solid ground when we ask it to swap maps.
+    enter_under_x: 8.4         # TODO: world-frame X (m)
+    enter_under_y: 13.0         # TODO: world-frame Y (m)
+    enter_under_radius: 0.5    # TODO: m
+
+    # Bubble viz marker output (visualize in rviz/foxglove on /region/bubbles_viz).
+    publish_bubble_viz: true
+    bubble_viz_frame_id: 'map'

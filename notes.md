@@ -1,0 +1,3 @@
+mppi_node.py:344-352 added an ego-pose relay on /mppi/ego_odom_for_opp — the comment says the detector "used to subscribe to /pf/pose/odom directly" and this was meant to offload PF. But nothing subscribes to that relay — the detector YAML still uses /pf/pose/odom. So the relay is dead code and PF still takes the extra subscriber load. Detection still works; the optimization just was never wired up. Worth fixing separately (either repoint the detector's ego_odom_topic to /mppi/ego_odom_for_opp, or delete the relay).
+
+Raceline generation format, mppi has a specified format and things it needs

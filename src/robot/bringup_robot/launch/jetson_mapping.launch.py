@@ -182,12 +182,12 @@ def generate_launch_description():
         output='screen',
     )
     
-    ekf = Node (
-        package="ackermann_ekf",
-        executable="ekf",
-        name ="ekf",
-        output="screen"
-    )    
+    #ekf = Node (
+        #package="ackermann_ekf",
+        #executable="ekf",
+        #name ="ekf",
+        #output="screen"
+    #)    
     
     #add the rviz node 
     rviz2_node = Node (
@@ -213,6 +213,12 @@ def generate_launch_description():
         }]
     )
     
+    static_tf_camerea_node = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_baselink_to_laser',
+        arguments=['0.27', '0.0', '0.18', '0.0', '0.0', '0.0', 'base_link', 'camera_link']
+    )
 
     # finalize
     ld.add_action(ackermann_to_vesc_node)
@@ -227,6 +233,7 @@ def generate_launch_description():
     ld.add_action(ebreak)
     ld.add_action(slam_node)
     ld.add_action(rviz2_node)
-    ld.add_action(ekf)
+    #ld.add_action(ekf)
+    ld.add_action(static_tf_camerea_node)
 
     return ld

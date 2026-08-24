@@ -1,0 +1,48 @@
+opponent_predictor:
+  ros__parameters:
+    # Use /opp_racecar/odom for sim ground truth, or /opponent/detection_odom
+    # when running the LiDAR detector front-end.
+    input_odom_topic: /opponent/detection_odom
+    estimated_odom_topic: /opponent/odom
+    predicted_path_topic: /opponent/predicted_path
+    marker_topic: /opponent/markers
+    debug_topic: /opponent/debug
+
+    # Relative paths are resolved from the mppi_bringup package share.
+    waypoint_path: waypoints/IV_centerline.csv
+    waypoint_path_absolute: false
+    # Set true when racing the track in the opposite direction to the centerline
+    # CSV. Flips the loaded waypoints at load time so opponent progress (s) runs
+    # with travel; keep in sync with the detector's reverse_waypoints.
+    reverse_waypoints: true
+    frame_id: map
+    pose_source: odom_pose
+    tf_lookup_timeout: 0.02
+
+    prediction_steps: 5
+    prediction_dt: 0.1
+    publish_rate_hz: 40.0
+
+    speed_profile_scale: 1.0
+    speed_profile_min_speed: 0.0
+    speed_profile_max_speed: 20.0
+    profile_speed_blend: 0.2
+    out_of_sight_profile_speed_blend: 0.4
+    use_profile_speed_fallback: false
+    stationary_speed_threshold: 0.15
+    hold_stationary_when_stale: true
+
+    lateral_offset_alpha: 0.35
+    lateral_offset_decay_time: 0.3
+    position_snap_alpha: 1.0
+
+    initial_speed: 0.0
+    stale_timeout: 0.5
+    max_stale_prediction_time: 0.5
+    max_progress_speed: 7.5
+    max_progress_accel: 4.0
+
+    kf_process_var_s: 0.05
+    kf_process_var_v: 0.3
+    kf_measurement_var_s: 0.15
+    kf_measurement_var_v: 1.2

@@ -1,0 +1,97 @@
+lmppi_node:
+  ros__parameters:
+    # Startup parameters: read once when the node starts. Restart MPPI after
+    # changing these because they affect subscriptions, rollout array shapes,
+    # JAX compilation, or the random sampling stream.
+    is_sim: false                  # true: /ego_racecar/odom; false: /pf/pose/odom.
+    state_predictor: dynamic_ST   # Rollout model. dynamic_ST includes yaw rate/slip; kinematic_ST is simpler.
+    n_samples: 1024               # Number of sampled control sequences. More is steadier but slower.
+    n_steps: 10 #try lower                   # Rollout horizon length. At dt=0.1, 12 steps = 1.2s lookahead.
+    sim_time_step: 0.1            # Rollout integration/control timestep used inside MPPI.
+    random_seed: 527787           # Sampling seed. Keep fixed for repeatable tuning runs.
+    render: true                  # true keeps optimal/sampled rollouts available for visualization.
+
+    # Live tuning parameters: mppi_node.get_params() refreshes these on every
+    # odometry callback, so they can be changed with ros2 param set.
+    temperature: 0.03             # MPPI greediness. Lower = winner-take-all; higher = smoother averaging.
+    # damping: 0.001                # Prevents weight normalization issues when rollout rewards are similar.
+    # ref_vel: 2.0                  # OLD: Legacy constant-speed reference seed. Mostly bypassed when profile is on.
+    init_vel: 2.0                 # Minimum speed assumed by the rollout model at startup/very low speed.
+    startup_speed: 2.0            # Minimum /drive.speed while measured speed is below init_vel.
+    use_pose_delta_state_estimate: true # Real car: estimate vx / yaw-rate from PF pose deltas plus command prior.
+    friction: 0.6                # Model-only tire/friction belief for dynamic_ST rollouts; tune empirically.
+    # n_iterations: 1               # MPPI update passes per odom callback. More can improve solve quality but costs time.
+
+    # Use the MPPI raceline CSV vx_mps column for turn-aware reference spacing.
+    # These affect what MPPI optimizes against: future XY points and velocity
+    # targets become slower in turns and faster on straights.
+    use_waypoint_speed_profile: true   # true: use raceline vx_mps; false: use constant ref_vel spacing.
+    speed_profile_scale: 1.0          # Multiplies raceline vx_mps. Raise to push pace; lower for stability.
+    speed_profile_min_speed: 1.75       # Lower clamp for reference/profile speed after scaling.
+    speed_profile_max_speed: 3.5      # Upper clamp for reference/profile speed after scaling.
+    speed_profile_lookahead_steps: 3   # Planning brake lookahead: min speed over current..N future ref steps.
+    speed_profile_iterations: 3        # Rebuild reference using profiled speeds this many times; 2-3 is enough.
+
+    # Feedforward from raceline vx_mps to /drive.speed. MPPI still
+    # supplies steering and can still pull speed through the blend term when
+    # blend is below 1.0 (1.0 is much better in sim)
+    use_speed_profile_drive_speed: true      # true: blend profile speed into final /drive.speed command.
+    speed_profile_drive_blend: 0.5           # 0 = pure MPPI accel command; 1 = pure raceline/profile speed command.
+    speed_profile_drive_lookahead_steps: 3   # Command brake lookahead: which future ref speed drives /drive.speed.
+    speed_profile_drive_use_min_lookahead: true # true: use min speed through lookahead to avoid early exit accel.
+    speed_profile_drive_max_accel: 2.5       # Max commanded speed increase in m/s^2, using real callback dt.
+    speed_profile_drive_max_decel: 8.0       # Max commanded speed decrease in m/s^2; usually higher than accel.
+
+    # MPPI control exploration.
+    control_sample_std_steer: 0.5      # Std dev of normalized steering-rate noise. Higher explores sharper turns.
+    control_sample_std_accel: 2.0      # Std dev of normalized accel noise. Higher explores harder accel/brake.
+
+    # Physical scale for normalized controls.
+    # normalized steer-rate +1 -> +steer_vel_scale rad/s
+    # normalized acceleration +1 -> +accel_scale m/s^2
+    steer_vel_scale: 3.0               # Converts sampled steering action to steering-rate rad/s.
+    accel_scale: 4.0                   # Converts sampled accel action to m/s^2 inside rollouts.
+
+    ######################################################
+    ################### Reward weights ###################
+    ######################################################
+    xy_reward_weight: 0.25              # Main path-tracking term: distance from rollout to reference XY.
+    velocity_reward_weight: 0.05        # Penalizes mismatch to reference speed, not raw speed by itself.
+    yaw_reward_weight: 0.01             # Penalizes heading mismatch; helps avoid sideways path matches.
+
+    wall_cost_enabled: true
+    wall_cost_weight: 100.0
+    wall_cost_margin: 0.2
+    wall_cost_power: 2.0
+    wall_cost_map_yaml: '' #injected by launch
+
+    slip_cost_enabled: false
+    slip_cost_weight: 2.0
+    slip_cost_beta_safe: 0.4
+
+    latacc_cost_enabled: false
+    latacc_cost_weight: 3.0
+    latacc_cost_safe: 80.0
+
+    steer_sat_cost_enabled: false
+    steer_sat_cost_weight: 0.5
+    steer_sat_soft_ratio: 0.85
+
+
+    ######################################################
+    ###################### BACKEND #######################
+    ######################################################
+    # Output safety clamps.
+    min_speed: 0.0                    # Final /drive.speed lower clamp.
+    max_speed: 12.0                   # Final /drive.speed upper clamp; profile/feedforward usually limits first.
+    max_steering_angle: 0.4189        # Final steering angle clamp, matching F1TENTH steering limit.
+
+    # RViz visualization. Add MarkerArray displays for these topics:
+    # /mppi/reference, /mppi/optimal_trajectory, /mppi/sampled_trajectories
+    publish_markers: true             # Toggle all MPPI MarkerArray visualization publishers.
+    marker_frame_id: map              # RViz frame for reference/optimal/sampled trajectory markers.
+    reference_line_width: 0.06        # Blue reference trajectory line width.
+    optimal_line_width: 0.08          # Green optimal rollout line width.
+    sampled_line_width: 0.025         # Orange sampled rollout line width.
+    sampled_trajectory_count: 32      # Number of sampled rollouts to draw. Higher is heavier in RViz.
+    sampled_trajectory_alpha: 0.18    # Transparency for sampled rollouts.

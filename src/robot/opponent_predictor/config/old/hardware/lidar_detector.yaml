@@ -1,0 +1,52 @@
+opponent_lidar_detector:
+  ros__parameters:
+    scan_topic: /scan
+    ego_odom_topic: /pf/pose/odom
+    map_topic: /map
+    detected_odom_topic: /opponent/detection_odom
+    detector_marker_topic: /opponent/detection_markers
+    detector_debug_topic: /opponent/detection_debug
+
+    # Relative paths are resolved from the mppi_bringup package share.
+    waypoint_path: waypoints/old/lev_testing/rt_lev4_safe.csv
+    waypoint_path_absolute: false
+
+    frame_id: map
+    base_frame_id: base_link
+    laser_x_offset: 0.0
+    laser_y_offset: 0.0
+    laser_yaw_offset: 0.0
+
+    opponent_length: 0.58
+    opponent_width: 0.31
+    max_center_correction: 0.35
+
+    min_range: 0.1
+    max_range: 8.0
+    min_detection_range: 0.1
+    max_detection_range: 6.0
+    front_fov_only: false
+    min_base_x: -0.5
+
+    require_static_map: true
+    occupied_threshold: 10
+    wall_inflation_radius: 0.3
+    treat_unknown_as_static: true
+
+    cluster_tolerance: 0.18
+    min_cluster_points: 4
+    max_cluster_points: 200
+    min_cluster_extent: 0.08
+    max_cluster_extent: 0.65
+
+    # Tight by default: true car detections in current sim bags sat around
+    # 0.0-0.3 m from the raceline; false wall/noise detections were usually
+    # around 0.6-1.2 m.
+    max_raceline_projection_dist: 0.6 # important tuning knob
+    max_candidate_jump: 0.8
+    continuity_gate_timeout: 0.4
+    continuity_weight: 2.0
+    projection_weight: 1.0
+    range_weight: 0.2
+    max_detection_speed: 7.5
+    detection_publish_rate_hz: 10.0

@@ -1,0 +1,8 @@
+# UpdateRaceline.srv
+float64[] data # flattened row-major
+uint32 rows
+uint32 cols
+string format # "pure_pursuit" (cols=4) or "mppi" (cols=9)
+---
+bool success
+string message

@@ -1,0 +1,138 @@
+lmppi_node:
+  ros__parameters:
+    # Sim profile of params_houston_main.yaml. Differences vs hardware:
+    #   is_sim: true             -> /ego_racecar/odom (sim publishes ~240 Hz)
+    #   use_pose_delta_state_estimate: false  -> sim odom twist is clean
+    # Everything else mirrors hardware so timing-gap behavior is comparable.
+
+    is_sim: false                  # true: /ego_racecar/odom; false: /pf/pose/odom.
+    state_predictor: dynamic_ST
+    n_samples: 8192
+    n_steps: 8
+    n_iterations: 10
+    sim_time_step: 0.1
+    random_seed: 527787
+    render: true                 # debug-disabled mode for timing-gap diagnosis
+
+    # timer
+    control_loop_hz: 40.0
+
+    # Control trigger architecture (NEW). 'odom_gate': pose_callback rate-
+    # gates and dispatches control_step (~30 Hz from a 50 Hz pose source),
+    # so the SingleThreadedExecutor cannot starve pose ingestion behind a
+    # continuously-ready timer. control_loop_timer becomes a low-rate
+    # watchdog that only fires if pose-driven dispatch hasn't run in
+    # control_watchdog_max_silence_sec. 'timer' is the legacy fixed-rate
+    # behavior (one-flag rollback). control_trigger_mode is read-only at
+    # startup; restart node to switch.
+    control_trigger_mode: odom_gate              # 'odom_gate' | 'timer'
+    control_watchdog_hz: 5.0                     # watchdog timer rate in odom_gate mode
+    control_watchdog_max_silence_sec: 0.10       # fire watchdog if pose-driven hasn't run in this long
+
+    # Live param refresh gate. OFF for race day so the 2 Hz refresh timer
+    # only reads a single bool per tick (essentially free) instead of
+    # ~100 params. Flip true via `ros2 param set lmppi_node live_tuning_enabled true`
+    # for tuning sessions; flip back to false before racing.
+    live_tuning_enabled: true
+
+
+    # Live tuning parameters
+    temperature: 0.02
+    init_vel: 2.0
+    startup_speed: 1.0
+    use_pose_delta_state_estimate: false   # sim has clean twist
+    # Fallback friction belief — used only when the raceline CSV has no per-waypoint
+    # friction column (col 10). When the CSV does carry friction, MPPI rolls out
+    # with per-step μ along the reference and ignores this scalar.
+    friction: 0.41
+
+    use_waypoint_speed_profile: true
+    speed_profile_scale: 1.2
+    speed_profile_min_speed: 2.0
+    speed_profile_max_speed: 11.0
+    speed_profile_lookahead_steps: 3
+    speed_profile_iterations: 3
+
+    use_speed_profile_drive_speed: false
+    speed_profile_drive_lookahead_steps: 0
+
+    control_sample_std_steer: 0.8
+    control_sample_std_accel: 10.0
+    steer_vel_scale: 2.0
+    accel_scale: 8.0
+
+    ######################################################
+    ################### Reward weights ###################
+    ######################################################
+    xy_reward_weight: 0.25
+    velocity_reward_weight: 0.15
+    yaw_reward_weight: 0.01
+
+    wall_cost_enabled: true
+    wall_cost_weight: 20.0
+    wall_cost_margin: 0.4
+    wall_cost_power: 0.6
+    wall_cost_map_yaml: '' # injected by launch
+
+    opponent_path_topic: /opponent/predicted_path
+    opponent_cost_enabled: true
+    opponent_cost_weight: 20.0
+    opponent_cost_radius: 0.25
+    opponent_cost_power: 0.4
+    opponent_cost_discount: 0.9
+    opponent_path_timeout: 0.5
+    opponent_behavior_mode: auto
+    opponent_follow_weight: 8.0
+    opponent_follow_distance: 1.2
+    opponent_same_lane_width: 0.7
+    opponent_pass_weight: 40.0
+    opponent_pass_lateral_offset: 0.35
+    opponent_pass_longitudinal_window: 1.0
+    opponent_auto_wall_check_enabled: true
+    opponent_auto_min_wall_clearance: 0.12
+    opponent_auto_check_steps: 5
+    opponent_auto_min_closing_speed: 0.4
+    opponent_auto_max_ahead_distance: 4.0
+    opponent_auto_side_switch_margin: 0.04
+
+    slip_cost_enabled: false
+    slip_cost_weight: 2.0
+    slip_cost_beta_safe: 0.4
+
+    latacc_cost_enabled: false
+    latacc_cost_weight: 3.0
+    latacc_cost_safe: 80.0
+
+    steer_sat_cost_enabled: false
+    steer_sat_cost_weight: 0.5
+    steer_sat_soft_ratio: 0.85
+
+    mppi_guard_on_timing_jump: true
+    mppi_guard_wall_gap: 0.3
+    mppi_guard_stamp_gap: 0.3
+    mppi_guard_aopt_threshold: 0.98
+    mppi_guard_saturation_callbacks: 4
+    mppi_guard_bad_callbacks_to_clear_control: 3
+
+    state_est_vy_prior: 0.4
+    state_est_wz_prior: 0.4
+    state_est_hiccup_dt: 0.06
+    state_est_hiccup_prior_scale: 0.35
+
+    ######################################################
+    ###################### BACKEND #######################
+    ######################################################
+    min_speed: 0.0
+    max_speed: 15.0
+    max_steering_angle: 0.4189
+
+    # Visualization OFF — this profile is the "no debug" leg of the A/B
+    # diagnostic. To re-enable for visual debugging, flip publish_markers
+    # to true and bump sampled_trajectory_count.
+    publish_markers: true
+    marker_frame_id: map
+    reference_line_width: 0.06
+    optimal_line_width: 0.08
+    sampled_line_width: 0.025
+    sampled_trajectory_count: 0
+    sampled_trajectory_alpha: 0.18
