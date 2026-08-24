@@ -20,6 +20,3 @@ After SLAMming:
    - `over_wall_cost_map_yaml: '/abs/path/to/.../share/mppi_bringup/maps/ICRA_Masters/over_map.yaml'`
 4. Update `particle_filter/config/localize.yaml`:
    - `over_map_yaml: '/abs/path/to/.../share/particle_filter/maps/ICRA_Masters/over_map.yaml'`
-5. Update `config/region_ICRA_Masters.yaml` with bubble centres / radii in
-   world-frame meters (look at the map in rviz; bubbles will publish on
-   `/region/bubbles_viz` once the node is up).
