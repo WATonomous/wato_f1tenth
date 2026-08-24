@@ -10,3 +10,4 @@ export OMP_NUM_THREADS=1
 sudo taskset -cp 0-2 $(pgrep -f particle_filter)
 sudo taskset -cp 3-5 $(pgrep -f mppi_node)
 sudo taskset -cp 5   $(pgrep -f opponent_predictor)
+

@@ -175,20 +175,6 @@ def generate_launch_description():
         #remappings=[('ackermann_cmd_out', 'ackermann_drive')]
     )    
     
-    ebreak = Node (
-        package='safety_node',
-        executable='ebreak',
-        name='ebreak',
-        output='screen',
-    )
-    
-    #ekf = Node (
-        #package="ackermann_ekf",
-        #executable="ekf",
-        #name ="ekf",
-        #output="screen"
-    #)    
-    
     #add the rviz node 
     rviz2_node = Node (
         package="rviz2",
@@ -230,10 +216,8 @@ def generate_launch_description():
     ld.add_action(joy)
     ld.add_action(gamepad)
     ld.add_action(ackermann_mux_node)
-    ld.add_action(ebreak)
     ld.add_action(slam_node)
     ld.add_action(rviz2_node)
-    #ld.add_action(ekf)
     ld.add_action(static_tf_camerea_node)
 
     return ld

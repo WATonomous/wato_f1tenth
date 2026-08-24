@@ -73,18 +73,10 @@ def generate_launch_description():
         #remappings=[('ackermann_cmd_out', 'ackermann_drive')]
     )    
     
-    ebreak = Node (
-        package='safety_node',
-        executable='ebreak',
-        name='ebreak',
-        output='screen',
-    )
-        
     
     ld.add_action(joy)
     ld.add_action(gamepad)
     ld.add_action(ackerman_converter)
     ld.add_action(ackermann_mux_node)
-    ld.add_action(ebreak)
     
     return ld

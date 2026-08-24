@@ -104,9 +104,6 @@ def generate_launch_description():
     deadzone_value = LaunchConfiguration('deadzone')
     sticky_button_value = LaunchConfiguration('sticky_button')
 
-    # costmap package is no longer in this workspace; the costmap_node below
-    # stays disabled, so its param file lookup is gone too.
-
     ackermann_to_vesc_node = Node(
         package='vesc_ackermann',
         executable='ackermann_to_vesc_node',
@@ -176,27 +173,6 @@ def generate_launch_description():
         #remappings=[('ackermann_cmd_out', 'ackermann_drive')]
     )    
     
-    # ebreak = Node (
-    #     package='safety_node',
-    #     executable='ebreak',
-    #     name='ebreak',
-    #     output='screen',
-    # )
-    
-    ekf = Node (
-        package="ackermann_ekf",
-        executable="ekf",
-        name ="ekf",
-        output="screen"
-    )    
-
-    costmap_node = Node(
-        package='costmap',
-        name='occupancy_grid_generator',
-        executable='costmap_node',
-        parameters=[LaunchConfiguration('costmap_param_file')],
-    )
-     
     # finalize
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
@@ -206,8 +182,5 @@ def generate_launch_description():
     ld.add_action(joy)
     ld.add_action(gamepad)
     ld.add_action(ackermann_mux_node)
-    # ld.add_action(ebreak)
-    ld.add_action(ekf)
-    # ld.add_action(costmap_node)
 
     return ld

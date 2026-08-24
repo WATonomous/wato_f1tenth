@@ -5,7 +5,7 @@
 #
 # mppi_node hardcodes its drive publisher to "/drive", which would bypass
 # bringup_robot's ackermann_mux safety arbitration (bringup_robot/config/mux.yaml:
-# /drive/ebreak, /drive/joystick, /drive/autonomy -> muxed into ackermann_cmd).
+# /drive/joystick, /drive/keyboard, /drive/autonomy -> muxed into ackermann_cmd).
 # The remapping below routes MPPI's output into the "autonomy" mux input,
 # same as pure_persuit_node, so e-stop/joystick priority still works.
 
