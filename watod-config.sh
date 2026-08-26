@@ -31,7 +31,7 @@ MODE_OF_OPERATION="develop"
 
 ## Tag to use. Images are formatted as <IMAGE_NAME>:<TAG> with forward slashes replaced with dashes.
 ## DEFAULT = "<your_current_github_branch>"
-# TAG=""
+TAG="local"
 
 # Docker Registry to pull/push images. DEFAULT = "ghcr.io/watonomous/wato_monorepo"
 # REGISTRY_URL=""
