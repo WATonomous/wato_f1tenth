@@ -1,5 +1,6 @@
 ## MPPI notes for race
 - Raceline generation format, mppi has a specified format and things it needs, specifically needs each waypoint's distance to left and right wall
+- front_fov_only: true in lidar detector for it to behave properly right now (investigate why later)
 
 ## Problems (Already Solved)
 
@@ -22,3 +23,13 @@
 - Problem: When control step took longer to execute, when do we clear the warm start of mppi.
 - Solution part 1: clear the warm start when time passed between control steps bigger than time horizon, then the warm start is useless because we are passed that horizon
 - Additional guard: actions are in [-1, 1], two per step (steer-rate, accel). If the first 3 steps of the plan (6 values) have ≥5 values with |a| ≥ 0.98 (mppi_guard_aopt_threshold), the plan is saturated — e.g. recovering from a slip or facing sideways to the raceline. If this happens 4 control ticks in a row (mppi_guard_saturation_callbacks), wipe the warm start so sampling restarts from 0 (with warm start at +1, samples can only reach +0.2 … +1, never negative)
+- Add notes for mppi_guard_bad_callbacks_to_clear_control
+
+# Entire Start Up Process for MPPI
+
+1. Plugin battery the right way, check red line with red, black with black
+2. Startup tailscale on pc, noVNC from chrome into car, put controller in pairing mode, do into devices in bluetooth, remove device, search device, click Wireless Controller, then PAIRING BUTTON
+3. in novnc, xhost +local:root, to visualize rviz (when back, need to check if rviz/noVNC have overhead)
+4. in novnc, cd wato_f1tenth_testing -> ./watod up
+5. Another terminal on noVNC, docker exec -it watod_wato-robot_dev-1 bash, ./src/robot/start_pf.sh (starts sensor drivers, particle filter and teleop off muhtasim's ps4 controller)
+6. on laptop ssh or in novnc, docker exec again, see src/robot/mppi_commands.md

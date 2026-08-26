@@ -133,8 +133,8 @@ lmppi_node:
 
     # RViz visualization. Add MarkerArray displays for these topics:
     # /mppi/reference, /mppi/optimal_trajectory, /mppi/sampled_trajectories
-    publish_markers: false             # Needed for rviz to show anything; safe because every publish below is gated on subscriber count + rate-capped + BEST_EFFORT.
-    viz_publish_rate_hz: 5.0          # Matches the MD's tested default rather than 10.0 -- keep conservative on first rviz runs.
+    publish_markers: true             # Needed for rviz to show anything; safe because every publish below is gated on subscriber count + rate-capped + BEST_EFFORT.
+    viz_publish_rate_hz: 10.0          # Matches the MD's tested default rather than 10.0 -- keep conservative on first rviz runs.
     marker_frame_id: map
     reference_line_width: 0.06
     optimal_line_width: 0.08

@@ -7,7 +7,7 @@ source install/setup.bash
 # MPPI
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch mppi_bringup e7.launch.py
+ros2 launch mppi_cpp e7.launch.py
 
 # Opponent Predictor
 docker exec -it watod_wato-robot_dev-1 bash
