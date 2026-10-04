@@ -2,11 +2,19 @@
 
 ## Launch order
 
-Source each new shell first
+Source shell first
+
+`source /opt/ros/humble/setup.bash`
+
+`colcon build`
+
+`source install/setup.bash`
+
+
 
 1. **Sensors + drivers**  — `ros2 launch bringup_robot minimumEx.launch.py`
 2. **global_planner** — `ros2 run global_planner global_planner_node`
-3. **Stanley** — with the real odom topic: `ros2 run stanley_controlller stanley_controler`
+3. **Stanley** — with the real odom topic: `ros2 run stanley_controller stanley_controller`
 4. **foxglove_bridge** — `ros2 run foxglove_bridge foxglove_bridge`
 5. **Arm dead-man**:
    ```bash
