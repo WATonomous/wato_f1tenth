@@ -1,6 +1,7 @@
 ### Welcome to Micro Autonomy!
 
 We're watonomous F1Tenth team (1/10th scale autonomous racing). We compete in F1Tenth racing competitions held at research conferences globally throughout the year.
+The second model training annotations repo : https://github.com/WATonomous/f1tenth-training-annotation
 
 # Onboarding Steps
 Apart from the general WATOnomous onboarding, there are some Micro-specific things you'll have to read & learn before contributing. Don't worry, it's a lot lighter than the onboarding assignnmet 
