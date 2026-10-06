@@ -24,7 +24,7 @@ As such, you'll have to go through the `setup-windows.md` or `setup-linux.md` an
 
 ## Your First Mini Component
 
-To verify that the environment setup works properly to familiarize yourself with how ROS2 works, please make a PR for a rosnode that:
+To verify that the environment setup works properly to familiarize yourself with how ROS2 works, please make a rosnode that:
 
 1. Subscribes to the IMU and prints IMU data onto the console
 2. Publish a throttle command to make the car move forward
