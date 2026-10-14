@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline checks for static-map classification and conservative resampling."""
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 import numpy as np
@@ -12,6 +13,18 @@ spec.loader.exec_module(scene)
 
 
 class PortoScene(unittest.TestCase):
+    def test_configured_target_speed_and_limit(self):
+        config = json.loads((Path(__file__).parents[1] / 'config/autodrive.json').read_text())
+        self.assertEqual(scene.target_speed(config), config['target_speed_mps'])
+        cap = config['speed_cap']
+        for speed in (0., .6*cap, cap):
+            self.assertEqual(scene.target_speed(dict(config, target_speed_mps=speed)), speed)
+        for speed in (-.1, cap+.1, float('nan'), float('inf'), True, None):
+            with self.subTest(speed=speed), self.assertRaises(ValueError):
+                scene.target_speed(dict(config, target_speed_mps=speed))
+        with self.assertRaises(ValueError):
+            scene.target_speed(dict(config, target_speed_mps=0., speed_cap=0.))
+
     def test_known_map_and_rear_blind_region(self):
         root = Path(__file__).parents[2]
         cells, loops = scene.load_map(root / 'particle_filter/maps/porto.pgm')

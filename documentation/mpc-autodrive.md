@@ -37,6 +37,17 @@ Run only one enable publisher. The controller expires its heartbeat after 150 ms
 
 `MPC_CONFIG` selects a **generated build-time solver profile**. The commands file selects `config/autodrive.json`; the launch requires `model_profile=autodrive` and rejects another compiled profile. Rebuild all workspace consumers of `global_planner/ReferenceTrack` after the message extension. No physical-car launch is supplied.
 
+### Change the speed
+
+Edit `src/robot/mpc_controller/config/autodrive.json`:
+
+```json
+"speed_cap": 1.0,
+"target_speed_mps": 0.4
+```
+
+Both values are in m/s. `target_speed_mps` is reference guidance; `speed_cap` is the hard requested-speed limit. The target must be finite, nonnegative, and no greater than the cap. Stop the driving publisher and controller launch, run `bash documentation/run-mpc-autodrive.sh build`, then restart `run` and `drive`. The scene reads the installed config at startup; file edits do not change a running controller. The recorded lap test used a target of 0.4 m/s.
+
 ## What runs
 
 ```mermaid

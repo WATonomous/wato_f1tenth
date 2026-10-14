@@ -2,6 +2,7 @@
 """Porto static prior + live costmap; all output geometry uses simulator map metres."""
 from collections import deque
 from pathlib import Path
+import json
 import math
 import time
 
@@ -22,6 +23,14 @@ from tf2_ros import Buffer, TransformListener, TransformException
 MAP_RESOLUTION = .05
 MAP_ORIGIN = np.array([-3.68, -8.47])
 MAX_TILT = .04
+
+
+def target_speed(config):
+    speed, cap = config['target_speed_mps'], config['speed_cap']
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+               for v in (speed, cap)) or not 0 <= speed <= cap or cap <= 0:
+        raise ValueError('target_speed_mps must be finite and between 0 and positive speed_cap')
+    return float(speed)
 
 
 def load_map(path):
@@ -129,6 +138,7 @@ class PortoScene(Node):
     def __init__(self):
         super().__init__('porto_scene')
         share = Path(get_package_share_directory('mpc_controller'))
+        speed = target_speed(json.loads((share / 'config' / 'autodrive.json').read_text()))
         self.cells, loops = load_map(share / 'maps' / 'porto.pgm')
         # The repository centerline stays farther from walls than the optimized line.
         points = np.loadtxt(share / 'maps' / 'my_map_clean.csv', delimiter=',')
@@ -139,7 +149,7 @@ class PortoScene(Node):
         reference.header.frame_id = reference.path.header.frame_id = 'map'
         reference.header.stamp = self.get_clock().now().to_msg()
         for x, y, right, left in points:
-            reference.path.poses.append(self.pose(x, y, .4))
+            reference.path.poses.append(self.pose(x, y, speed))
             # Widths are guidance only; measured loops and original occupied cells define legality.
             reference.widths.append(TrackWidth(right_m=float(right), left_m=float(left)))
         for path, loop in zip(reference.legal_boundaries, loops):
