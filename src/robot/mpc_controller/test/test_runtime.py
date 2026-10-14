@@ -12,13 +12,15 @@ os.environ.setdefault('ROS_LOCALHOST_ONLY', '1')
 
 from ament_index_python.packages import get_package_prefix, get_package_share_directory
 from ackermann_msgs.msg import AckermannDriveStamped
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, Path as RosPath
 from rosgraph_msgs.msg import Clock
 import rclpy
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Bool, Float32, Float64MultiArray, String
+from visualization_msgs.msg import MarkerArray
+from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 
 class Runtime(unittest.TestCase):
@@ -76,11 +78,12 @@ class Runtime(unittest.TestCase):
         self.processes.append(process)
         self.logs.append(log)
 
-    def stack(self, stall=0, simulated_clock=False):
+    def stack(self, stall=0, simulated_clock=False, visuals=True):
         self.clock_enabled = simulated_clock
         config = Path(get_package_share_directory('mpc_controller')) / 'config' / 'mux.yaml'
         self.start('ackermann_mux', 'ackermann_mux', '--ros-args', '--params-file', str(config))
         self.start('mpc_controller', 'mpc_node', '--ros-args', '-p', f'test_solver_stall_ms:={stall}',
+                   '-p', f'publish_visualization:={str(visuals).lower()}',
                    '-p', f'use_sim_time:={str(simulated_clock).lower()}')
         self.start('mpc_controller', 'fixture_simulator', '--ros-args',
                    '-p', f'use_sim_time:={str(simulated_clock).lower()}')
@@ -203,6 +206,49 @@ class Runtime(unittest.TestCase):
         self.pump(1.)
         self.stopped()
         self.assertIn('Deadline', self.reasons)
+
+    def test_foxglove_topics_and_stale_visual_clearing(self):
+        tracks, markers, search, paths, grids = [], [], [], [], []
+        dynamic = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.node.create_subscription(MarkerArray, '/mpc/visualization/cycle', markers.append, dynamic)
+        self.node.create_subscription(OccupancyGrid, '/mpc/visualization/search_space', search.append, dynamic)
+        self.node.create_subscription(RosPath, '/mpc/predicted_path', paths.append, dynamic)
+        self.node.create_subscription(OccupancyGrid, '/costmap', grids.append, 10)
+        self.stack()
+        # A late Foxglove connection must still receive static geometry.
+        latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.node.create_subscription(MarkerArray, '/mpc/visualization/track', tracks.append, latched)
+        self.pump(.4)
+        self.assertTrue(tracks and markers and search and paths and grids)
+        raceline = next(m for m in tracks[-1].markers if m.ns == 'raceline')
+        self.assertGreater(len(raceline.points), 100)
+        self.assertTrue(all(p.z < .1 for p in raceline.points))
+        self.assertEqual(raceline.header.frame_id, 'map')
+        self.assertFalse(paths[-1].poses, 'Disabled path must be empty')
+        self.assertTrue(any(0 in m.data for m in search), 'No legal search cells drawn')
+        observed_stamps = [g.header.stamp for g in grids]
+        self.assertTrue(all(m.header.stamp in observed_stamps for m in search if len(m.data) > 1))
+        self.heartbeat = True
+        self.pump(1.5)
+        self.moving()
+        self.assertTrue(any(len(p.poses) > 1 for p in paths))
+        names = {m.ns for array in markers for m in array.markers}
+        self.assertTrue({'approved_proposal', 'vehicle_footprint', 'covering_circle_plus_clearance',
+                         'seed_route_rear_axle', 'solver_corridors_covering_center', 'command_status'} <= names)
+        self.parameter('publish_state', False)
+        self.parameter('publish_grid', False)
+        self.pump(.55)
+        self.stopped()
+        self.assertFalse(paths[-1].poses, 'Old approved path remained after stop')
+        self.assertEqual(list(search[-1].data), [-1], 'Old legal-space overlay remained')
+        latest_names = {m.ns for m in markers[-1].markers}
+        self.assertFalse({'approved_proposal', 'unapproved_proposal', 'vehicle_footprint'} & latest_names)
+        self.assertEqual(markers[-1].markers[0].action, 3)
+
+    def test_foxglove_visualizations_can_be_disabled(self):
+        self.stack(visuals=False)
+        self.assertEqual(self.node.count_publishers('/mpc/visualization/cycle'), 0)
+        self.assertEqual(self.node.count_publishers('/mpc/visualization/search_space'), 0)
 
     def test_simulator_bridge_clears_a_stale_throttle_request(self):
         self.start('sim_util', 'ackermann_converter_node')

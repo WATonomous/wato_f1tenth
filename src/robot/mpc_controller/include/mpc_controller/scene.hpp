@@ -34,6 +34,7 @@ public:
   std::vector<Pose> route(Pose start, Pose goal, Clock::time_point deadline,
     int max_expansions = 12000) const;
   const Grid & grid() const {return grid_;}
+  const std::vector<uint8_t> & safeMask() const {return safe_;}
   uint64_t version() const {return version_;}
 private:
   int cell(Pose map) const;

@@ -17,6 +17,7 @@ public:
   Cycle cycle(Pose ego, Command previous, double elapsed, const Reference & reference,
     const Scene & scene, Clock::time_point deadline);
   void reset();
+  const std::vector<Pose> & route() const {return route_;}
 private:
   Problem prepare(Pose ego, Command previous, double elapsed, const Reference & reference,
     const Scene & scene, Clock::time_point deadline);

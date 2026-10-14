@@ -25,6 +25,14 @@ struct Solution {
   std::array<State, horizon+1> states{};
   std::array<Command, horizon> commands{};
 };
+inline Face solverCorridorFace(Face face,const State & seed,int stage)
+{
+  const auto center=coveringCenter({seed[0],seed[1],seed[2]});
+  const double slack=face.bound-face.x*center.x-face.y*center.y;
+  // Keep a feasible seed feasible; a fixed contraction can exclude the stopped car.
+  face.bound-=stage==0 ? 0 : std::min(.002,std::max(0.,slack/2));
+  return face;
+}
 class Solver {
 public:
   Solver();

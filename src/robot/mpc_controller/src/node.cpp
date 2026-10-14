@@ -1,4 +1,5 @@
 #include "mpc_controller/controller.hpp"
+#include "mpc_controller/visualization.hpp"
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 #include <global_planner/msg/reference_track.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
@@ -30,6 +31,7 @@ public:
     grid_age_=declare_parameter("grid_max_age_s",.20);
     rear_offset_=declare_parameter("rear_axle_offset_x_m",0.);
     stall_ms_=declare_parameter("test_solver_stall_ms",0);
+    visuals_enabled_=declare_parameter("publish_visualization",true);
     if (vehicle_frame_.empty() || !std::isfinite(max_tilt_) || max_tilt_<=0 || max_tilt_>.04 ||
       !std::isfinite(state_age_) || state_age_<=0 || state_age_>.25 ||
       !std::isfinite(grid_age_) || grid_age_<=0 || grid_age_>1 || !std::isfinite(rear_offset_) ||
@@ -37,9 +39,17 @@ public:
       throw std::invalid_argument("Invalid runtime configuration");
     }
     command_pub_=create_publisher<ackermann_msgs::msg::AckermannDriveStamped>("/drive/autonomy",1);
-    path_pub_=create_publisher<nav_msgs::msg::Path>("/mpc/predicted_path",1);
+    path_pub_=create_publisher<nav_msgs::msg::Path>("/mpc/predicted_path",rclcpp::QoS(1).best_effort());
     diagnostics_pub_=create_publisher<std_msgs::msg::Float64MultiArray>("/mpc/metrics",1);
     reason_pub_=create_publisher<std_msgs::msg::String>("/mpc/status",1);
+    if (visuals_enabled_) {
+      track_pub_=create_publisher<visualization::Markers>("/mpc/visualization/track",
+        rclcpp::QoS(1).reliable().transient_local());
+      visuals_pub_=create_publisher<visualization::Markers>("/mpc/visualization/cycle",rclcpp::QoS(1).best_effort());
+      search_pub_=create_publisher<nav_msgs::msg::OccupancyGrid>("/mpc/visualization/search_space",rclcpp::QoS(1).best_effort());
+      visuals_group_=create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+      visuals_timer_=create_wall_timer(std::chrono::milliseconds(200),[this] {publishVisuals();},visuals_group_);
+    }
     reference_sub_=create_subscription<global_planner::msg::ReferenceTrack>(
       "/global_planner/reference_track",rclcpp::QoS(1).reliable().transient_local(),
       [this](global_planner::msg::ReferenceTrack::ConstSharedPtr msg) {receiveReference(*msg);});
@@ -230,7 +240,66 @@ private:
   void publishStop(const std::string & reason)
   {
     publishCommand({});
+    visual_approved_=false;visual_reason_=reason;
+    if (path_pub_->get_subscription_count()) {
+      nav_msgs::msg::Path empty;empty.header.frame_id="map";empty.header.stamp=now();
+      path_pub_->publish(empty);
+    }
     std_msgs::msg::String status;status.data=reason;reason_pub_->publish(status);
+  }
+  void publishVisuals()
+  {
+    std::shared_ptr<const Reference> reference,scene_reference;
+    std::shared_ptr<const Scene> scene;
+    std::optional<Cycle> result;
+    std::vector<Pose> route;
+    Pose ego;
+    bool state_valid=false,approved=false;
+    std::string reason;
+    builtin_interfaces::msg::Time grid_stamp;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      reference=reference_;ego=ego_;reason=visual_reason_;grid_stamp=grid_stamp_;
+      const auto time=Clock::now();
+      state_valid=have_state_ && fresh(state_stamp_,state_age_) &&
+        std::chrono::duration<double>(time-state_received_).count()<=state_age_;
+      const bool grid_valid=grid_ && fresh(grid_stamp_,grid_age_) &&
+        std::chrono::duration<double>(time-grid_received_).count()<=grid_age_;
+      if (grid_valid && reference && visual_scene_reference_==reference &&
+        visual_scene_ && visual_scene_->version()==grid_version_) {
+        scene=visual_scene_;scene_reference=visual_scene_reference_;
+      }
+      if (state_valid && scene && visual_cycle_ &&
+        std::chrono::duration<double>(time-visual_cycle_time_).count()<=state_age_ &&
+        visual_cycle_->problem.scene_version==grid_version_ &&
+        visual_cycle_->problem.track_version==reference->version()) {
+        result=visual_cycle_;route=visual_route_;
+        approved=visual_approved_ && enabled_ &&
+          time-enable_received_<std::chrono::milliseconds(150) && time>=manual_until_;
+      }
+    }
+    if (!approved && reason=="Approved") {reason="NoCurrentApprovedCycle";}
+    // Build and serialize debug messages outside the command/publication mutex.
+    std_msgs::msg::Header header;header.frame_id="map";header.stamp=now();
+    if (reference!=drawn_reference_) {
+      if (reference) {track_pub_->publish(visualization::track(*reference,header));}
+      else {
+        visualization::Markers clear;visualization_msgs::msg::Marker marker;
+        marker.header=header;marker.action=visualization_msgs::msg::Marker::DELETEALL;
+        clear.markers.push_back(marker);track_pub_->publish(clear);
+      }
+      drawn_reference_=reference;
+    }
+    if (search_pub_->get_subscription_count()) {
+      if (scene) {
+        auto observed=header;observed.stamp=grid_stamp;
+        search_pub_->publish(visualization::searchSpace(*scene,observed));
+      } else {search_pub_->publish(visualization::emptySearchSpace(header));}
+    }
+    if (visuals_pub_->get_subscription_count()) {
+      visuals_pub_->publish(visualization::cycle(result ? &*result : nullptr,route,
+        ego,state_valid,approved,reason,header));
+    }
   }
   void schedule()
   {
@@ -270,7 +339,7 @@ private:
   void work()
   {
     std::shared_ptr<const Reference> cached_reference;
-    std::unique_ptr<Scene> scene;
+    std::shared_ptr<Scene> scene;
     uint64_t cached_grid=0;
     for (;;) {
       Job job;
@@ -282,7 +351,7 @@ private:
       try {
         if (job.reset) {controller_.reset();}
         if (!scene || cached_grid!=job.grid_version || cached_reference!=job.reference) {
-          scene=std::make_unique<Scene>(*job.grid,*job.reference,job.grid_version);
+          scene=std::make_shared<Scene>(*job.grid,*job.reference,job.grid_version);
           cached_reference=job.reference;cached_grid=job.grid_version;
         }
         if (stall_ms_) {std::this_thread::sleep_for(std::chrono::milliseconds(stall_ms_));}
@@ -303,18 +372,21 @@ private:
       else if (Clock::now()-enable_received_>=std::chrono::milliseconds(150)) {reason="EnableTimeout";}
       if (approved) {
         publishCommand(result.solution.commands[0]);
-        nav_msgs::msg::Path path;path.header.frame_id="map";path.header.stamp=now();
-        for (auto state:result.solution.states) {
-          const auto p=toMap({state[0],state[1],state[2]},result.solution.frame);
-          geometry_msgs::msg::PoseStamped pose;pose.header=path.header;
-          pose.pose.position.x=p.x;pose.pose.position.y=p.y;
-          pose.pose.orientation.z=std::sin(p.yaw/2);pose.pose.orientation.w=std::cos(p.yaw/2);
-          path.poses.push_back(pose);
+        if (path_pub_->get_subscription_count()) {
+          std_msgs::msg::Header header;header.frame_id="map";header.stamp=now();
+          path_pub_->publish(visualization::path(result.solution,header));
         }
-        path_pub_->publish(path);
       } else {publishStop(reason);}
       std_msgs::msg::String status;status.data=approved ? "Approved" :
         reason;reason_pub_->publish(status);
+      if (visuals_enabled_) {
+        visual_approved_=approved;visual_reason_=status.data;
+        visual_scene_=scene;visual_scene_reference_=cached_reference;
+        if (visuals_pub_->get_subscription_count()) {
+          visual_cycle_=result;visual_cycle_time_=Clock::now();
+          visual_route_=controller_.route();
+        } else {visual_cycle_.reset();visual_route_.clear();}
+      }
       std_msgs::msg::Float64MultiArray metrics;
       metrics.data={std::chrono::duration<double,std::milli>(Clock::now()-job.release).count(),
         result.prepare_ms,result.solution.solve_ms,result.validation_ms,double(approved),
@@ -345,6 +417,17 @@ private:
   std::optional<Job> job_;
   std::shared_ptr<const Reference> reference_;
   std::shared_ptr<const Grid> grid_;
+  bool visuals_enabled_=true,visual_approved_=false;
+  std::string visual_reason_="NoInputs";
+  std::shared_ptr<const Reference> visual_scene_reference_,drawn_reference_;
+  std::shared_ptr<const Scene> visual_scene_;
+  std::optional<Cycle> visual_cycle_;
+  std::vector<Pose> visual_route_;
+  Clock::time_point visual_cycle_time_;
+  rclcpp::CallbackGroup::SharedPtr visuals_group_;
+  rclcpp::TimerBase::SharedPtr visuals_timer_;
+  rclcpp::Publisher<visualization::Markers>::SharedPtr track_pub_,visuals_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr search_pub_;
   rclcpp::CallbackGroup::SharedPtr watchdog_group_;
   rclcpp::TimerBase::SharedPtr timer_,watchdog_;
   rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr command_pub_;
@@ -363,6 +446,7 @@ int main(int argc,char ** argv)
 {
   rclcpp::init(argc,argv);
   auto node=std::make_shared<mpc::Node>();
-  rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(),2);
+  // Input preparation and visualization must leave a thread available for the watchdog.
+  rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(),3);
   executor.add_node(node);executor.spin();rclcpp::shutdown();return 0;
 }

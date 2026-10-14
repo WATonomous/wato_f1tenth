@@ -53,14 +53,10 @@ Solution Solver::solve(const Problem & problem)
     double params[17] = {target.x, target.y, target.yaw,
       k < horizon ? problem.speeds[k] : 0, k == 0 ? problem.first_interval : dt};
     for (int h = 0; h < 4; ++h) {
-      auto face = problem.corridor[k][h];
-      const auto & seed=problem.seed_states[k];
-      const auto center=coveringCenter({seed[0],seed[1],seed[2]});
-      const double slack=face.bound-face.x*center.x-face.y*center.y;
+      auto face = solverCorridorFace(problem.corridor[k][h],problem.seed_states[k],k);
       params[5+3*h] = face.x;
       params[6+3*h] = face.y;
-      // Keep a feasible seed feasible; a fixed contraction can exclude the stopped car.
-      params[7+3*h] = face.bound-(k==0 ? 0 : std::min(.002,std::max(0.,slack/2)));
+      params[7+3*h] = face.bound;
     }
     mpc_proto_acados_update_params(capsule_, k, params, 17);
     State guess = problem.seed_states[k];
