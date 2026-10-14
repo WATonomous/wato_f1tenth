@@ -41,13 +41,22 @@ case "$MPC_ACTION" in
       "-DMPC_CONFIG=$MPC_ROOT/src/robot/mpc_controller/config/autodrive.json"
     ;;
   run) exec ros2 launch mpc_controller autodrive.launch.py "$@" ;;
+  foxglove)
+    if ! ros2 pkg prefix foxglove_bridge >/dev/null 2>&1; then
+      echo 'Install the host bridge: sudo apt install ros-jazzy-foxglove-bridge' >&2
+      exit 1
+    fi
+    echo "Import $MPC_ROOT/src/robot/mpc_controller/config/foxglove.json in Foxglove."
+    exec ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=127.0.0.1 port:=8765 \
+      num_threads:=2 max_qos_depth:=1 "$@"
+    ;;
   drive)
     echo 'Ctrl-C stops the enable heartbeat. Do not run another enable publisher.'
     exec ros2 topic pub -r 25 /dead_man_switch std_msgs/msg/Bool '{data: true}'
     ;;
   trial) exec ros2 run mpc_controller autodrive_trial.py "$@" ;;
   *)
-    echo "Usage: bash documentation/run-mpc-autodrive.sh {build|api|run|drive|trial} [arguments]"
+    echo "Usage: bash documentation/run-mpc-autodrive.sh {build|api|run|foxglove|drive|trial} [arguments]"
     echo 'Build once, start API, connect Unity, run stack, then drive OR a bounded trial.'
     ;;
 esac

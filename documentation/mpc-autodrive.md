@@ -35,6 +35,8 @@ bash documentation/run-mpc-autodrive.sh drive
 
 Run only one enable publisher. The controller expires its heartbeat after 150 ms; the converter also clears stale selected requests after 60 ms. Emergency, joystick, and keyboard retain higher mux priority. An API connection or Unity-mode failure cannot be repaired by ROS command publication alone. Use the simulator's manual controls/reset when necessary.
 
+For the raceline, costmap, proposed trajectory, legal search mask, body envelope, seed route, solver corridors, and timing/status plots, see [Foxglove setup](mpc-foxglove.md). Start the bridge with `bash documentation/run-mpc-autodrive.sh foxglove` and import the supplied layout. Visuals are enabled by default; `run visualization:=false` disables debug geometry for comparison runs.
+
 `MPC_CONFIG` selects a **generated build-time solver profile**. The commands file selects `config/autodrive.json`; the launch requires `model_profile=autodrive` and rejects another compiled profile. Rebuild all workspace consumers of `global_planner/ReferenceTrack` after the message extension. No physical-car launch is supplied.
 
 ### Change the speed

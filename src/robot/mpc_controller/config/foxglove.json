@@ -1,0 +1,182 @@
+{
+  "configById": {
+    "3D!mpc": {
+      "foxglovePanelTitle": "MPC: raceline, costmap, search space and proposal",
+      "cameraState": {
+        "distance": 65,
+        "perspective": false,
+        "phi": 0,
+        "thetaOffset": 0,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.01,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "followTf": "map",
+      "scene": {
+        "enableStats": false
+      },
+      "transforms": {},
+      "layers": {},
+      "topics": {
+        "/mpc/visualization/track": {
+          "visible": true
+        },
+        "/mpc/visualization/cycle": {
+          "visible": true
+        },
+        "/costmap": {
+          "visible": true,
+          "colorMode": "costmap",
+          "alpha": 0.65,
+          "frameLocked": false
+        },
+        "/mpc/visualization/search_space": {
+          "visible": true,
+          "colorMode": "custom",
+          "minColor": "#16cf7a55",
+          "maxColor": "#00000000",
+          "unknownColor": "#00000000",
+          "invalidColor": "#00000000",
+          "frameLocked": false
+        },
+        "/mpc/predicted_path": {
+          "visible": false,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#35ed50ff",
+            "#35ed5080"
+          ]
+        },
+        "/costmap/lidar": {
+          "visible": false,
+          "colorMode": "costmap",
+          "alpha": 0.4,
+          "frameLocked": false
+        }
+      },
+      "imageMode": {}
+    },
+    "RawMessages!decision": {
+      "foxglovePanelTitle": "Latest command decision",
+      "topicPath": "/mpc/status.data",
+      "fontSize": 18
+    },
+    "Plot!timing": {
+      "foxglovePanelTitle": "Control cycle latency (ms) \u2014 target 20",
+      "paths": [
+        {
+          "value": "/mpc/metrics.data[0]",
+          "enabled": true,
+          "label": "Complete cycle ms",
+          "color": "#e5b567",
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/mpc/metrics.data[2]",
+          "enabled": true,
+          "label": "Solver ms",
+          "color": "#7bb1e8",
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "20",
+          "enabled": true,
+          "label": "20 ms deadline",
+          "color": "#f16d6d",
+          "lineSize": 1
+        }
+      ],
+      "minYValue": 0,
+      "showLegend": true,
+      "legendDisplay": "top",
+      "isSynced": true,
+      "xAxisVal": "timestamp"
+    },
+    "Plot!approval": {
+      "foxglovePanelTitle": "Published approval (1) / intervention (0)",
+      "paths": [
+        {
+          "value": "/mpc/metrics.data[4]",
+          "enabled": true,
+          "label": "Approved",
+          "color": "#57d98b",
+          "timestampMethod": "receiveTime",
+          "showLine": false
+        }
+      ],
+      "minYValue": 0,
+      "maxYValue": 1.1,
+      "showLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp"
+    },
+    "Plot!ages": {
+      "foxglovePanelTitle": "Observation age (s)",
+      "paths": [
+        {
+          "value": "/mpc/metrics.data[7]",
+          "enabled": true,
+          "label": "State age s",
+          "color": "#87afff",
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/mpc/metrics.data[8]",
+          "enabled": true,
+          "label": "Costmap age s",
+          "color": "#e6ba6c",
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "minYValue": 0,
+      "showLegend": true,
+      "legendDisplay": "top",
+      "isSynced": true,
+      "xAxisVal": "timestamp"
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "direction": "row",
+    "first": "3D!mpc",
+    "splitPercentage": 72,
+    "second": {
+      "direction": "column",
+      "first": "RawMessages!decision",
+      "splitPercentage": 14,
+      "second": {
+        "direction": "column",
+        "first": "Plot!timing",
+        "splitPercentage": 40,
+        "second": {
+          "direction": "column",
+          "first": "Plot!approval",
+          "second": "Plot!ages",
+          "splitPercentage": 45
+        }
+      }
+    }
+  }
+}

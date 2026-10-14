@@ -27,13 +27,13 @@ Use the system Python for `colcon` and ROS tests; the dependency virtual environ
 
 ## Run the matching-model simulation
 
-In the built and sourced worktree:
+In the built and sourced repository checkout:
 
 ```bash
 ros2 launch mpc_controller prototype.launch.py scene:=obstacle
 ```
 
-Choose `solo`, `obstacle`, or `blocked`. The fixture publishes a map-matched reference with widths, a native occupancy grid, and rear-axle odometry; it applies selected speed and steering instantaneously with an independent analytic bicycle rollout. The track is a radius-10 m circle with 3 m widths on either side. The obstacle intersects the initial raceline; `blocked` places a wall across it. This fixture has no rendering window; inspect `/odom`, `/mpc/predicted_path`, `/mpc/status`, and `/mpc/ground_truth_clearance` through ROS tools or RViz.
+Choose `solo`, `obstacle`, or `blocked`. The fixture publishes a map-matched reference with widths, a native occupancy grid, and rear-axle odometry; it applies selected speed and steering instantaneously with an independent analytic bicycle rollout. The track is a radius-10 m circle with 3 m widths on either side. The obstacle intersects the initial raceline; `blocked` places a wall across it. This fixture has no rendering window. Use the [Foxglove layout and instructions](../../../documentation/mpc-foxglove.md) to see the raceline, costmap, proposal, search mask, body, seed, and corridors, or inspect the ROS topics directly.
 
 Autonomy starts disabled. In another terminal:
 
@@ -92,7 +92,7 @@ flowchart LR
     H --> S
 ```
 
-One controller process owns one solver workspace. A single worker executes scene preparation and optimization; two ROS executor threads service input and scheduling/watchdog callbacks. The worker is not a background maneuver search. Jobs do not queue: a busy worker causes a stop. The 20 ms release-to-publication deadline includes scene construction when necessary. A separate 5 ms watchdog can issue stop requests while the worker is stalled, and the publication gate rejects late results.
+One controller process owns one solver workspace. A single worker executes scene preparation and optimization; three ROS executor threads service separate input, scheduling/watchdog, and visualization callback groups. Debug geometry is built outside the command mutex at 5 Hz. The worker is not a background maneuver search. Jobs do not queue: a busy worker causes a stop. The 20 ms release-to-publication deadline includes scene construction when necessary. A separate 5 ms watchdog can issue stop requests while the worker is stalled, and the publication gate rejects late results.
 
 | Input/output | Contract |
 |---|---|
@@ -102,7 +102,7 @@ One controller process owns one solver workspace. A single worker executes scene
 | `/dead_man_switch` | `std_msgs/Bool`, true heartbeat at least every 150 ms; false disables immediately. Default disabled. |
 | `/ackermann_cmd` | Mux-selected request. A bounded own-request history distinguishes autonomy echoes from takeover; missing selected history inhibits motion. New selected requests invalidate in-flight jobs. |
 | `/drive/autonomy` | `AckermannDriveStamped`: speed in m/s, steering in rad, fresh publication stamp. The actual float32 payload is independently validated before publication. |
-| `/mpc/predicted_path` | Validated solution in `map`; visualization only. |
+| `/mpc/predicted_path` | Validated solution in `map`; best effort, depth one; empty on stop. Visualization only. |
 | `/mpc/status` | Approval or rejection reason, including publication-gate failures. A stopped command is not counted as an approved optimization. |
 
 `/mpc/metrics` is a prototype `Float64MultiArray`: indices 0–8 are release-to-publication elapsed ms, preparation ms, solver update/solve/extraction ms, validation ms, published approval (0/1), minimum covering-circle clearance m, cycle sequence, state observation age s, and grid observation age s. Index 0 also includes scene rebuilds and path/status publication. It does not include DDS delivery to subscribers or mux/actuator application. Infinity clearance means no validated clearance was computed.
