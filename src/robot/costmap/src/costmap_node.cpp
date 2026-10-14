@@ -86,6 +86,11 @@ void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg
 
 void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan)
 {
+  if (scan->header.frame_id.empty() ||
+      (scan->header.stamp.sec==0 && scan->header.stamp.nanosec==0) ||
+      !std::isfinite(scan->angle_min) || !std::isfinite(scan->angle_increment) ||
+      !std::isfinite(scan->range_min) || !std::isfinite(scan->range_max) ||
+      scan->range_min<0 || scan->range_max<=scan->range_min) {return;}
   // Grid origin is the lower-left corner relative to base_link. Positive x is
   // forward and positive y is left, so the grid spans from behind the robot
   // to in front of it and symmetrically across its lateral axis.
@@ -94,7 +99,7 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
 
   // Initialize the occupancy grid message
   nav_msgs::msg::OccupancyGrid grid_msg;
-  grid_msg.header.stamp = this->now();
+  grid_msg.header.stamp = scan->header.stamp;
   grid_msg.header.frame_id = robot_frame_;
 
   grid_msg.info.resolution = static_cast<float>(resolution_);
@@ -114,8 +119,8 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     transform_stamped = tf_buffer_->lookupTransform(
         robot_frame_,
         scan->header.frame_id,
-        tf2::TimePointZero,
-        100ms);
+        rclcpp::Time(scan->header.stamp),
+        0ms);
   } catch (const tf2::TransformException &ex) {
     RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
                          "Transform lookup failed: %s", ex.what());
@@ -147,9 +152,9 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
       marks_obstacle = false;
     }
 
-    // if (!std::isfinite(range) || range < scan->range_min || range > scan->range_max) {
-    //   continue;
-    // }
+    if (!std::isfinite(range) || range < scan->range_min || range > scan->range_max) {
+      continue;
+    }
 
     float angle = scan->angle_min + i * scan->angle_increment;
 

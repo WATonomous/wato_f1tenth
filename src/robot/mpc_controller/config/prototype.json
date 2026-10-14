@@ -1,0 +1,16 @@
+{
+  "horizon": 30,
+  "dt": 0.04,
+  "wheelbase": 0.3302,
+  "front_extent": 0.45,
+  "rear_extent": 0.15,
+  "half_width": 0.14,
+  "clearance": 0.05,
+  "speed_cap": 1.0,
+  "speed_rate": 2.0,
+  "steering_rate": 2.0,
+  "servo_gain": -1.2135,
+  "servo_offset": 0.476,
+  "servo_min": 0.15,
+  "servo_max": 0.85
+}
