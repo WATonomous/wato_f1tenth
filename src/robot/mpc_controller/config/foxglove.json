@@ -30,27 +30,42 @@
       "followMode": "follow-pose",
       "followTf": "map",
       "scene": {
-        "enableStats": false
+        "enableStats": false,
+        "backgroundColor": "#151b23",
+        "transforms": {
+          "visible": false,
+          "showLabel": false
+        }
       },
       "transforms": {},
       "layers": {},
       "topics": {
         "/mpc/visualization/track": {
-          "visible": true
+          "visible": true,
+          "showOutlines": false
         },
         "/mpc/visualization/cycle": {
-          "visible": true
+          "visible": true,
+          "showOutlines": false,
+          "namespaces": {
+            "command_status": {
+              "visible": false
+            },
+            "warm_start_rear_axle": {
+              "visible": false
+            }
+          }
         },
         "/costmap": {
           "visible": true,
           "colorMode": "costmap",
-          "alpha": 0.65,
+          "alpha": 0.3,
           "frameLocked": false
         },
         "/mpc/visualization/search_space": {
           "visible": true,
           "colorMode": "custom",
-          "minColor": "#16cf7a55",
+          "minColor": "#52b5a42b",
           "maxColor": "#00000000",
           "unknownColor": "#00000000",
           "invalidColor": "#00000000",

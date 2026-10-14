@@ -13,6 +13,8 @@ bash documentation/run-mpc-autodrive.sh run
 
 The visuals also work while autonomy is disabled. Starting the stack does not start the simulator/API or enable driving.
 
+The default view hides TF axes/labels and floating command text, uses faint grid/corridor overlays, and emphasizes the proposed path and vehicle. Status and timing remain in the side panels. In the 3D panel settings, expand `/mpc/visualization/cycle` and enable the `command_status` or `warm_start_rear_axle` namespace to inspect those optional details; no controller restart is needed for visibility changes. TF visibility is under **Transforms**. Reimport the JSON after updating it: editing the repository file does not update an already imported layout. The transform and namespace fields were inspected in the installed Foxglove 3.2.1 renderer; the TF label control is also documented in the [3D settings](https://docs.foxglove.dev/docs/visualization/panels/3d#settings).
+
 In another terminal, install the host bridge once if it is missing, then start it:
 
 ```bash
@@ -31,16 +33,16 @@ For the matching-model fixture, build the `prototype.json` profile as described 
 | View | Topic / marker namespace | Meaning |
 |---|---|---|
 | Blue raceline | `/mpc/visualization/track`, `raceline` | Samples the current periodic cubic Frenet reference, including lap closure. Station remains cumulative straight segment length. This is the actual controller reference, including Porto's provisional guide. |
-| White legal boundaries | `/mpc/visualization/track`, `legal_boundary_0`, `legal_boundary_1` | Closed loops used by `Reference`: explicit measured loops when supplied, otherwise the existing reconstructed width-offset loops. Loop indices do not imply left/right. |
+| Muted gray legal boundaries | `/mpc/visualization/track`, `legal_boundary_0`, `legal_boundary_1` | Closed loops used by `Reference`: explicit measured loops when supplied, otherwise the existing reconstructed width-offset loops. Loop indices do not imply left/right. |
 | Raw costmap | `/costmap` | The existing input, including occupied, free, and unknown cells. In Porto this includes the static prior; it is not purely live observed free space. `/costmap/lidar` is an optional hidden layer before prior fusion. |
-| Green legal search overlay | `/mpc/visualization/search_space` | Cells marked safe by the actual scene mask after track restrictions and full-cell disk inflation. Safe is 0; unavailable is 100. The layout makes unavailable/unknown cells transparent so the raw costmap remains visible. |
+| Faint teal legal search overlay | `/mpc/visualization/search_space` | Cells marked safe by the actual scene mask after track restrictions and full-cell disk inflation. Safe is 0; unavailable is 100. The layout makes unavailable/unknown cells transparent so the raw costmap remains visible. |
 | Green / orange proposal | `/mpc/visualization/cycle`, `approved_proposal` / `unapproved_proposal` | Most recent finite optimizer trajectory. Green passed independent validation **and the command publication gate** for that cycle; orange was not authorized. This is a rear-axle path, not a body outline or measured execution. |
 | Yellow seed route | `/mpc/visualization/cycle`, `seed_route_rear_axle` | Retained preparation route, including the bounded static-obstacle repair when needed. |
-| Thin gray rollout | `/mpc/visualization/cycle`, `warm_start_rear_axle` | Per-stage seed state guess passed to optimization. |
+| Thin gray rollout (hidden by default) | `/mpc/visualization/cycle`, `warm_start_rear_axle` | Per-stage seed state guess passed to optimization. |
 | Cyan corridor rectangles | `/mpc/visualization/cycle`, `solver_corridors_covering_center` | Stage half-planes reconstructed in `map`, including the solver's adaptive contraction of at most 2 mm. These constrain the **covering-circle center**, not the rear axle. |
-| Blue vehicle body | `/mpc/visualization/cycle`, `vehicle_footprint` | Configured oriented body at the latest fresh measured rear-axle pose, using compiled model dimensions. |
+| Pale vehicle body | `/mpc/visualization/cycle`, `vehicle_footprint` | Configured oriented body at the latest fresh measured rear-axle pose, using compiled model dimensions. |
 | Orange safety circle | `/mpc/visualization/cycle`, `covering_circle_plus_clearance` | Body-covering radius plus configured clearance and the existing 5 mm geometric margin, centered ahead of the rear axle. It is not calibrated uncertainty. |
-| Floating decision | `/mpc/visualization/cycle`, `command_status` | Approval/rejection reason, core/solver time when available, and stale-state warning. `MPC core` excludes ROS publication and scene rebuilding; use the full-cycle plot for the controller deadline. |
+| Floating decision (hidden by default) | `/mpc/visualization/cycle`, `command_status` | Approval/rejection reason, core/solver time when available, and stale-state warning. `MPC core` excludes ROS publication and scene rebuilding; use the full-cycle plot for the controller deadline. |
 | Accepted path | `/mpc/predicted_path` | Existing `nav_msgs/Path`, hidden by default to avoid duplicating the proposal. Empty on stop/rejection. |
 
 The search mask is a conservative set of **circle-center positions**, not the full dynamically reachable set. The A* seed search adds its existing 0.20 m padding. Near a cell edge the controller can certify a safe continuous point against original cells and boundary segments even when the coarse mask does not mark that cell safe. A valid corridor can therefore extend outside the green raster. The overlay explains one cached mask; it is not an independent collision certificate or a reason to accept a command. Corridors are individual stage constraints; their visible union does not certify between-stage motion. Independent swept validation still checks original geometry.

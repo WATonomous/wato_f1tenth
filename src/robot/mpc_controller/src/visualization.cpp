@@ -53,7 +53,8 @@ std::vector<Pose> corners(const std::array<Face,4> & faces)
 Markers track(const Reference & reference,const std_msgs::msg::Header & header)
 {
   Markers markers;clear(markers,header);
-  auto raceline=line("raceline",header,.1F,.55F,1.F,.045);
+  auto raceline=line("raceline",header,.3F,.65F,1.F,.025);
+  raceline.color.a=.7F;
   const auto & geometry=reference.geometry();
   const int count=std::min(40000,std::max(4,int(std::ceil(geometry.totalLength()/.05))));
   for (int i=0;i<=count;++i) {
@@ -63,7 +64,8 @@ Markers track(const Reference & reference,const std_msgs::msg::Header & header)
   markers.markers.push_back(std::move(raceline));
   for (int side=0;side<2;++side) {
     auto boundary=line(side==0 ? "legal_boundary_0" : "legal_boundary_1",
-      header,.85F,.85F,.85F);
+      header,.65F,.7F,.75F,.015);
+    boundary.color.a=.55F;
     for (auto p:reference.edges()[side]) {boundary.points.push_back(point(p));}
     if (!boundary.points.empty()) {boundary.points.push_back(boundary.points.front());}
     markers.markers.push_back(std::move(boundary));
@@ -119,25 +121,27 @@ Markers cycle(const Cycle * result,const std::vector<Pose> & route,Pose ego,
     const auto candidate=path(result->solution,header);
     if (!candidate.poses.empty()) {
       auto proposal=line(approved ? "approved_proposal" : "unapproved_proposal",header,
-        approved ? .15F : 1.F,approved ? 1.F : .25F,.15F,.065);
+        approved ? .3F : 1.F,approved ? 1.F : .35F,.25F,.05);
       for (const auto & p:candidate.poses) {
         auto position=p.pose.position;position.z=.06;proposal.points.push_back(position);
       }
       markers.markers.push_back(std::move(proposal));
     }
     if (result->problem.track_version!=0) {
-      auto seed=line("seed_route_rear_axle",header,1.F,.8F,.1F);
-      for (auto p:route) {if (finite(p)) {seed.points.push_back(point(p,.08));}}
+      auto seed=line("seed_route_rear_axle",header,.85F,.7F,.35F,.012);
+      seed.color.a=.55F;
+      for (auto p:route) {if (finite(p)) {seed.points.push_back(point(p,.045));}}
       markers.markers.push_back(std::move(seed));
-      auto warm=line("warm_start_rear_axle",header,.65F,.65F,.65F,.015);
+      auto warm=line("warm_start_rear_axle",header,.65F,.65F,.65F,.01);
+      warm.color.a=.3F;
       for (auto x:result->problem.seed_states) {
         if (std::isfinite(x[0]) && std::isfinite(x[1]) && std::isfinite(x[2])) {
-          warm.points.push_back(point(toMap({x[0],x[1],x[2]},result->problem.frame),.07));
+          warm.points.push_back(point(toMap({x[0],x[1],x[2]},result->problem.frame),.035));
         }
       }
       markers.markers.push_back(std::move(warm));
-      auto corridors=line("solver_corridors_covering_center",header,.2F,.85F,1.F,.012);
-      corridors.type=Marker::LINE_LIST;corridors.color.a=.35F;
+      auto corridors=line("solver_corridors_covering_center",header,.35F,.7F,.75F,.008);
+      corridors.type=Marker::LINE_LIST;corridors.color.a=.12F;
       for (int stage=0;stage<=horizon;++stage) {
         auto faces=result->problem.corridor[stage];
         for (auto & face:faces) {face=solverCorridorFace(face,result->problem.seed_states[stage],stage);}
@@ -151,12 +155,13 @@ Markers cycle(const Cycle * result,const std::vector<Pose> & route,Pose ego,
     }
   }
   if (state_valid && finite(ego)) {
-    auto body=line("vehicle_footprint",header,.4F,.65F,1.F);
+    auto body=line("vehicle_footprint",header,.85F,.9F,.95F);
     body.type=Marker::CUBE;body.pose.position=point(coveringCenter(ego),.1);
     body.pose.orientation.z=std::sin(ego.yaw/2);body.pose.orientation.w=std::cos(ego.yaw/2);
     body.scale.x=front_extent+rear_extent;body.scale.y=2*half_width;body.scale.z=.16;
-    body.color.a=.55F;markers.markers.push_back(std::move(body));
-    auto safety=line("covering_circle_plus_clearance",header,1.F,.55F,.05F,.018);
+    body.color.a=.85F;markers.markers.push_back(std::move(body));
+    auto safety=line("covering_circle_plus_clearance",header,1.F,.65F,.25F,.01);
+    safety.color.a=.55F;
     const auto center=coveringCenter(ego);const double radius=coveringRadius()+clearance+.005;
     for (int i=0;i<=64;++i) {
       const double angle=i*2*std::acos(-1.)/64;
