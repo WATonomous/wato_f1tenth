@@ -51,5 +51,10 @@ inline Pose step(Pose p, Command u, double duration)
 }
 
 inline double coveringRadius()
-{return std::hypot(std::max(front_extent, rear_extent), half_width);}
+{return std::hypot((front_extent+rear_extent)/2, half_width);}
+inline Pose coveringCenter(Pose rear)
+{
+  const double offset=(front_extent-rear_extent)/2;
+  return {rear.x+offset*std::cos(rear.yaw),rear.y+offset*std::sin(rear.yaw),rear.yaw};
+}
 }  // namespace mpc

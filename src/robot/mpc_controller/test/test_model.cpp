@@ -38,3 +38,17 @@ TEST(Frame, RoundtripAndFrozenOrigin)
   EXPECT_DOUBLE_EQ(initial.y, 0);
   EXPECT_DOUBLE_EQ(initial.yaw, 0);
 }
+
+TEST(Model, BodyCenteredCircleCoversEveryCornerAtAnyHeading)
+{
+  for (double yaw:{-3.,-.4,0.,1.7}) {
+    const mpc::Pose rear{2,-3,yaw};
+    const auto center=mpc::coveringCenter(rear);
+    for (double x:{-mpc::rear_extent,mpc::front_extent}) {
+      for (double y:{-mpc::half_width,mpc::half_width}) {
+        const auto corner=mpc::toMap({x,y,0},rear);
+        EXPECT_NEAR(std::hypot(corner.x-center.x,corner.y-center.y),mpc::coveringRadius(),1e-12);
+      }
+    }
+  }
+}

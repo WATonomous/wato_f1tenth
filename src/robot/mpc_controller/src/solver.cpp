@@ -54,9 +54,13 @@ Solution Solver::solve(const Problem & problem)
       k < horizon ? problem.speeds[k] : 0, k == 0 ? problem.first_interval : dt};
     for (int h = 0; h < 4; ++h) {
       auto face = problem.corridor[k][h];
+      const auto & seed=problem.seed_states[k];
+      const auto center=coveringCenter({seed[0],seed[1],seed[2]});
+      const double slack=face.bound-face.x*center.x-face.y*center.y;
       params[5+3*h] = face.x;
       params[6+3*h] = face.y;
-      params[7+3*h] = face.bound-(k==0 ? 0 : .002);
+      // Keep a feasible seed feasible; a fixed contraction can exclude the stopped car.
+      params[7+3*h] = face.bound-(k==0 ? 0 : std::min(.002,std::max(0.,slack/2)));
     }
     mpc_proto_acados_update_params(capsule_, k, params, 17);
     State guess = problem.seed_states[k];
@@ -70,10 +74,13 @@ Solution Solver::solve(const Problem & problem)
       ocp_nlp_out_set(config, dims, out, in, k, "u", guess_u);
     }
   }
-  result.status = mpc_proto_acados_solve(capsule_);
-  ocp_nlp_eval_residuals(solver, in, out);
-  ocp_nlp_get(solver, "res_ineq", &result.inequality_residual);
-  ocp_nlp_get(solver, "res_eq", &result.dynamics_residual);
+  for (int iteration=0;iteration<3;++iteration) {
+    result.status = mpc_proto_acados_solve(capsule_);
+    ocp_nlp_eval_residuals(solver, in, out);
+    ocp_nlp_get(solver, "res_ineq", &result.inequality_residual);
+    ocp_nlp_get(solver, "res_eq", &result.dynamics_residual);
+    if (result.status!=0 || (result.inequality_residual<=1e-6 && result.dynamics_residual<=1e-6)) {break;}
+  }
   for (int k = 0; k <= horizon; ++k) {
     ocp_nlp_out_get(config, dims, out, k, "x", result.states[k].data());
     if (k < horizon) {

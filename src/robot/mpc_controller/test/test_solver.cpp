@@ -1,6 +1,23 @@
 #include <gtest/gtest.h>
 #include "mpc_controller/solver.hpp"
 
+TEST(Solver, NumericalTighteningPreservesAStationarySeedAtACorridorFace)
+{
+  mpc::Problem problem;
+  problem.first_interval=.02;
+  const double front=(mpc::front_extent-mpc::rear_extent)/2+1e-5;
+  for (int k=0;k<=mpc::horizon;++k) {
+    problem.targets[k]={.5,.1,0};
+    problem.corridor[k]={{{1,0,front},{-1,0,10},{0,1,10},{0,-1,10}}};
+    if (k<mpc::horizon) {problem.speeds[k]=.6;}
+  }
+  mpc::Solver solver;
+  const auto result=solver.solve(problem);
+  EXPECT_EQ(result.status,0);
+  EXPECT_LT(result.inequality_residual,1e-5);
+  EXPECT_LT(result.dynamics_residual,1e-6);
+}
+
 TEST(Solver, FreshPoseBoundedFirstCommandAndTerminalStop)
 {
   mpc::Solver solver;

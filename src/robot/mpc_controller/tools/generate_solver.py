@@ -17,16 +17,23 @@ def generate(config_path, output):
             'dt', 'wheelbase', 'front_extent', 'rear_extent', 'half_width',
             'speed_cap', 'speed_rate', 'steering_rate')):
         raise ValueError('Invalid positive configuration value')
-    if cfg['clearance'] < 0 or not cfg['servo_gain'] < 0:
-        raise ValueError('Invalid clearance/servo conversion')
-    low = (cfg['servo_max'] - cfg['servo_offset']) / cfg['servo_gain']
-    high = (cfg['servo_min'] - cfg['servo_offset']) / cfg['servo_gain']
-    if not low < 0 < high:
+    if cfg['clearance'] < 0:
+        raise ValueError('Invalid clearance')
+    if 'steering_min' in cfg:
+        low, high = cfg['steering_min'], cfg['steering_max']
+    else:
+        if not cfg['servo_gain'] < 0:
+            raise ValueError('Invalid servo conversion')
+        low = (cfg['servo_max'] - cfg['servo_offset']) / cfg['servo_gain']
+        high = (cfg['servo_min'] - cfg['servo_offset']) / cfg['servo_gain']
+    if not -1.5 < low < 0 < high < 1.5:
         raise ValueError('Steering interval must straddle zero')
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     constants = {**cfg, 'steering_min': low, 'steering_max': high}
-    lines = ['#pragma once', 'namespace mpc {']
+    profile = Path(config_path).stem
+    lines = ['#pragma once', 'namespace mpc {',
+             f'inline constexpr const char * model_profile = {json.dumps(profile)};']
     for name, value in constants.items():
         kind = 'int' if name == 'horizon' else 'double'
         lines.append(f'inline constexpr {kind} {name} = {value};')
@@ -49,7 +56,9 @@ def generate(config_path, output):
     k4 = derivative(z + dt * k3)
     ocp.model.disc_dyn_expr = ca.vertcat(z + dt * (k1 + 2*k2 + 2*k3 + k4)/6, u)
     change = (u - x[3:5]) / p[4]
-    faces = ca.vertcat(*[p[5+3*i]*x[0] + p[6+3*i]*x[1] - p[7+3*i]
+    offset = (cfg['front_extent'] - cfg['rear_extent']) / 2
+    center = x[:2] + offset * ca.vertcat(ca.cos(x[2]), ca.sin(x[2]))
+    faces = ca.vertcat(*[p[5+3*i]*center[0] + p[6+3*i]*center[1] - p[7+3*i]
                           for i in range(4)])
     ocp.model.con_h_expr = ca.vertcat(change, faces)
     ocp.model.con_h_expr_0 = ocp.model.con_h_expr

@@ -2,6 +2,22 @@
 #include "fixtures.hpp"
 #include "mpc_controller/controller.hpp"
 
+TEST(Controller, SmallLateralRejoinPreservesInitialHeading)
+{
+  mpc::Reference reference;circleTrack(reference);
+  mpc::Scene scene(freeGrid(),reference,1);
+  mpc::Controller controller;
+  const auto cycle=controller.cycle({0,.14,0},{.4,0},.02,reference,scene,
+    mpc::Clock::now()+std::chrono::seconds(1));
+  ASSERT_GT(cycle.prepare_ms,0);
+  const auto & problem=cycle.problem;
+  ASSERT_GT(problem.targets.back().x,.1);
+  EXPECT_LT(std::abs(problem.targets[0].yaw),.1);
+  for (int k=1;k<=mpc::horizon;++k) {
+    EXPECT_LT(std::abs(mpc::angleDifference(problem.targets[k].yaw,problem.targets[k-1].yaw)),.1);
+  }
+}
+
 TEST(Controller, SoloCycleAndLatestPose)
 {
   mpc::Reference reference; circleTrack(reference);
@@ -97,7 +113,8 @@ TEST(Validation, RejectsAnObstacleBetweenClearStageEndpoints)
   mpc::Grid grid;
   grid.width=600;grid.height=600;grid.resolution=.01;
   const double edge=mpc::coveringRadius()+mpc::clearance-.00005;
-  grid.origin={-2.981,edge-3,0};grid.cells.assign(600*600,0);
+  grid.origin={-2.981+(mpc::front_extent-mpc::rear_extent)/2,edge-3,0};
+  grid.cells.assign(600*600,0);
   grid.cells[300*600+300]=100;
   mpc::Scene scene(grid,reference,1);
   ASSERT_GT(scene.clearanceAt({0,0,0}),mpc::clearance);

@@ -21,11 +21,17 @@ class Node : public rclcpp::Node {
 public:
   Node() : rclcpp::Node("mpc_controller"), tf_(get_clock()), listener_(tf_)
   {
+    if (declare_parameter<std::string>("model_profile",model_profile)!=model_profile) {
+      throw std::invalid_argument("Generated model profile does not match launch; rebuild with MPC_CONFIG");
+    }
+    vehicle_frame_=declare_parameter<std::string>("vehicle_frame","base_link");
+    max_tilt_=declare_parameter("max_planar_tilt_rad",.01);
     state_age_=declare_parameter("state_max_age_s",.06);
     grid_age_=declare_parameter("grid_max_age_s",.20);
     rear_offset_=declare_parameter("rear_axle_offset_x_m",0.);
     stall_ms_=declare_parameter("test_solver_stall_ms",0);
-    if (!std::isfinite(state_age_) || state_age_<=0 || state_age_>.25 ||
+    if (vehicle_frame_.empty() || !std::isfinite(max_tilt_) || max_tilt_<=0 || max_tilt_>.04 ||
+      !std::isfinite(state_age_) || state_age_<=0 || state_age_>.25 ||
       !std::isfinite(grid_age_) || grid_age_<=0 || grid_age_>1 || !std::isfinite(rear_offset_) ||
       std::abs(rear_offset_)>1 || stall_ms_<0 || stall_ms_>1000) {
       throw std::invalid_argument("Invalid runtime configuration");
@@ -76,6 +82,8 @@ public:
       if (busy_ && Clock::now()>active_deadline_) {++generation_;publishStop("Deadline");}
     },watchdog_group_);
     worker_=std::thread([this] {work();});
+    RCLCPP_INFO(get_logger(),"Generated model: %s, wheelbase %.4f m, steering [%.4f, %.4f] rad",
+      model_profile,wheelbase,steering_min,steering_max);
   }
   ~Node() override
   {
@@ -109,7 +117,7 @@ private:
     }
     return transform;
   }
-  static tf2::Transform poseTransform(const geometry_msgs::msg::Pose & pose)
+  tf2::Transform poseTransform(const geometry_msgs::msg::Pose & pose) const
   {
     tf2::Transform transform;
     const auto & q=pose.orientation;
@@ -118,12 +126,12 @@ private:
       !std::isfinite(pose.position.x) || !std::isfinite(pose.position.y) ||
       !std::isfinite(pose.position.z)) {throw std::invalid_argument("Invalid pose");}
     tf2::fromMsg(pose,transform);
-    if (std::abs(transform.getBasis()[2][0])>.01 || std::abs(transform.getBasis()[2][1])>.01) {
+    if (transform.getBasis()[2][2]<std::cos(max_tilt_)) {
       throw std::invalid_argument("Nonplanar pose");
     }
     return transform;
   }
-  static void requirePlanar(const tf2::Transform & transform)
+  void requirePlanar(const tf2::Transform & transform) const
   {
     for (int r=0;r<3;++r) {
       if (!std::isfinite(transform.getOrigin()[r])) {throw std::invalid_argument("Nonfinite TF");}
@@ -131,8 +139,7 @@ private:
         if (!std::isfinite(transform.getBasis()[r][c])) {throw std::invalid_argument("Nonfinite TF");}
       }
     }
-    if (std::abs(transform.getBasis()[2][0])>.01 ||
-      std::abs(transform.getBasis()[2][1])>.01 || transform.getBasis()[2][2]<.9999) {
+    if (transform.getBasis()[2][2]<std::cos(max_tilt_)) {
       throw std::invalid_argument("Nonplanar composed transform");
     }
   }
@@ -154,7 +161,20 @@ private:
         points.emplace_back(p.pose.position.x,p.pose.position.y,p.pose.position.z);
       }
       for (const auto & w:msg.widths) {widths.push_back({w.right_m,w.left_m});}
-      next->set(points,widths);
+      std::array<std::vector<Pose>,2> boundaries;
+      for (size_t side=0;side<2;++side) {
+        const auto & loop=msg.legal_boundaries[side];
+        if (!loop.poses.empty() && loop.header.frame_id!="map") {
+          throw std::invalid_argument("Boundary must be in map");
+        }
+        for (const auto & p:loop.poses) {
+          if (!p.header.frame_id.empty() && p.header.frame_id!="map") {
+            throw std::invalid_argument("Inconsistent boundary frame");
+          }
+          boundaries[side].push_back({p.pose.position.x,p.pose.position.y,0});
+        }
+      }
+      next->set(points,widths,boundaries);
       std::lock_guard<std::mutex> lock(mutex_);
       reference_=std::move(next);++generation_;reset_requested_=true;
     } catch (const std::exception & error) {
@@ -166,7 +186,7 @@ private:
   {
     try {
       if (!fresh(msg.header.stamp,state_age_) || !std::isfinite(msg.twist.twist.linear.x) ||
-        msg.child_frame_id!="base_link") {throw std::invalid_argument("InvalidState");}
+        msg.child_frame_id!=vehicle_frame_) {throw std::invalid_argument("InvalidState");}
       const auto transform=mapTransform(msg.header.frame_id,msg.header.stamp)*poseTransform(msg.pose.pose);
       requirePlanar(transform);
       const auto rear=transform*tf2::Vector3(rear_offset_,0,0);
@@ -202,7 +222,7 @@ private:
   void publishCommand(Command command)
   {
     ackermann_msgs::msg::AckermannDriveStamped msg;
-    msg.header.stamp=now();msg.header.frame_id="base_link";
+    msg.header.stamp=now();msg.header.frame_id=vehicle_frame_;
     msg.drive.speed=command.speed;msg.drive.steering_angle=command.steering;
     own_requests_[own_next_]=msg;own_next_=(own_next_+1)%own_requests_.size();
     own_count_=std::min(own_count_+1,own_requests_.size());command_pub_->publish(msg);
@@ -313,7 +333,8 @@ private:
   bool quit_=false,busy_=false,enabled_=false,have_state_=false,reset_requested_=false;
   Pose ego_;
   Command previous_;
-  double state_age_,grid_age_,rear_offset_;
+  std::string vehicle_frame_;
+  double state_age_,grid_age_,rear_offset_,max_tilt_;
   int stall_ms_;
   int64_t last_ros_time_=0;
   uint64_t generation_=0,grid_version_=0,selected_version_=0;

@@ -25,7 +25,8 @@ bool inside(Pose p, const std::vector<Pose> & polygon)
 }  // namespace
 
 void Reference::set(const std::vector<local_planning::Point> & points,
-  const std::vector<local_planning::TrackWidth> & widths)
+  const std::vector<local_planning::TrackWidth> & widths,
+  const std::array<std::vector<Pose>, 2> & legal_boundaries)
 {
   if (points.size() < 4 || points.size() > 20000 || points.size() != widths.size()) {
     throw std::invalid_argument("Reference/width size mismatch");
@@ -45,34 +46,76 @@ void Reference::set(const std::vector<local_planning::Point> & points,
     throw std::invalid_argument("Degenerate reference");
   }
   std::array<std::vector<Pose>, 2> boundaries;
-  const int count = std::max(100, static_cast<int>(std::ceil(candidate.totalLength()/.05)));
-  if (count > 40000) {throw std::invalid_argument("Reference capacity exceeded");}
-  std::vector<double> stations;
-  stations.reserve(count+candidate.widthSampleCount());
-  for (int i=0;i<count;++i) {stations.push_back(candidate.totalLength()*i/count);}
-  for (size_t i=0;i<candidate.widthSampleCount();++i) {stations.push_back(candidate.widthSample(i).s);}
-  std::sort(stations.begin(),stations.end());
-  stations.erase(std::unique(stations.begin(),stations.end(),
-    [](double a,double b) {return std::abs(a-b)<1e-9;}),stations.end());
-  for (double station:stations) {
-    auto g=candidate.sampleAtS(station);
-    auto w=candidate.rawBounds(station);
-    const auto before=candidate.rawBounds(station-1e-8);
-    // Both ends of each chord must respect the smaller adjacent width bin.
-    w.left_magnitude=std::min(w.left_magnitude,before.left_magnitude);
-    w.right_magnitude=std::min(w.right_magnitude,before.right_magnitude);
-    if (!std::isfinite(g.parameter_speed) || g.parameter_speed < 1e-6) {
-      throw std::invalid_argument("Invalid spline metric");
+  if (!legal_boundaries[0].empty() || !legal_boundaries[1].empty()) {
+    boundaries=legal_boundaries;
+    for (const auto & loop:boundaries) {
+      if (loop.size()<3 || loop.size()>2000) {throw std::invalid_argument("Boundary capacity");}
+      for (size_t i=0;i<loop.size();++i) {
+        if (!finite(loop[i]) || std::abs(loop[i].x)>1e5 || std::abs(loop[i].y)>1e5 ||
+          std::hypot(loop[i].x-loop[(i+1)%loop.size()].x,
+          loop[i].y-loop[(i+1)%loop.size()].y)<1e-8) {
+          throw std::invalid_argument("Invalid boundary vertex");
+        }
+      }
     }
-    if (!std::isfinite(g.curvature) ||
-      std::abs(g.curvature)*std::max(w.left_magnitude,w.right_magnitude)>=.8) {
-      throw std::invalid_argument("Unsupported offset-boundary fold");
+    auto intersects=[](Pose a,Pose b,Pose c,Pose d) {
+      auto cross=[](Pose p,Pose q,Pose r) {return (q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);};
+      if (segmentDistance(a,c,d)<1e-8 || segmentDistance(b,c,d)<1e-8 ||
+        segmentDistance(c,a,b)<1e-8 || segmentDistance(d,a,b)<1e-8) {return true;}
+      return (cross(a,b,c)>0)!=(cross(a,b,d)>0) && (cross(c,d,a)>0)!=(cross(c,d,b)>0);
+    };
+    for (int first=0;first<2;++first) {
+      const auto & a=boundaries[first];
+      for (int second=first;second<2;++second) {
+        const auto & b=boundaries[second];
+        for (size_t i=0;i<a.size();++i) {
+          for (size_t j=0;j<b.size();++j) {
+            if (first==second && (j<=i || j==i+1 || (i==0 && j==a.size()-1))) {continue;}
+            if (intersects(a[i],a[(i+1)%a.size()],b[j],b[(j+1)%b.size()])) {
+              throw std::invalid_argument("Intersecting legal boundaries");
+            }
+          }
+        }
+      }
     }
-    // shortcut: 5 cm chords plus 5 mm tolerance are fixture-validated, not a proof for arbitrary tracks.
-    boundaries[0].push_back({g.x+g.normal_x*w.left_magnitude,
-      g.y+g.normal_y*w.left_magnitude, 0});
-    boundaries[1].push_back({g.x-g.normal_x*w.right_magnitude,
-      g.y-g.normal_y*w.right_magnitude, 0});
+    if (inside(boundaries[0][0],boundaries[1])==inside(boundaries[1][0],boundaries[0])) {
+      throw std::invalid_argument("Legal boundaries must be nested");
+    }
+    for (const auto & p:points) {
+      if (inside({p.x,p.y,0},boundaries[0])==inside({p.x,p.y,0},boundaries[1])) {
+        throw std::invalid_argument("Reference outside legal boundaries");
+      }
+    }
+  } else {
+    const int count = std::max(100, static_cast<int>(std::ceil(candidate.totalLength()/.05)));
+    if (count > 40000) {throw std::invalid_argument("Reference capacity exceeded");}
+    std::vector<double> stations;
+    stations.reserve(count+candidate.widthSampleCount());
+    for (int i=0;i<count;++i) {stations.push_back(candidate.totalLength()*i/count);}
+    for (size_t i=0;i<candidate.widthSampleCount();++i) {stations.push_back(candidate.widthSample(i).s);}
+    std::sort(stations.begin(),stations.end());
+    stations.erase(std::unique(stations.begin(),stations.end(),
+      [](double a,double b) {return std::abs(a-b)<1e-9;}),stations.end());
+    for (double station:stations) {
+      auto g=candidate.sampleAtS(station);
+      auto w=candidate.rawBounds(station);
+      const auto before=candidate.rawBounds(station-1e-8);
+      // Both ends of each chord must respect the smaller adjacent width bin.
+      w.left_magnitude=std::min(w.left_magnitude,before.left_magnitude);
+      w.right_magnitude=std::min(w.right_magnitude,before.right_magnitude);
+      if (!std::isfinite(g.parameter_speed) || g.parameter_speed < 1e-6) {
+        throw std::invalid_argument("Invalid spline metric");
+      }
+      if (!std::isfinite(g.curvature) ||
+        std::abs(g.curvature)*std::max(w.left_magnitude,w.right_magnitude)>=.8) {
+        throw std::invalid_argument("Unsupported offset-boundary fold");
+      }
+      // shortcut: 5 cm chords plus 5 mm tolerance are fixture-validated, not a proof for arbitrary tracks.
+      boundaries[0].push_back({g.x+g.normal_x*w.left_magnitude,
+        g.y+g.normal_y*w.left_magnitude, 0});
+      boundaries[1].push_back({g.x-g.normal_x*w.right_magnitude,
+        g.y-g.normal_y*w.right_magnitude, 0});
+    }
   }
   geometry_ = std::move(candidate);
   edges_ = std::move(boundaries);
@@ -155,7 +198,7 @@ Scene::Scene(Grid grid, const Reference & reference, uint64_t version)
   const int radius = int(std::ceil((coveringRadius()+clearance+.005)/grid_.resolution))+1;
   for (int y = radius; y < h-radius; ++y) {
     for (int x = radius; x < w-radius; ++x) {
-      safe_[y*w+x] = blocked(x-radius,y-radius,x+radius,y+radius) == 0;
+      safe_[y*w+x] = freeDisk(x,y,coveringRadius()+clearance+.005);
     }
   }
 }
@@ -166,35 +209,49 @@ int Scene::blocked(int x0, int y0, int x1, int y1) const
   return blocked_prefix_[(y1+1)*stride+x1+1]-blocked_prefix_[y0*stride+x1+1]-
          blocked_prefix_[(y1+1)*stride+x0]+blocked_prefix_[y0*stride+x0];
 }
+bool Scene::freeDisk(int x,int y,double radius) const
+{
+  const double h=grid_.resolution;
+  const int extent=int(std::ceil(radius/h))+1;
+  if (x<extent || y<extent || x+extent>=grid_.width || y+extent>=grid_.height) {return false;}
+  // Minimum distance between two entire cell squares, including subcell uncertainty.
+  for (int dy=-extent;dy<=extent;++dy) {
+    const double distance=std::max(0,std::abs(dy)-1)*h;
+    if (distance>radius) {continue;}
+    const int dx=int(std::floor(std::sqrt(std::max(0.,radius*radius-distance*distance))/h))+1;
+    if (blocked(x-dx,y+dy,x+dx,y+dy)) {return false;}
+  }
+  return true;
+}
 int Scene::cell(Pose map) const
 {
   if (!finite(map)) {return -1;}
-  auto p = toLocal(map, grid_.origin);
+  auto p = toLocal(coveringCenter(map), grid_.origin);
   const double x = std::floor(p.x/grid_.resolution), y = std::floor(p.y/grid_.resolution);
   if (x < 0 || y < 0 || x >= grid_.width || y >= grid_.height) {return -1;}
   return int(y)*grid_.width+int(x);
 }
-Pose Scene::center(int index) const
-{return toMap({(index%grid_.width+.5)*grid_.resolution,
+Pose Scene::rearAtCell(int index) const
+{return toMap({(index%grid_.width+.5)*grid_.resolution-(front_extent-rear_extent)/2,
     (index/grid_.width+.5)*grid_.resolution, 0}, grid_.origin);}
 bool Scene::safe(Pose map, double extra) const
 {
   const int i=cell(map);
-  if (i<0 || !safe_[i] || !std::isfinite(extra) || extra<0) {return false;}
-  if (extra==0) {return true;}
-  const int r=int(std::ceil((coveringRadius()+clearance+.005+extra)/grid_.resolution))+1;
+  if (i<0 || !std::isfinite(extra) || extra<0) {return false;}
+  if (extra==0) {return safe_[i] || clearanceAt(map)>=clearance+.005;}
+  if (!safe_[i]) {return false;}
   const int x=i%grid_.width,y=i/grid_.width;
-  return x>=r && y>=r && x+r<grid_.width && y+r<grid_.height &&
-    blocked(x-r,y-r,x+r,y+r)==0;
+  return freeDisk(x,y,coveringRadius()+clearance+.005+extra);
 }
 
 double Scene::clearanceAt(Pose map) const
 {
   if (cell(map) < 0) {return -INFINITY;}
+  map=coveringCenter(map);
   const double radius = coveringRadius();
   const auto p = toLocal(map, grid_.origin);
   double available = std::min({p.x, p.y, grid_.width*grid_.resolution-p.x,
-    grid_.height*grid_.resolution-p.y, reference_.trackClearance(map)});
+    grid_.height*grid_.resolution-p.y, reference_.trackClearance(map),radius+clearance+.1});
   const int extent = int(std::ceil((radius+clearance+.1)/grid_.resolution))+1;
   const int cx = int(p.x/grid_.resolution), cy = int(p.y/grid_.resolution);
   for (int y = std::max(0,cy-extent); y <= std::min(grid_.height-1,cy+extent); ++y) {
@@ -212,7 +269,16 @@ double Scene::clearanceAt(Pose map) const
 std::array<Face, 4> Scene::rectangle(Pose map, Pose frame) const
 {
   int index = cell(map);
-  if (index < 0 || !safe_[index]) {throw std::invalid_argument("Unsafe corridor seed");}
+  if (index < 0) {throw std::invalid_argument("Unsafe corridor seed");}
+  if (!safe_[index]) {
+    // A full-cell mask can reject a safe measured pose. Certify a small continuous box
+    // from original obstacle/track distance; clearanceAt caps unsearched distances.
+    const double half=(clearanceAt(map)-clearance-.005)/std::sqrt(2.);
+    if (!std::isfinite(half) || half<=1e-6) {throw std::invalid_argument("Unsafe corridor seed");}
+    const auto center=toLocal(coveringCenter(map),frame);
+    return {{{1,0,center.x+half},{-1,0,-center.x+half},
+      {0,1,center.y+half},{0,-1,-center.y+half}}};
+  }
   int x0 = index%grid_.width, x1 = x0, y0 = index/grid_.width, y1 = y0;
   const int max_cells = int(std::ceil(1.5/grid_.resolution));
   for (int n = 0; n < max_cells; ++n) {
@@ -236,16 +302,16 @@ std::array<Face, 4> Scene::rectangle(Pose map, Pose frame) const
   const double a = grid_.origin.yaw-frame.yaw, c = std::cos(a), s = std::sin(a);
   const auto origin = toLocal(grid_.origin, frame);
   const double offset_x = c*origin.x+s*origin.y, offset_y = -s*origin.x+c*origin.y;
-  const double h = grid_.resolution, eps = 1e-6;
-  return {{{c,s,(x1+1)*h+offset_x-eps}, {-c,-s,-x0*h-offset_x-eps},
-    {-s,c,(y1+1)*h+offset_y-eps}, {s,-c,-y0*h-offset_y-eps}}};
+  const double h = grid_.resolution;
+  return {{{c,s,(x1+1)*h+offset_x}, {-c,-s,-x0*h-offset_x},
+    {-s,c,(y1+1)*h+offset_y}, {s,-c,-y0*h-offset_y}}};
 }
 
 std::vector<Pose> Scene::route(Pose start, Pose goal, Clock::time_point deadline,
   int max_expansions) const
 {
   const int first = cell(start), last = cell(goal);
-  if (first < 0 || last < 0 || !safe_[first] || !safe(center(last),.2)) {return {};}
+  if (first < 0 || last < 0 || !safe_[first] || !safe(rearAtCell(last),.2)) {return {};}
   const int count = grid_.width*grid_.height;
   std::vector<double> costs(count, INFINITY);
   std::vector<int> parents(count, -1);
@@ -263,7 +329,7 @@ std::vector<Pose> Scene::route(Pose start, Pose goal, Clock::time_point deadline
       std::vector<Pose> result{goal};
       for (int at = last; at != first; at = parents[at]) {
         if (at < 0) {return {};}
-        result.push_back(center(at));
+        result.push_back(rearAtCell(at));
       }
       result.push_back(start); std::reverse(result.begin(),result.end()); return result;
     }
@@ -274,7 +340,7 @@ std::vector<Pose> Scene::route(Pose start, Pose goal, Clock::time_point deadline
         const int x=current%grid_.width+dx, y=current/grid_.width+dy;
         if (x<0 || y<0 || x>=grid_.width || y>=grid_.height) {continue;}
         const int next=y*grid_.width+x;
-        if (!safe(center(next),.2) || (dx && dy &&
+        if (!safe(rearAtCell(next),.2) || (dx && dy &&
           (!safe_[(y-dy)*grid_.width+x] || !safe_[y*grid_.width+x-dx]))) {continue;}
         const double cost=costs[current]+std::hypot(dx,dy);
         if (cost >= costs[next]) {continue;}

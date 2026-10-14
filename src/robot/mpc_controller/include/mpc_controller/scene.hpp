@@ -7,7 +7,8 @@ namespace mpc {
 class Reference {
 public:
   void set(const std::vector<local_planning::Point> & points,
-    const std::vector<local_planning::TrackWidth> & widths);
+    const std::vector<local_planning::TrackWidth> & widths,
+    const std::array<std::vector<Pose>, 2> & legal_boundaries = {});
   const local_planning::RacelineReference & geometry() const {return geometry_;}
   uint64_t version() const {return version_;}
   double trackClearance(Pose map) const;
@@ -23,6 +24,7 @@ struct Grid {
   Pose origin;
   std::vector<int8_t> cells;
 };
+// Pose arguments are rear-axle poses; corridor faces constrain coveringCenter(pose).
 class Scene {
 public:
   Scene(Grid grid, const Reference & reference, uint64_t version);
@@ -35,12 +37,13 @@ public:
   uint64_t version() const {return version_;}
 private:
   int cell(Pose map) const;
-  Pose center(int index) const;
+  Pose rearAtCell(int index) const;
   Grid grid_;
   const Reference & reference_;
   uint64_t version_;
   std::vector<uint8_t> safe_;
   std::vector<int> blocked_prefix_;
   int blocked(int x0, int y0, int x1, int y1) const;
+  bool freeDisk(int x,int y,double radius) const;
 };
 }  // namespace mpc

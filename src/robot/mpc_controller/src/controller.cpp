@@ -10,7 +10,8 @@ bool clearSegment(const Scene & scene, Pose a, Pose b, double extra=0)
   const int count=std::max(1,int(std::ceil(std::hypot(b.x-a.x,b.y-a.y)/.025)));
   for (int i=0;i<=count;++i) {
     const double t=double(i)/count;
-    if (!scene.safe({a.x+t*(b.x-a.x),a.y+t*(b.y-a.y),0},extra)) {return false;}
+    if (!scene.safe({a.x+t*(b.x-a.x),a.y+t*(b.y-a.y),
+      a.yaw+t*angleDifference(b.yaw,a.yaw)},extra)) {return false;}
   }
   return true;
 }
@@ -79,13 +80,23 @@ Problem Controller::prepare(Pose ego, Command previous, double elapsed,
   if (route_.size()<2) {
     std::vector<Pose> forward{ego};
     double station=*station_;
+    const double join_length=std::max(1.2,4*std::abs(projected.d));
+    const double initial_slope=(1-tangent.curvature*projected.d)*
+      std::tan(angleDifference(ego.yaw,tangent.heading));
     for (int i=0;i<45;++i) {
       auto g=geometry.sampleAtS(station);
       station+=.1/g.parameter_speed;
       g=geometry.sampleAtS(station);
-      forward.push_back({g.x,g.y,g.heading});
+      // A Hermite offset joins the guidance with the measured lateral offset and heading.
+      const double t=std::min(1.,.1*(i+1)/join_length);
+      const double offset=projected.d*(2*t*t*t-3*t*t+1)+
+        join_length*initial_slope*(t*t*t-2*t*t+t);
+      const double slope=projected.d*(6*t*t-6*t)/join_length+
+        initial_slope*(3*t*t-4*t+1);
+      forward.push_back({g.x+g.normal_x*offset,g.y+g.normal_y*offset,
+        g.heading+std::atan2(slope,1-g.curvature*offset)});
     }
-    while (forward.size()>2 && !scene.safe(forward.back(),.2)) {forward.pop_back();}
+    while (forward.size()>2 && !scene.safe(forward.back())) {forward.pop_back();}
     bool clear=true;
     for (size_t i=1;i<forward.size();++i) {clear &= clearSegment(scene,forward[i-1],forward[i]);}
     route_=clear ? std::move(forward) : scene.route(ego,forward.back(),deadline);
@@ -141,9 +152,11 @@ Problem Controller::prepare(Pose ego, Command previous, double elapsed,
       const int idx=std::min(horizon-1,int(time/dt));
       u=warm_->commands[idx];
     } else {
+      // A braking rollout avoids making a sharp route rejoin a hard cold-start corridor.
       const auto target=problem.targets[std::min(horizon,k+3)];
       const double desired=std::atan2(target.y-seed.y,target.x-seed.x);
-      u={problem.speeds[k],std::atan(wheelbase*angleDifference(desired,seed.yaw)/.6)};
+      u={std::max(0.,memory.speed-speed_rate*h),
+        std::atan(wheelbase*angleDifference(desired,seed.yaw)/.6)};
     }
     u.speed=std::clamp(u.speed,std::max(0.,memory.speed-speed_rate*h),
       std::min(speed_cap,memory.speed+speed_rate*h));
@@ -159,6 +172,9 @@ Problem Controller::prepare(Pose ego, Command previous, double elapsed,
     const auto seed_map=toMap({x[0],x[1],x[2]},ego);
     // Certify a feasible rollout where available; route timing is only a cost target.
     const auto anchor=scene.safe(seed_map) ? seed_map : toMap(problem.targets[k],ego);
+    if (!scene.safe(anchor)) {
+      throw std::runtime_error("UnsafeCorridorStage"+std::to_string(k));
+    }
     problem.corridor[k]=scene.rectangle(anchor,ego);
   }
   return problem;
@@ -187,15 +203,18 @@ Validation validate(const Problem & problem,const Solution & solution,
       std::abs(x[2]-state.yaw)>1e-3 || std::abs(x[3]-memory.speed)>1e-6 ||
       std::abs(x[4]-memory.steering)>1e-6) {return reject("RolloutDefect");}
     for (auto face:problem.corridor[k]) {
-      if (face.x*state.x+face.y*state.y>face.bound+1e-6) {return reject("Corridor");}
+      const auto center=coveringCenter(state);
+      if (face.x*center.x+face.y*center.y>face.bound+1e-6) {return reject("Corridor");}
     }
     if (k==horizon) {break;}
     const auto u=solution.commands[k];
     const double h=k==0 ? problem.first_interval : dt;
     if (!validCommand(u) || std::abs(u.speed-memory.speed)>speed_rate*h+1e-6 ||
       std::abs(u.steering-memory.steering)>steering_rate*h+1e-6) {return reject("CommandLimit");}
-    const int samples=std::max(1,int(std::ceil(u.speed*dt/.02)));
-    const double sweep=u.speed*dt/(2*samples);
+    const double center_travel=u.speed*dt*(1+std::abs((front_extent-rear_extent)/2*
+      std::tan(u.steering)/wheelbase));
+    const int samples=std::max(1,int(std::ceil(center_travel/.02)));
+    const double sweep=center_travel/(2*samples);
     for (int j=0;j<=samples;++j) {
       auto p=toMap(step(state,u,dt*j/samples),problem.frame);
       const double available=scene.clearanceAt(p);
@@ -224,7 +243,7 @@ Cycle Controller::cycle(Pose ego,Command previous,double elapsed,const Reference
     if (result.solution.status==0 && std::all_of(result.solution.commands.begin(),
       result.solution.commands.end(),[](Command command) {return validCommand(command);})) {
       warm_=result.solution;
-    } else {warm_.reset();}
+    } else {warm_.reset();solver_.reset();}
   } catch (const std::exception & error) {result.validation.reason=error.what();}
   result.total_ms=milliseconds(start);
   return result;
