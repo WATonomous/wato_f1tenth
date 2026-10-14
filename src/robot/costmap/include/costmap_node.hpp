@@ -35,6 +35,7 @@
 #include <memory>
 #include <vector>
 #include <cmath>
+#include <deque>
 
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
@@ -73,6 +74,10 @@ private:
   // ROS interfaces
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr costmap_pub_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
+  rclcpp::TimerBase::SharedPtr retry_timer_;
+  std::deque<std::pair<sensor_msgs::msg::LaserScan::SharedPtr,
+    std::chrono::steady_clock::time_point>> pending_scans_;
+  void drain_scans();
 
   void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
   void publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan);

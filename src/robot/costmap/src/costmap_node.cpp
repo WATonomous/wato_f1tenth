@@ -71,6 +71,7 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
       scan_topic, 1,
       std::bind(&CostmapNode::scan_callback, this, std::placeholders::_1));
+  retry_timer_=create_wall_timer(5ms,[this] {drain_scans();});
 
   RCLCPP_INFO(this->get_logger(),
               "Costmap node initialized: %.1fm forward, %.1fm behind, %.1fm lateral each side, "
@@ -81,7 +82,25 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
 
 void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
-  publish_costmap(msg);
+  drain_scans();
+  if (pending_scans_.size()==4) {pending_scans_.pop_front();}
+  pending_scans_.emplace_back(msg,std::chrono::steady_clock::now());
+  drain_scans();
+}
+
+void CostmapNode::drain_scans()
+{
+  while (!pending_scans_.empty()) {
+    const auto & item=pending_scans_.front();
+    if (std::chrono::steady_clock::now()-item.second>150ms || item.first->header.frame_id.empty()) {
+      pending_scans_.pop_front();continue;
+    }
+    // Some bridges stamp the scan just after their TF. Defer, preserving observation time.
+    if (!tf_buffer_->canTransform(robot_frame_,item.first->header.frame_id,
+      rclcpp::Time(item.first->header.stamp))) {return;}
+    publish_costmap(item.first);
+    pending_scans_.pop_front();
+  }
 }
 
 void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan)

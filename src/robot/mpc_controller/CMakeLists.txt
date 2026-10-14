@@ -9,6 +9,7 @@ option(MPC_BUILD_ROS "Build ROS node and install package" ON)
 set(MPC_DEPS_ROOT "$ENV{HOME}/.local/opt/wato-mpc" CACHE PATH "Persistent solver dependencies")
 set(ACADOS_ROOT "${MPC_DEPS_ROOT}/acados" CACHE PATH "acados source and installed libraries")
 set(MPC_PYTHON "${MPC_DEPS_ROOT}/venv/bin/python" CACHE FILEPATH "Python with CasADi/acados_template")
+set(MPC_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/config/prototype.json" CACHE FILEPATH "Generated vehicle profile")
 set(CMAKE_BUILD_RPATH "${ACADOS_ROOT}/lib")
 set(CMAKE_INSTALL_RPATH "${ACADOS_ROOT}/lib")
 # acados itself loads HPIPM/BLASFEO, so the dependency path must be transitive.
@@ -17,13 +18,13 @@ set(GENERATED "${CMAKE_CURRENT_BINARY_DIR}/generated")
 execute_process(COMMAND ${CMAKE_COMMAND} -E env
   "ACADOS_SOURCE_DIR=${ACADOS_ROOT}" "MPLCONFIGDIR=${CMAKE_CURRENT_BINARY_DIR}/matplotlib"
   ${MPC_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_solver.py
-  --config ${CMAKE_CURRENT_SOURCE_DIR}/config/prototype.json --output ${GENERATED}
+  --config ${MPC_CONFIG} --output ${GENERATED}
   RESULT_VARIABLE GENERATION_STATUS)
 if(NOT GENERATION_STATUS EQUAL 0)
   message(FATAL_ERROR "Solver generation failed. Install dependencies; see README.md")
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  tools/generate_solver.py config/prototype.json)
+  tools/generate_solver.py ${MPC_CONFIG})
 file(GLOB GENERATED_FUNCTIONS "${GENERATED}/mpc_proto_model/*.c"
   "${GENERATED}/mpc_proto_cost/*.c" "${GENERATED}/mpc_proto_constraints/*.c")
 add_library(mpc_generated STATIC ${GENERATED}/acados_solver_mpc_proto.c ${GENERATED_FUNCTIONS})
@@ -58,6 +59,9 @@ if(MPC_BUILD_ROS)
   ament_target_dependencies(fixture_simulator PUBLIC rclcpp ackermann_msgs global_planner nav_msgs std_msgs)
   install(TARGETS mpc_node fixture_simulator DESTINATION lib/${PROJECT_NAME})
   install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
+  install(PROGRAMS tools/porto_scene.py tools/autodrive_trial.py DESTINATION lib/${PROJECT_NAME})
+  install(FILES ../particle_filter/maps/porto.pgm
+    ../global_planner/assets/my_map_clean.csv DESTINATION share/${PROJECT_NAME}/maps)
 else()
   add_library(mpc_reference ../local_planning/src/reference/raceline_reference.cpp)
   target_include_directories(mpc_reference PUBLIC ../local_planning/include)

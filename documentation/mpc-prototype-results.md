@@ -1,5 +1,7 @@
 # MPC prototype implementation and validation
 
+These are the original prototype results. The later Porto integration, changed geometry/solver handling, and live simulator measurements are recorded in [mpc-autodrive.md](mpc-autodrive.md).
+
 Date: 2026-10-13. Implementation branch: `feature/mpc-prototype`, based on the locally inspected Frenet reference at `c3b40e25d0c1845bc0e99e5529208bd7eca665c6`. The original checkout remains on `mpc`. [Build/run instructions and interfaces](../src/robot/mpc_controller/README.md).
 
 ## Implemented scope

@@ -10,3 +10,6 @@ watod-config.local.sh
 /build-*/
 /install-*/
 /log-*/
+
+/.cache/
+/.worktrees/
