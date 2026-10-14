@@ -311,6 +311,23 @@ TEST(RacelineReference, TrackWidthsRequireOneWidthPerWaypoint)
 // Closed-loop exports repeat the first waypoint (and its width) at the end.
 // setRacingLine drops the repeated waypoint; setTrackWidths must still accept
 // the width vector sized for the original, still-closed message.
+TEST(RacelineReference, WidthLookupPreservesNotchesBetweenSamples)
+{
+  local_planning::RacelineReference ref;
+  std::vector<local_planning::Point> points;
+  std::vector<local_planning::TrackWidth> widths;
+  const std::vector<double> angles{0.,.002,.004,.4,.8,1.2,1.6,2.,2.4,2.8,3.2,3.6,4.,4.4,4.8,5.2,5.6,6.};
+  for (double a:angles) {
+    points.emplace_back(10*std::cos(a),10*std::sin(a),1);
+    widths.push_back({2,2});
+  }
+  widths[1]={.1,.1};
+  ASSERT_TRUE(ref.setRacingLine(points));
+  ASSERT_TRUE(ref.setTrackWidths(widths,.05));
+  EXPECT_LE(ref.rawBounds(.02).left_magnitude,.1);
+  EXPECT_LE(ref.rawBounds(.02).right_magnitude,.1);
+}
+
 TEST(RacelineReference, TrackWidthsAcceptClosedLoopExport)
 {
   std::vector<Point> closed = circleLine(30.0, 240);

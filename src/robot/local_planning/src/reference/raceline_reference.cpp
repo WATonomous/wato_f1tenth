@@ -217,6 +217,13 @@ bool RacelineReference::setTrackWidths(
       alpha * (widths[next].left_m - widths[segment].left_m));
   }
 
+  // Preserve narrow waypoint widths that fall between uniform lookup samples.
+  for (std::size_t i = 0; i < points_.size(); ++i) {
+    const auto bin = std::min(count - 1,
+      static_cast<std::size_t>(cumulative_s_[i] / width_spacing_m_));
+    raw_right_m_[bin] = std::min(raw_right_m_[bin], widths[i].right_m);
+    raw_left_m_[bin] = std::min(raw_left_m_[bin], widths[i].left_m);
+  }
   track_widths_valid_ = true;
   return true;
 }
