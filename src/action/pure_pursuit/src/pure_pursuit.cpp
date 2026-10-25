@@ -1,4 +1,4 @@
-#include "pure_persuit.hpp"
+#include "pure_pursuit.hpp"
 
 /*
 test & developmnet plan :
@@ -6,7 +6,7 @@ test & developmnet plan :
     - compile it and get rid of any compilation bugs (done)
     - just start the node by itself -> should say no dead man (done)
     - manually send true to dead man -> should say no global path
-    - launch the node with the global path and other stuff then launch pure persuit -> do nothing , send true -> should start to follow path at 0.5 m/s (done)
+    - launch the node with the global path and other stuff then launch pure pursuit -> do nothing , send true -> should start to follow path at 0.5 m/s (done)
     - need to add and test dynamic look ahead distance -> car shold ossilate less on straights, but track the corners well (done)
 
     tasks that need to be done:
@@ -14,17 +14,17 @@ test & developmnet plan :
 
     long term (1 month):
     - need to figure out how to test and verify local path switching (need to make this shit first though ahhhhhh)
-    - optmize the global path and pure persuit for better lap times
+    - optmize the global path and pure pursuit for better lap times
 
     notes & caviats :
     - currently state transitions are allowd no mater what, but if the way points are empty then car is just halted 
       might consider changing that in the future if problamatic during local planner testing
 */
 
-Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
+Pure_Pursuit_Node::Pure_Pursuit_Node () : Node ("pure_pursuit_node") {
 
     //parameters
-    Pure_Persuit_Node::init_parameters();
+    Pure_Pursuit_Node::init_parameters();
 
     //publisher
     controls_pub_ = this->create_publisher< ackermann_msgs::msg::AckermannDriveStamped>(
@@ -100,29 +100,29 @@ Pure_Persuit_Node::Pure_Persuit_Node () : Node ("pure_persuit_node") {
 /*
 key assumption : the z value of the point holdes the velocity and always will
 */
-void Pure_Persuit_Node::control_timer_callback() {
+void Pure_Pursuit_Node::control_timer_callback() {
 
     //updated controller state
-    Pure_Persuit_Node::update_controller_state();
-    Pure_Persuit_Node::update_lookahead_distance();
+    Pure_Pursuit_Node::update_controller_state();
+    Pure_Pursuit_Node::update_lookahead_distance();
 
     //don't apply any control if the controler is not active, stop everything
     if (controller_state == state_::INACTIVE) {
         RCLCPP_WARN(this->get_logger(), "Dead Man switch is off");
-        controls_pub_->publish(Pure_Persuit_Node::dead_stop());
+        controls_pub_->publish(Pure_Pursuit_Node::dead_stop());
         return;
     } 
 
     std::optional<geometry_msgs::msg::Point> p;
 
     if (controller_state == state_::GLOBAL_FOLLOW)
-        p = Pure_Persuit_Node::get_global_waypoint();
+        p = Pure_Pursuit_Node::get_global_waypoint();
     else if (controller_state == state_::LOCAL_FOLLOW)
-        p = Pure_Persuit_Node::get_local_waypoint();
+        p = Pure_Pursuit_Node::get_local_waypoint();
 
     if (!p.has_value()) {
         RCLCPP_ERROR(this->get_logger(), "no look ahead point returned, stopping car");
-        controls_pub_->publish(Pure_Persuit_Node::dead_stop());
+        controls_pub_->publish(Pure_Pursuit_Node::dead_stop());
         return;
     }
 
@@ -132,14 +132,14 @@ void Pure_Persuit_Node::control_timer_callback() {
     }
 
     //apply the control law
-    ackermann_msgs::msg::AckermannDriveStamped control_command = Pure_Persuit_Node::calculate_control(p.value());
+    ackermann_msgs::msg::AckermannDriveStamped control_command = Pure_Pursuit_Node::calculate_control(p.value());
 
     //publish control inputs
     controls_pub_->publish(control_command);
 
 }
 
-void Pure_Persuit_Node::update_controller_state () {
+void Pure_Pursuit_Node::update_controller_state () {
 
     if (dead_man_active.data) {
 
@@ -172,7 +172,7 @@ assumption for this one  :
 - the global planner always gives all the cordinates in map frame, thus requiring a cordinate
   requiring a cordinate conversion before being able to apply the control law to it
 */
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint() {
+std::optional<geometry_msgs::msg::Point> Pure_Pursuit_Node::get_global_waypoint() {
 
     //check the global path
     if (current_global_path.poses.empty()) {
@@ -183,10 +183,10 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
     }
 
     //find the current index corosponding to current location of vehicle
-    size_t current_pose_index = Pure_Persuit_Node::find_current_position_index();
+    size_t current_pose_index = Pure_Pursuit_Node::find_current_position_index();
 
     //find the look_ahead point in the global frame
-    std::optional<geometry_msgs::msg::Point> target_waypoint_global = Pure_Persuit_Node::find_lookahead_global(current_pose_index);
+    std::optional<geometry_msgs::msg::Point> target_waypoint_global = Pure_Pursuit_Node::find_lookahead_global(current_pose_index);
 
     if (!target_waypoint_global.has_value()) {
 
@@ -196,7 +196,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
     }
 
     //convert the point to the local frame
-    std::optional<geometry_msgs::msg::Point> converted_waypoint = Pure_Persuit_Node::convert_to_local_frame(target_waypoint_global.value());
+    std::optional<geometry_msgs::msg::Point> converted_waypoint = Pure_Pursuit_Node::convert_to_local_frame(target_waypoint_global.value());
 
     if (!converted_waypoint.has_value()) {
 
@@ -209,19 +209,19 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_global_waypoint(
 
 }
 
-size_t Pure_Persuit_Node::find_current_position_index() {
+size_t Pure_Pursuit_Node::find_current_position_index() {
 
-    static size_t prev_index_cache = Pure_Persuit_Node::init_position_index_cache(); 
+    static size_t prev_index_cache = Pure_Pursuit_Node::init_position_index_cache(); 
 
     bool found_local_minimum = false;
 
     //use the prev_index_cache to find current distance prev_distance from point
-    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[prev_index_cache].pose);
+    double prev_distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[prev_index_cache].pose);
     size_t prev_index = prev_index_cache;
 
     for (size_t i = prev_index_cache + 1; i < current_global_path.poses.size(); i++) {
 
-        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        double current_distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
         if (current_distance <= prev_distance) {
 
             prev_index = i;
@@ -242,7 +242,7 @@ size_t Pure_Persuit_Node::find_current_position_index() {
 
         for (size_t i = 0; i < prev_index_cache; i++) {
 
-            double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+            double current_distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
             if (current_distance <= prev_distance) {
 
                 prev_index = i;
@@ -278,7 +278,7 @@ size_t Pure_Persuit_Node::find_current_position_index() {
 // finding lookahead distance from current vehicle position
 // interpolates between the bracketing waypoints so the returned point lies
 // precisely on the lookahead circumference (prevents jitter)
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_global(size_t current_vehicle_index) {
+std::optional<geometry_msgs::msg::Point> Pure_Pursuit_Node::find_lookahead_global(size_t current_vehicle_index) {
 
     const double ref_x = current_pose.pose.pose.position.x;
     const double ref_y = current_pose.pose.pose.position.y;
@@ -287,13 +287,13 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
     // case 1 : from current point to end of vector
     for (size_t i = current_vehicle_index + 1 ; i < n; i ++) {
 
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        double distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
 
         if (distance >= look_ahead_distance) {
 
             const auto &prev_pt = current_global_path.poses[i - 1].pose.position;
             const auto &curr_pt = current_global_path.poses[i].pose.position;
-            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
+            return Pure_Pursuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
 
         }
 
@@ -302,7 +302,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
     //case 2 : loop back from start to current as this represetns a closed loop
     for (size_t i = 0; i < current_vehicle_index; i++) {
 
-        double distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        double distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
 
         if (distance >= look_ahead_distance) {
 
@@ -310,7 +310,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::find_lookahead_globa
             size_t prev_idx = (i == 0) ? (n - 1) : (i - 1);
             const auto &prev_pt = current_global_path.poses[prev_idx].pose.position;
             const auto &curr_pt = current_global_path.poses[i].pose.position;
-            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
+            return Pure_Pursuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, ref_x, ref_y, look_ahead_distance);
 
         }
 
@@ -334,7 +334,7 @@ is linearly interpolated along the segment using the same parameter t.
 math : parametrize the segment P(t) = prev + t*(curr - prev) and solve
 |P(t) - ref|^2 = lookahead^2. Pick the forward root in [0,1].
 */
-geometry_msgs::msg::Point Pure_Persuit_Node::interpolate_lookahead_point(
+geometry_msgs::msg::Point Pure_Pursuit_Node::interpolate_lookahead_point(
     const geometry_msgs::msg::Point &prev_pt,
     const geometry_msgs::msg::Point &curr_pt,
     double ref_x, double ref_y,
@@ -379,7 +379,7 @@ geometry_msgs::msg::Point Pure_Persuit_Node::interpolate_lookahead_point(
     return result;
 }
 
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::convert_to_local_frame(
+std::optional<geometry_msgs::msg::Point> Pure_Pursuit_Node::convert_to_local_frame(
     const geometry_msgs::msg::Point &global_point) {
 
     geometry_msgs::msg::TransformStamped t;
@@ -397,18 +397,18 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::convert_to_local_fra
 
     }
 
-    return Pure_Persuit_Node::transfrom_point_(global_point,t.transform);
+    return Pure_Pursuit_Node::transfrom_point_(global_point,t.transform);
 
 }
 
-geometry_msgs::msg::Point Pure_Persuit_Node::transfrom_point_(
+geometry_msgs::msg::Point Pure_Pursuit_Node::transfrom_point_(
 
     const geometry_msgs::msg::Point &point_, 
     const geometry_msgs::msg::Transform &t_) {
  
     geometry_msgs::msg::Point p;
     
-    double theta = Pure_Persuit_Node::extractYaw(t_.rotation);
+    double theta = Pure_Pursuit_Node::extractYaw(t_.rotation);
 
     p.x = (std::cos(theta) * point_.x - std::sin(theta)* point_.y) + t_.translation.x;
     p.y = (std::sin(theta) * point_.x + std::cos(theta)* point_.y) + t_.translation.y;
@@ -427,7 +427,7 @@ assumption for this one  :
 */
 // local path is in base_link, so the vehicle reference is the origin.
 // Interpolates between bracketing waypoints so the target rides on the lookahead circle.
-std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint() {
+std::optional<geometry_msgs::msg::Point> Pure_Pursuit_Node::get_local_waypoint() {
 
     if (current_local_path.poses.empty()) {
 
@@ -442,7 +442,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
     for (size_t i = 0; i < current_local_path.poses.size(); i++) {
 
         const auto &point = current_local_path.poses[i];
-        double distance = Pure_Persuit_Node::find_distance(origin, point.pose);
+        double distance = Pure_Pursuit_Node::find_distance(origin, point.pose);
 
         if (distance >= look_ahead_distance) {
 
@@ -454,7 +454,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
 
             const auto &prev_pt = current_local_path.poses[i - 1].pose.position;
             const auto &curr_pt = point.pose.position;
-            return Pure_Persuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, 0.0, 0.0, look_ahead_distance);
+            return Pure_Pursuit_Node::interpolate_lookahead_point(prev_pt, curr_pt, 0.0, 0.0, look_ahead_distance);
 
         }
 
@@ -465,7 +465,7 @@ std::optional<geometry_msgs::msg::Point> Pure_Persuit_Node::get_local_waypoint()
 
 }
 
-ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
+ackermann_msgs::msg::AckermannDriveStamped Pure_Pursuit_Node::calculate_control(
     const geometry_msgs::msg::Point &target_point) {
 
     double steering_angle = kp_gain * (2 * target_point.y / std::pow(look_ahead_distance, 2));
@@ -496,7 +496,7 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::calculate_control(
 
 }
 
-ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::dead_stop() {
+ackermann_msgs::msg::AckermannDriveStamped Pure_Pursuit_Node::dead_stop() {
 
     ackermann_msgs::msg::AckermannDrive drive;
     drive.speed = 0.0;
@@ -511,25 +511,25 @@ ackermann_msgs::msg::AckermannDriveStamped Pure_Persuit_Node::dead_stop() {
 
 }
 
-double Pure_Persuit_Node::find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination) {
+double Pure_Pursuit_Node::find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination) {
 
     return std::sqrt(std::pow(destination.position.x - current_location.position.x, 2) + 
         std::pow(destination.position.y - current_location.position.y, 2));
 
 }
 
-double Pure_Persuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
+double Pure_Pursuit_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
 
     return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 1.0 - 2.0 * (std::pow(quat.y,2) + std::pow(quat.z,2)));
 
 }
 
-void Pure_Persuit_Node::update_lookahead_distance() {
+void Pure_Pursuit_Node::update_lookahead_distance() {
 
     look_ahead_distance = std::clamp(max_lookahead * current_velocity / lookahead_ratio, min_lookahead, max_lookahead);
 }
 
-void Pure_Persuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p) {
+void Pure_Pursuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p) {
 
     //for debug purpose
     std_msgs::msg::Float32 ld;
@@ -557,14 +557,14 @@ void Pure_Persuit_Node::publish_debug_vis(geometry_msgs::msg::Point look_ahead_p
 
 }
 
-size_t Pure_Persuit_Node::init_position_index_cache() {
+size_t Pure_Pursuit_Node::init_position_index_cache() {
 
     size_t last_index = 0;
-    double prev_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[last_index].pose);
+    double prev_distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[last_index].pose);
 
     for (size_t i = 1; i < current_global_path.poses.size(); i++) {
 
-        double current_distance = Pure_Persuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
+        double current_distance = Pure_Pursuit_Node::find_distance(current_pose.pose.pose, current_global_path.poses[i].pose);
         if (current_distance < prev_distance) {
             prev_distance = current_distance;
             last_index = i;
@@ -576,7 +576,7 @@ size_t Pure_Persuit_Node::init_position_index_cache() {
 
 }
 
-void Pure_Persuit_Node::init_parameters () {
+void Pure_Pursuit_Node::init_parameters () {
 
     //declare parameters
     this->declare_parameter<std::string>("global_frame_id","map");
@@ -602,8 +602,7 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<double>("min_lookahead",1.0);
     this->declare_parameter<double>("lookahead_ratio",6.0);
 
-    //this->declare_parameter<std::string>("speed_topic","/ekf/odom");
-    this->declare_parameter<std::string>("speed_topic","/autodrive/roboracer_1/odom");
+    this->declare_parameter<std::string>("speed_topic","/odom");
 
     //DEBUG VIS
     this->declare_parameter<bool>("enable_debug_vis",true);
@@ -648,7 +647,7 @@ void Pure_Persuit_Node::init_parameters () {
 int main(int argc, char ** argv) {
 
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<Pure_Persuit_Node>());
+  rclcpp::spin(std::make_shared<Pure_Pursuit_Node>());
   rclcpp::shutdown();
   return 0;
 

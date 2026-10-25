@@ -6,6 +6,8 @@ FakeOdom::FakeOdom() : Node ("fake_odom") {
     this->declare_parameter<std::string>("child_frame","base_link");
     this->declare_parameter<std::string>("header_frame","odom");
     this->declare_parameter<double>("inital_speed", 0.0);
+    // AutoDRIVE publishes the car's speed in the twist of its odometry topic
+    this->declare_parameter<std::string>("speed_odom_topic", "/autodrive/roboracer_1/odom");
 
     child_frame_name = this->get_parameter("child_frame").as_string();
     header_frame_name = this->get_parameter("header_frame").as_string();
@@ -18,10 +20,10 @@ FakeOdom::FakeOdom() : Node ("fake_odom") {
     tf_sub = this->create_subscription<tf2_msgs::msg::TFMessage>(
         "/tf", 10, std::bind(&FakeOdom::tf_listener, this, std::placeholders::_1));
 
-    speed_sub = this->create_subscription<std_msgs::msg::Float32>(
-        "/autodrive/roboracer_1/speed", 10,
-        [this](const std_msgs::msg::Float32::SharedPtr msg){
-            current_speed = *msg;
+    speed_sub = this->create_subscription<nav_msgs::msg::Odometry>(
+        this->get_parameter("speed_odom_topic").as_string(), 10,
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg){
+            current_speed.data = static_cast<float>(msg->twist.twist.linear.x);
     });
 
     tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);

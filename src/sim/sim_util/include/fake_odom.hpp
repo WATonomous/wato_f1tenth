@@ -21,7 +21,7 @@ private:
     //publisher and subscribers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
     rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub;
-    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr speed_sub;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub;
 
     //tf2 broadcaster
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;

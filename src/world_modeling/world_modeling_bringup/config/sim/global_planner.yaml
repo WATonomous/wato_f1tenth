@@ -1,0 +1,7 @@
+# Global planner in sim. file_directory is relative to the global_planner share directory.
+/**:
+  ros__parameters:
+    file_directory: "/assets/optmial_clean_map.csv"
+    path_topic: "/global_planner/path"
+    vis_topic: "/global_planner/vis"
+    waypoint_frame_id: "map"

@@ -111,7 +111,8 @@ REPOSITORY="${REGISTRY_URL##*/}"
 BAG_DIRECTORY=${BAG_DIRECTORY:-"$MONO_DIR/bags"}
 
 # ROS 2 Middleware configuration
-RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-"rmw_zenoh_cpp"}
+# f1tenth uses CycloneDDS (Zenoh is specific to the full-scale car)
+RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-"rmw_cyclonedds_cpp"}
 
 # Zenoh configuration URIs (paths inside Docker containers)
 ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI:-"/opt/watonomous/rmw_zenoh_router_config.json5"}
@@ -166,7 +167,8 @@ FOXGLOVE_BRIDGE_PORT=${FOXGLOVE_BRIDGE_PORT:-$((BASE_PORT+2))}
 CLAUDE_CODE=${CLAUDE_CODE:-"true"}
 
 ############################  ROS DOMAIN ID  #########################################
-ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-$((SETUID % 230))}
+# f1tenth: one shared domain so laptops and the car see each other over DDS
+ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
 ################################  Write .env  ########################################
 

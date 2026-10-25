@@ -2,10 +2,10 @@
     Authors           : Muhtasim Ahsan, Jordan Khatri
     Last Date of Edit : 2026-04-23
 
-    Pure Persuit Node
+    Pure Pursuit Node
 
-    This Node is a implemntation of the Pure Persuit algo described in
-    the Robo racer docs. This implementation is the general pure persuit
+    This Node is a implemntation of the Pure Pursuit algo described in
+    the Robo racer docs. This implementation is the general pure pursuit
     implementation + the addition of a dynamic look ahead distance to
     improve high speed stability without compromising on need to speed
     accuracy. The node is also driven by a state machine which decides
@@ -76,9 +76,9 @@ enum state_ {
     LOCAL_FOLLOW
 };
 
-class Pure_Persuit_Node : public rclcpp::Node {
+class Pure_Pursuit_Node : public rclcpp::Node {
 public:
-    Pure_Persuit_Node();
+    Pure_Pursuit_Node();
 private:
 
     //publishers

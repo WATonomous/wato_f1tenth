@@ -123,6 +123,8 @@ launch:
       exec: global_planner_node
       name: global_planner_node
       output: screen
+      param:
+        - from: "$(var share)/config/$(var platform)/global_planner.yaml"
 
   - node:
       if: "$(var costmap)"

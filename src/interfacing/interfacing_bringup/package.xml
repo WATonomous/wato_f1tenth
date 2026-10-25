@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>ros2launch</exec_depend>
+  <exec_depend>rmw_cyclonedds_cpp</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>ackermann_mux</exec_depend>
   <exec_depend>teleop_utils</exec_depend>

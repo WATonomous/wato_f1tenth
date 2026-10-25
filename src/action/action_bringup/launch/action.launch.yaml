@@ -18,9 +18,9 @@ launch:
 
   - node:
       if: "$(eval '\"$(var controller)\" == \"pure_pursuit\"')"
-      pkg: pure_persuit
-      exec: pure_persuit_node
-      name: pure_persuit_node
+      pkg: pure_pursuit
+      exec: pure_pursuit_node
+      name: pure_pursuit_node
       output: screen
       param:
         - from: "$(find-pkg-share action_bringup)/config/$(var platform)/pure_pursuit.yaml"

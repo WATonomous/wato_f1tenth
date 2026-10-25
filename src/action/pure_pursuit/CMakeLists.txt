@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(pure_persuit)
+project(pure_pursuit)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -19,12 +19,12 @@ find_package(tf2 REQUIRED)
 
 # Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 
-add_executable(pure_persuit_node src/pure_persuit.cpp)
-target_include_directories(pure_persuit_node PUBLIC include)
-ament_target_dependencies(pure_persuit_node rclcpp std_msgs nav_msgs geometry_msgs tf2 tf2_ros ackermann_msgs visualization_msgs)
+add_executable(pure_pursuit_node src/pure_pursuit.cpp)
+target_include_directories(pure_pursuit_node PUBLIC include)
+ament_target_dependencies(pure_pursuit_node rclcpp std_msgs nav_msgs geometry_msgs tf2 tf2_ros ackermann_msgs visualization_msgs)
 
 install(TARGETS
-  pure_persuit_node
+  pure_pursuit_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

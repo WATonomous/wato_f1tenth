@@ -1,6 +1,12 @@
 ackermann_mux:
   ros__parameters:
     topics:
+      # TTC emergency brake (safety_node). Off by default (interfacing ebrake:=false);
+      # highest priority so it beats manual override once it is enabled.
+      emergency:
+        topic   : /drive/ebreak
+        timeout : 0.2
+        priority: 100
       joystick:
         topic   : /drive/joystick
         timeout : 0.2

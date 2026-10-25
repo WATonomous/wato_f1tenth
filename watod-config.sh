@@ -64,7 +64,8 @@
 # export BAG_DIRECTORY=""
 
 ############################### ROS 2 MIDDLEWARE SETTINGS ##############################
-## Middleware to use for interprocess communication. DEFAULT = "rmw_zenoh_cpp"
+## Middleware to use for interprocess communication. DEFAULT = "rmw_cyclonedds_cpp"
+## (f1tenth does not use Zenoh; the Zenoh settings below are unused)
 # export RMW_IMPLEMENTATION=""
 
 ## Zenoh configuration - enables zero-copy transport for local communication
@@ -75,9 +76,19 @@
 # export ZENOH_SESSION_CONFIG_URI=""
 
 
-## ROS 2 Domain ID for network isolation. DEFAULT = "<your_uid> % 230"
-## Each user gets a unique domain to prevent cross-talk on shared networks
+## ROS 2 Domain ID. DEFAULT = "0", shared by laptops and the car so they see each other.
+## Set a different value to isolate yourself on a busy network.
 # export ROS_DOMAIN_ID=""
+
+############################### F1TENTH PLATFORM ##################################
+## car or sim. DEFAULT = "sim" (auto-detected in a later step of the migration)
+# export PLATFORM="car"
+
+## Run slam_toolbox to build a map instead of localizing. DEFAULT = "false"
+# export MAPPING="true"
+
+## Controller in the action module: pure_pursuit, mppi or none. DEFAULT = "pure_pursuit"
+# export CONTROLLER="pure_pursuit"
 
 ############################### FOXGLOVE SETTINGS ##################################
 ## Size of the outgoing websocket buffer (bytes) for foxglove_bridge. Increase to prevent drops; default is 256 MiB.
