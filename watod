@@ -59,6 +59,7 @@ Options
 
 Commands
   install                     Install watod to /usr/local/bin (requires sudo)
+  build-base [cpu|gpu|jetson] Build the f1tenth base images locally (run before build)
   down                        Stop ACTIVE_MODULES containers + infrastructure
   down <service>              Stop only the specified service(s)
   down all                    Stop all watod containers (all modules/profiles)
@@ -233,6 +234,11 @@ while [[ $# -gt 0 ]]; do
       usage; exit 0 ;;
     install)
       "$MONO_DIR/watod_scripts/watod-install.sh"
+      exit $?
+      ;;
+    build-base)
+      shift
+      "$MONO_DIR/watod_scripts/watod-build-base.sh" "$@"
       exit $?
       ;;
     -s|--setup-dev-env)

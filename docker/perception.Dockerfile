@@ -1,12 +1,16 @@
-ARG BASE_IMAGE=ghcr.io/watonomous/wato_monorepo/base:cuda12.8.1-cudnn-runtime-ubuntu24.04
-# Base images are published by wato_monorepo (.github/workflows/build_base_images.yml).
-# To host your own, run that workflow in this repo and point BASE_IMAGE at your registry.
+# Built locally with `./watod build-base` until prebuilt images are published.
+# The base is picked per architecture: x86 PCs and the Jetson (arm64) need different CUDA stacks.
+ARG BASE_IMAGE_AMD64=ghcr.io/watonomous/wato_f1tenth/base:cuda12.9-trt-jazzy-ubuntu24.04
+ARG BASE_IMAGE_ARM64=ghcr.io/watonomous/wato_f1tenth/base:jetson-cuda12.8-trt-jazzy-ubuntu24.04
+
+FROM ${BASE_IMAGE_AMD64} AS base_amd64
+FROM ${BASE_IMAGE_ARM64} AS base_arm64
 
 ################################ Source ################################
 # NOTE: You should add in the source stage in the following order:
 #   - clone git repositories -> copy source code
 # This will make your builds significantly faster
-FROM ${BASE_IMAGE} AS source
+FROM base_${TARGETARCH} AS source
 
 WORKDIR ${AMENT_WS}/src
 
@@ -21,7 +25,7 @@ COPY src/wato_test wato_test
 ################################# Dependencies ################################
 # NOTE: You should be relying on ROSDEP as much as possible
 # Use this stage as a last resort
-FROM ${BASE_IMAGE} AS dependencies
+FROM base_${TARGETARCH} AS dependencies
 
 # Use bash with pipefail so piped RUN commands (e.g. curl | gpg) fail loudly.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
