@@ -2,14 +2,22 @@
 # sim.launch.yaml
 # Entry point for the sim container (see modules/docker-compose.yaml).
 #
-# The sim adapter: turns AutoDRIVE topics into the topics the shared stack expects
-# (the sim half of minimumEx.launch.py). The AutoDRIVE simulator itself runs on the host.
+# The AutoDRIVE bridge plus the sim adapter, which turns AutoDRIVE topics into the
+# topics the shared stack expects (the sim half of minimumEx.launch.py).
+# The AutoDRIVE simulator itself runs on the host and connects to the bridge on port 4567.
 
 launch:
   - arg:
       name: mapping
       default: "$(env MAPPING false)"
       description: "When mapping, slam_toolbox publishes map -> odom instead of the static TF"
+
+  # AutoDRIVE ROS 2 bridge (Socket.IO server on port 4567 <-> /autodrive/* topics)
+  - node:
+      pkg: autodrive_roboracer
+      exec: autodrive_bridge
+      name: autodrive_bridge
+      output: screen
 
   # /tf + AutoDRIVE speed -> /odom (perfect odometry; the car's drifts)
   - node:
