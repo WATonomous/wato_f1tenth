@@ -25,15 +25,17 @@
 ## Add ":dev" suffix to run a module in development mode (with live code editing)
 ##
 ## Possible values:
-##   - interfacing          :   starts up interfacing nodes (CAN and sensor interfaces)
-##   - perception           :   starts perception nodes (Object detection, tracking)
-##   - world_modeling       :   starts world modeling nodes (HD map, localization)
-##   - action               :   starts action nodes (local planning, control)
+##   - interfacing          :   car drivers (VESC, Hokuyo), teleop, ackermann_mux
+##   - perception           :   perception nodes (empty for now)
+##   - world_modeling       :   localization, mapping, global planner
+##   - action               :   control (pure pursuit; MPPI with CONTROLLER=mppi)
+##   - sim                  :   AutoDRIVE sim adapter (simulator runs on the host)
 ##
 ## Examples:
-##   - "interfacing"                      : Interfacing in deploy mode
-##   - "interfacing:dev"                  : Interfacing in dev mode (editable)
-##   - "interfacing:dev perception:dev"   : Both in dev mode
+##   - "interfacing world_modeling action sim"   : full stack in sim (PLATFORM=sim)
+##   - "interfacing world_modeling action"       : full stack on the car (PLATFORM=car)
+##   - "interfacing"                             : car drivers and teleop only (was jetson_up)
+##   - "action:dev"                              : action in dev mode (editable)
 
 # export ACTIVE_MODULES=""
 

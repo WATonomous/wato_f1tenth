@@ -106,3 +106,22 @@ services:
     volumes:
       - ${MONO_DIR}/src/action:/ws/src/action
       - ${MONO_DIR}/bags:/ws/bags
+
+  #################### SIM SERVICE ####################
+  sim_bringup_dev:
+    profiles: ["sim_dev"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: sim_bringup
+    build:
+      target: develop
+      args:
+        USERNAME: "${USERNAME}"
+        USER_UID: "${SETUID}"
+        USER_GID: "${SETGID}"
+        CLAUDE_CODE: "${CLAUDE_CODE}"
+    image: "${SIM_IMAGE:?}:dep_${TAG}"
+    command: sleep infinity
+    volumes:
+      - ${MONO_DIR}/src/sim:/ws/src/sim
+      - ${MONO_DIR}/bags:/ws/bags

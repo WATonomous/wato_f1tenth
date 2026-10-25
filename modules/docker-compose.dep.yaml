@@ -7,12 +7,6 @@ services:
       file: ${COMPOSE_EXTEND_FILE}
       service: infrastructure_bringup
 
-  log_viewer:
-    profiles: ["infrastructure"]
-    extends:
-      file: ${COMPOSE_EXTEND_FILE}
-      service: log_viewer
-
 #################### INTERFACING SERVICE ####################
   interfacing_bringup:
     profiles: ["interfacing"]
@@ -40,3 +34,10 @@ services:
     extends:
       file: ${COMPOSE_EXTEND_FILE}
       service: action_bringup
+
+#################### SIM SERVICE ####################
+  sim_bringup:
+    profiles: ["sim"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: sim_bringup

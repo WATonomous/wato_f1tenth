@@ -57,6 +57,12 @@ runs:
       with:
         files: src/world_modeling/**
 
+    - name: Get changed files inside src/sim folder
+      id: changed-files-sim
+      uses: tj-actions/changed-files@v42
+      with:
+        files: src/sim/**
+
     - name: Create list of changed modules
       id: output-changes
       env:
@@ -67,6 +73,7 @@ runs:
         INTERFACING_CHANGED: ${{ steps.changed-files-interfacing.outputs.any_changed }}
         PERCEPTION_CHANGED: ${{ steps.changed-files-perception.outputs.any_changed }}
         WORLD_MODELING_CHANGED: ${{ steps.changed-files-world-modeling.outputs.any_changed }}
+        SIM_CHANGED: ${{ steps.changed-files-sim.outputs.any_changed }}
 
       run: ${{ github.action_path }}/check_src_changes.sh
       shell: bash

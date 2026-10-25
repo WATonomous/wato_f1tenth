@@ -101,6 +101,7 @@ get_all_modules() {
   echo "interfacing"
   echo "perception"
   echo "world_modeling"
+  echo "sim"
 }
 
 # Parse ACTIVE_MODULES and build profile arrays

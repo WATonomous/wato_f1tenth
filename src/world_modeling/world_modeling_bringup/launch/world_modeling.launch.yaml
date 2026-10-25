@@ -1,44 +1,141 @@
 ---
 # world_modeling.launch.yaml
 # Entry point for the world_modeling container (see modules/docker-compose.yaml).
+#
+#   car: particle filter + map server (was the localization half of jetson_pf.launch.py)
+#   sim: localization comes from the sim adapter (fake odom), so only the planner runs
+#   both: global planner; optional costmap, EKF, slam_toolbox mapping and RViz
 
 launch:
   - arg:
-      name: autostart
-      default: "true"
-      description: Automatically configure and activate managed nodes
+      name: platform
+      default: "$(env PLATFORM sim)"
+      description: "car or sim"
 
   - arg:
-      name: bond_enabled
+      name: mapping
+      default: "$(env MAPPING false)"
+      description: "Run slam_toolbox to build a map instead of localizing"
+
+  - arg:
+      name: localization
+      default: "$(eval '\"$(var platform)\" == \"car\" and \"$(var mapping)\".lower() != \"true\"')"
+      description: "Run the particle filter and map server"
+
+  - arg:
+      name: map
+      default: "wato_office"
+      description: "Map name in world_modeling_bringup/maps (without .yaml)"
+
+  - arg:
+      name: planner
+      default: "true"
+      description: "Run the global planner"
+
+  - arg:
+      name: costmap
       default: "false"
-      description: Enable bond-based crash detection
+      description: "Run the occupancy grid generator"
 
-  # Example node: replace with real world_modeling nodes
-  - node:
-      pkg: "world_modeling_example"
-      exec: "example_node"
-      name: "example_node"
-      namespace: "world_modeling/example"
-      output: "screen"
-      param:
-        - from: "$(find-pkg-share world_modeling_bringup)/config/world_modeling.yaml"
+  - arg:
+      name: ekf
+      default: "false"
+      description: "Run the ackermann EKF (off on the car since mppi_test)"
 
-  # Lifecycle Manager: add every lifecycle node above to node_names
+  - arg:
+      name: rviz
+      default: "false"
+      description: "Start RViz with the localization or mapping layout"
+
+  - let:
+      name: share
+      value: "$(find-pkg-share world_modeling_bringup)"
+
+  # Localization (car)
+  - group:
+      if: "$(var localization)"
+      children:
+        - node:
+            pkg: particle_filter
+            exec: particle_filter
+            name: particle_filter
+            output: screen
+            param:
+              - from: "$(var share)/config/car/localize.yaml"
+        - node:
+            pkg: nav2_map_server
+            exec: map_server
+            name: map_server
+            output: screen
+            param:
+              - name: yaml_filename
+                value: "$(var share)/maps/$(var map).yaml"
+              - name: topic
+                value: map
+              - name: frame_id
+                value: map
+              - name: use_sim_time
+                value: false
+        - node:
+            pkg: nav2_lifecycle_manager
+            exec: lifecycle_manager
+            name: lifecycle_manager_localization
+            output: screen
+            param:
+              - name: use_sim_time
+                value: false
+              - name: autostart
+                value: true
+              - name: node_names
+                value: ["map_server"]
+
+  # Mapping (either platform)
   - node:
-      pkg: "wato_lifecycle_manager"
-      exec: "wato_lifecycle_manager_node"
-      name: "world_modeling_lifecycle_manager"
-      namespace: "world_modeling"
-      output: "screen"
+      if: "$(var mapping)"
+      pkg: slam_toolbox
+      exec: async_slam_toolbox_node
+      name: slam_toolbox
+      output: screen
       param:
-        - name: "node_names"
-          value:
-            - /world_modeling/example/example_node
-        - name: autostart
-          value: $(var autostart)
-        - name: transition_timeout_s
-          value: 10.0
-        - name: bond_timeout_s
-          value: 4.0
-        - name: bond_enabled
-          value: $(var bond_enabled)
+        - name: scan_topic
+          value: /scan
+        - name: use_odometry
+          value: true
+        - name: map_frame
+          value: map
+        - name: odom_frame
+          value: odom
+        - name: base_frame
+          value: base_link
+        - name: use_sim_time
+          value: false
+
+  - node:
+      if: "$(var ekf)"
+      pkg: ackermann_ekf
+      exec: ekf
+      name: ekf
+      output: screen
+
+  - node:
+      if: "$(var planner)"
+      pkg: global_planner
+      exec: global_planner_node
+      name: global_planner_node
+      output: screen
+
+  - node:
+      if: "$(var costmap)"
+      pkg: costmap
+      exec: costmap_node
+      name: occupancy_grid_generator
+      param:
+        - from: "$(find-pkg-share costmap)/config/params.yaml"
+
+  - node:
+      if: "$(var rviz)"
+      pkg: rviz2
+      exec: rviz2
+      name: rviz2
+      output: screen
+      args: "-d $(var share)/rviz/$(eval '\"mapping\" if \"$(var mapping)\".lower() == \"true\" else \"mylocalize\"').rviz"

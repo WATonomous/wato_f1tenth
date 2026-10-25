@@ -15,7 +15,7 @@ COPY src/infrastructure infrastructure
 COPY src/wato_test wato_test
 
 # Copy in every msgs package so Foxglove and ros2 bag can decode them
-COPY src/interfacing/pid_msgs pid_msgs
+COPY src/interfacing/vesc/vesc_msgs vesc_msgs
 
 ################################# Dependencies ################################
 # NOTE: You should be relying on ROSDEP as much as possible

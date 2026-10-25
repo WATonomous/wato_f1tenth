@@ -56,7 +56,7 @@ if [[ -n ${MODIFIED_MODULES:-} ]]; then
   modules_to_process="$MODIFIED_MODULES"
 else
   # Default: all modules
-  modules_to_process="infrastructure interfacing perception world_modeling action"
+  modules_to_process="infrastructure interfacing perception world_modeling action sim"
 fi
 
 $DEBUG && { echo "▶ Modules to process:"; printf '  %s\n' "$modules_to_process"; }

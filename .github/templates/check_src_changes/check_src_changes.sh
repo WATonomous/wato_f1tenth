@@ -57,6 +57,12 @@ if [ "$WORLD_MODELING_CHANGED" == 'true' ] || [ "$ALL_CHANGED" == 'true' ]; then
     MODIFIED_MODULES+="world_modeling "
 fi
 
+# Sim
+if [ "$SIM_CHANGED" == 'true' ] || [ "$ALL_CHANGED" == 'true' ]; then
+    echo "Detected sim changes"
+    MODIFIED_MODULES+="sim "
+fi
+
 # Infrastructure
 if [ "$INFRASTRUCTURE_CHANGED" == 'true' ] || [ "$ALL_CHANGED" == 'true' ]; then
     echo "::notice:: Detected infrastructure changes"

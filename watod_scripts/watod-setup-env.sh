@@ -141,6 +141,17 @@ ACTION_IMAGE=${ACTION_IMAGE:-"$REGISTRY_URL/action/action"}
 # Interfacing
 INTERFACING_IMAGE=${INTERFACING_IMAGE:-"$REGISTRY_URL/interfacing/interfacing"}
 
+# Sim (AutoDRIVE adapter)
+SIM_IMAGE=${SIM_IMAGE:-"$REGISTRY_URL/sim/sim"}
+
+################################  f1tenth platform  ##################################
+# car or sim. Step 3 of the migration replaces this default with auto-detection.
+PLATFORM=${PLATFORM:-"sim"}
+# true to run slam_toolbox (mapping) instead of localization
+MAPPING=${MAPPING:-"false"}
+# pure_pursuit, mppi or none
+CONTROLLER=${CONTROLLER:-"pure_pursuit"}
+
 ################################  UID / GID  #########################################
 SETUID=$(id -u)
 SETGID=$(id -g)
@@ -150,8 +161,6 @@ USERNAME=${USERNAME:-$USER}
 BASE_PORT=${BASE_PORT:-$((SETUID*20))}
 GUI_TOOLS_VNC_PORT=${GUI_TOOLS_VNC_PORT:-$((BASE_PORT+1))}
 FOXGLOVE_BRIDGE_PORT=${FOXGLOVE_BRIDGE_PORT:-$((BASE_PORT+2))}
-LOG_VIEWER__PORT=${LOG_VIEWER__PORT:-$((BASE_PORT+6))}
-TOPIC_HEALTHCHECKER__PORT=${TOPIC_HEALTHCHECKER__PORT:-$((BASE_PORT+9))}
 
 ################################  Claude Code  #######################################
 CLAUDE_CODE=${CLAUDE_CODE:-"true"}
@@ -187,8 +196,6 @@ fi
 append "BASE_PORT" "$BASE_PORT"
 append "GUI_TOOLS_VNC_PORT" "$GUI_TOOLS_VNC_PORT"
 append "FOXGLOVE_BRIDGE_PORT" "$FOXGLOVE_BRIDGE_PORT"
-append "LOG_VIEWER__PORT" "$LOG_VIEWER__PORT"
-append "TOPIC_HEALTHCHECKER__PORT" "$TOPIC_HEALTHCHECKER__PORT"
 
 # Claude Code
 append "CLAUDE_CODE" "$CLAUDE_CODE"
@@ -209,6 +216,13 @@ append "ACTION_IMAGE" "$ACTION_IMAGE"
 
 
 append "INTERFACING_IMAGE" "$INTERFACING_IMAGE"
+
+append "SIM_IMAGE" "$SIM_IMAGE"
+
+# f1tenth platform
+append "PLATFORM" "$PLATFORM"
+append "MAPPING" "$MAPPING"
+append "CONTROLLER" "$CONTROLLER"
 
 # ROS 2 Middleware
 append "RMW_IMPLEMENTATION" "$RMW_IMPLEMENTATION"

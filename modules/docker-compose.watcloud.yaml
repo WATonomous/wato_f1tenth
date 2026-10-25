@@ -25,11 +25,6 @@ services:
       - "${FOXGLOVE_BRIDGE_PORT:?}:${FOXGLOVE_BRIDGE_PORT:?}"
 
 #################### INFRASTRUCTURE SERVICES ####################
-  log_viewer:
-    extends:
-      file: docker-compose.yaml
-      service: log_viewer
-
   infrastructure_bringup:
     extends:
       file: docker-compose.yaml
@@ -62,4 +57,11 @@ services:
     extends:
       file: docker-compose.yaml
       service: action_bringup
+    <<: *watcloud-network
+
+#################### SIM SERVICE ####################
+  sim_bringup:
+    extends:
+      file: docker-compose.yaml
+      service: sim_bringup
     <<: *watcloud-network

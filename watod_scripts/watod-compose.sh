@@ -219,26 +219,24 @@ if [[ "$SHOW_STATUS_PANEL" == "true" ]]; then
 
   # Determine URLs based on connection type
   foxglove_url="ws://localhost:${FOXGLOVE_BRIDGE_PORT}"
-  log_viewer_url="http://localhost:${LOG_VIEWER__PORT}"
 
   if [[ -n "${SSH_CONNECTION:-}" ]]; then
     # SSH_CONNECTION format: client_ip client_port server_ip server_port
     server_ip=$(echo "$SSH_CONNECTION" | awk '{print $3}')
     foxglove_url="ws://${server_ip}:${FOXGLOVE_BRIDGE_PORT}"
-    log_viewer_url="http://${server_ip}:${LOG_VIEWER__PORT}"
 
     # Show SSH warning
     echo ""
     echo -e "${YELLOW}⚠️  SSH Connection Detected!${RESET}"
     echo ""
     echo "If the URLs below don't work, forward ports on your local machine:"
-    ssh_ports="-L ${FOXGLOVE_BRIDGE_PORT}:localhost:${FOXGLOVE_BRIDGE_PORT} -L ${LOG_VIEWER__PORT}:localhost:${LOG_VIEWER__PORT}"
+    ssh_ports="-L ${FOXGLOVE_BRIDGE_PORT}:localhost:${FOXGLOVE_BRIDGE_PORT}"
     echo -e "  ${CYAN}ssh ${ssh_ports} <host>${RESET}"
     echo ""
   fi
 
-  # Get list of running containers (match both project prefix and log_viewer)
-  mapfile -t containers < <(docker ps --format "{{.Names}}" | grep -E "(^${COMPOSE_PROJECT_NAME}-|^watod_log_viewer)" | sort)
+  # Get list of running containers in this project
+  mapfile -t containers < <(docker ps --format "{{.Names}}" | grep -E "^${COMPOSE_PROJECT_NAME}-" | sort)
 
   # Display status panel
   echo ""
@@ -264,9 +262,8 @@ if [[ "$SHOW_STATUS_PANEL" == "true" ]]; then
 
   echo -e "${BLUE}╠═══════════════════════════════════════════════════════════╣${RESET}"
   printf "${BLUE}║${RESET}  ${GREEN}Foxglove:${RESET}    ${CYAN}%-43s${RESET} ${BLUE}║${RESET}\n" "${foxglove_url}"
-  printf "${BLUE}║${RESET}  ${GREEN}Log Viewer:${RESET}  ${CYAN}%-43s${RESET} ${BLUE}║${RESET}\n" "${log_viewer_url}"
   echo -e "${BLUE}╠═══════════════════════════════════════════════════════════╣${RESET}"
-  echo -e "${BLUE}║${RESET}  ${YELLOW}View container logs at the Log Viewer URL above.${RESET}         ${BLUE}║${RESET}"
+  echo -e "${BLUE}║${RESET}  View logs with ${BOLD}./watod logs -f <service>${RESET}.                  ${BLUE}║${RESET}"
   echo -e "${BLUE}║${RESET}  Use ${BOLD}./watod down${RESET} to stop all services.                   ${BLUE}║${RESET}"
   echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${RESET}"
   echo ""

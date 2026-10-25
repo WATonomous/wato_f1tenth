@@ -3,18 +3,21 @@
 <package format="3">
   <name>interfacing_bringup</name>
   <version>0.0.0</version>
-  <description>Launch and configuration for the interfacing module</description>
+  <description>Launch and configuration for the interfacing module (car drivers, teleop, mux)</description>
   <maintainer email="hello@watonomous.ca">WATonomous</maintainer>
   <license>Apache 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <!-- To enable Shared Memory IPC -->
-  <depend>rmw_zenoh_cpp</depend>
-
   <exec_depend>ros2launch</exec_depend>
-  <exec_depend>wato_lifecycle_manager</exec_depend>
-  <exec_depend>interfacing_example</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>ackermann_mux</exec_depend>
+  <exec_depend>teleop_utils</exec_depend>
+  <exec_depend>joy</exec_depend>
+  <exec_depend>safety_node</exec_depend>
+  <exec_depend>vesc_driver</exec_depend>
+  <exec_depend>vesc_ackermann</exec_depend>
+  <exec_depend>urg_node</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

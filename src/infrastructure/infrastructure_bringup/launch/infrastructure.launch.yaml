@@ -10,24 +10,6 @@ launch:
       default: "0.0.0.0"
       description: "Address for Foxglove WebSocket server"
 
-  - arg:
-      name: topic_healthchecker_config
-      default: "$(find-pkg-share infrastructure_bringup)/config/topic_healthchecker.yaml"
-      description: "Topics monitored by the topic healthchecker"
-
-  - arg:
-      name: zenoh_router_enabled
-      default: "true"
-      description: "Enable the Zenoh router for shared memory IPC"
-
-  # Zenoh Router (for rmw_zenoh_cpp shared memory IPC)
-  - node:
-      pkg: rmw_zenoh_cpp
-      exec: rmw_zenohd
-      name: zenoh_router
-      output: screen
-      if: $(var zenoh_router_enabled)
-
   # TF Relay (workaround for Foxglove tf issues)
   - node:
       pkg: topic_tools
@@ -58,14 +40,3 @@ launch:
           value: 100000000
         - name: use_sim_time
           value: false
-
-  # Topic Healthchecker (monitors topic liveness and message rates for the log viewer)
-  - node:
-      pkg: topic_healthchecker
-      exec: topic_healthchecker_node
-      name: topic_healthchecker
-      output: screen
-      param:
-        - from: "$(var topic_healthchecker_config)"
-        - name: http_port
-          value: $(env TOPIC_HEALTHCHECKER__PORT 8080)

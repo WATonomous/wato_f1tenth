@@ -1,44 +1,30 @@
 ---
 # action.launch.yaml
 # Entry point for the action container (see modules/docker-compose.yaml).
+#
+# controller:=pure_pursuit (default) runs pure pursuit with config/<platform>/pure_pursuit.yaml.
+# controller:=mppi starts mppi_cpp's e7 launch. MPPI is untested on Jazzy until the JAX image step.
 
 launch:
   - arg:
-      name: autostart
-      default: "true"
-      description: Automatically configure and activate managed nodes
+      name: platform
+      default: "$(env PLATFORM sim)"
+      description: "car or sim"
 
   - arg:
-      name: bond_enabled
-      default: "false"
-      description: Enable bond-based crash detection
+      name: controller
+      default: "$(env CONTROLLER pure_pursuit)"
+      description: "pure_pursuit, mppi or none"
 
-  # Example node: replace with real action nodes
   - node:
-      pkg: "action_example"
-      exec: "example_node"
-      name: "example_node"
-      namespace: "action/example"
-      output: "screen"
+      if: "$(eval '\"$(var controller)\" == \"pure_pursuit\"')"
+      pkg: pure_persuit
+      exec: pure_persuit_node
+      name: pure_persuit_node
+      output: screen
       param:
-        - from: "$(find-pkg-share action_bringup)/config/action.yaml"
+        - from: "$(find-pkg-share action_bringup)/config/$(var platform)/pure_pursuit.yaml"
 
-  # Lifecycle Manager: add every lifecycle node above to node_names
-  - node:
-      pkg: "wato_lifecycle_manager"
-      exec: "wato_lifecycle_manager_node"
-      name: "action_lifecycle_manager"
-      namespace: "action"
-      output: "screen"
-      param:
-        - name: "node_names"
-          value:
-            - /action/example/example_node
-        - name: autostart
-          value: $(var autostart)
-        - name: transition_timeout_s
-          value: 10.0
-        - name: bond_timeout_s
-          value: 4.0
-        - name: bond_enabled
-          value: $(var bond_enabled)
+  - include:
+      if: "$(eval '\"$(var controller)\" == \"mppi\"')"
+      file: "$(find-pkg-share mppi_cpp)/launch/e7.launch.py"

@@ -70,3 +70,15 @@ services:
     image: "${ACTION_IMAGE:?}:test_${TAG}"
     environment:
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+#################### SIM SERVICE ####################
+  sim_bringup_test:
+    profiles: ["sim_test"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: sim_bringup
+    build:
+      target: build
+    image: "${SIM_IMAGE:?}:test_${TAG}"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp

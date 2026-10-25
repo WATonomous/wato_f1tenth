@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MONO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Available modules for dependency extraction
-AVAILABLE_MODULES=("infrastructure" "interfacing" "perception" "world_modeling" "action")
+AVAILABLE_MODULES=("infrastructure" "interfacing" "perception" "world_modeling" "action" "sim")
 
 # Colors for output
 RED='\033[0;31m'

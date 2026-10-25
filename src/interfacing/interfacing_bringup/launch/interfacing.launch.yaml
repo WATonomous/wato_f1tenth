@@ -1,44 +1,119 @@
 ---
 # interfacing.launch.yaml
 # Entry point for the interfacing container (see modules/docker-compose.yaml).
+#
+# Runs on both platforms:
+#   car: VESC, Hokuyo, joystick teleop, ackermann_mux, static TFs (was jetson_up.launch.py)
+#   sim: keyboard teleop, ackermann_mux, static TF (the drive half of minimumEx.launch.py)
 
 launch:
   - arg:
-      name: autostart
-      default: "true"
-      description: Automatically configure and activate managed nodes
+      name: platform
+      default: "$(env PLATFORM sim)"
+      description: "car or sim"
 
   - arg:
-      name: bond_enabled
+      name: joystick
+      default: "$(eval '\"$(var platform)\" == \"car\"')"
+      description: "Start joy_node and the gamepad teleop"
+
+  - arg:
+      name: keyboard
+      default: "$(eval '\"$(var platform)\" == \"sim\"')"
+      description: "Start the keyboard teleop converter"
+
+  - arg:
+      name: ebrake
       default: "false"
-      description: Enable bond-based crash detection
+      description: "Start the TTC emergency brake (off until it is re-tuned)"
 
-  # Example node: replace with real interfacing nodes
-  - node:
-      pkg: "interfacing_example"
-      exec: "example_node"
-      name: "example_node"
-      namespace: "interfacing/example"
-      output: "screen"
-      param:
-        - from: "$(find-pkg-share interfacing_bringup)/config/interfacing.yaml"
+  - let:
+      name: config_dir
+      value: "$(find-pkg-share interfacing_bringup)/config/$(var platform)"
 
-  # Lifecycle Manager: add every lifecycle node above to node_names
+  # base_link -> laser, same mounting on the car and in sim
   - node:
-      pkg: "wato_lifecycle_manager"
-      exec: "wato_lifecycle_manager_node"
-      name: "interfacing_lifecycle_manager"
-      namespace: "interfacing"
-      output: "screen"
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: static_baselink_to_laser
+      args: "--x 0.27 --y 0.0 --z 0.11 --frame-id base_link --child-frame-id laser"
+
+  # Picks one drive command by priority and publishes /ackermann_cmd
+  - node:
+      pkg: ackermann_mux
+      exec: ackermann_mux
+      name: ackermann_mux
+      output: screen
       param:
-        - name: "node_names"
-          value:
-            - /interfacing/example/example_node
-        - name: autostart
-          value: $(var autostart)
-        - name: transition_timeout_s
-          value: 10.0
-        - name: bond_timeout_s
-          value: 4.0
-        - name: bond_enabled
-          value: $(var bond_enabled)
+        - from: "$(var config_dir)/mux.yaml"
+
+  # Car drivers
+  - group:
+      if: "$(eval '\"$(var platform)\" == \"car\"')"
+      children:
+        - node:
+            pkg: vesc_driver
+            exec: vesc_driver_node
+            name: vesc_driver_node
+            param:
+              - from: "$(var config_dir)/vesc.yaml"
+        - node:
+            pkg: vesc_ackermann
+            exec: vesc_to_odom_node
+            name: vesc_to_odom_node
+            param:
+              - from: "$(var config_dir)/vesc.yaml"
+        - node:
+            pkg: vesc_ackermann
+            exec: ackermann_to_vesc_node
+            name: ackermann_to_vesc_node
+            param:
+              - from: "$(var config_dir)/vesc.yaml"
+        - node:
+            pkg: urg_node
+            exec: urg_node_driver
+            name: urg_node
+            param:
+              - from: "$(var config_dir)/sensors.yaml"
+        - node:
+            pkg: tf2_ros
+            exec: static_transform_publisher
+            name: static_baselink_to_camera
+            args: "--x 0.27 --y 0.0 --z 0.18 --frame-id base_link --child-frame-id camera_link"
+
+  # Gamepad teleop: /joy -> /drive/joystick and /dead_man_switch
+  - group:
+      if: "$(var joystick)"
+      children:
+        - node:
+            pkg: joy
+            exec: joy_node
+            name: joy_node
+            output: screen
+            param:
+              - name: deadzone
+                value: 0.080
+              - name: sticky_buttons
+                value: true
+        - node:
+            pkg: teleop_utils
+            exec: joypad_node
+            name: gamepad_node
+            output: screen
+            param:
+              - from: "$(find-pkg-share teleop_utils)/config/joypad_config.yaml"
+
+  # Keyboard teleop: /cmd_vel -> /drive/keyboard (Foxglove teleop panel)
+  - node:
+      if: "$(var keyboard)"
+      pkg: teleop_utils
+      exec: keyboard_converter
+      name: keyboard_converter
+
+  # TTC emergency brake -> /drive/ebreak
+  - node:
+      if: "$(var ebrake)"
+      pkg: safety_node
+      exec: ebreak
+      name: ebreak
+      output: screen
