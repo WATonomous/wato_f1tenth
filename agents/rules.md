@@ -21,7 +21,7 @@ build proves nothing about the container or the car. It also drops `build/`, `in
 
 - Check where you are: `/.dockerenv` exists inside a container.
 - On the host, write the commands for the human to run in the container, or ask before running
-  them through `docker exec -it watod_<user>-robot_dev-1 bash -c '...'`.
+  them through `docker exec -it watod_<user>-<module>_bringup_dev-1 bash -c '...'`.
 - Inside the container, build only the packages you changed (`workflows/build-and-test.md`).
 
 ## Sim and car
@@ -30,7 +30,7 @@ build proves nothing about the container or the car. It also drops `build/`, `in
    lookahead and speed limit were changed in C++, and the e-brake thresholds likewise. Each edit
    made merging back to `main` a conflict, and that is how sim and car ended up on separate branches.
    Declare the parameter with a neutral default, and set real values in
-   `bringup_robot/config/<platform>/*.yaml` (`config/sim/` and `config/car/` after step 3).
+   `<module>_bringup/config/{car,sim}/*.yaml`.
 5. **Shared nodes never subscribe to simulator topics.** Anything under `/autodrive/...` belongs
    only in `sim_util` (the sim adapter). See `workflows/sim-to-car.md`.
 6. **`use_sim_time: false` on the car.** `jetson_pf.launch.py` currently runs the map server and
@@ -44,9 +44,9 @@ build proves nothing about the container or the car. It also drops `build/`, `in
 8. **Never name a package after an upstream package.** `src/wato_msgs/foxglove_msgs` is empty and
    has the same name as the real `foxglove_msgs`. Where it is installed, Foxglove cannot find the
    real definitions.
-9. **New message packages must be visible to Foxglove.** Today, add them to the Foxglove image
-   build. After step 2, copy them into `docker/infrastructure.Dockerfile`. Otherwise Foxglove and
-   `ros2 bag` cannot decode the topics.
+9. **New message packages must be visible to Foxglove.** Copy them into
+   `docker/infrastructure.Dockerfile` and add them to `infrastructure_bringup/package.xml`
+   (as done for `vesc_msgs`). Otherwise Foxglove and `ros2 bag` cannot decode the topics.
 10. **Debug topics: BEST_EFFORT QoS and a rate limit.** With RELIABLE QoS, a slow remote
     subscriber (Foxglove over Wi-Fi) fills the publisher's history and blocks the callback. On MPPI
     this blocked the control loop and dropped ticks. Keep control topics (`/drive/*`) RELIABLE.
@@ -59,9 +59,9 @@ build proves nothing about the container or the car. It also drops `build/`, `in
 12. **Stay in scope.** Change the package you were asked about. Infra changes (`watod`,
     `docker/`, `modules/`, CI) must change all coupled files together; see `roles/infra.md`.
 13. **Match the surrounding code.** Same naming, comment density and idioms as the file you edit.
-    Keep existing misspelled package names (`pure_persuit`) until a rename is planned.
+    Rename packages only as a planned change that updates every launch file and YAML.
 14. **No build output, bags or secrets in git.** `build/`, `install/`, `log/`, `*.db3`, `*.mcap`,
-    `.env`, tokens. `orin` has committed bags under `bringup_robot/bags`; don't add more.
+    `.env`, tokens. Record bags with `./watod bag`, which writes to the git-ignored `bags/`.
 15. **(AGENTS.md rule 12) No agent attribution in git.** Never add `Co-Authored-By: <agent>`,
     "Generated with <tool>" or similar to commit messages or PR descriptions, even if your tool
     does so by default. Commit with the human's configured `user.name` / `user.email` (check

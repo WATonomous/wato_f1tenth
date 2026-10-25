@@ -1,9 +1,9 @@
 # Debug MPPI
 
-MPPI and the opponent predictor live on the `mppi_test` branch. They move into `action` in step 2
-but stay off by default until step 4 (JAX image), because MPPI still needs tuning and testing.
-Sources: `IMPORTANT_DEBUG_MPPI.md`, `rodney_notes.md`, `MPPI_README.md` and
-`src/robot/mppi_commands.md` on `mppi_test`.
+MPPI and the opponent predictor live in `src/action/`, off by default until step 4 (JAX image),
+because MPPI still needs tuning and testing. They were ported to build on Jazzy but have not been run there.
+Sources (copied from `mppi_test`): `docs/mppi/` (`IMPORTANT_DEBUG_MPPI.md`, `rodney_notes.md`,
+`MPPI_README.md`, `MPPI_SYSTEM_OVERVIEW.md`, `mppi_commands.md`, `start_pf.sh`).
 
 ## Packages
 
@@ -16,16 +16,19 @@ Sources: `IMPORTANT_DEBUG_MPPI.md`, `rodney_notes.md`, `MPPI_README.md` and
 
 MPPI publishes `/drive`, remapped to `/drive/autonomy` in the `e7` launch files.
 
-## Run (car, today)
+## Run
+
+On `big_infra_update`: set `CONTROLLER=mppi` in `watod-config.local.sh`; `action.launch.yaml` then
+includes `mppi_cpp`'s `e7.launch.py` instead of pure pursuit. The opponent predictor is not wired
+into a bringup yet; run it by hand in an `action:dev` container:
 
 ```bash
-docker exec -it watod_<user>-robot_dev-1 bash
-source /opt/ros/humble/setup.bash && source install/setup.bash
-ros2 launch mppi_cpp e7.launch.py
-ros2 launch opponent_predictor e7_opp_pred.launch.py   # second terminal
+ros2 launch opponent_predictor e7_opp_pred.launch.py
 ```
 
-Start the particle filter first (`deploy-to-car.md`, step 8). MPPI needs `/pf/pose/odom`.
+On the old `mppi_test` branch (as last driven): `docker exec` into the robot dev container,
+`ros2 launch mppi_cpp e7.launch.py`, and the predictor in a second terminal. Either way the
+particle filter must run first; MPPI needs `/pf/pose/odom`.
 
 ## First checks
 
@@ -63,7 +66,7 @@ ros2 topic echo /mppi/debug/min_opponent_dist
   8 GB Orin Nano Super, that memory is shared with the CPU.
 - Python garbage collection is tuned to avoid 200-500 ms stalls; don't revert that casually.
 
-## JAX environment (today)
+## JAX environment (on `mppi_test`)
 
 JAX 0.4.35 (dev build) is copied out of `dustynv/jax:r36.4.0` (Python 3.10, CUDA 12). cuDNN 9.4
 is copied over the base image, and `numba==0.59.1` with `numpy==1.26.4` is pinned, because JAX and

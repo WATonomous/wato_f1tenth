@@ -2,8 +2,14 @@
 
 How code gets onto the Jetson and how the car is brought up. Agents prepare changes and
 write commands; **a human runs everything on the car** (`AGENTS.md` rules 1 and 2).
-Sources: `rodney_notes.md`, `commands.md` and `src/robot/start_pf.sh` on `mppi_test`, and
-`jetson_pf.launch.py` / `jetson_up.launch.py` on `orin`.
+Sources: `docs/mppi/` (from `mppi_test`) and the old `jetson_pf` / `jetson_up` launch files.
+
+## Status on `big_infra_update`
+
+The car configuration is in place (`PLATFORM=car`, `config/car/`), but the compose overlay that
+gives `interfacing` its devices (`/dev`, cgroup rules, `runtime: nvidia` for the GPU modules) is
+step 3 of the migration. Until then, drive the car from `orin` or `mppi_test` with the checklist
+below, and use `big_infra_update` on the Jetson only to build and check images.
 
 ## The hardware
 
@@ -13,7 +19,7 @@ Sources: `rodney_notes.md`, `commands.md` and `src/robot/start_pf.sh` on `mppi_t
 - PS4 controller over Bluetooth, read by `joy_node`.
 - Remote access over Tailscale, with a desktop over noVNC.
 
-## Bring-up checklist (today, `orin` / `mppi_test`)
+## Bring-up checklist (old layout: `orin` / `mppi_test`)
 
 1. **Battery.** Plug it in the right way round: red to red, black to black.
 2. **Access.** Start Tailscale on the laptop, and open the car's noVNC desktop in a browser.
@@ -44,20 +50,35 @@ device cgroups: `13:*` (input / joystick), `188:0` (USB serial), `166:*` (ACM se
 
 ## Known traps
 
-- `jetson_pf.launch.py` runs the map server and lifecycle manager with `use_sim_time: True`.
+- Old layout only: `jetson_pf.launch.py` runs the map server with `use_sim_time: True`
+  (fixed in `world_modeling.launch.yaml`).
 - `teleop_utils`' `joypad_config.yaml` is keyed `joypad_node:` but the node is `gamepad_node`,
   so its settings are ignored on `orin` (fixed with `/**:` on `mppi_test`).
 - `jetson_up.launch.py` defines a `throttle_interpolator` node from `f1tenth_stack`, which is not
   in the repo. It is not added to the launch description, so leave it unused.
-- Compose's `deploy` command points at `robot.launch.py`, which does not exist on the car
-  branches. Use develop mode and launch by hand until step 2 fixes the wiring.
+- Old layout only: compose's `deploy` command points at `robot.launch.py`, which does not exist
+  on the car branches, so use develop mode and launch by hand there.
 - Remote Foxglove or RViz subscribers to heavy debug topics can slow the control loop
   (`rules.md` rule 10).
 
-## Target (after steps 2, 3 and 5)
+## On `big_infra_update` (once step 3 adds the device overlay)
 
-- `watod` detects the Jetson and starts `interfacing` plus the shared stack with the Jetson
-  compose overlay (`runtime: nvidia`, devices).
-- Deploy mode runs `jetson_pf` on the car and `minimumEx` in sim, so no manual `colcon build`.
-- The car pulls prebuilt arm64 images from GHCR (`./watod pull`), pinned to a dated
-  `car-YYYY-MM-DD` tag on race days. It builds locally only with `WATOD_BUILD=1`.
+```bash
+# watod-config.local.sh on the Jetson
+export ACTIVE_MODULES="interfacing world_modeling action"   # interfacing alone = old jetson_up
+export PLATFORM="car"
+./watod build-base      # once: CPU + Jetson CUDA/TensorRT bases (step 5 replaces this with a pull)
+./watod build
+./watod up              # deploy mode: no manual colcon build
+```
+
+| Old launch | New equivalent |
+| --- | --- |
+| `jetson_up.launch.py` | `ACTIVE_MODULES="interfacing"`, `PLATFORM=car` |
+| `jetson_pf.launch.py` | `interfacing world_modeling` (+ `action` for pure pursuit), `PLATFORM=car` |
+| `jetson_mapping.launch.py` | `interfacing world_modeling`, `PLATFORM=car`, `MAPPING=true` |
+| RViz in jetson_pf | `world_modeling.launch.yaml rviz:=true` |
+| e-brake, EKF | `interfacing.launch.yaml ebrake:=true`, `world_modeling.launch.yaml ekf:=true` (both off) |
+
+Power mode, clocks and core pinning stay manual (checklist steps 5 and 9). After step 5 the car
+pulls prebuilt arm64 images from GHCR, pinned to a dated `car-YYYY-MM-DD` tag on race days.

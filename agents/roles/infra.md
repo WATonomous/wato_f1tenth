@@ -4,21 +4,9 @@ For changes to `watod`, `watod_scripts/`, `docker/`, `modules/`, CI, or the agen
 Infra files are coupled: changing one usually means changing several. **Ask before running any
 build or `up`** (`AGENTS.md` rule 1).
 
-## Today: files that change together
+## Files that change together
 
-| Change | Files |
-| --- | --- |
-| Add a module | `modules/docker-compose.<module>.yaml`, `docker/<module>/<module>.Dockerfile`, the `<MODULE>_IMAGE` line in `watod_scripts/watod-setup-docker-env.sh`, the module list comment in `watod-config.sh` |
-| Add a message package | the package under `src/wato_msgs/`, plus the Foxglove image build so the bridge can decode it |
-| New car device | `device_cgroup_rules` and volumes in the car branch's `docker-compose.robot.yaml` |
-| Change a port | `watod_scripts/watod-setup-docker-env.sh` (ports are derived from `uid * 20`) |
-
-Old traps to know about: `PLATFORM=arm64` only writes `BASE_IMAGE_OVERRIDE`, which the car
-branches' Dockerfiles ignore. The default `REGISTRY_URL` still points at `wato_asd_training`.
-
-## Target: files that change together (template, after step 2)
-
-Adding a module means copying an existing one end to end:
+Adding a module means copying an existing one end to end (the `sim` module is the latest example):
 
 - `docker/<module>.Dockerfile`
 - the `_source`, `_deps` and `_bringup` services in `modules/docker-compose.yaml`
@@ -27,15 +15,30 @@ Adding a module means copying an existing one end to end:
 - `get_all_modules()` in `watod`
 - the module list in `watod_scripts/watod-setup-dev-env.sh`
 - the module lists in `.github/templates/` (`check_src_changes`, `docker_context`)
+- the module list comment in `watod-config.sh`
 
-Other template rules:
+Other rules:
 
-- Message packages are also copied into `docker/infrastructure.Dockerfile`.
-- Defaults go in `watod_scripts/watod-setup-env.sh`. CI blocks PRs that change `watod-config.sh`.
-- f1tenth overrides: `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`, a fixed `ROS_DOMAIN_ID`, and no
-  `rmw_zenohd` in the infrastructure launch.
-- The template's `.gitignore` ignores `.claude/*` except `CLAUDE.md`. When merging it, add
-  `!.claude/settings.json` and `!.claude/skills/`, or the agent setup disappears from git.
+- Message packages are copied into `docker/infrastructure.Dockerfile` and added to
+  `infrastructure_bringup/package.xml`, so Foxglove and `ros2 bag` can decode them.
+- Defaults go in `watod_scripts/watod-setup-env.sh`. `watod-config.sh` only documents them.
+- New environment variables for launch files (like `PLATFORM`) are written to `.env` in
+  `watod-setup-env.sh` and passed in the bringup's `environment:` in `docker-compose.yaml`.
+- f1tenth departs from the template in: `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`,
+  `ROS_DOMAIN_ID=0`, no Zenoh router, log viewer or topic healthchecker, root-anchored
+  `/maps/` etc. in `.gitignore`, and pre-commit excludes for vendored packages.
+
+## Template updates
+
+The template is merged in as a git remote, so its updates come in with a plain merge:
+
+```bash
+git fetch template
+git merge template/main
+```
+
+Expect conflicts in the files listed above. Keep the f1tenth departures, and keep
+`!.claude/settings.json` and `!.claude/skills/` in `.gitignore` (the template ignores `.claude/*`).
 
 ## Platform detection (step 3)
 
@@ -52,8 +55,10 @@ Keep detection in one function in `watod`, and allow `PLATFORM` / `GPU` override
 
 ## Images
 
-- Base images: plain Ubuntu 24.04 + Jazzy (template `base:jazzy-ubuntu24.04`), built for amd64
-  and arm64. Jetson image: the same base plus CUDA 12.8, cuDNN 9 and TensorRT 10 for Ubuntu 24.04.
+- Base images are built locally with `./watod build-base` (`watod_scripts/watod-build-base.sh`,
+  layers in `docker/base/`): Jazzy CPU (amd64 and arm64), x86 CUDA 12.9 + cuDNN + TensorRT 10.16,
+  Jetson CUDA 12.8 + cuDNN 9.8 + TensorRT 10.7. GPU modules pick their base per architecture
+  with `FROM base_${TARGETARCH}` stages.
 - Don't use vendor images as-is (`dustynv/*`, `l4t-jetpack`), and don't pin to JetPack's bundled
   CUDA/TensorRT versions. Rebuild TensorRT engines on the target when versions change.
 - Don't build `colcon` workspaces under QEMU. arm64 builds run on the self-hosted Jetson runner (step 5).

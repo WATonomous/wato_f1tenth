@@ -48,11 +48,14 @@ All of these run inside the Jazzy dev container, never on the host (`AGENTS.md` 
 
 ## Package notes
 
+The static fixes below were done in step 2 (`git log` on `big_infra_update`); the first real
+build may still find more. Use this checklist for anything ported later.
+
 | Package | Risk | Notes |
 | --- | --- | --- |
 | `particle_filter` + `range_libc` | High | Python 3.12, Cython < 3, untyped parameters |
 | `vesc*` | Medium | `std::experimental::optional`, build against the released `serial_driver` |
 | `ackermann_mux` | Low | Fix the old `nav_vel` / `joy_vel` default config |
-| first-party C++ (`teleop_utils`, `safety_node`, `ackermann_ekf`, `global_planner`, `costmap`, `pure_persuit`, `opponent_predictor`) | Low | Parameters into YAML, CMake targets |
+| first-party C++ (`teleop_utils`, `safety_node`, `ackermann_ekf`, `global_planner`, `costmap`, `pure_pursuit`, `opponent_predictor`) | Low | Parameters into YAML, CMake targets |
 | `mppi_example`, `mppi_cpp` | Deferred | Copy over; made runnable in step 4 |
 | `gym_vis`, `action`, `foxglove_msgs`, `sample_msgs` | - | Delete, don't port |

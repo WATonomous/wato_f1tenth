@@ -4,10 +4,10 @@ Checklist for adding a ROS 2 node or package so it works in sim and on the car w
 
 ## 1. Decide where it goes
 
-- A new feature (planner, controller, estimator): its own package under `src/robot/<name>`.
-  After step 2, under the matching module: `src/world_modeling/`, `src/action/` or `src/interfacing/`.
+- A new feature (planner, controller, estimator): its own package under the matching module:
+  `src/world_modeling/`, `src/action/` or `src/interfacing/`.
 - Sim-only glue (anything that reads `/autodrive/...`): `sim_util`, never a shared package.
-- Car-only drivers: `interfacing` after step 2 (today on `orin`).
+- Car-only drivers: `src/interfacing/`, started only when `platform` is `car`.
 - Messages: a `<name>_msgs` package. Never reuse an upstream package name.
 
 Look for an existing package that already does most of it before creating a new one.
@@ -27,8 +27,8 @@ Look for an existing package that already does most of it before creating a new 
   in Python. Never declare without a default.
 - Topic names are parameters too (`odom_topic`, `scan_topic`, ...), with defaults that follow
   the topic contract in `sim-to-car.md`.
-- Put real values in YAML: today `src/robot/bringup_robot/config/<area>/<node>.yaml`; after
-  step 3, `config/sim/` and `config/car/`. Key the YAML by the exact launched node name, or `/**:`.
+- Put real values in YAML: `<module>_bringup/config/car/<node>.yaml` and `config/sim/<node>.yaml`.
+  Key the YAML by the exact launched node name, or `/**:`.
 
 ## 4. Topics and QoS
 
@@ -42,10 +42,11 @@ Look for an existing package that already does most of it before creating a new 
 
 ## 5. Launch
 
-- Add the node to a launch file in `bringup_robot/launch/` with `parameters=[<yaml>]`.
-- Sim: include it from `minimumEx.launch.py` or a launch file that includes it.
-- Car: it will be included from `jetson_up` / `jetson_pf` once they are merged in step 2.
-- After step 2: lifecycle nodes are listed in the bringup's lifecycle manager `node_names`.
+- Add the node to `<module>_bringup/launch/<module>.launch.yaml` with
+  `param: [{from: "$(var config_dir)/<node>.yaml"}]`, and add the package as an `exec_depend` of
+  the bringup. Use `if:` with `$(var platform)` when it only runs on the car or in sim.
+- A lifecycle node is also listed in a `wato_lifecycle_manager`'s `node_names` (see the template's
+  `DEVELOPING.md`). Existing f1tenth nodes are regular nodes.
 
 ## 6. Test and hand back
 

@@ -49,10 +49,10 @@ Only YAML values, never code:
 - If you change a contract topic name or type, change both adapters and every consumer in the
   same change, and update this file.
 
-## Today vs after step 3
+## Now vs after step 3
 
-- Today: sim lives on `main`, car on `orin` / `mppi_test`. Put YAML in
-  `bringup_robot/config/<area>/` and keep code identical, so a later merge is clean.
+- Now: one branch. `PLATFORM=car|sim` (default `sim`, set in `watod-config.local.sh`) picks
+  `<module>_bringup/config/car/` or `config/sim/` and which nodes start.
 - After step 3: `watod` sets `PLATFORM=car|sim` (detected from `/etc/nv_tegra_release`), launch
   files load `config/car/` or `config/sim/`, and a CI contract test checks every topic above
   publishes at its expected rate.

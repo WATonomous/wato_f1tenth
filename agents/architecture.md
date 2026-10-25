@@ -1,108 +1,103 @@
 # Architecture
 
-How the repo is laid out, what runs where, and how data flows. The "Today" sections describe
-this branch before step 2 of the migration. The "Target" section says what step 2 and 3 change.
+How the repo is laid out, what runs where, and how data flows on `big_infra_update`
+(ROS 2 Jazzy on the `wato_monorepo_template` infra). Step 3 of the migration adds platform
+detection and the full topic contract; see the end of this file.
 
-## Today: repo layout
+## Repo layout
 
 ```text
-watod, watod-config.sh     docker compose wrapper and its config (personal overrides: watod-config.local.sh)
-watod_scripts/             env generation (.env), dev-env setup, bash completion
-modules/                   docker-compose.<module>.yaml for vis_tools, robot, sim, samples
-docker/                    one Dockerfile per module (robot/, vis_tools/, sim/, samples/)
-src/robot/                 our ROS 2 packages
-src/wato_msgs/             message packages
-config/                    VS Code sample settings and architecture diagrams
-setup-linux.md, setup-windows.md, system-architecture.md, raceline-gen.md   human docs
+watod, watod-config.sh     docker compose wrapper and its documented defaults (personal: watod-config.local.sh)
+watod_scripts/             env generation (.env), compose, test, bag, dev-env, build-base
+modules/                   docker-compose.yaml (base) + dep, dev, test, watcloud overlays
+docker/                    <module>.Dockerfile, template.Dockerfile (shared stages), base/ (base image layers)
+src/<module>/              ROS 2 packages grouped by module; each module has <module>_bringup
+src/wato_test/             Catch2 test helpers (add_wato_test)
+docs/mppi/                 MPPI notes from mppi_test (run procedure, debugging, system overview)
+agents/                    these docs
 ```
 
-## Today: containers
+## Modules and containers
 
-`ACTIVE_MODULES` picks compose files; `MODE_OF_OPERATION` picks the profile (`deploy` or `develop`).
+Each module is its own image and container (`<module>_bringup`). `ACTIVE_MODULES` picks which
+start; `infrastructure` always starts. Append `:dev` for a dev container with `src/<module>`
+mounted at `/ws/src/<module>`.
 
-| Service | Profile | What it does |
+| Module | Packages | Runs |
 | --- | --- | --- |
-| `robot` | deploy | Runs `ros2 launch bringup_robot robot.launch.py` (legacy: gym_vis + costmap) |
-| `robot_dev` | develop | Idles (`tail -F`); `src/` is mounted at `/home/bolty/ament_ws/src`. You build and launch by hand. |
-| `foxglove` | both | `foxglove_bridge` on port `uid * 20` (for example 20000 for uid 1000), not 8765 |
-| `sim` | both | AutoDRIVE API bridge; the simulator itself runs natively on the host and connects on port 4567 |
-| `samples` | both | Template examples from ASD training; not used |
+| `infrastructure` | `infrastructure_bringup`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays; builds `vesc_msgs` so Foxglove can decode it |
+| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`) | car: VESC, Hokuyo, joystick; both: mux, base_link->laser; sim: keyboard teleop |
+| `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap` | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
+| `action` | `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | pure pursuit (default) or MPPI (`CONTROLLER=mppi`, untested) |
+| `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
+| `perception` | `perception_bringup` | nothing yet |
 
-The compose project name is `watod_$USER`, so containers are named like `watod_<user>-robot_dev-1`.
-The default registry in `watod_scripts/watod-setup-docker-env.sh` still points at `wato_asd_training`.
+Bringup launch files read environment variables written to `modules/.env` by `watod`:
 
-## Today: packages on this branch
-
-| Package | Lang | Role |
+| Variable | Values | Effect |
 | --- | --- | --- |
-| `bringup_robot` | launch + YAML | Launch files (`minimumEx`, `robot`, `global-planner`, `mapping`) and config |
-| `sim_util` | C++ | Sim adapter: `scan_remap_node`, `fake_odom_node`, `ackermann_converter_node` |
-| `ackermann_mux` | C++ | Picks one drive command by priority. Vendored 2021 fork of `twist_mux` |
-| `teleop_utils` | C++ | `keyboard_converter` and `joypad_node`; joypad also publishes `/dead_man_switch` |
-| `global_planner` | C++ | Loads a raceline CSV, publishes `/global_planner/path` and `/global_planner/vis` |
-| `pure_persuit` | C++ | Pure pursuit controller (the spelling is the package name; keep it until step 2) |
-| `costmap` | C++ | Occupancy grid from `/scan` on `/costmap` |
-| `gym_vis` | C++ | Legacy f1tenth_gym visualizer; expects `/ego_racecar/odom`. Deleted in step 2. |
-| `action` | Python | Empty template package. Deleted in step 2. |
-| `wato_msgs/foxglove_msgs` | msgs | Empty, and shadows the upstream package. Deleted in step 2. |
-| `wato_msgs/sample_msgs` | msgs | Template messages; unused |
+| `PLATFORM` | `sim` (default), `car` | which `config/<platform>/` YAML and which nodes start |
+| `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
+| `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action` |
 
-Car-only packages live on the `orin` and `mppi_test` branches: `vesc*`, `transport_drivers`,
-`particle_filter`, `ackermann_ekf`, `safety_node` (`ebreak`), and on `mppi_test` also `mppi_example`
-(JAX), `mppi_cpp`, `mppi_bringup` and `opponent_predictor`.
+Images: `infrastructure`, `interfacing` and `sim` use the CPU base. `world_modeling`, `action` and
+`perception` pick their base per architecture: x86 CPU or CUDA 12.9 + TensorRT, Jetson CUDA 12.8 +
+TensorRT on arm64. All bases are built locally with `./watod build-base` for now.
 
-## Today: sim data flow (`minimumEx.launch.py`)
+## Sim data flow
 
 ```text
-AutoDRIVE sim (host) <-> sim container  /autodrive/roboracer_1/*
-  /autodrive/roboracer_1/lidar  -> scan_remap        -> /scan
-  AutoDRIVE /tf and speed       -> fake_odom         -> /odom
-  /drive/{ebreak,joystick,keyboard,autonomy} -> ackermann_mux -> /ackermann_cmd
-  /ackermann_cmd                -> ackermann_converter -> /autodrive/roboracer_1/{throttle,steering}_command
+AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
+  /autodrive/roboracer_1/lidar          -> scan_remap_node     -> /scan
+  /tf + /autodrive/roboracer_1/odom     -> fake_odom_node      -> /odom (pose + speed)
+  static map -> odom                                           (stands in for the PF)
+  /drive/{ebreak,joystick,keyboard,autonomy} -> ackermann_mux  -> /ackermann_cmd
+  /ackermann_cmd                        -> ackermann_converter -> /autodrive/roboracer_1/{throttle,steering}_command
   raceline CSV -> global_planner -> /global_planner/path
-  /global_planner/path + /odom + /dead_man_switch -> pure_persuit -> /drive/autonomy
+  /global_planner/path + /odom + /dead_man_switch -> pure_pursuit -> /drive/autonomy
 ```
 
-Mux priorities (`bringup_robot/config/sim/mux.yaml`): `ebreak` 50, `joystick`, `keyboard` and
-`autonomy` 25, each with a 0.2 s timeout.
-
-Known sim leak: `pure_persuit` reads speed from `/autodrive/roboracer_1/odom` (`speed_topic`).
-That is a sim topic inside a shared node. Step 3 fixes this class of problem.
-
-## Today: car data flow (`orin` branch, `jetson_pf.launch.py`)
+## Car data flow (`PLATFORM=car`)
 
 ```text
-Hokuyo (Ethernet 192.168.0.10) -> urg_node        -> /scan
-VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom -> /odom, sensors/imu
-/odom + IMU                    -> ackermann_ekf   -> /ekf/odom, TF
-/scan + /ekf/odom + map        -> particle_filter -> /pf/pose/odom, TF map->odom
-/scan                          -> ebreak (TTC)    -> /drive/ebreak
-/joy                           -> joypad_node     -> /drive/joystick, /dead_man_switch
-/drive/*                       -> ackermann_mux   -> ackermann_cmd -> ackermann_to_vesc -> VESC
+Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /scan
+VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /odom, sensors/imu
+/scan + /odom + map            -> particle_filter (rmgpu)      -> /pf/pose/odom, TF map->odom
+/joy                           -> joypad_node (gamepad_node)   -> /drive/joystick, /dead_man_switch
+/drive/*                       -> ackermann_mux                -> /ackermann_cmd -> ackermann_to_vesc -> VESC
+/global_planner/path + /pf/pose/odom + /odom -> pure_pursuit   -> /drive/autonomy
 ```
 
-`jetson_up.launch.py` is the same minus the particle filter, map server, RViz and global planner.
-On `orin`, pure pursuit's car topics (`/pf/pose/odom`, `/ekf/odom`) were set by editing its C++
-defaults. That is why sim and car code diverged.
+The car config follows `mppi_test` (the car as last driven): PF on `/odom`, no EKF, no e-brake.
+Both packages are kept and can be switched on (`ekf:=true`, `ebrake:=true`); the mux keeps the
+e-brake slot at priority 100.
+
+Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeouts), in
+`interfacing_bringup/config/{car,sim}/mux.yaml`.
 
 ## TF tree
 
-`map -> odom -> base_link -> laser`
+`map -> odom -> base_link -> laser` (and `base_link -> camera_link` on the car)
 
-- `map -> odom`: a static identity transform in sim; the particle filter on the car.
-- `odom -> base_link`: from the simulator in sim; from the EKF on the car.
-- `base_link -> laser`: static, x 0.27 m, z 0.11 m, on both.
+- `map -> odom`: static identity in sim; the particle filter on the car; slam_toolbox when mapping.
+- `odom -> base_link`: the simulator in sim; the VESC / EKF path on the car.
+- `base_link -> laser`: static, x 0.27 m, z 0.11 m, from `interfacing` on both.
 
-## Target (after steps 2 and 3)
+## Config locations
 
-- Template modules: `infrastructure` (Foxglove, healthchecker, lifecycle manager), `interfacing`
-  (car drivers, teleop, mux, e-brake), `world_modeling` (particle filter, EKF, planner, costmap),
-  `action` (pure pursuit, later MPPI), and `sim` (AutoDRIVE bridge and `sim_util`).
-- ROS 2 Jazzy on Ubuntu 24.04. A CPU image for most modules, and a Jetson image with CUDA and
-  TensorRT. PCs with an NVIDIA GPU use a CUDA image.
-- A topic contract: `/scan`, `/odom`, `/imu`, `/localization/odom`, `/drive/*`, `/ackermann_cmd`,
-  plus the TF tree above. Only the sim and car adapters know platform-specific topics.
-- `watod` detects a Jetson (car), a PC with an NVIDIA GPU, or a PC without one, and picks the
-  services and compose overlay. Config lives in `config/car/` and `config/sim/`.
+| What | Where |
+| --- | --- |
+| mux, VESC, Hokuyo | `interfacing_bringup/config/{car,sim}/` |
+| PF, raceline, maps, RViz | `world_modeling_bringup/config/{car,sim}/`, `maps/`, `rviz/` |
+| pure pursuit | `action_bringup/config/{car,sim}/pure_pursuit.yaml` |
+| gamepad mapping | `teleop_utils/config/joypad_config.yaml` |
+| MPPI | `mppi_cpp/config/params_e7.yaml`, `mppi_bringup/config/` |
+
+## Still to come (step 3)
+
+- `watod` detects a Jetson (car), a PC with an NVIDIA GPU, or a PC without one, and sets
+  `PLATFORM` / `GPU` and the compose overlay (car devices and `runtime: nvidia` on the Jetson).
+- The localization output becomes `/localization/odom` on both platforms, so planners stop
+  choosing between `/odom` and `/pf/pose/odom`, plus a CI contract test.
 
 See `workflows/sim-to-car.md` for the contract rules.

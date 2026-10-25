@@ -19,16 +19,20 @@ Everything runs in Docker through `./watod`, a wrapper around `docker compose`.
 ## Where the repo is right now
 
 The repo is in the middle of an infrastructure migration on the `big_infra_update` branch.
+Step 2 (catch up to `wato_monorepo_template`) has landed in the code:
 
-| | Today (this branch, before step 2) | Target (after step 2 of the migration) |
+| | Now (`big_infra_update`) | Still to come |
 | --- | --- | --- |
-| ROS 2 | Humble, Ubuntu 22.04 | Jazzy, Ubuntu 24.04 |
-| Infra | old `watod`, modules `vis_tools robot sim samples` | `wato_monorepo_template` infra: `infrastructure interfacing world_modeling action sim` |
-| Sim vs car | separate branches (`main` = sim, `orin` / `mppi_test` = car) | one branch; `watod` detects car or dev machine |
-| Middleware | default DDS | CycloneDDS with a fixed `ROS_DOMAIN_ID` (no Zenoh) |
+| ROS 2 | Jazzy, Ubuntu 24.04 | |
+| Infra | template `watod`, modules `infrastructure interfacing perception world_modeling action sim` | |
+| Sim vs car | one branch; `PLATFORM=car` or `sim` (default `sim`) picks config | step 3: `watod` detects the platform and GPU |
+| Middleware | CycloneDDS, `ROS_DOMAIN_ID=0` (no Zenoh) | |
+| Images | built locally with `./watod build-base` | step 5: prebuilt multi-arch images on GHCR |
+| MPPI / JAX | packages present, off by default (`CONTROLLER=mppi`), untested | step 4: JAX image |
 
-Migration steps: 1 agents directory (this) -> 2 catch up to the template -> 3 topic contract,
+Migration steps: 1 agents directory -> 2 catch up to the template -> 3 topic contract,
 shims and platform detection -> 4 JAX image -> 5 prebuilt multi-arch images.
+`main` (sim), `orin` and `mppi_test` (car) are the old layout and get deprecated after the port.
 If a doc in `agents/` disagrees with the code, trust the code and flag the doc.
 
 ## Hard rules
@@ -44,7 +48,7 @@ the host: give the human the commands to run in the container, or ask before usi
 2. Never run hardware commands (`nvpmodel`, `jetson_clocks`, `taskset`, anything touching `/dev`).
    Write them down for a human to run.
 3. No topic names, gains, thresholds or file paths as C++/Python defaults that differ between sim
-   and car. Put them in YAML under the bringup package's `config/`.
+   and car. Put them in YAML under `<module>_bringup/config/car/` and `config/sim/`.
 4. Never edit `watod-config.sh` for personal settings. Use `watod-config.local.sh` (git-ignored).
 5. Never name a package after an upstream ROS package (the empty `foxglove_msgs` hid the real one).
 6. YAML parameter keys must match the launched node name, or use `/**:`.
@@ -79,23 +83,24 @@ Tool-specific helpers wrap these same files and add nothing new:
   `.claude/settings.json`.
 - Codex and most other agents read this file directly.
 
-## Quick reference (today's layout)
+## Quick reference
 
 ```bash
-# on the host
-cp watod-config.sh watod-config.local.sh   # personal settings go here
-./watod build                              # ask first
-./watod up                                 # ask first
-./watod -t robot_dev                       # shell into the dev container (ask first)
+# on the host (ask before each of these)
+cp watod-config.sh watod-config.local.sh   # personal settings: ACTIVE_MODULES, PLATFORM, ...
+./watod build-base                         # local base images (once, and when docker/base changes)
+./watod build                              # module images for ACTIVE_MODULES
+./watod up                                 # start ACTIVE_MODULES + infrastructure
+./watod test [module] [pkg...]             # colcon test in the module's test image
+./watod -t action_bringup_dev              # shell into a dev container (module listed as "action:dev")
 
-# inside the container only (workspace: /home/bolty/ament_ws)
+# inside a dev container only (workspace: /ws)
 colcon build --packages-select <pkg> && source install/setup.bash
-ros2 launch bringup_robot minimumEx.launch.py   # minimum sim stack
 ```
 
-On the car, the main launch files are `jetson_up.launch.py` (drivers, teleop, mux, e-brake, EKF)
-and `jetson_pf.launch.py` (all of that plus the particle filter, map server and global planner).
-They live on the `orin` and `mppi_test` branches until step 2 merges them in.
+Sim: `ACTIVE_MODULES="interfacing world_modeling action sim"` with the AutoDRIVE simulator on the
+host. Car: `ACTIVE_MODULES="interfacing world_modeling action"` and `PLATFORM=car`. The old
+`jetson_up` is `interfacing` alone; the old `jetson_pf` is all three on the car.
 
 ## How to work here
 

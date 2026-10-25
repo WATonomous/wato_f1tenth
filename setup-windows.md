@@ -9,11 +9,11 @@
 4. In your home directory (~), run: `git clone https://github.com/WATonomous/wato_f1tenth.git`
 5. Go into the repo: `cd wato_f1tenth`
 6. Start VSCode: `code .`
-7. Make sure the `watod-config.sh` file has: `ACTIVE_MODULES="vis_tools robot sim"` and `MODE_OF_OPERATION="develop"`. 
-8. Run `./watod build && ./watod up` to start the containers. Future starts can just be `./watod up` if you don't need to rebuild containers.
+7. Copy the config with `cp watod-config.sh watod-config.local.sh`, and in `watod-config.local.sh` set `export ACTIVE_MODULES="interfacing world_modeling action:dev sim"`. Add `:dev` to the module you are working on (here `action`) to get an editable dev container. 
+8. The first time, run `./watod build-base` to build the base images. Then run `./watod build && ./watod up` to start the containers. Future starts can just be `./watod up` if you don't need to rebuild containers.
 9. Download the Docker extension for VSCode. 
-10. From the extension pannel, right click on the `-robot_dev-1` container and attach a VSCode.
-11. In the opened VSCode window select the `/home/bolty/ament_ws` folder. This will be where you do your development!
+10. From the extension pannel, right click on the `-action_bringup_dev-1` container (the module you marked `:dev`) and attach a VSCode.
+11. In the opened VSCode window select the `/ws` folder; your module's code is in `/ws/src/<module>`. This will be where you do your development!
 
 **OPTIONAL**
 if you have a nvidia-gpu, you can install the nvidia-container-toolkit inside of wsl to give you docker
