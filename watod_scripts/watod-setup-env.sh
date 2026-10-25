@@ -1,0 +1,228 @@
+#!/usr/bin/env bash
+# Copyright (c) 2025-present WATonomous. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+set -e
+
+# ------------------------------------------------------------------------------------
+# watod-setup-env.sh
+# -------------------
+# Generates a .env file for docker‑compose based on project & host settings.
+#
+# Usage (source so variables propagate):
+#   . ./watod-setup-env.sh                   # normal local run
+#   . ./watod-setup-env.sh --is-ci           # CI run (forces MODULES_DIR layout & skips UID/GID)
+#
+# Flags
+#   --is-ci        Explicitly signal that we are running inside a CI agent.  *No autodetection*
+#                  · Forces MODULES_DIR="$MONO_DIR/modules"
+#                  · Omits SETUID / SETGID entries from the generated .env
+#
+# To override any variable, create a sibling script named `watod-config.sh` and define
+# the desired env‑vars, e.g.  COMPOSE_PROJECT_NAME=<name>
+# ------------------------------------------------------------------------------------
+
+################################  Flag parsing  ######################################
+# Auto-detect CI environment if not explicitly set
+if [[ -n ${CI:-} || -n ${GITHUB_ACTIONS:-} ]]; then
+  IS_CI=true
+else
+  IS_CI=false
+fi
+
+# Allow explicit override via command-line flag
+for arg in "$@"; do
+  case "$arg" in
+    --is-ci) IS_CI=true ;;
+  esac
+done
+
+################################  Safety checks  #####################################
+if [ -f /.dockerenv ]; then
+  echo "Please run this in the host machine (not in the Docker container)" >&2
+  exit 1
+fi
+
+################################  Git branch  ########################################
+# In CI, git is in detached HEAD state, so use CI environment variables
+if $IS_CI && [[ -n ${SOURCE_BRANCH:-} ]]; then
+  BRANCH=${BRANCH:-$SOURCE_BRANCH}
+  echo "[setup-env] CI mode: using SOURCE_BRANCH → $BRANCH"
+elif command -v git >/dev/null 2>&1; then
+  BRANCH=${BRANCH:-$(git branch --show-current)}
+  if [[ -z $BRANCH ]]; then
+    echo 'Error: git branch is empty (detached HEAD?). Set BRANCH or SOURCE_BRANCH environment variable.' >&2
+    exit 1
+  fi
+else
+  echo 'Error: git is not installed.' >&2
+  exit 1
+fi
+
+################################  Paths & Layout  ####################################
+# Force MODULES_DIR and MONO_DIR layout when running in CI
+if $IS_CI; then
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  MONO_DIR="$git_root"
+  MODULES_DIR="$MONO_DIR/modules"
+  echo "[setup-env] CI mode: forcing MODULES_DIR → $MODULES_DIR"
+fi
+
+################################  Configuration  #####################################
+
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-watod_$USER}
+
+# WATCloud mode: use watcloud compose file as the base for extends
+WATCLOUD_MODE=${WATCLOUD_MODE:-false}
+if [[ "$WATCLOUD_MODE" == "true" ]]; then
+  COMPOSE_EXTEND_FILE="docker-compose.watcloud.yaml"
+else
+  COMPOSE_EXTEND_FILE="docker-compose.yaml"
+fi
+
+# Tag for docker images – convert slashes to dashes
+TAG=$(echo "${TAG:-$BRANCH}" | tr '/' '-')
+
+# Registry
+# Defaults to this repo's ghcr.io namespace: in CI from GITHUB_REPOSITORY, locally from
+# the git origin remote, so repos created from the template never share images.
+if [[ -z ${REGISTRY_URL:-} ]]; then
+  repo_slug=${GITHUB_REPOSITORY:-}
+  if [[ -z $repo_slug ]]; then
+    repo_slug=$(git remote get-url origin 2>/dev/null | sed -E 's#^(https://[^/]+/|git@[^:]+:)##; s#\.git$##' || true)
+  fi
+  repo_slug=${repo_slug:-watonomous/wato_monorepo_template}
+  REGISTRY_URL="ghcr.io/$(echo "$repo_slug" | tr '[:upper:]' '[:lower:]')"
+fi
+REGISTRY="${REGISTRY_URL%%/*}"
+REPOSITORY="${REGISTRY_URL##*/}"
+
+# Bags directory
+BAG_DIRECTORY=${BAG_DIRECTORY:-"$MONO_DIR/bags"}
+
+# ROS 2 Middleware configuration
+RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-"rmw_zenoh_cpp"}
+
+# Zenoh configuration URIs (paths inside Docker containers)
+ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI:-"/opt/watonomous/rmw_zenoh_router_config.json5"}
+ZENOH_SESSION_CONFIG_URI=${ZENOH_SESSION_CONFIG_URI:-"/opt/watonomous/rmw_zenoh_session_config.json5"}
+
+# Docker socket path (needed for log viewer)
+# DOCKER_HOST should be automaticall set in any WATCloud SLURM session
+DOCKER_HOST=${DOCKER_HOST:-unix:///var/run/docker.sock}
+DOCKER_SOCKET_PATH=${DOCKER_HOST#unix://} # strip the "unix://" prefix to get path
+
+################################  Image names  #######################################
+# NOTE: ALL IMAGE NAMES MUST BE IN THE FORMAT <COMPOSE_FILE>_<SERVICE>
+
+# Infrastructure
+INFRASTRUCTURE_IMAGE=${INFRASTRUCTURE_IMAGE:-"$REGISTRY_URL/infrastructure/infrastructure"}
+: "${FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES:=67108864}"
+
+# Perception
+PERCEPTION_IMAGE=${PERCEPTION_IMAGE:-"$REGISTRY_URL/perception/perception"}
+
+# World Modeling
+WORLD_MODELING_IMAGE=${WORLD_MODELING_IMAGE:-"$REGISTRY_URL/world_modeling/world_modeling"}
+
+# Action
+ACTION_IMAGE=${ACTION_IMAGE:-"$REGISTRY_URL/action/action"}
+
+# Interfacing
+INTERFACING_IMAGE=${INTERFACING_IMAGE:-"$REGISTRY_URL/interfacing/interfacing"}
+
+################################  UID / GID  #########################################
+SETUID=$(id -u)
+SETGID=$(id -g)
+USERNAME=${USERNAME:-$USER}
+
+################################  Ports  #############################################
+BASE_PORT=${BASE_PORT:-$((SETUID*20))}
+GUI_TOOLS_VNC_PORT=${GUI_TOOLS_VNC_PORT:-$((BASE_PORT+1))}
+FOXGLOVE_BRIDGE_PORT=${FOXGLOVE_BRIDGE_PORT:-$((BASE_PORT+2))}
+LOG_VIEWER__PORT=${LOG_VIEWER__PORT:-$((BASE_PORT+6))}
+TOPIC_HEALTHCHECKER__PORT=${TOPIC_HEALTHCHECKER__PORT:-$((BASE_PORT+9))}
+
+################################  Claude Code  #######################################
+CLAUDE_CODE=${CLAUDE_CODE:-"true"}
+
+############################  ROS DOMAIN ID  #########################################
+ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-$((SETUID % 230))}
+
+################################  Write .env  ########################################
+
+mkdir -p "$MODULES_DIR"
+ENV_FILE="$MODULES_DIR/.env"
+echo "# Auto-generated by ${BASH_SOURCE[0]}. Edit at own risk." > "$ENV_FILE"
+
+# Helper for clean appends
+append() { echo "$1=$2" >> "$ENV_FILE"; }
+
+# General paths
+append "MODULES_DIR" "$MODULES_DIR"
+append "MONO_DIR" "$MONO_DIR"
+
+append "COMPOSE_DOCKER_CLI_BUILD" "1"
+append "COMPOSE_PROJECT_NAME" "$COMPOSE_PROJECT_NAME"
+append "COMPOSE_EXTEND_FILE" "$COMPOSE_EXTEND_FILE"
+
+append "TAG" "$TAG"
+
+if ! $IS_CI; then
+  append "SETUID" "$SETUID"
+  append "SETGID" "$SETGID"
+  append "USERNAME" "$USERNAME"
+fi
+
+append "BASE_PORT" "$BASE_PORT"
+append "GUI_TOOLS_VNC_PORT" "$GUI_TOOLS_VNC_PORT"
+append "FOXGLOVE_BRIDGE_PORT" "$FOXGLOVE_BRIDGE_PORT"
+append "LOG_VIEWER__PORT" "$LOG_VIEWER__PORT"
+append "TOPIC_HEALTHCHECKER__PORT" "$TOPIC_HEALTHCHECKER__PORT"
+
+# Claude Code
+append "CLAUDE_CODE" "$CLAUDE_CODE"
+
+
+append "REGISTRY" "$REGISTRY"
+append "REPOSITORY" "$REPOSITORY"
+
+# Image variables
+append "INFRASTRUCTURE_IMAGE" "$INFRASTRUCTURE_IMAGE"
+append "FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES" "$FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES"
+
+append "PERCEPTION_IMAGE" "$PERCEPTION_IMAGE"
+
+append "WORLD_MODELING_IMAGE" "$WORLD_MODELING_IMAGE"
+
+append "ACTION_IMAGE" "$ACTION_IMAGE"
+
+
+append "INTERFACING_IMAGE" "$INTERFACING_IMAGE"
+
+# ROS 2 Middleware
+append "RMW_IMPLEMENTATION" "$RMW_IMPLEMENTATION"
+
+# Zenoh configuration
+append "ZENOH_ROUTER_CONFIG_URI" "$ZENOH_ROUTER_CONFIG_URI"
+append "ZENOH_SESSION_CONFIG_URI" "$ZENOH_SESSION_CONFIG_URI"
+
+append "ROS_DOMAIN_ID" "$ROS_DOMAIN_ID"
+
+# Bag recording
+append "BAG_DIRECTORY" "$BAG_DIRECTORY"
+
+# Docker socket (needed for log viewer)
+append "DOCKER_SOCKET_PATH" "$DOCKER_SOCKET_PATH"
+
+echo "[setup-env] .env generated at $ENV_FILE"

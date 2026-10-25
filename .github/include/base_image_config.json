@@ -1,0 +1,139 @@
+{
+  "include": [
+    {
+      "tag": "jazzy-ubuntu24.04",
+      "external_image": "ubuntu:24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "humble-ubuntu22.04",
+      "external_image": "ubuntu:22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+
+    {
+      "tag": "cuda12.2.2-cudnn8-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.3.2-cudnn9-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.3.2-cudnn9-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.4.1-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.6.0-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.6.0-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.6.1-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.6.1-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.6.2-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.6.2-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.6.3-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda12.8.0-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.8.0-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda13.0.0-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:13.0.0-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+    {
+      "tag": "cuda13.0.2-cudnn-runtime-ubuntu22.04",
+      "external_image": "nvcr.io/nvidia/cuda:13.0.2-cudnn-runtime-ubuntu22.04",
+      "injections": {
+        "ros2": "humble"
+      }
+    },
+
+    {
+      "tag": "cuda12.6.0-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.6.0-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "cuda12.6.1-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.6.1-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "cuda12.8.1-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "cuda12.9.0-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.9.0-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "cuda12.9.1-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "cuda13.0.0-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:13.0.0-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    },
+    {
+      "tag": "cuda13.0.2-cudnn-runtime-ubuntu24.04",
+      "external_image": "nvcr.io/nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04",
+      "injections": {
+        "ros2": "jazzy"
+      }
+    }
+  ]
+}

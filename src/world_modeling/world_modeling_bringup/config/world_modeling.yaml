@@ -1,0 +1,6 @@
+---
+# Unified world_modeling configuration. Add one block per node launched in world_modeling.launch.yaml.
+
+/**/example_node:
+  ros__parameters:
+    publish_rate_hz: 1.0

@@ -1,0 +1,44 @@
+---
+# action.launch.yaml
+# Entry point for the action container (see modules/docker-compose.yaml).
+
+launch:
+  - arg:
+      name: autostart
+      default: "true"
+      description: Automatically configure and activate managed nodes
+
+  - arg:
+      name: bond_enabled
+      default: "false"
+      description: Enable bond-based crash detection
+
+  # Example node: replace with real action nodes
+  - node:
+      pkg: "action_example"
+      exec: "example_node"
+      name: "example_node"
+      namespace: "action/example"
+      output: "screen"
+      param:
+        - from: "$(find-pkg-share action_bringup)/config/action.yaml"
+
+  # Lifecycle Manager: add every lifecycle node above to node_names
+  - node:
+      pkg: "wato_lifecycle_manager"
+      exec: "wato_lifecycle_manager_node"
+      name: "action_lifecycle_manager"
+      namespace: "action"
+      output: "screen"
+      param:
+        - name: "node_names"
+          value:
+            - /action/example/example_node
+        - name: autostart
+          value: $(var autostart)
+        - name: transition_timeout_s
+          value: 10.0
+        - name: bond_timeout_s
+          value: 4.0
+        - name: bond_enabled
+          value: $(var bond_enabled)

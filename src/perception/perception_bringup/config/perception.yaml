@@ -1,0 +1,6 @@
+---
+# Unified perception configuration. Add one block per node launched in perception.launch.yaml.
+
+/**/example_node:
+  ros__parameters:
+    publish_rate_hz: 1.0

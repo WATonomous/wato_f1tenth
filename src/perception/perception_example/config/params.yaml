@@ -1,0 +1,4 @@
+---
+/**/example_node:
+  ros__parameters:
+    publish_rate_hz: 1.0

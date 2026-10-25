@@ -1,0 +1,6 @@
+---
+# Unified action configuration. Add one block per node launched in action.launch.yaml.
+
+/**/example_node:
+  ros__parameters:
+    publish_rate_hz: 1.0
