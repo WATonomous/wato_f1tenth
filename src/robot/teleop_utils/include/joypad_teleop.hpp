@@ -48,6 +48,7 @@ private:
     //data
     float direction = 1;
     bool reversing = false;
+    bool was_armed_ = false;
 
     //buttons
     button_and_axis ba;

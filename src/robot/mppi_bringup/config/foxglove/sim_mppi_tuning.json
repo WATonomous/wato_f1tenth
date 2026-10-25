@@ -1,0 +1,255 @@
+{
+  "configById": {
+    "3D!scene": {
+      "layers": {
+        "grid-layer": {
+          "visible": false,
+          "frameLocked": true,
+          "label": "Grid",
+          "instanceId": "grid-layer",
+          "layerId": "foxglove.Grid",
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [0, 0, 0],
+          "rotation": [0, 0, 0],
+          "order": 1
+        },
+        "ego-urdf-layer": {
+          "displayMode": "visual",
+          "showAxis": false,
+          "axisScale": 1,
+          "showOutlines": false,
+          "visible": true,
+          "instanceId": "ego-urdf-layer",
+          "layerId": "foxglove.Urdf",
+          "label": "URDF",
+          "sourceType": "topic",
+          "url": "",
+          "filePath": "",
+          "parameter": "",
+          "topic": "/ego_robot_description",
+          "framePrefix": "",
+          "order": 2,
+          "opacity": 1
+        }
+      },
+      "cameraState": {
+        "perspective": true,
+        "distance": 20,
+        "phi": 0.00005733012158196959,
+        "thetaOffset": 92.15777232860488,
+        "targetOffset": [6.239717429196161, 1.4754710408932958, 0.0],
+        "target": [0, 0, 0],
+        "targetOrientation": [0, 0, 0, 1],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "fixedFrame": "map",
+      "scene": {
+        "transforms": {
+          "visible": false
+        }
+      },
+      "transforms": {
+        "frame:map": {
+          "visible": true
+        }
+      },
+      "topics": {
+        "/map": {
+          "visible": true,
+          "drawBehind": true,
+          "minColor": "#000000ff",
+          "maxColor": "#ffffffff"
+        },
+        "/scan": {
+          "visible": false,
+          "colorField": "range",
+          "colorMode": "gradient",
+          "colorMap": "turbo",
+          "gradient": ["#ec0303ff", "#12fd00ff"],
+          "pointSize": 3
+        },
+        "/mppi/reference": {
+          "visible": true
+        },
+        "/mppi/optimal_trajectory": {
+          "visible": true
+        },
+        "/mppi/sampled_trajectories": {
+          "visible": true,
+          "color": "#82e9ff30"
+        }
+      },
+      "publish": {
+        "type": "pose_estimate",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "followTf": "map",
+      "synchronize": false
+    },
+    "Parameters!params": {},
+    "RawMessages!inspect": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/mppi/speed_debug",
+      "fontSize": 12
+    },
+    "Plot!costs": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/cost_total_sum.data",
+          "enabled": true,
+          "color": "#d33f49",
+          "label": "cost_total_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/cost_wall_sum.data",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "cost_wall_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/cost_slip_sum.data",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "cost_slip_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/cost_latacc_sum.data",
+          "enabled": true,
+          "color": "#8a5cf6",
+          "label": "cost_latacc_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/cost_steer_sat_sum.data",
+          "enabled": true,
+          "color": "#b4bf5e",
+          "label": "cost_steer_sat_sum"
+        }
+      ]
+    },
+    "Plot!rewards": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/reward_total_sum.data",
+          "enabled": true,
+          "color": "#00a37a",
+          "label": "reward_total_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/reward_xy_sum.data",
+          "enabled": true,
+          "color": "#4fe3a7",
+          "label": "reward_xy_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/reward_velocity_sum.data",
+          "enabled": true,
+          "color": "#f59e0b",
+          "label": "reward_velocity_sum"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/reward_yaw_sum.data",
+          "enabled": true,
+          "color": "#38bdf8",
+          "label": "reward_yaw_sum"
+        }
+      ]
+    },
+    "Plot!metrics": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/min_wall_dist.data",
+          "enabled": true,
+          "color": "#4e98e2",
+          "label": "min_wall_dist"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/max_beta.data",
+          "enabled": true,
+          "color": "#f5774d",
+          "label": "max_beta"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/max_latacc.data",
+          "enabled": true,
+          "color": "#8a5cf6",
+          "label": "max_latacc"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/max_abs_steer.data",
+          "enabled": true,
+          "color": "#b4bf5e",
+          "label": "max_abs_steer"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/mppi/debug/invalid_steps.data",
+          "enabled": true,
+          "color": "#ef4444",
+          "label": "invalid_steps"
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "drawerConfig": {
+    "tracks": []
+  },
+  "layout": {
+    "direction": "row",
+    "first": {
+      "first": "Plot!costs",
+      "second": {
+        "first": "Plot!rewards",
+        "second": "Plot!metrics",
+        "direction": "column",
+        "splitPercentage": 50
+      },
+      "direction": "column",
+      "splitPercentage": 33
+    },
+    "second": {
+      "first": "Parameters!params",
+      "second": {
+        "first": "3D!scene",
+        "second": "RawMessages!inspect",
+        "direction": "column",
+        "splitPercentage": 78
+      },
+      "direction": "row",
+      "splitPercentage": 18
+    },
+    "splitPercentage": 40
+  }
+}

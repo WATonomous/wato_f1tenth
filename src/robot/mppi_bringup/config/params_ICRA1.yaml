@@ -1,0 +1,163 @@
+lmppi_node:
+  ros__parameters:
+    # Startup parameters: read once when the node starts. Restart MPPI after
+    # changing these because they affect subscriptions, rollout array shapes,
+    # JAX compilation, or the random sampling stream.
+    is_sim: false                  # true: /ego_racecar/odom; false: /pf/pose/odom.
+    state_predictor: dynamic_ST   # Rollout model. dynamic_ST includes yaw rate/slip; kinematic_ST is simpler.
+    n_samples: 8192               # Number of sampled control sequences. More is steadier but slower.
+    n_steps: 8 #try lower                   # Rollout horizon length. At dt=0.1, 12 steps = 1.2s lookahead.
+    n_iterations: 4 # maybe 2/3 if Hz suffer
+    sim_time_step: 0.1            # Rollout integration/control timestep used inside MPPI.
+    random_seed: 527787           # Sampling seed. Keep fixed for repeatable tuning runs.
+    render: false                 # Race hardware: avoid extra rollout/sync unless debugging trajectories.
+    
+    # timer
+    control_loop_hz: 40.0
+
+    # Control trigger architecture (NEW). 'odom_gate': pose_callback rate-
+    # gates and dispatches control_step (~30 Hz from a 50 Hz pose source),
+    # so the SingleThreadedExecutor cannot starve pose ingestion behind a
+    # continuously-ready timer. control_loop_timer becomes a low-rate
+    # watchdog that only fires if pose-driven dispatch hasn't run in
+    # control_watchdog_max_silence_sec. 'timer' is the legacy fixed-rate
+    # behavior (one-flag rollback). control_trigger_mode is read-only at
+    # startup; restart node to switch.
+    control_trigger_mode: odom_gate              # 'odom_gate' | 'timer'
+    control_watchdog_hz: 5.0                     # watchdog timer rate in odom_gate mode
+    control_watchdog_max_silence_sec: 0.10       # fire watchdog if pose-driven hasn't run in this long
+
+    # Live param refresh gate. OFF for race day so the 2 Hz refresh timer
+    # only reads a single bool per tick (essentially free) instead of
+    # ~100 params. Flip true via `ros2 param set lmppi_node live_tuning_enabled true`
+    # for tuning sessions; flip back to false before racing.
+    live_tuning_enabled: true
+
+    # Live tuning parameters: mppi_node.get_params() refreshes these on every
+    # odometry callback, so they can be changed with ros2 param set.
+    temperature: 0.015             # MPPI greediness. Lower = winner-take-all; higher = smoother averaging.
+    # damping: 0.001                # Prevents weight normalization issues when rollout rewards are similar.
+    # ref_vel: 2.0                  # OLD: Legacy constant-speed reference seed. Mostly bypassed when profile is on.
+    init_vel: 2.9                 # Minimum speed assumed by the rollout model at startup/very low speed.
+    startup_speed: 1.0            # Minimum /drive.speed while measured speed is below init_vel.
+    use_pose_delta_state_estimate: true # Real car: estimate vx / yaw-rate from PF pose deltas plus command prior.
+    # Fallback friction belief — used only when the raceline CSV has no per-waypoint
+    # friction column (col 10). When the CSV does carry friction, MPPI rolls out
+    # with per-step μ along the reference and ignores this scalar.
+    friction: 0.5
+    # n_iterations: 1               # MPPI update passes per odom callback. More can improve solve quality but costs time.
+
+    # Use the MPPI raceline CSV vx_mps column for turn-aware reference spacing.
+    # These affect what MPPI optimizes against: future XY points and velocity
+    # targets become slower in turns and faster on straights.
+    use_waypoint_speed_profile: true   # true: use raceline vx_mps; false: use constant ref_vel spacing.
+    speed_profile_scale: 1.13          # Multiplies raceline vx_mps. Raise to push pace; lower for stability.
+    speed_profile_min_speed: 1.0       # Lower clamp for reference/profile speed after scaling.
+    speed_profile_max_speed: 15.0      # Upper clamp for reference/profile speed after scaling.
+    speed_profile_lookahead_steps: 3   # Planning brake lookahead: min speed over current..N future ref steps.
+    speed_profile_iterations: 3        # Rebuild reference using profiled speeds this many times; 2-3 is enough.
+
+    # Feedforward from raceline vx_mps to /drive.speed. MPPI still
+    # supplies steering and can still pull speed through the blend term when
+    # blend is below 1.0 (1.0 is much better in sim)
+    use_speed_profile_drive_speed: false      # true: blend profile speed into final /drive.speed command.
+    # speed_profile_drive_blend: 0.5           # 0 = pure MPPI accel command; 1 = pure raceline/profile speed command.
+    speed_profile_drive_lookahead_steps: 0   # Command brake lookahead: which future ref speed drives /drive.speed.
+    # speed_profile_drive_use_min_lookahead: true # true: use min speed through lookahead to avoid early exit accel.
+    # speed_profile_drive_max_accel: 2.5       # Max commanded speed increase in m/s^2, using real callback dt.
+    # speed_profile_drive_max_decel: 8.0       # Max commanded speed decrease in m/s^2; usually higher than accel.
+
+    # MPPI control exploration.
+    control_sample_std_steer: 0.8      # Std dev of normalized steering-rate noise. Higher explores sharper turns.
+    control_sample_std_accel: 10.0      # Std dev of normalized accel noise. Higher explores harder accel/brake.
+
+    # Physical scale for normalized controls.
+    # normalized steer-rate +1 -> +steer_vel_scale rad/s
+    # normalized acceleration +1 -> +accel_scale m/s^2
+    steer_vel_scale: 2.0               # Converts sampled steering action to steering-rate rad/s.
+    accel_scale: 6.0                   # Converts sampled accel action to m/s^2 inside rollouts.
+
+    ######################################################
+    ################### Reward weights ###################
+    ######################################################
+    xy_reward_weight: 0.25              # Main path-tracking term: distance from rollout to reference XY.
+    velocity_reward_weight: 0.5        # Penalizes mismatch to reference speed, not raw speed by itself.
+    yaw_reward_weight: 0.01             # Penalizes heading mismatch; helps avoid sideways path matches.
+
+    wall_cost_enabled: true
+    wall_cost_weight: 10.0
+    wall_cost_margin: 0.3
+    wall_cost_power: 0.6
+    wall_cost_map_yaml: '' #injected by launch
+
+    # Opponent-aware MPPI cost. Keep disabled until /opponent/predicted_path
+    # is healthy, then tune weight/radius live with ros2 param set.
+    opponent_path_topic: /opponent/predicted_path
+    opponent_cost_enabled: true
+    opponent_cost_weight: 20.0
+    opponent_cost_radius: 0.4
+    opponent_cost_power: 0.4
+    opponent_cost_discount: 0.9
+    opponent_path_timeout: 0.5
+    opponent_behavior_mode: clear         # auto, follow, clear, pass_left, pass_right.
+    opponent_follow_weight: 8.0          # In follow mode, penalizes closing too near behind the opponent.
+    opponent_follow_distance: 1.0        # Desired gap behind opponent along the raceline tangent.
+    opponent_same_lane_width: 0.7        # Follow gap only applies when ego is roughly in same lane.
+    opponent_pass_weight: 40.0           # In pass modes, pushes rollout to requested side near opponent.
+    opponent_pass_lateral_offset: 0.35   # Desired lateral offset from opponent during a pass.
+    opponent_pass_longitudinal_window: 1.0 # Longitudinal window around opponent where pass-side cost applies.
+    opponent_auto_wall_check_enabled: true
+    opponent_auto_min_wall_clearance: 0.12 # Required wall clearance at candidate pass-side points.
+    opponent_auto_check_steps: 5          # How many opponent horizon points to check for pass clearance.
+    opponent_auto_min_closing_speed: 0.4  # Required desired ego speed minus opponent speed before passing.
+    opponent_auto_max_ahead_distance: 4.0 # Only consider passing opponents this far ahead along reference tangent.
+    opponent_auto_side_switch_margin: 0.04 # Extra clearance needed to prefer left over right when both are open.
+
+    slip_cost_enabled: false
+    slip_cost_weight: 2.0
+    slip_cost_beta_safe: 0.4
+
+    latacc_cost_enabled: false
+    latacc_cost_weight: 3.0
+    latacc_cost_safe: 80.0
+
+    steer_sat_cost_enabled: false
+    steer_sat_cost_weight: 0.5
+    steer_sat_soft_ratio: 0.85
+
+
+    # MPPI warm-start watchdog. If comms/timing hiccups or a bad local plan
+    # leave the optimizer biased, reset the shifted control sequence instead
+    # of carrying that bad plan for many future callbacks.
+    mppi_guard_on_timing_jump: true
+    mppi_guard_wall_gap: 0.3
+    mppi_guard_stamp_gap: 0.3
+    mppi_guard_aopt_threshold: 0.98
+    mppi_guard_saturation_callbacks: 4
+    mppi_guard_bad_callbacks_to_clear_control: 3
+
+    # Pose-delta estimator persistence. Lower prior weights forget a bad
+    # vy/wz sample faster; hiccup settings reduce memory after odom dt spikes.
+    state_est_vy_prior: 0.4
+    state_est_wz_prior: 0.4
+    state_est_hiccup_dt: 0.06
+    state_est_hiccup_prior_scale: 0.35
+
+
+    ######################################################
+    ###################### BACKEND #######################
+    ######################################################
+    # Output safety clamps.
+    min_speed: 0.0                    # Final /drive.speed lower clamp.
+    max_speed: 15.0                   # Final /drive.speed upper clamp; profile/feedforward usually limits first.
+    max_steering_angle: 0.4189        # Final steering angle clamp, matching F1TENTH steering limit.
+
+    # RViz visualization. Add MarkerArray displays for these topics:
+    # /mppi/reference, /mppi/optimal_trajectory, /mppi/sampled_trajectories
+    publish_markers: false            # Race default: off. Heavy MarkerArray serialization adds ms per tick under Foxglove subscribers.
+    marker_frame_id: map              # RViz frame for reference/optimal/sampled trajectory markers.
+    reference_line_width: 0.06        # Blue reference trajectory line width.
+    optimal_line_width: 0.08          # Green optimal rollout line width.
+    sampled_line_width: 0.025         # Orange sampled rollout line width.
+    sampled_trajectory_count: 0      # Number of sampled rollouts to draw. Higher is heavier in RViz.
+    sampled_trajectory_alpha: 0.18    # Transparency for sampled rollouts.
