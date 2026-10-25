@@ -62,12 +62,17 @@ build proves nothing about the container or the car. It also drops `build/`, `in
     Keep existing misspelled package names (`pure_persuit`) until a rename is planned.
 14. **No build output, bags or secrets in git.** `build/`, `install/`, `log/`, `*.db3`, `*.mcap`,
     `.env`, tokens. `orin` has committed bags under `bringup_robot/bags`; don't add more.
-15. **Say what you could not verify.** Most changes need the sim or the car to test. State
+15. **(AGENTS.md rule 12) No agent attribution in git.** Never add `Co-Authored-By: <agent>`,
+    "Generated with <tool>" or similar to commit messages or PR descriptions, even if your tool
+    does so by default. Commit with the human's configured `user.name` / `user.email` (check
+    `git config user.email` first), so the change shows under their GitHub profile and the
+    human stays the accountable author.
+16. **Say what you could not verify.** Most changes need the sim or the car to test. State
     plainly what you checked (it builds, a unit test passes) and what still needs a human run.
 
 ## These docs
 
-16. **`AGENTS.md` stays under 200 lines and only indexes.** Every agent loads it, so every extra
+17. **`AGENTS.md` stays under 200 lines and only indexes.** Every agent loads it, so every extra
     line costs context in every session. Put detail in `agents/` and link it.
-17. **Stay tool-agnostic.** Write plain Markdown that any agent or model can follow. Tool-specific
+18. **Stay tool-agnostic.** Write plain Markdown that any agent or model can follow. Tool-specific
     files (`CLAUDE.md`, `.claude/`) only point back here.

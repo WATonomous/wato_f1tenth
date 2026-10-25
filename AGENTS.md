@@ -18,7 +18,7 @@ Everything runs in Docker through `./watod`, a wrapper around `docker compose`.
 
 ## Where the repo is right now
 
-The repo is in the middle of an infrastructure migration on the `infra_update` branch.
+The repo is in the middle of an infrastructure migration on the `big_infra_update` branch.
 
 | | Today (this branch, before step 2) | Target (after step 2 of the migration) |
 | --- | --- | --- |
@@ -53,6 +53,8 @@ the host: give the human the commands to run in the container, or ask before usi
 9. Keep changes inside the package you were asked to change. Infra changes follow `agents/roles/infra.md`.
 10. Do not commit build output, bags (`*.db3`, `*.mcap`), maps you did not mean to add, or secrets.
 11. Build, test and run ROS code only inside the dev container, never on the host.
+12. Never credit an agent in git: no `Co-Authored-By` trailers, no "Generated with" lines, in
+    commits or PRs. Commits use the human's own git identity, so GitHub shows their profile.
 
 ## Index
 
