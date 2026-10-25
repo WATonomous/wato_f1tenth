@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 project(ackermann_mux)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -56,13 +56,7 @@ install(
   DESTINATION include
 )
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-
-  #  find_package(launch_testing_ament_cmake)
-  #  add_launch_test(test/system.test.py)
-endif()
+# Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 
 ament_export_include_directories(include)
 

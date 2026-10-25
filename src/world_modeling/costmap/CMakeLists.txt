@@ -13,12 +13,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
+# Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 
 add_executable(costmap_node src/costmap_node.cpp)
 target_include_directories(costmap_node PUBLIC include)

@@ -15,9 +15,6 @@ rosidl_generate_interfaces(vesc_msgs
     geometry_msgs
 )
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-endif()
+# Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 
 ament_auto_package()

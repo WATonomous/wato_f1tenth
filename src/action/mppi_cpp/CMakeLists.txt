@@ -1,12 +1,21 @@
 cmake_minimum_required(VERSION 3.18)
+
+# GPU targets must be chosen before project() enables CUDA, otherwise CMake has
+# already filled in its own default. CUDAARCHS (set in the Jetson base image)
+# or -DCMAKE_CUDA_ARCHITECTURES override this.
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND NOT DEFINED ENV{CUDAARCHS})
+  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
+    set(CMAKE_CUDA_ARCHITECTURES 87)  # Jetson Orin Nano / NX
+  else()
+    set(CMAKE_CUDA_ARCHITECTURES "75;86;89;120")  # Turing, Ampere, Ada, Blackwell laptops
+  endif()
+endif()
+
 project(mppi_cpp LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
-if(NOT CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES 87)  # Jetson Orin
-endif()
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()

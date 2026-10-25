@@ -10,6 +10,11 @@
   <maintainer email="billyzheng.bz@gmail.com">Hongrui Zheng</maintainer>
   <license>MIT</license>
 
+  <depend>rclpy</depend>
+  <depend>tf2_ros_py</depend>
+  <depend>python3-numpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>nav_msgs</depend>
@@ -17,11 +22,8 @@
   <depend>nav2_msgs</depend>
   <depend>nav2_map_server</depend>
   <depend>tf_transformations</depend>
-  <depend>python-transforms3d-pip</depend>
+  <depend>python3-transforms3d</depend>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
 
   <export>
