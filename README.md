@@ -38,4 +38,10 @@ note: This rosnode skeleton you'll most likely be building ontop of for your act
 
 **Go read the system-architecture.md** to better understand how this repo works and why it is layed out that way
 
+## Working with AI agents
+
+If you use an AI coding agent (Claude Code, Codex, Cursor, Aider, an open-weight model, ...), point it at `AGENTS.md` first. It holds the repo's hard rules and an index into `agents/`, which has the architecture, workflows (build and test, add a node, sim to car, deploy to car, port to Jazzy, debug MPPI) and review guidelines. Claude Code picks it up through `CLAUDE.md`, and has helper skills in `.claude/skills/`.
+
+When you change how something works, update the matching file in `agents/` in the same PR. Keep `AGENTS.md` under 200 lines and put the details in `agents/`.
+
 ### Good Luck! 

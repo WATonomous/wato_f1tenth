@@ -1,0 +1,63 @@
+# Deploy to the car
+
+How code gets onto the Jetson and how the car is brought up. Agents prepare changes and
+write commands; **a human runs everything on the car** (`AGENTS.md` rules 1 and 2).
+Sources: `rodney_notes.md`, `commands.md` and `src/robot/start_pf.sh` on `mppi_test`, and
+`jetson_pf.launch.py` / `jetson_up.launch.py` on `orin`.
+
+## The hardware
+
+- Jetson Orin Nano Super or Orin NX (both `sm_87`), on JetPack 6 (L4T r36.4).
+- Hokuyo lidar over Ethernet at `192.168.0.10:10940`, frame `laser`.
+- VESC motor controller at `/dev/sensors/vesc` (a udev symlink).
+- PS4 controller over Bluetooth, read by `joy_node`.
+- Remote access over Tailscale, with a desktop over noVNC.
+
+## Bring-up checklist (today, `orin` / `mppi_test`)
+
+1. **Battery.** Plug it in the right way round: red to red, black to black.
+2. **Access.** Start Tailscale on the laptop, and open the car's noVNC desktop in a browser.
+3. **Controller.** Put the PS4 pad in pairing mode. In the car's Bluetooth settings, remove the old
+   "Wireless Controller", search again, and pair it.
+4. **Display.** In a noVNC terminal: `xhost +local:root` (needed for RViz from the container).
+5. **Power mode** (optional, for full performance):
+   `sudo nvpmodel -m 2` (MAXN_SUPER on the Orin Nano Super; mode numbers differ per module,
+   so check `sudo nvpmodel -q --verbose` on an NX), then `sudo jetson_clocks`.
+6. **Containers.** In the repo on the car: `./watod up` (develop mode).
+7. **Build.** `docker exec -it watod_<user>-robot_dev-1 bash`, then
+   `source /opt/ros/humble/setup.bash && colcon build && source install/setup.bash`.
+8. **Launch.**
+   - Drivers, teleop, mux, e-brake and EKF only: `ros2 launch bringup_robot jetson_up.launch.py`
+   - Full stack with localization: set `OPENBLAS_NUM_THREADS=1` and `OMP_NUM_THREADS=1` first,
+     then `ros2 launch bringup_robot jetson_pf.launch.py` (this is what `start_pf.sh` does).
+9. **Core pinning** (optional, when running MPPI):
+   `sudo taskset -cp 0-2 $(pgrep -f particle_filter)`, `3-5` for `mppi_node`, `5` for
+   `opponent_predictor`.
+10. **Check.** `ros2 topic hz /scan`, `/odom`, `/pf/pose/odom`; drive with the controller while
+    holding the dead-man button before enabling autonomy.
+
+## Container access to devices
+
+The `robot_dev` service on the car branches runs `privileged`, mounts `/dev`, and allows these
+device cgroups: `13:*` (input / joystick), `188:0` (USB serial), `166:*` (ACM serial, VESC) and
+`10:229` (`/dev/uhid`, Bluetooth HID). If a driver can't open its device, check these first.
+
+## Known traps
+
+- `jetson_pf.launch.py` runs the map server and lifecycle manager with `use_sim_time: True`.
+- `teleop_utils`' `joypad_config.yaml` is keyed `joypad_node:` but the node is `gamepad_node`,
+  so its settings are ignored on `orin` (fixed with `/**:` on `mppi_test`).
+- `jetson_up.launch.py` defines a `throttle_interpolator` node from `f1tenth_stack`, which is not
+  in the repo. It is not added to the launch description, so leave it unused.
+- Compose's `deploy` command points at `robot.launch.py`, which does not exist on the car
+  branches. Use develop mode and launch by hand until step 2 fixes the wiring.
+- Remote Foxglove or RViz subscribers to heavy debug topics can slow the control loop
+  (`rules.md` rule 10).
+
+## Target (after steps 2, 3 and 5)
+
+- `watod` detects the Jetson and starts `interfacing` plus the shared stack with the Jetson
+  compose overlay (`runtime: nvidia`, devices).
+- Deploy mode runs `jetson_pf` on the car and `minimumEx` in sim, so no manual `colcon build`.
+- The car pulls prebuilt arm64 images from GHCR (`./watod pull`), pinned to a dated
+  `car-YYYY-MM-DD` tag on race days. It builds locally only with `WATOD_BUILD=1`.
