@@ -61,6 +61,10 @@ mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0`
   on the car branches, so use develop mode and launch by hand there.
 - Remote Foxglove or RViz subscribers to heavy debug topics can slow the control loop
   (`rules.md` rule 10).
+- `./watod build` fails with "Temporary failure resolving" on some Wi-Fi networks: build steps
+  get the host's IPv6 DNS servers first and can't reach them. The Jetson's
+  `/etc/docker/daemon.json` sets `"dns": ["8.8.8.8", "1.1.1.1"]` (next to the nvidia runtime);
+  keep it when re-flashing.
 
 ## On `big_infra_update`
 
@@ -68,6 +72,8 @@ mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0`
 # watod-config.local.sh on the Jetson
 export ACTIVE_MODULES="interfacing world_modeling action"   # interfacing alone = old jetson_up
 export PLATFORM="car"
+export REALSENSE="true"     # RealSense IMU on /camera/camera/imu
+export CONTROLLER="none"    # bench testing: no pure pursuit (default pure_pursuit)
 ./watod build-base      # once: CPU + Jetson CUDA/TensorRT bases (step 5 replaces this with a pull)
 ./watod build
 ./watod up              # deploy mode: no manual colcon build
@@ -80,6 +86,9 @@ export PLATFORM="car"
 | `jetson_mapping.launch.py` | `interfacing world_modeling`, `PLATFORM=car`, `MAPPING=true` |
 | RViz in jetson_pf | `world_modeling.launch.yaml rviz:=true` |
 | e-brake, EKF | `interfacing.launch.yaml ebrake:=true`, `world_modeling.launch.yaml ekf:=true` (both off) |
+
+Agents run these over SSH from the developer's machine, never logged into the car: see
+`remote-car.md`.
 
 Power mode, clocks and core pinning stay manual (checklist steps 5 and 9). After step 5 the car
 pulls prebuilt arm64 images from GHCR, pinned to a dated `car-YYYY-MM-DD` tag on race days.

@@ -72,6 +72,7 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/workflows/add-a-node.md` | You are adding a node or a package |
 | `agents/workflows/sim-to-car.md` | Code must behave the same in sim and on the car |
 | `agents/workflows/deploy-to-car.md` | You are preparing something to run on the Jetson |
+| `agents/workflows/remote-car.md` | You run commands on the car over SSH (build, start, check topics, logs) |
 | `agents/workflows/port-to-jazzy.md` | You are porting a package from Humble to Jazzy |
 | `agents/workflows/debug-mppi.md` | You are working on MPPI or the opponent predictor |
 | `agents/roles/reviewer.md` | You are asked to review a change or a PR |
@@ -101,6 +102,10 @@ colcon build --packages-select <pkg> && source install/setup.bash
 Sim: `ACTIVE_MODULES="interfacing world_modeling action sim"` with the AutoDRIVE simulator on the
 host. Car: `ACTIVE_MODULES="interfacing world_modeling action"` and `PLATFORM=car`. The old
 `jetson_up` is `interfacing` alone; the old `jetson_pf` is all three on the car.
+
+Working on the car: never log an agent into the shared Jetson. Run the agent on your own machine
+and send commands over SSH (`agents/workflows/remote-car.md`). If `ssh -o BatchMode=yes <host> true`
+fails, ask the human to set up their SSH key; never ask for the car's password.
 
 ## How to work here
 
