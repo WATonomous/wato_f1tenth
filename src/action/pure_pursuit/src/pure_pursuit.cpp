@@ -32,9 +32,14 @@ Pure_Pursuit_Node::Pure_Pursuit_Node () : Node ("pure_pursuit_node") {
 
     //subscriptions
     
+    // Volatile + reliable matches both the gamepad's latched (transient_local) publisher
+    // and plain volatile publishers such as Foxglove; a transient_local subscription
+    // silently ignores volatile publishers.
+    auto dead_man_qos = rclcpp::QoS(1).reliable();
+    // the global planner publishes its path latched, once
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
 
-    dead_man_sub_ = this->create_subscription<std_msgs::msg::Bool>( dead_man_active_topic, latched_qos, 
+    dead_man_sub_ = this->create_subscription<std_msgs::msg::Bool>( dead_man_active_topic, dead_man_qos, 
         [this](const std_msgs::msg::Bool::SharedPtr msg) {
             dead_man_active = *msg;
         }
