@@ -11,18 +11,22 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TENSORRT_VERSION=10.16.1.11-1+cuda12.9
 
-RUN apt-get update && \
+# Pin every TensorRT package (including the ones pulled in as dependencies) to the
+# CUDA 12.9 build; without the pin apt picks the newest +cuda13.x builds for them.
+# Runtime libraries + headers + trtexec only: the -dev packages are ~7 GB of static
+# libraries we never link.
+RUN printf 'Package: libnvinfer* libnvonnxparsers* python3-libnvinfer* tensorrt*\nPin: version %s\nPin-Priority: 1001\n' \
+        "${TENSORRT_VERSION}" > /etc/apt/preferences.d/tensorrt && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-        "libnvinfer10=${TENSORRT_VERSION}" \
-        "libnvinfer-plugin10=${TENSORRT_VERSION}" \
-        "libnvonnxparsers10=${TENSORRT_VERSION}" \
-        "libnvinfer-dev=${TENSORRT_VERSION}" \
-        "libnvinfer-headers-dev=${TENSORRT_VERSION}" \
-        "libnvinfer-plugin-dev=${TENSORRT_VERSION}" \
-        "libnvinfer-headers-plugin-dev=${TENSORRT_VERSION}" \
-        "libnvonnxparsers-dev=${TENSORRT_VERSION}" \
-        "libnvinfer-bin=${TENSORRT_VERSION}" && \
-    apt-mark hold libnvinfer10 libnvinfer-plugin10 libnvonnxparsers10 && \
+        libnvinfer10 libnvinfer-plugin10 libnvonnxparsers10 \
+        libnvinfer-headers-dev libnvinfer-headers-plugin-dev libnvinfer-bin && \
     rm -rf /var/lib/apt/lists/*
+
+# Plain .so links so CMake can link against the shared libraries without the -dev packages.
+RUN cd /usr/lib/x86_64-linux-gnu && \
+    ln -sf libnvinfer.so.10 libnvinfer.so && \
+    ln -sf libnvinfer_plugin.so.10 libnvinfer_plugin.so && \
+    ln -sf libnvonnxparser.so.10 libnvonnxparser.so
 
 ENV PATH=/usr/src/tensorrt/bin:${PATH}

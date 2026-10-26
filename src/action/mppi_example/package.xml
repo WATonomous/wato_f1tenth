@@ -19,7 +19,7 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-numba</exec_depend>
+  <!-- numba: not packaged for Ubuntu 24.04; the JAX image (migration step 4) pip-installs a pinned version -->
   <exec_depend>python3-pil</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
   <exec_depend>python3-yaml</exec_depend>

@@ -17,6 +17,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
 
 # Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 

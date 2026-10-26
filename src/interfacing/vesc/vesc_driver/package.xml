@@ -23,6 +23,8 @@
   <depend>geometry_msgs</depend>
   <depend>vesc_msgs</depend>
   <depend>serial_driver</depend>
+  <!-- serial_driver's io_context needs this at build time, but its apt package doesn't pull it in -->
+  <build_depend>asio_cmake_module</build_depend>
   <depend>sensor_msgs</depend>
 
 

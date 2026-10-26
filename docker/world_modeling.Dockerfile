@@ -36,7 +36,7 @@ ARG TARGETARCH
 #   - CUDA (rmgpu, sm_87) only on the Jetson image; x86 builds the CPU methods
 ARG RANGE_LIBC_COMMIT=781acfc9edea977b564c4cb5bdaa86e8f719ab7b
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3-dev python3-numpy python3-setuptools && \
+        python3-dev python3-numpy python3-setuptools python3-transforms3d && \
     rm -rf /var/lib/apt/lists/* && \
     pip3 install --no-cache-dir "cython<3" && \
     git clone https://github.com/f1tenth/range_libc.git /tmp/range_libc && \
@@ -48,5 +48,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sed -i "s|postargs = extra_postargs\['gcc'\]|self.set_executable('compiler_so', default_compiler_so); postargs = extra_postargs['gcc']|" setup.py && \
     if [ "${TARGETARCH}" = "arm64" ]; then export WITH_CUDA=ON; else export WITH_CUDA=OFF; fi && \
     pip3 install --no-cache-dir --no-build-isolation . && \
-    python3 -c "import range_libc; print('range_libc OK, CUDA:', '${WITH_CUDA}')" && \
+    bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && python3 -c \"import range_libc; print('range_libc OK, CUDA: ${WITH_CUDA}')\"" && \
     rm -rf /tmp/range_libc
