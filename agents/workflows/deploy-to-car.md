@@ -6,10 +6,11 @@ Sources: `docs/mppi/` (from `mppi_test`) and the old `jetson_pf` / `jetson_up` l
 
 ## Status on `big_infra_update`
 
-The car configuration is in place (`PLATFORM=car`, `config/car/`), but the compose overlay that
-gives `interfacing` its devices (`/dev`, cgroup rules, `runtime: nvidia` for the GPU modules) is
-step 3 of the migration. Until then, drive the car from `orin` or `mppi_test` with the checklist
-below, and use `big_infra_update` on the Jetson only to build and check images.
+With `PLATFORM=car`, `watod` adds `modules/docker-compose.car.yaml`: `interfacing` gets the host's
+`/dev` (privileged, plus `/run/udev` and the device cgroup rules below), so USB and Bluetooth
+devices plugged in after start-up appear without restarting the container. `world_modeling`
+and `action` get `runtime: nvidia`. Until the stack has been driven on `big_infra_update`, keep
+the `orin` / `mppi_test` checklist below as the fallback.
 
 ## The hardware
 
@@ -44,8 +45,8 @@ below, and use `big_infra_update` on the Jetson only to build and check images.
 
 ## Container access to devices
 
-The `robot_dev` service on the car branches runs `privileged`, mounts `/dev`, and allows these
-device cgroups: `13:*` (input / joystick), `188:0` (USB serial), `166:*` (ACM serial, VESC) and
+`interfacing` (via `docker-compose.car.yaml`) and the old `robot_dev` service run `privileged`,
+mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0` (USB serial), `166:*` (ACM serial, VESC) and
 `10:229` (`/dev/uhid`, Bluetooth HID). If a driver can't open its device, check these first.
 
 ## Known traps
@@ -61,7 +62,7 @@ device cgroups: `13:*` (input / joystick), `188:0` (USB serial), `166:*` (ACM se
 - Remote Foxglove or RViz subscribers to heavy debug topics can slow the control loop
   (`rules.md` rule 10).
 
-## On `big_infra_update` (once step 3 adds the device overlay)
+## On `big_infra_update`
 
 ```bash
 # watod-config.local.sh on the Jetson

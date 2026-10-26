@@ -109,8 +109,14 @@ if [[ "${WATCLOUD_MODE:-false}" == "true" ]]; then
   WATCLOUD_COMPOSE_FILES=("-f" "modules/docker-compose.watcloud.yaml")
 fi
 
+# Car overlay (device access, nvidia runtime) when .env says PLATFORM=car
+declare -a CAR_COMPOSE_FILES=()
+if [[ -f "modules/.env" ]] && grep -q '^PLATFORM=car$' "modules/.env"; then
+  CAR_COMPOSE_FILES=("-f" "modules/docker-compose.car.yaml")
+fi
+
 declare -a DEFAULT_PRE_COMPOSE_FILES=("-f" "modules/docker-compose.yaml" "${WATCLOUD_COMPOSE_FILES[@]}" "-f" "modules/docker-compose.dep.yaml")
-declare -a DEFAULT_ALL_COMPOSE_FILES=("-f" "modules/docker-compose.yaml" "${WATCLOUD_COMPOSE_FILES[@]}" "-f" "modules/docker-compose.dep.yaml" "-f" "modules/docker-compose.dev.yaml")
+declare -a DEFAULT_ALL_COMPOSE_FILES=("-f" "modules/docker-compose.yaml" "${WATCLOUD_COMPOSE_FILES[@]}" "-f" "modules/docker-compose.dep.yaml" "-f" "modules/docker-compose.dev.yaml" "${CAR_COMPOSE_FILES[@]}")
 
 # Use custom compose files if provided, otherwise use defaults
 if [[ ${#CUSTOM_PRE_COMPOSE_FILES[@]} -gt 0 ]]; then

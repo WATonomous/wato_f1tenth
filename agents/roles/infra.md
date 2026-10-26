@@ -46,7 +46,7 @@ Expect conflicts in the files listed above. Keep the f1tenth departures, and kee
 
 | Machine | Detected by | Compose overlay |
 | --- | --- | --- |
-| Jetson | `/etc/nv_tegra_release` exists | `docker-compose.jetson.yaml` (`runtime: nvidia`, devices) |
+| Jetson | `/etc/nv_tegra_release` exists | `docker-compose.car.yaml` (`runtime: nvidia`, devices; already applied when `PLATFORM=car`) |
 | PC with NVIDIA GPU | `nvidia-smi` works and Docker has the `nvidia` runtime | `docker-compose.gpu.yaml` |
 | PC without GPU | neither | none |
 

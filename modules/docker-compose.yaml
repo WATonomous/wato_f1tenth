@@ -212,6 +212,8 @@ services:
     volumes:
       - ${MONO_DIR}/maps:/opt/watonomous/maps
     environment:
+      - PLATFORM=${PLATFORM}
+      - MAPPING=${MAPPING}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}

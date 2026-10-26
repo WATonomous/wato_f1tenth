@@ -1,0 +1,27 @@
+---
+# Car overlay: added by watod when PLATFORM=car (see watod_scripts/watod-compose.sh).
+#
+# interfacing gets the host's /dev, so USB and Bluetooth devices plugged in after the
+# container starts (VESC, Hokuyo adapter, PS4 pad) show up without restarting it, as on
+# the old orin robot container. The GPU modules get the Jetson's nvidia runtime.
+x-car-devices: &car-devices
+  privileged: true
+  volumes:
+    - /dev:/dev
+    - /run/udev:/run/udev:ro  # udev names such as /dev/sensors/vesc
+  device_cgroup_rules:
+    - 'c 13:* rmw'  # input: joystick / gamepad, including Bluetooth
+    - 'c 188:* rmw'  # USB serial (ttyUSB)
+    - 'c 166:* rmw'  # ACM serial (VESC)
+    - 'c 10:229 rmw'  # /dev/uhid: Bluetooth HID
+
+x-car-gpu: &car-gpu
+  runtime: nvidia
+
+services:
+  interfacing_bringup: *car-devices
+  interfacing_bringup_dev: *car-devices
+  world_modeling_bringup: *car-gpu
+  world_modeling_bringup_dev: *car-gpu
+  action_bringup: *car-gpu
+  action_bringup_dev: *car-gpu

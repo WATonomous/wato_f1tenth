@@ -95,8 +95,9 @@ Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeou
 
 ## Still to come (step 3)
 
-- `watod` detects a Jetson (car), a PC with an NVIDIA GPU, or a PC without one, and sets
-  `PLATFORM` / `GPU` and the compose overlay (car devices and `runtime: nvidia` on the Jetson).
+- `watod` detects the platform too (today `PLATFORM` is set by hand; `GPU` is already
+  detected, and `PLATFORM=car` already adds `modules/docker-compose.car.yaml` for devices and
+  `runtime: nvidia`).
 - The localization output becomes `/localization/odom` on both platforms, so planners stop
   choosing between `/odom` and `/pf/pose/odom`, plus a CI contract test.
 
