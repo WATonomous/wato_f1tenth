@@ -42,9 +42,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Socket.IO server stack the simulator talks to. python-socketio 4.2 /
 # python-engineio 3.13 match the simulator's protocol (devkit
 # requirements_python_3.10.txt); gevent is newer than the devkit's pin
-# because 21.12 does not build on Python 3.12.
+# because 21.12 does not build on Python 3.12. attrdict3 is the maintained
+# fork of attrdict (imported by the devkit's config.py) that works on 3.12.
 RUN pip3 install --no-cache-dir \
     "python-socketio==4.2.0" \
     "python-engineio==3.13.0" \
     "gevent==24.11.1" \
-    "gevent-websocket==0.10.1"
+    "gevent-websocket==0.10.1" \
+    "attrdict3==2.0.2"
