@@ -8,17 +8,17 @@
     gamepad_topic: "/drive/joystick"
     joy_topic: "/joy"
     my_frame_id: "base_link"
-    
+
     # Speed and steering parameters
     max_speed: 22.88
     steering_gain: 0.5236
     max_steering_rate: 3.2
-    
+
     # Joystick axis mappings (DualShock layout under ros2 joy)
     steering_axis: 0   # left stick X
     throttel_axis: 5   # R2
     break_axis: 2      # L2 (axis 4 is right-stick Y, which rests at 0 and would add constant brake)
-    
+
     # Button mappings
     safety_button: 0     # X: arm / hand back to autonomy
     reverse_button: 1    # O: reverse (toggle while joy sticky_buttons is on)

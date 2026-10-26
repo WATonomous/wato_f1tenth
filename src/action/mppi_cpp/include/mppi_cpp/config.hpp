@@ -1,11 +1,13 @@
 #pragma once
 #include <string>
 
-namespace mppi {
+namespace mppi
+{
 
 // Defaults mirror mppi_example/config.yaml + MPPI_Node.ensure_config_defaults.
 // Every field is overridable through ROS params (see MppiNode::declare_params).
-struct Config {
+struct Config
+{
   // ---- startup (read once) ----
   bool is_sim = true;
   bool wpt_path_absolute = false;
@@ -50,7 +52,7 @@ struct Config {
   double control_sample_std_steer = 0.5;
   double control_sample_std_accel = 0.5;
   double steer_vel_scale = 3.0;  // normalized steer-rate +1 -> rad/s
-  double accel_scale = 4.0;      // normalized accel +1 -> m/s^2
+  double accel_scale = 4.0;  // normalized accel +1 -> m/s^2
 
   double xy_reward_weight = 1.0;
   double velocity_reward_weight = 0.0;

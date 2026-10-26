@@ -40,6 +40,7 @@ ARG GPU
 #   - no -march=native, so an image built on one machine runs on others
 #   - CUDA (rmgpu, sm_87) only on the Jetson image (arm64 + GPU=nvidia); otherwise CPU methods
 ARG RANGE_LIBC_COMMIT=781acfc9edea977b564c4cb5bdaa86e8f719ab7b
+# hadolint ignore=DL3003
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-dev python3-numpy python3-setuptools python3-transforms3d && \
     rm -rf /var/lib/apt/lists/* && \

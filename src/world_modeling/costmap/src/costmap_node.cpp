@@ -1,8 +1,27 @@
-#include "costmap_node.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-using namespace std::chrono_literals;
+#include "costmap_node.hpp"  // NOLINT(build/include_subdir)
 
-CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
+#include <memory>
+#include <string>
+#include <vector>
+
+using namespace std::chrono_literals;  // NOLINT(build/namespaces)
+
+CostmapNode::CostmapNode()
+: Node("occupancy_grid_generator")
 {
   // Declare parameters
   this->declare_parameter<double>("grid_width", 20.0);
@@ -39,12 +58,16 @@ CostmapNode::CostmapNode() : Node("occupancy_grid_generator")
 
   // Subscribers — publish a new grid on every incoming scan
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      scan_topic, 5,
-      std::bind(&CostmapNode::scan_callback, this, std::placeholders::_1));
+    scan_topic, 5, std::bind(&CostmapNode::scan_callback, this, std::placeholders::_1));
 
-  RCLCPP_INFO(this->get_logger(),
-              "Costmap node initialized: %.1fm x %.1fm grid, %.2fm resolution (%u x %u cells)",
-              grid_width_, grid_height_, resolution_, grid_cols_, grid_rows_);
+  RCLCPP_INFO(
+    this->get_logger(),
+    "Costmap node initialized: %.1fm x %.1fm grid, %.2fm resolution (%u x %u cells)",
+    grid_width_,
+    grid_height_,
+    resolution_,
+    grid_cols_,
+    grid_rows_);
 }
 
 void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
@@ -52,7 +75,7 @@ void CostmapNode::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg
   publish_costmap(msg);
 }
 
-void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan)
+void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr & scan)
 {
   // Grid origin: centered on base_link (0,0), offset by half the grid size
   double origin_x = -grid_width_ / 2.0;
@@ -77,14 +100,9 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
   // Look up transform from laser frame to base_link frame
   geometry_msgs::msg::TransformStamped transform_stamped;
   try {
-    transform_stamped = tf_buffer_->lookupTransform(
-        robot_frame_,
-        scan->header.frame_id,
-        tf2::TimePointZero,
-        100ms);
-  } catch (const tf2::TransformException &ex) {
-    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-                         "Transform lookup failed: %s", ex.what());
+    transform_stamped = tf_buffer_->lookupTransform(robot_frame_, scan->header.frame_id, tf2::TimePointZero, 100ms);
+  } catch (const tf2::TransformException & ex) {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Transform lookup failed: %s", ex.what());
     return;
   }
 
@@ -128,7 +146,7 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
 
     try {
       tf2::doTransform(hit_in_laser, hit_in_base, transform_stamped);
-    } catch (const tf2::TransformException &ex) {
+    } catch (const tf2::TransformException & ex) {
       continue;
     }
 
@@ -145,8 +163,7 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     bresenham(x0, y0, x1, y1, grid_msg.data);
 
     // Mark the endpoint based on whether this ray actually hit an obstacle.
-    if (x1 >= 0 && x1 < static_cast<int>(grid_cols_) &&
-        y1 >= 0 && y1 < static_cast<int>(grid_rows_)) {
+    if (x1 >= 0 && x1 < static_cast<int>(grid_cols_) && y1 >= 0 && y1 < static_cast<int>(grid_rows_)) {
       size_t idx = y1 * grid_cols_ + x1;
       if (marks_obstacle) {
         grid_msg.data[idx] = obstacle_value_;
@@ -159,8 +176,7 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
   costmap_pub_->publish(grid_msg);
 }
 
-void CostmapNode::bresenham(int x0, int y0, int x1, int y1,
-                             std::vector<int8_t> &grid_data)
+void CostmapNode::bresenham(int x0, int y0, int x1, int y1, std::vector<int8_t> & grid_data)
 {
   int dx = std::abs(x1 - x0);
   int dy = std::abs(y1 - y0);
@@ -175,8 +191,7 @@ void CostmapNode::bresenham(int x0, int y0, int x1, int y1,
     }
 
     // Mark cell as free if within bounds
-    if (x0 >= 0 && x0 < static_cast<int>(grid_cols_) &&
-        y0 >= 0 && y0 < static_cast<int>(grid_rows_)) {
+    if (x0 >= 0 && x0 < static_cast<int>(grid_cols_) && y0 >= 0 && y0 < static_cast<int>(grid_rows_)) {
       size_t idx = y0 * grid_cols_ + x0;
       // Only overwrite unknown cells with free (don't clear obstacles)
       if (grid_data[idx] == unknown_value_) {
@@ -196,7 +211,7 @@ void CostmapNode::bresenham(int x0, int y0, int x1, int y1,
   }
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<CostmapNode>());

@@ -12,7 +12,8 @@ def truncated_normal_sampler(mean, std, lower_bound, upper_bound, size=1):
     if std == 0:
         return np.ones(size) * mean
     a, b = (lower_bound - mean) / std, (upper_bound - mean) / std
-    return stats.truncnorm.rvs(a, b, loc=mean, scale=std, size=size)    
+    return stats.truncnorm.rvs(a, b, loc=mean, scale=std, size=size)
+
 
 def readTXT(filename):
     with open(filename) as f:
@@ -20,19 +21,20 @@ def readTXT(filename):
     return lines
 
 
-class ConfigYAML():
+class ConfigYAML:
     """
     Config class for yaml file
     Able to load and save yaml file to and from python object
     """
+
     def __init__(self) -> None:
         pass
-    
+
     def load_file(self, filename):
         d = yaml.safe_load(Path(filename).read_text())
-        for key in d: 
-            setattr(self, key, d[key]) 
-    
+        for key in d:
+            setattr(self, key, d[key])
+
     def save_file(self, filename):
         def np_convert(obj):
             if isinstance(obj, np.ndarray):
@@ -43,20 +45,23 @@ class ConfigYAML():
                 return int(obj)
             else:
                 return obj
-        
+
         d = vars(self)
         class_d = vars(self.__class__)
         d_out = {}
         for key in list(class_d.keys()):
-            if not (key.startswith('__') or \
-                    key.startswith('load_file') or \
-                    key.startswith('save_file')):
-
+            if not (
+                key.startswith("__")
+                or key.startswith("load_file")
+                or key.startswith("save_file")
+            ):
                 d_out[key] = np_convert(class_d[key])
         for key in list(d.keys()):
-            if not (key.startswith('__') or \
-                    key.startswith('load_file') or \
-                    key.startswith('save_file')):
+            if not (
+                key.startswith("__")
+                or key.startswith("load_file")
+                or key.startswith("save_file")
+            ):
                 d_out[key] = np_convert(d[key])
-        with open(filename, 'w+') as ff:
+        with open(filename, "w+") as ff:
             yaml.dump_all([d_out], ff)

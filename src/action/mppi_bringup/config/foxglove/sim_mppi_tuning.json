@@ -12,8 +12,16 @@
           "divisions": 10,
           "lineWidth": 1,
           "color": "#248eff",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 0],
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
           "order": 1
         },
         "ego-urdf-layer": {
@@ -40,9 +48,22 @@
         "distance": 20,
         "phi": 0.00005733012158196959,
         "thetaOffset": 92.15777232860488,
-        "targetOffset": [6.239717429196161, 1.4754710408932958, 0.0],
-        "target": [0, 0, 0],
-        "targetOrientation": [0, 0, 0, 1],
+        "targetOffset": [
+          6.239717429196161,
+          1.4754710408932958,
+          0.0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
         "fovy": 45,
         "near": 0.5,
         "far": 5000
@@ -71,7 +92,10 @@
           "colorField": "range",
           "colorMode": "gradient",
           "colorMap": "turbo",
-          "gradient": ["#ec0303ff", "#12fd00ff"],
+          "gradient": [
+            "#ec0303ff",
+            "#12fd00ff"
+          ],
           "pointSize": 3
         },
         "/mppi/reference": {

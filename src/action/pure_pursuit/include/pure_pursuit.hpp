@@ -1,3 +1,17 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /*
     Authors           : Muhtasim Ahsan, Jordan Khatri
     Last Date of Edit : 2026-04-23
@@ -42,116 +56,113 @@
 #ifndef PURE_PERSUIT_NODE_HPP_
 #define PURE_PERSUIT_NODE_HPP_
 
-
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
-#include <string>
-#include <algorithm>
-
-#include "rclcpp/rclcpp.hpp"
-
-#include "std_msgs/msg/bool.hpp"
-#include "std_msgs/msg/float32.hpp"
-
-#include "nav_msgs/msg/odometry.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "geometry_msgs/msg/pose.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "visualization_msgs/msg/marker.hpp"
-
-#include "geometry_msgs/msg/transform_stamped.hpp"
-#include "tf2/exceptions.hpp"
-#include "tf2_ros/transform_listener.hpp"
-#include "tf2_ros/buffer.hpp"
 
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#include "geometry_msgs/msg/point.hpp"
+#include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "nav_msgs/msg/path.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/float32.hpp"
+#include "tf2/exceptions.hpp"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
+#include "visualization_msgs/msg/marker.hpp"
 
-enum state_ {
-    INACTIVE,
-    GLOBAL_FOLLOW,
-    LOCAL_FOLLOW
+enum state_
+{
+  INACTIVE,
+  GLOBAL_FOLLOW,
+  LOCAL_FOLLOW
 };
 
-class Pure_Pursuit_Node : public rclcpp::Node {
+class Pure_Pursuit_Node : public rclcpp::Node
+{
 public:
-    Pure_Pursuit_Node();
+  Pure_Pursuit_Node();
+
 private:
+  // publishers
+  rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr look_ahead_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr lookahead_point_pub_;
 
-    //publishers
-    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
-    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr look_ahead_pub_;
-    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr lookahead_point_pub_;
+  // subscription
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr overtake_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dead_man_sub_;
 
-    //subscription
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr overtake_sub_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dead_man_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr local_path_sub_;
 
-    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr local_path_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
+  // timer
+  rclcpp::TimerBase::SharedPtr control_loop_timer;
 
-    //timer
-    rclcpp::TimerBase::SharedPtr control_loop_timer;
+  // tf2
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
 
-    //tf2
-    std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
-    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  // callback functions
+  void control_timer_callback();
+  // void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
-    //callback functions
-    void control_timer_callback ();
-    //void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+  // helpers
+  void init_parameters();
 
-    //helpers
-    void init_parameters();
+  void update_controller_state();
+  std::optional<geometry_msgs::msg::Point> get_local_waypoint();
+  std::optional<geometry_msgs::msg::Point> get_global_waypoint();
 
-    void update_controller_state();
-    std::optional<geometry_msgs::msg::Point> get_local_waypoint();
-    std::optional<geometry_msgs::msg::Point> get_global_waypoint();
+  ackermann_msgs::msg::AckermannDriveStamped calculate_control(const geometry_msgs::msg::Point & target_point);
+  ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
-    ackermann_msgs::msg::AckermannDriveStamped calculate_control(const geometry_msgs::msg::Point &target_point);
-    ackermann_msgs::msg::AckermannDriveStamped dead_stop();
+  double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
+  size_t find_current_position_index();
+  std::optional<geometry_msgs::msg::Point> find_lookahead_global(size_t current_vehicle_index);
+  geometry_msgs::msg::Point interpolate_lookahead_point(
+    const geometry_msgs::msg::Point & prev_pt,
+    const geometry_msgs::msg::Point & curr_pt,
+    double ref_x,
+    double ref_y,
+    double lookahead);
+  std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point & global_point);
+  geometry_msgs::msg::Point transfrom_point_(
+    const geometry_msgs::msg::Point & point_, const geometry_msgs::msg::Transform & t_);
+  double extractYaw(const geometry_msgs::msg::Quaternion & quat);
+  void update_lookahead_distance();
+  size_t init_position_index_cache();
+  void publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p);
 
-    double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
-    size_t find_current_position_index();
-    std::optional<geometry_msgs::msg::Point> find_lookahead_global(size_t current_vehicle_index);
-    geometry_msgs::msg::Point interpolate_lookahead_point(
-        const geometry_msgs::msg::Point &prev_pt,
-        const geometry_msgs::msg::Point &curr_pt,
-        double ref_x, double ref_y,
-        double lookahead);
-    std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point &global_point);
-    geometry_msgs::msg::Point transfrom_point_ (const geometry_msgs::msg::Point &point_, const geometry_msgs::msg::Transform &t_);
-    double extractYaw(const geometry_msgs::msg::Quaternion &quat);
-    void update_lookahead_distance();
-    size_t init_position_index_cache();
-    void publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p);
+  // parameters
+  std::string global_frame_id, local_frame_id;
+  std::string global_path_topic, local_path_topic;
+  std::string overtake_ready_topic, dead_man_active_topic;
+  std::string ackermann_control_topic, odom_topic;
+  std::string speed_topic;
+  bool overtaking_enable, speed_limit_enable;
+  double look_ahead_distance, speed_limit, max_steering_angle;
+  double kp_gain;
+  double max_lookahead, min_lookahead, lookahead_ratio;
+  double current_velocity;
+  bool enable_debug_vis;
 
-    //parameters
-    std::string global_frame_id, local_frame_id;
-    std::string global_path_topic, local_path_topic;
-    std::string overtake_ready_topic, dead_man_active_topic;
-    std::string ackermann_control_topic, odom_topic;
-    std::string speed_topic;
-    bool overtaking_enable, speed_limit_enable;
-    double look_ahead_distance, speed_limit, max_steering_angle;
-    double kp_gain;
-    double max_lookahead, min_lookahead, lookahead_ratio;
-    double current_velocity;
-    bool enable_debug_vis;
-
-    //internal state and variabels
-    state_ controller_state ;
-    std_msgs::msg::Bool dead_man_active, overtake_active;
-    nav_msgs::msg::Path current_global_path;
-    nav_msgs::msg::Path current_local_path;
-    nav_msgs::msg::Odometry current_pose;
-
+  // internal state and variabels
+  state_ controller_state;
+  std_msgs::msg::Bool dead_man_active, overtake_active;
+  nav_msgs::msg::Path current_global_path;
+  nav_msgs::msg::Path current_local_path;
+  nav_msgs::msg::Odometry current_pose;
 };
 
 #endif

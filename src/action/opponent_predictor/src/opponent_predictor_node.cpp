@@ -108,27 +108,20 @@ public:
     prediction_dt_ = std::max(1e-3, declare_parameter<double>("prediction_dt", 0.1));
     publish_rate_hz_ = std::max(1.0, declare_parameter<double>("publish_rate_hz", 20.0));
     stale_timeout_ = std::max(0.0, declare_parameter<double>("stale_timeout", 0.5));
-    max_stale_prediction_time_ =
-      std::max(stale_timeout_, declare_parameter<double>("max_stale_prediction_time", 2.0));
+    max_stale_prediction_time_ = std::max(stale_timeout_, declare_parameter<double>("max_stale_prediction_time", 2.0));
     speed_profile_scale_ = std::max(0.0, declare_parameter<double>("speed_profile_scale", 1.0));
     speed_profile_min_speed_ = std::max(0.0, declare_parameter<double>("speed_profile_min_speed", 0.0));
-    speed_profile_max_speed_ = std::max(
-      speed_profile_min_speed_,
-      declare_parameter<double>("speed_profile_max_speed", 20.0));
-    profile_speed_blend_ = std::clamp(
-      declare_parameter<double>("profile_speed_blend", 0.7), 0.0, 1.0);
-    out_of_sight_profile_speed_blend_ = std::clamp(
-      declare_parameter<double>("out_of_sight_profile_speed_blend", 1.0), 0.0, 1.0);
+    speed_profile_max_speed_ =
+      std::max(speed_profile_min_speed_, declare_parameter<double>("speed_profile_max_speed", 20.0));
+    profile_speed_blend_ = std::clamp(declare_parameter<double>("profile_speed_blend", 0.7), 0.0, 1.0);
+    out_of_sight_profile_speed_blend_ =
+      std::clamp(declare_parameter<double>("out_of_sight_profile_speed_blend", 1.0), 0.0, 1.0);
     use_profile_speed_fallback_ = declare_parameter<bool>("use_profile_speed_fallback", false);
-    stationary_speed_threshold_ = std::max(
-      0.0, declare_parameter<double>("stationary_speed_threshold", 0.15));
+    stationary_speed_threshold_ = std::max(0.0, declare_parameter<double>("stationary_speed_threshold", 0.15));
     hold_stationary_when_stale_ = declare_parameter<bool>("hold_stationary_when_stale", true);
-    lateral_offset_alpha_ = std::clamp(
-      declare_parameter<double>("lateral_offset_alpha", 0.35), 0.0, 1.0);
-    lateral_offset_decay_time_ = std::max(
-      1e-3, declare_parameter<double>("lateral_offset_decay_time", 0.3));
-    position_snap_alpha_ = std::clamp(
-      declare_parameter<double>("position_snap_alpha", 1.0), 0.0, 1.0);
+    lateral_offset_alpha_ = std::clamp(declare_parameter<double>("lateral_offset_alpha", 0.35), 0.0, 1.0);
+    lateral_offset_decay_time_ = std::max(1e-3, declare_parameter<double>("lateral_offset_decay_time", 0.3));
+    position_snap_alpha_ = std::clamp(declare_parameter<double>("position_snap_alpha", 1.0), 0.0, 1.0);
     initial_speed_ = std::max(0.0, declare_parameter<double>("initial_speed", 1.0));
     max_progress_speed_ = std::max(0.1, declare_parameter<double>("max_progress_speed", 12.0));
     max_progress_accel_ = std::max(0.0, declare_parameter<double>("max_progress_accel", 8.0));
@@ -147,9 +140,7 @@ public:
     const auto debug_qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
 
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      input_odom_topic_,
-      sensor_qos,
-      std::bind(&OpponentPredictorNode::odomCallback, this, std::placeholders::_1));
+      input_odom_topic_, sensor_qos, std::bind(&OpponentPredictorNode::odomCallback, this, std::placeholders::_1));
 
     estimated_odom_pub_ = create_publisher<nav_msgs::msg::Odometry>(estimated_odom_topic_, sensor_qos);
     predicted_path_pub_ = create_publisher<nav_msgs::msg::Path>(predicted_path_topic_, sensor_qos);
@@ -157,14 +148,12 @@ public:
     debug_pub_ = create_publisher<std_msgs::msg::Float32MultiArray>(debug_topic_, debug_qos);
 
     timer_ = create_wall_timer(
-      std::chrono::duration<double>(1.0 / publish_rate_hz_),
-      std::bind(&OpponentPredictorNode::timerCallback, this));
+      std::chrono::duration<double>(1.0 / publish_rate_hz_), std::bind(&OpponentPredictorNode::timerCallback, this));
 
     // Live params refreshed at 2 Hz instead of on every odom/timer callback
     // (was ~30 Hz x ~25 mutex-protected param fetches).
-    params_timer_ = create_wall_timer(
-      std::chrono::milliseconds(500),
-      std::bind(&OpponentPredictorNode::refreshLiveParams, this));
+    params_timer_ =
+      create_wall_timer(std::chrono::milliseconds(500), std::bind(&OpponentPredictorNode::refreshLiveParams, this));
 
     RCLCPP_INFO(
       get_logger(),
@@ -183,29 +172,19 @@ private:
     prediction_steps_ = std::max(1, static_cast<int>(get_parameter("prediction_steps").as_int()));
     prediction_dt_ = std::max(1e-3, get_parameter("prediction_dt").as_double());
     stale_timeout_ = std::max(0.0, get_parameter("stale_timeout").as_double());
-    max_stale_prediction_time_ = std::max(
-      stale_timeout_,
-      get_parameter("max_stale_prediction_time").as_double());
+    max_stale_prediction_time_ = std::max(stale_timeout_, get_parameter("max_stale_prediction_time").as_double());
     speed_profile_scale_ = std::max(0.0, get_parameter("speed_profile_scale").as_double());
     speed_profile_min_speed_ = std::max(0.0, get_parameter("speed_profile_min_speed").as_double());
-    speed_profile_max_speed_ = std::max(
-      speed_profile_min_speed_,
-      get_parameter("speed_profile_max_speed").as_double());
-    profile_speed_blend_ = std::clamp(
-      get_parameter("profile_speed_blend").as_double(), 0.0, 1.0);
-    out_of_sight_profile_speed_blend_ = std::clamp(
-      get_parameter("out_of_sight_profile_speed_blend").as_double(), 0.0, 1.0);
+    speed_profile_max_speed_ = std::max(speed_profile_min_speed_, get_parameter("speed_profile_max_speed").as_double());
+    profile_speed_blend_ = std::clamp(get_parameter("profile_speed_blend").as_double(), 0.0, 1.0);
+    out_of_sight_profile_speed_blend_ =
+      std::clamp(get_parameter("out_of_sight_profile_speed_blend").as_double(), 0.0, 1.0);
     use_profile_speed_fallback_ = get_parameter("use_profile_speed_fallback").as_bool();
-    stationary_speed_threshold_ = std::max(
-      0.0, get_parameter("stationary_speed_threshold").as_double());
+    stationary_speed_threshold_ = std::max(0.0, get_parameter("stationary_speed_threshold").as_double());
     hold_stationary_when_stale_ = get_parameter("hold_stationary_when_stale").as_bool();
-    lateral_offset_alpha_ = std::clamp(
-      get_parameter("lateral_offset_alpha").as_double(), 0.0, 1.0);
-    lateral_offset_decay_time_ = std::max(
-      1e-3,
-      get_parameter("lateral_offset_decay_time").as_double());
-    position_snap_alpha_ = std::clamp(
-      get_parameter("position_snap_alpha").as_double(), 0.0, 1.0);
+    lateral_offset_alpha_ = std::clamp(get_parameter("lateral_offset_alpha").as_double(), 0.0, 1.0);
+    lateral_offset_decay_time_ = std::max(1e-3, get_parameter("lateral_offset_decay_time").as_double());
+    position_snap_alpha_ = std::clamp(get_parameter("position_snap_alpha").as_double(), 0.0, 1.0);
     max_progress_speed_ = std::max(0.1, get_parameter("max_progress_speed").as_double());
     max_progress_accel_ = std::max(0.0, get_parameter("max_progress_accel").as_double());
     q_s_ = std::max(0.0, get_parameter("kf_process_var_s").as_double());
@@ -293,9 +272,7 @@ private:
     waypoints_.front().s = 0.0;
     waypoints_.front().yaw = wrapAngle(waypoints_.front().yaw + M_PI);
     for (std::size_t i = 1; i < waypoints_.size(); ++i) {
-      const double ds = std::hypot(
-        waypoints_[i].x - waypoints_[i - 1].x,
-        waypoints_[i].y - waypoints_[i - 1].y);
+      const double ds = std::hypot(waypoints_[i].x - waypoints_[i - 1].x, waypoints_[i].y - waypoints_[i - 1].y);
       waypoints_[i].s = waypoints_[i - 1].s + ds;
       waypoints_[i].yaw = wrapAngle(waypoints_[i].yaw + M_PI);
     }
@@ -452,9 +429,7 @@ private:
     v_hat_ = std::max(0.0, v_hat_);
   }
 
-  bool transformOpponentPose(
-    const nav_msgs::msg::Odometry & msg,
-    geometry_msgs::msg::PoseStamped & pose_out)
+  bool transformOpponentPose(const nav_msgs::msg::Odometry & msg, geometry_msgs::msg::PoseStamped & pose_out)
   {
     geometry_msgs::msg::PoseStamped pose_in;
     pose_in.header = msg.header;
@@ -466,10 +441,7 @@ private:
     if (pose_source_ == "tf" && !msg.child_frame_id.empty()) {
       try {
         const auto transform = tf_buffer_->lookupTransform(
-          frame_id_,
-          msg.child_frame_id,
-          tf2::TimePointZero,
-          tf2::durationFromSec(tf_lookup_timeout_));
+          frame_id_, msg.child_frame_id, tf2::TimePointZero, tf2::durationFromSec(tf_lookup_timeout_));
         pose_out.header = transform.header;
         pose_out.pose.position.x = transform.transform.translation.x;
         pose_out.pose.position.y = transform.transform.translation.y;
@@ -501,10 +473,7 @@ private:
     }
 
     try {
-      pose_out = tf_buffer_->transform(
-        pose_in,
-        frame_id_,
-        tf2::durationFromSec(tf_lookup_timeout_));
+      pose_out = tf_buffer_->transform(pose_in, frame_id_, tf2::durationFromSec(tf_lookup_timeout_));
       return true;
     } catch (const tf2::TransformException & ex) {
       RCLCPP_WARN_THROTTLE(
@@ -536,11 +505,7 @@ private:
     const double x = opponent_pose.pose.position.x;
     const double y = opponent_pose.pose.position.y;
     if (!std::isfinite(now_sec) || !std::isfinite(x) || !std::isfinite(y)) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(),
-        *get_clock(),
-        1000,
-        "Ignoring non-finite opponent odom measurement.");
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Ignoring non-finite opponent odom measurement.");
       return;
     }
     const Projection proj = projectToTrack(x, y);
@@ -548,9 +513,9 @@ private:
     const double vx = msg->twist.twist.linear.x;
     const double vy = msg->twist.twist.linear.y;
     const double vz = msg->twist.twist.linear.z;
-    last_twist_speed_ = (std::isfinite(vx) && std::isfinite(vy) && std::isfinite(vz)) ?
-      std::hypot(std::hypot(vx, vy), vz) :
-      std::numeric_limits<double>::quiet_NaN();
+    last_twist_speed_ = (std::isfinite(vx) && std::isfinite(vy) && std::isfinite(vz))
+                          ? std::hypot(std::hypot(vx, vy), vz)
+                          : std::numeric_limits<double>::quiet_NaN();
 
     double s_meas = proj.s;
     double v_meas = last_twist_speed_;
@@ -565,28 +530,20 @@ private:
         const double raw_progress_speed = (s_for_delta - last_projected_s_) / dt;
         last_progress_speed_ = raw_progress_speed;
         progress_speed_valid =
-          std::isfinite(raw_progress_speed) &&
-          raw_progress_speed >= -0.25 &&
-          raw_progress_speed <= max_progress_speed_;
+          std::isfinite(raw_progress_speed) && raw_progress_speed >= -0.25 && raw_progress_speed <= max_progress_speed_;
 
         if (progress_speed_valid) {
           v_meas = std::clamp(raw_progress_speed, 0.0, max_progress_speed_);
           if (std::isfinite(last_measured_speed_) && max_progress_accel_ > 0.0) {
             const double max_step = max_progress_accel_ * dt;
-            v_meas = std::clamp(
-              v_meas,
-              std::max(0.0, last_measured_speed_ - max_step),
-              last_measured_speed_ + max_step);
+            v_meas =
+              std::clamp(v_meas, std::max(0.0, last_measured_speed_ - max_step), last_measured_speed_ + max_step);
           }
         }
       }
     }
 
-    if (
-      use_profile_speed_fallback_ &&
-      !progress_speed_valid &&
-      (!std::isfinite(v_meas) || std::abs(v_meas) < 0.05))
-    {
+    if (use_profile_speed_fallback_ && !progress_speed_valid && (!std::isfinite(v_meas) || std::abs(v_meas) < 0.05)) {
       v_meas = proj.profile_speed;
     }
     v_meas = std::clamp(v_meas, 0.0, max_progress_speed_);
@@ -602,8 +559,7 @@ private:
       updateKalman(s_meas, v_meas);
       s_hat_ = (1.0 - position_snap_alpha_) * s_hat_ + position_snap_alpha_ * s_meas;
       lateral_offset_hat_ =
-        (1.0 - lateral_offset_alpha_) * lateral_offset_hat_ +
-        lateral_offset_alpha_ * proj.lateral_error;
+        (1.0 - lateral_offset_alpha_) * lateral_offset_hat_ + lateral_offset_alpha_ * proj.lateral_error;
     }
 
     last_measurement_time_sec_ = now_sec;
@@ -633,8 +589,7 @@ private:
 
     for (int k = 0; k <= prediction_steps_; ++k) {
       TrackPose pose = interpolateTrack(pred_s);
-      const double lateral_decay = std::exp(
-        -static_cast<double>(k) * prediction_dt_ / lateral_offset_decay_time_);
+      const double lateral_decay = std::exp(-static_cast<double>(k) * prediction_dt_ / lateral_offset_decay_time_);
       pose = applyLateralOffset(pose, lateral_offset_hat_ * lateral_decay);
       pose.speed = pred_v;
       prediction.push_back(pose);
@@ -701,8 +656,7 @@ private:
       static_cast<float>(last_profile_speed_),
       static_cast<float>(last_projection_distance_),
       static_cast<float>(lateral_offset_hat_),
-      stale ? 1.0f : 0.0f
-    };
+      stale ? 1.0f : 0.0f};
     debug_pub_->publish(debug);
   }
 
@@ -841,9 +795,7 @@ private:
     text.color.g = 1.0;
     text.color.b = 1.0;
     std::ostringstream ss;
-    ss << "v=" << std::fixed << std::setprecision(1) << v_hat_
-       << " age=" << age
-       << (stale ? " stale" : "");
+    ss << "v=" << std::fixed << std::setprecision(1) << v_hat_ << " age=" << age << (stale ? " stale" : "");
     text.text = ss.str();
     markers.markers.push_back(text);
   }

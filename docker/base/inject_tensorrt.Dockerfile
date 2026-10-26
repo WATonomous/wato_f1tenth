@@ -24,6 +24,7 @@ RUN printf 'Package: libnvinfer* libnvonnxparsers* python3-libnvinfer* tensorrt*
     rm -rf /var/lib/apt/lists/*
 
 # Plain .so links so CMake can link against the shared libraries without the -dev packages.
+# hadolint ignore=DL3003
 RUN cd /usr/lib/x86_64-linux-gnu && \
     ln -sf libnvinfer.so.10 libnvinfer.so && \
     ln -sf libnvinfer_plugin.so.10 libnvinfer_plugin.so && \

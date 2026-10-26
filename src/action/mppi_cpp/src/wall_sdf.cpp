@@ -1,24 +1,31 @@
 #include "mppi_cpp/wall_sdf.hpp"
 
-#include <yaml-cpp/yaml.h>
-
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <limits>
 #include <stdexcept>
 
-namespace mppi {
-namespace {
+#include <yaml-cpp/yaml.h>
+
+namespace mppi
+{
+namespace
+{
 
 // Minimal PGM (P5 binary / P2 ascii) reader -> 8-bit grayscale, row 0 = top.
-std::vector<uint8_t> read_pgm(const std::string& path, int& w, int& h) {
+std::vector<uint8_t> read_pgm(const std::string & path, int & w, int & h)
+{
   std::ifstream in(path, std::ios::binary);
   if (!in) throw std::runtime_error("cannot open map image: " + path);
   auto next_token = [&in]() {
     std::string tok;
     while (in >> tok) {
-      if (tok[0] == '#') { std::string rest; std::getline(in, rest); continue; }
+      if (tok[0] == '#') {
+        std::string rest;
+        std::getline(in, rest);
+        continue;
+      }
       return tok;
     }
     throw std::runtime_error("truncated PGM header");
@@ -31,12 +38,16 @@ std::vector<uint8_t> read_pgm(const std::string& path, int& w, int& h) {
   if (magic == "P5") {
     in.get();  // single whitespace after maxval
     if (maxval < 256) {
-      in.read(reinterpret_cast<char*>(img.data()), img.size());
+      in.read(reinterpret_cast<char *>(img.data()), img.size());
     } else {
-      for (auto& px : img) { uint8_t b[2]; in.read(reinterpret_cast<char*>(b), 2); px = b[0]; }
+      for (auto & px : img) {
+        uint8_t b[2];
+        in.read(reinterpret_cast<char *>(b), 2);
+        px = b[0];
+      }
     }
   } else if (magic == "P2") {
-    for (auto& px : img) px = static_cast<uint8_t>(std::stoi(next_token()) * 255 / maxval);
+    for (auto & px : img) px = static_cast<uint8_t>(std::stoi(next_token()) * 255 / maxval);
   } else {
     throw std::runtime_error("unsupported map image format (need P2/P5 PGM): " + path);
   }
@@ -45,17 +56,24 @@ std::vector<uint8_t> read_pgm(const std::string& path, int& w, int& h) {
 }
 
 // Felzenszwalb & Huttenlocher 1D squared distance transform.
-void edt_1d(const double* f, double* d, int n, std::vector<int>& v, std::vector<double>& z) {
+void edt_1d(const double * f, double * d, int n, std::vector<int> & v, std::vector<double> & z)
+{
   constexpr double inf = std::numeric_limits<double>::infinity();
   int k = 0;
-  v[0] = 0; z[0] = -inf; z[1] = inf;
-  auto sect = [&](int q, int p) {
-    return ((f[q] + double(q) * q) - (f[p] + double(p) * p)) / (2.0 * q - 2.0 * p);
-  };
+  v[0] = 0;
+  z[0] = -inf;
+  z[1] = inf;
+  auto sect = [&](int q, int p) { return ((f[q] + double(q) * q) - (f[p] + double(p) * p)) / (2.0 * q - 2.0 * p); };
   for (int q = 1; q < n; ++q) {
     double s = sect(q, v[k]);
-    while (s <= z[k]) { --k; s = sect(q, v[k]); }
-    ++k; v[k] = q; z[k] = s; z[k + 1] = inf;
+    while (s <= z[k]) {
+      --k;
+      s = sect(q, v[k]);
+    }
+    ++k;
+    v[k] = q;
+    z[k] = s;
+    z[k + 1] = inf;
   }
   k = 0;
   for (int q = 0; q < n; ++q) {
@@ -66,7 +84,8 @@ void edt_1d(const double* f, double* d, int n, std::vector<int>& v, std::vector<
 
 }  // namespace
 
-WallSdf WallSdf::load(const std::string& map_yaml) {
+WallSdf WallSdf::load(const std::string & map_yaml)
+{
   const std::filesystem::path yaml_path = std::filesystem::absolute(map_yaml);
   const YAML::Node cfg = YAML::LoadFile(yaml_path.string());
   std::filesystem::path image = cfg["image"].as<std::string>();
@@ -75,7 +94,8 @@ WallSdf WallSdf::load(const std::string& map_yaml) {
   WallSdf sdf;
   int w, h;
   const std::vector<uint8_t> img = read_pgm(image.string(), w, h);
-  sdf.w = w; sdf.h = h;
+  sdf.w = w;
+  sdf.h = h;
   sdf.res = cfg["resolution"].as<float>();
   sdf.ox = cfg["origin"][0].as<float>();
   sdf.oy = cfg["origin"][1].as<float>();
@@ -110,7 +130,8 @@ WallSdf WallSdf::load(const std::string& map_yaml) {
   return sdf;
 }
 
-float WallSdf::sample(float x, float y) const {
+float WallSdf::sample(float x, float y) const
+{
   if (!valid()) return 100.f;
   const int col = static_cast<int>(std::floor((x - ox) / res));
   const int row = static_cast<int>(std::floor((y - oy) / res));

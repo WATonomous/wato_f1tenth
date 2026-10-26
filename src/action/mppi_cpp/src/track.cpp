@@ -7,30 +7,44 @@
 #include <sstream>
 #include <stdexcept>
 
-namespace mppi {
-namespace {
+namespace mppi
+{
+namespace
+{
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kFrictionMin = 1e-3;
 
-double pymod(double a, double b) { return a - std::floor(a / b) * b; }
-double wrap_pi(double a) { return pymod(a + kPi, 2.0 * kPi) - kPi; }
-int pymod(int a, int b) { return ((a % b) + b) % b; }
+double pymod(double a, double b)
+{
+  return a - std::floor(a / b) * b;
+}
+
+double wrap_pi(double a)
+{
+  return pymod(a + kPi, 2.0 * kPi) - kPi;
+}
+
+int pymod(int a, int b)
+{
+  return ((a % b) + b) % b;
+}
 }  // namespace
 
-Track Track::load_csv(const std::string& path) {
+Track Track::load_csv(const std::string & path)
+{
   std::ifstream in(path);
   if (!in) throw std::runtime_error("cannot open raceline csv: " + path);
   std::vector<std::vector<double>> rows;
   std::string line;
-  for (int i = 0; i < 3 && std::getline(in, line); ++i) {}  // wpt_rowskip = 3
+  for (int i = 0; i < 3 && std::getline(in, line); ++i) {
+  }  // wpt_rowskip = 3
   while (std::getline(in, line)) {
     if (line.empty()) continue;
     std::vector<double> row;
     std::stringstream ss(line);
     std::string tok;
     while (std::getline(ss, tok, ';')) row.push_back(std::stod(tok));
-    if (!rows.empty() && row.size() != rows.front().size())
-      throw std::runtime_error("ragged raceline csv: " + path);
+    if (!rows.empty() && row.size() != rows.front().size()) throw std::runtime_error("ragged raceline csv: " + path);
     rows.push_back(std::move(row));
   }
   if (rows.size() < 2 || rows.front().size() < 7)
@@ -58,7 +72,8 @@ Track Track::load_csv(const std::string& path) {
   return t;
 }
 
-NearestPoint Track::nearest(double x, double y) const {
+NearestPoint Track::nearest(double x, double y) const
+{
   const int M = static_cast<int>(seg_len_.size());
   double best = std::numeric_limits<double>::infinity(), best_t = 0.0;
   int best_i = 0;
@@ -68,14 +83,19 @@ NearestPoint Track::nearest(double x, double y) const {
     const double t = std::clamp(dot / (l2 + 1e-8), 0.0, 1.0);
     const double px = wp_(i, 1) + t * diff_x_[i], py = wp_(i, 2) + t * diff_y_[i];
     const double d = std::hypot(x - px, y - py);
-    if (d < best) { best = d; best_t = t; best_i = i; }
+    if (d < best) {
+      best = d;
+      best_t = t;
+      best_i = i;
+    }
   }
   return {std::hypot(diff_x_[best_i] * best_t, diff_y_[best_i] * best_t), best, best_i};
 }
 
 // get_reference_trajectory (numpy version in infer_env.py).
-RowMat Track::interpolate(const std::vector<double>& speeds, double dist_from_segment_start,
-                          int idx, int n_steps, double dt) const {
+RowMat Track::interpolate(
+  const std::vector<double> & speeds, double dist_from_segment_start, int idx, int n_steps, double dt) const
+{
   const int M = static_cast<int>(seg_len_.size());  // N - 1
   std::vector<double> s_rel(n_steps + 1);
   s_rel[0] = dist_from_segment_start;
@@ -83,7 +103,10 @@ RowMat Track::interpolate(const std::vector<double>& speeds, double dist_from_se
 
   std::vector<double> wdr(M);  // cumsum(roll(seg_len, -idx))
   double acc = 0.0;
-  for (int j = 0; j < M; ++j) { acc += seg_len_[pymod(idx + j, M)]; wdr[j] = acc; }
+  for (int j = 0; j < M; ++j) {
+    acc += seg_len_[pymod(idx + j, M)];
+    wdr[j] = acc;
+  }
 
   RowMat ref(n_steps + 1, kRefDim);
   const double s_max = wp_(wp_.rows() - 1, 0);
@@ -106,13 +129,12 @@ RowMat Track::interpolate(const std::vector<double>& speeds, double dist_from_se
   return ref;
 }
 
-std::vector<double> Track::profiled_speeds(const std::vector<double>& speeds_in,
-                                           const Config& cfg) const {
+std::vector<double> Track::profiled_speeds(const std::vector<double> & speeds_in, const Config & cfg) const
+{
   const double lo = cfg.speed_profile_min_speed;
   const double hi = std::max(lo, cfg.speed_profile_max_speed);
   std::vector<double> speeds(speeds_in.size());
-  for (size_t i = 0; i < speeds.size(); ++i)
-    speeds[i] = std::clamp(speeds_in[i] * cfg.speed_profile_scale, lo, hi);
+  for (size_t i = 0; i < speeds.size(); ++i) speeds[i] = std::clamp(speeds_in[i] * cfg.speed_profile_scale, lo, hi);
   const int L = std::max(0, cfg.speed_profile_lookahead_steps);
   if (L > 0 && speeds.size() > 1) {
     std::vector<double> out(speeds.size());
@@ -127,8 +149,9 @@ std::vector<double> Track::profiled_speeds(const std::vector<double>& speeds_in,
   return speeds;
 }
 
-RowMat Track::reference(const double* state, double target_speed, int n_steps, const Config& cfg,
-                        int* index_out) const {
+RowMat Track::reference(
+  const double * state, double target_speed, int n_steps, const Config & cfg, int * index_out) const
+{
   const NearestPoint np = nearest(state[0], state[1]);
   double speed = target_speed;
   if (cfg.use_waypoint_speed_profile) speed = profiled_speeds({wp_(np.index, 5)}, cfg)[0];
@@ -159,16 +182,15 @@ RowMat Track::reference(const double* state, double target_speed, int n_steps, c
   return ref;
 }
 
-std::vector<float> Track::reference_frictions(const double* state, int n_steps,
-                                              const Config& cfg) const {
+std::vector<float> Track::reference_frictions(const double * state, int n_steps, const Config & cfg) const
+{
   const double hi = cfg.friction_max;
   if (!has_friction_)
     return std::vector<float>(n_steps, static_cast<float>(std::clamp(cfg.friction, kFrictionMin, hi)));
   const int N = static_cast<int>(frictions_.size());
   const int ind = nearest(state[0], state[1]).index;
   std::vector<float> mu(n_steps);
-  for (int i = 0; i < n_steps; ++i)
-    mu[i] = static_cast<float>(std::clamp(frictions_[(ind + i) % N], kFrictionMin, hi));
+  for (int i = 0; i < n_steps; ++i) mu[i] = static_cast<float>(std::clamp(frictions_[(ind + i) % N], kFrictionMin, hi));
   return mu;
 }
 

@@ -15,6 +15,7 @@ WORKDIR ${AMENT_WS}/src
 # lint tests are dropped so `watod test sim` only tests our code.
 ARG AUTODRIVE_DEVKIT_URL=https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-RoboRacer-Sim-Racing/releases/download/2026-icra/autodrive_devkit.zip
 ARG AUTODRIVE_DEVKIT_SHA256=ac2c3bb49bb32b7c84e000ddc7fecf07e191d3d03d00113d60dc4da693941ee0
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL -o /tmp/autodrive_devkit.zip "${AUTODRIVE_DEVKIT_URL}" && \
     echo "${AUTODRIVE_DEVKIT_SHA256}  /tmp/autodrive_devkit.zip" | sha256sum -c - && \
     python3 -m zipfile -e /tmp/autodrive_devkit.zip . && \

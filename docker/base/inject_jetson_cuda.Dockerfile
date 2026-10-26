@@ -29,6 +29,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # CUDA toolkit (nvcc included, so CUDA code builds in the image) + cuda-compat
+# hadolint ignore=DL3003
 RUN mkdir -p /tmp/cuda && cd /tmp/cuda && \
     wget -q "${CUDA_PIN_URL}" -O /etc/apt/preferences.d/cuda-repository-pin-600 && \
     wget -q "${CUDA_URL}" && \
@@ -43,6 +44,7 @@ RUN mkdir -p /tmp/cuda && cd /tmp/cuda && \
     rm -rf /var/lib/apt/lists/* /tmp/cuda
 
 # cuDNN
+# hadolint ignore=DL3003
 RUN mkdir -p /tmp/cudnn && cd /tmp/cudnn && \
     wget -q "${CUDNN_URL}" && \
     dpkg -i ./*.deb && \
@@ -53,6 +55,7 @@ RUN mkdir -p /tmp/cudnn && cd /tmp/cudnn && \
     rm -rf /var/lib/apt/lists/* /tmp/cudnn
 
 # TensorRT (L4T tarball: libraries, headers, trtexec)
+# hadolint ignore=DL3003
 RUN mkdir -p /tmp/trt && cd /tmp/trt && \
     wget -q -O trt.tar.gz "${TENSORRT_URL}" && \
     tar -xzf trt.tar.gz --strip-components=1 && \

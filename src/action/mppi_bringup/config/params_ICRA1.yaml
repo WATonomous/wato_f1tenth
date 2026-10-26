@@ -11,7 +11,7 @@ lmppi_node:
     sim_time_step: 0.1            # Rollout integration/control timestep used inside MPPI.
     random_seed: 527787           # Sampling seed. Keep fixed for repeatable tuning runs.
     render: false                 # Race hardware: avoid extra rollout/sync unless debugging trajectories.
-    
+
     # timer
     control_loop_hz: 40.0
 

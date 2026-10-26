@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Slider
 
-INIT_MARGIN = 0.30   # meters
+INIT_MARGIN = 0.30  # meters
 INIT_POWER = 0.02
-INIT_WEIGHT = 1.0    # wall_weight multiplier (for reference)
+INIT_WEIGHT = 1.0  # wall_weight multiplier (for reference)
 
 wall_dist = np.linspace(0.0, 1.5, 500)
 
@@ -38,7 +38,9 @@ plt.subplots_adjust(left=0.10, bottom=0.30, right=0.97, top=0.93)
     color="tab:orange",
     label="weighted (wall_weight * penalty)",
 )
-margin_marker = ax.axvline(INIT_MARGIN, color="tab:red", ls=":", lw=1, label="wall_margin")
+margin_marker = ax.axvline(
+    INIT_MARGIN, color="tab:red", ls=":", lw=1, label="wall_margin"
+)
 
 ax.set_xlabel("wall_dist [m]")
 ax.set_ylabel("penalty")
@@ -52,9 +54,13 @@ ax_margin = plt.axes([0.10, 0.18, 0.80, 0.04])
 ax_power = plt.axes([0.10, 0.11, 0.80, 0.04])
 ax_weight = plt.axes([0.10, 0.04, 0.80, 0.04])
 
-s_margin = Slider(ax_margin, "wall_margin [m]", 0.0, 1.5, valinit=INIT_MARGIN, valstep=0.01)
+s_margin = Slider(
+    ax_margin, "wall_margin [m]", 0.0, 1.5, valinit=INIT_MARGIN, valstep=0.01
+)
 s_power = Slider(ax_power, "wall_power", -6.0, 6.0, valinit=INIT_POWER, valstep=0.02)
-s_weight = Slider(ax_weight, "wall_weight", 0.0, 500.0, valinit=INIT_WEIGHT, valstep=0.5)
+s_weight = Slider(
+    ax_weight, "wall_weight", 0.0, 500.0, valinit=INIT_WEIGHT, valstep=0.5
+)
 
 
 def update(_):

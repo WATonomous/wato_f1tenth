@@ -5,6 +5,7 @@ import numpy as np
 from functools import partial
 import jax.numpy as jnp
 import jax
+
 # from numba import njit
 import datetime
 import hashlib
@@ -40,7 +41,7 @@ class Track:
         waypoints: Optional[np.ndarray] = None,
         s_frame_max: Optional[float] = None,
         tr_rights: Optional[np.ndarray] = None,
-        tr_lefts: Optional[np.ndarray] = None
+        tr_lefts: Optional[np.ndarray] = None,
     ):
         """
         Initialize track object.
@@ -79,15 +80,19 @@ class Track:
         # note: we could use 'ss' but sometimes it is normalized to [0,1], so we recompute it here
         self.length = float(np.sum(np.sqrt(np.diff(xs) ** 2 + np.diff(ys) ** 2)))
 
-        self.centerline = centerline or CubicSplineND(xs, ys, psis, kappas, velxs, accxs, ss)
+        self.centerline = centerline or CubicSplineND(
+            xs, ys, psis, kappas, velxs, accxs, ss
+        )
         self.len_s = len(self.centerline.s)
-        self.raceline = raceline or CubicSplineND(xs, ys, psis, kappas, velxs, accxs, ss)
+        self.raceline = raceline or CubicSplineND(
+            xs, ys, psis, kappas, velxs, accxs, ss
+        )
         self.s_guess = 0.0
         self.tr_rights_jax = jnp.array(tr_rights)
         self.tr_lefts_jax = jnp.array(tr_lefts)
 
     @staticmethod
-    def from_numpy(waypoints: np.ndarray, s_frame_max, downsample_step = 1) -> Track:
+    def from_numpy(waypoints: np.ndarray, s_frame_max, downsample_step=1) -> Track:
         """
         Create an empty track reference line.
 
@@ -105,22 +110,24 @@ class Track:
         track: Track
             track object
         """
-        assert (
-            waypoints.shape[1] >= 7
-        ), "expected waypoints as [s, x, y, psi, k, vx, ax, (w_right, w_left, friction)]"
+        assert waypoints.shape[1] >= 7, (
+            "expected waypoints as [s, x, y, psi, k, vx, ax, (w_right, w_left, friction)]"
+        )
 
-        ss=waypoints[::downsample_step, 0]
-        xs=waypoints[::downsample_step, 1]
-        ys=waypoints[::downsample_step, 2]
-        yaws=waypoints[::downsample_step, 3]
-        ks=waypoints[::downsample_step, 4]
-        vxs=waypoints[::downsample_step, 5]
-        axs=waypoints[::downsample_step, 6]
+        ss = waypoints[::downsample_step, 0]
+        xs = waypoints[::downsample_step, 1]
+        ys = waypoints[::downsample_step, 2]
+        yaws = waypoints[::downsample_step, 3]
+        ks = waypoints[::downsample_step, 4]
+        vxs = waypoints[::downsample_step, 5]
+        axs = waypoints[::downsample_step, 6]
 
         # cols 7,8 = w_tr_right, w_tr_left (optional); col 9 = per-waypoint friction (optional)
         tr_rights = waypoints[::downsample_step, 7] if waypoints.shape[1] >= 9 else None
-        tr_lefts  = waypoints[::downsample_step, 8] if waypoints.shape[1] >= 9 else None
-        frictions = waypoints[::downsample_step, 9] if waypoints.shape[1] >= 10 else None
+        tr_lefts = waypoints[::downsample_step, 8] if waypoints.shape[1] >= 9 else None
+        frictions = (
+            waypoints[::downsample_step, 9] if waypoints.shape[1] >= 10 else None
+        )
         refline = CubicSplineND(xs, ys, yaws, ks, vxs, axs)
 
         track = Track(
@@ -137,16 +144,16 @@ class Track:
             waypoints=waypoints,
             s_frame_max=s_frame_max,
             tr_rights=tr_rights,
-            tr_lefts=tr_lefts
+            tr_lefts=tr_lefts,
         )
         # Per-waypoint friction (None if CSV doesn't carry it — caller falls back to config.friction)
         track.frictions = frictions
         return track
-    
-    def to_raceline_csv(self, filepath: pathlib.Path, delimiter: str = ";" ) -> None:
+
+    def to_raceline_csv(self, filepath: pathlib.Path, delimiter: str = ";") -> None:
         """
         Save the track waypoints to a CSV file in raceline format.
-        The header is 
+        The header is
         # <current date and time>
         # <hash of the raceline file>
         # s_m; x_m; y_m; psi_rad; kappa_radpm; vx_mps; ax_mps2
@@ -161,14 +168,20 @@ class Track:
         if type(filepath) == str:
             filepath = pathlib.Path(filepath)
         # Check if path is valid
-        assert filepath.parent.exists(), f"parent directory does not exist ({filepath.parent})"
+        assert filepath.parent.exists(), (
+            f"parent directory does not exist ({filepath.parent})"
+        )
         # Write the waypoints to the file
         with open(filepath, "w") as file:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             file.write("# " + current_time + "\n")
             file.write("# " + hashlib.md5(filepath.read_bytes()).hexdigest() + "\n")
-            file.write("# s_m; x_m; y_m; psi_rad; kappa_radpm; vx_mps; ax_mps2; w_tr_right_m; w_tr_left_m\n")
-            if not hasattr(self.raceline, 'tr_rights') or not hasattr(self.raceline, 'tr_lefts'):
+            file.write(
+                "# s_m; x_m; y_m; psi_rad; kappa_radpm; vx_mps; ax_mps2; w_tr_right_m; w_tr_left_m\n"
+            )
+            if not hasattr(self.raceline, "tr_rights") or not hasattr(
+                self.raceline, "tr_lefts"
+            ):
                 np.savetxt(
                     file,
                     np.vstack(
@@ -179,7 +192,7 @@ class Track:
                             self.raceline.psis,
                             self.raceline.ks,
                             self.raceline.vxs,
-                            self.raceline.axs
+                            self.raceline.axs,
                         )
                     ).T,
                     delimiter=delimiter,
@@ -197,17 +210,19 @@ class Track:
                             self.raceline.vxs,
                             self.raceline.axs,
                             self.raceline.tr_rights,
-                            self.raceline.tr_lefts
+                            self.raceline.tr_lefts,
                         )
                     ).T,
                     delimiter=delimiter,
                 )
         return
 
-    def to_centerline_csv(self, filepath: pathlib.Path, delimiter: str = ";", track_half_width=4.0) -> None:
+    def to_centerline_csv(
+        self, filepath: pathlib.Path, delimiter: str = ";", track_half_width=4.0
+    ) -> None:
         """
         Save the track waypoints to a CSV file in centerline format.
-        The header is 
+        The header is
         # x_m, y_m, w_tr_right_m, w_tr_left_m
 
         Parameters
@@ -222,9 +237,13 @@ class Track:
         if type(filepath) == str:
             filepath = pathlib.Path(filepath)
         # Check if path is valid
-        assert filepath.parent.exists(), f"parent directory does not exist ({filepath.parent})"
+        assert filepath.parent.exists(), (
+            f"parent directory does not exist ({filepath.parent})"
+        )
         # Write the waypoints to the file
-        if not hasattr(self.raceline, 'tr_rights') or not hasattr(self.raceline, 'tr_lefts'):
+        if not hasattr(self.raceline, "tr_rights") or not hasattr(
+            self.raceline, "tr_lefts"
+        ):
             with open(filepath, "w") as file:
                 file.write("# x_m, y_m, w_tr_right_m, w_tr_left_m\n")
                 np.savetxt(
@@ -249,15 +268,17 @@ class Track:
                             self.centerline.xs,
                             self.centerline.ys,
                             self.raceline.tr_rights,
-                            self.raceline.tr_lefts
+                            self.raceline.tr_lefts,
                         )
                     ).T,
                     delimiter=delimiter,
                 )
         return
-    
+
     @staticmethod
-    def from_raceline_file(filepath: pathlib.Path, delimiter: str = ";", downsample_step = 1) -> Track:
+    def from_raceline_file(
+        filepath: pathlib.Path, delimiter: str = ";", downsample_step=1
+    ) -> Track:
         """
         Create an empty track reference line.
 
@@ -277,19 +298,21 @@ class Track:
         """
         assert filepath.exists(), f"input filepath does not exist ({filepath})"
         waypoints = np.loadtxt(filepath, delimiter=delimiter).astype(np.float32)
-        assert (
-            waypoints.shape[1] >= 7
-        ), "expected waypoints as [s, x, y, psi, k, vx, ax]"
-        
-        ss=waypoints[::downsample_step, 0]
-        xs=waypoints[::downsample_step, 1]
-        ys=waypoints[::downsample_step, 2]
-        yaws=waypoints[::downsample_step, 3]
-        ks=waypoints[::downsample_step, 4]
-        vxs=waypoints[::downsample_step, 5]
-        axs=waypoints[::downsample_step, 6]
+        assert waypoints.shape[1] >= 7, (
+            "expected waypoints as [s, x, y, psi, k, vx, ax]"
+        )
 
-        frictions = waypoints[::downsample_step, 9] if waypoints.shape[1] >= 10 else None
+        ss = waypoints[::downsample_step, 0]
+        xs = waypoints[::downsample_step, 1]
+        ys = waypoints[::downsample_step, 2]
+        yaws = waypoints[::downsample_step, 3]
+        ks = waypoints[::downsample_step, 4]
+        vxs = waypoints[::downsample_step, 5]
+        axs = waypoints[::downsample_step, 6]
+
+        frictions = (
+            waypoints[::downsample_step, 9] if waypoints.shape[1] >= 10 else None
+        )
         refline = CubicSplineND(xs, ys, yaws, ks, vxs, axs)
 
         track = Track(
@@ -332,14 +355,14 @@ class Track:
         # Adjust psi by adding the heading deviation
         psi += ephi
         return x, y, np.arctan2(np.sin(psi), np.cos(psi))
-    
+
     @partial(jax.jit, static_argnums=(0))
     def vmap_frenet_to_cartesian_jax(self, poses):
         s, ey, ephi = poses[:, 0], poses[:, 1], poses[:, 2]
-        return jnp.asarray(jax.vmap(self.frenet_to_cartesian_jax, in_axes=(0, 0, 0))(
-            s, ey, ephi
-            )).T
-    
+        return jnp.asarray(
+            jax.vmap(self.frenet_to_cartesian_jax, in_axes=(0, 0, 0))(s, ey, ephi)
+        ).T
+
     @partial(jax.jit, static_argnums=(0))
     def frenet_to_cartesian_jax(self, s, ey, ephi):
         """
@@ -385,7 +408,7 @@ class Track:
         # Wrap around
         s = s % self.s_frame_max
 
-        self.s_guess = s # Update the guess for the next iteration
+        self.s_guess = s  # Update the guess for the next iteration
 
         # Use the normal to calculate the signed lateral deviation
         # normal = self.centerline._calc_normal(s)
@@ -399,13 +422,15 @@ class Track:
 
         phi = phi - yaw
         return s, ey, np.arctan2(np.sin(phi), np.cos(phi))
-    
+
     def get_track_range(self, s_guess, s_ind_range):
         s_ind = self.centerline.find_segment_for_s(s_guess)
         s_inds = (np.arange(s_ind, s_ind + s_ind_range) % self.len_s).astype(int)
         return s_inds
-    
-    def cartesian_to_frenet_jax(self, x, y, phi, s_guess=None, horizon=None, s_ind_range=600):
+
+    def cartesian_to_frenet_jax(
+        self, x, y, phi, s_guess=None, horizon=None, s_ind_range=600
+    ):
         s_ind = self.centerline.find_segment_for_s(s_guess)
         if s_guess is not None:
             s_ind = self.centerline.find_segment_for_s(s_guess)
@@ -413,32 +438,44 @@ class Track:
             if horizon is not None:
                 s_ind_range = horizon / self.centerline.s_interval
             else:
-                s_inds = (np.arange((s_ind - s_ind_range/6).astype(int), 
-                                    (s_ind + s_ind_range).astype(int)) % len(self.centerline.s)).astype(int)
+                s_inds = (
+                    np.arange(
+                        (s_ind - s_ind_range / 6).astype(int),
+                        (s_ind + s_ind_range).astype(int),
+                    )
+                    % len(self.centerline.s)
+                ).astype(int)
         else:
             s_inds = np.arange(len(self.centerline.s))
         return self.cartesian_to_frenet_jax_jit((x, y, phi), s_inds)
-    
-    def vmap_cartesian_to_frenet_jax(self, poses, s_guess=None, horizon=None, s_ind_range=600):
+
+    def vmap_cartesian_to_frenet_jax(
+        self, poses, s_guess=None, horizon=None, s_ind_range=600
+    ):
         if s_guess is not None:
             s_ind = self.centerline.find_segment_for_s(s_guess)
             # s_ind = np.argmin(np.abs(self.centerline.s - s_guess))
             if horizon is not None:
                 s_ind_range = horizon / self.centerline.s_interval
             else:
-                s_inds = (np.arange((s_ind - s_ind_range/6).astype(int), 
-                                    (s_ind + s_ind_range).astype(int)) % len(self.centerline.s)).astype(int)
+                s_inds = (
+                    np.arange(
+                        (s_ind - s_ind_range / 6).astype(int),
+                        (s_ind + s_ind_range).astype(int),
+                    )
+                    % len(self.centerline.s)
+                ).astype(int)
         else:
             s_inds = np.arange(len(self.centerline.s))
         return self.vmap_cartesian_to_frenet_jax_jit(poses, s_inds)
-    
+
     @partial(jax.jit, static_argnums=(0))
     def cartesian_to_frenet_jax_jit(self, pose, s_inds):
         x, y, phi = pose[0], pose[1], pose[2]
         s, ey = self.centerline.calc_arclength_jax(x, y, s_inds)
         # Wrap around
         s = s % self.s_frame_max
-        
+
         # Use the normal to calculate the signed lateral deviation
         # normal = self.centerline._calc_normal(s)
         yaw = self.centerline.calc_yaw_jax(s)
@@ -452,23 +489,22 @@ class Track:
         phi = phi - yaw
 
         return s, ey, jnp.arctan2(jnp.sin(phi), jnp.cos(phi))
-    
+
     @partial(jax.jit, static_argnums=(0))
     def vmap_cartesian_to_frenet_jax_jit(self, poses, s_inds):
-        return jnp.asarray(jax.vmap(self.cartesian_to_frenet_jax_jit, in_axes=(0, None))(
-            poses, s_inds
-            )).T
-    
+        return jnp.asarray(
+            jax.vmap(self.cartesian_to_frenet_jax_jit, in_axes=(0, None))(poses, s_inds)
+        ).T
+
     @partial(jax.jit, static_argnums=(0))
     def get_track_width(self, s):
         s = s % self.s_frame_max
         s_ind = self.centerline.find_segment_for_s(s)
         return self.tr_rights_jax[s_ind], self.tr_lefts_jax[s_ind]
-    
+
     @partial(jax.jit, static_argnums=(0))
     def vmap_get_track_width(self, states):
         return jax.vmap(self.get_track_width)(states[:, 0])
-    
 
     def curvature(self, s):
         """
@@ -481,13 +517,13 @@ class Track:
         """
         s = s % self.s_frame_max
         return self.centerline.calc_curvature(s)
-    
+
     @partial(jax.jit, static_argnums=(0))
     def curvature_jax(self, s):
         s = s % self.s_frame_max
         return self.centerline.calc_curvature_jax(s)
         # return self.centerline.find_curvature_jax(s)
-    
+
     @staticmethod
     def load_map_from_csv(csv_path, config, scale=1, reverse=False, downsample_step=1):
         """
@@ -497,7 +533,7 @@ class Track:
         s_m; x_m; y_m; psi_rad; kappa_radpm; vx_mps; ax_mps2; w_tr_right_m; w_tr_left_m
         """
         config.wpt_path = str(csv_path)
-        config.wpt_delim = ';'
+        config.wpt_delim = ";"
         config.wpt_rowskip = 3
         config.wpt_xind = 1
         config.wpt_yind = 2
@@ -505,7 +541,9 @@ class Track:
         config.wpt_vind = 5
         config.s_frame_max = -1
 
-        waypoints = np.loadtxt(config.wpt_path, delimiter=config.wpt_delim, skiprows=config.wpt_rowskip)
+        waypoints = np.loadtxt(
+            config.wpt_path, delimiter=config.wpt_delim, skiprows=config.wpt_rowskip
+        )
         if reverse:
             waypoints = waypoints[::-1]
         waypoints[:, config.wpt_yind] = waypoints[:, config.wpt_yind] * scale
@@ -520,7 +558,9 @@ class Track:
         return track, config
 
     @staticmethod
-    def load_map(MAP_DIR, map_info, map_ind, config, scale=1, reverse=False, downsample_step=1):
+    def load_map(
+        MAP_DIR, map_info, map_ind, config, scale=1, reverse=False, downsample_step=1
+    ):
         """
         loads waypoints
         """
@@ -533,18 +573,24 @@ class Track:
         config.wpt_thind = int(map_info[5])
         config.wpt_vind = int(map_info[6])
         config.s_frame_max = -1
-        
-        waypoints = np.loadtxt(MAP_DIR + config.wpt_path, delimiter=config.wpt_delim, skiprows=config.wpt_rowskip)
-        if reverse: # NOTE: reverse map
+
+        waypoints = np.loadtxt(
+            MAP_DIR + config.wpt_path,
+            delimiter=config.wpt_delim,
+            skiprows=config.wpt_rowskip,
+        )
+        if reverse:  # NOTE: reverse map
             waypoints = waypoints[::-1]
         waypoints[:, config.wpt_yind] = waypoints[:, config.wpt_yind] * scale
-        waypoints[:, config.wpt_xind] = waypoints[:, config.wpt_xind] * scale # NOTE: map scales
+        waypoints[:, config.wpt_xind] = (
+            waypoints[:, config.wpt_xind] * scale
+        )  # NOTE: map scales
         if config.s_frame_max == -1:
             config.s_frame_max = waypoints[-1, 0]
-        
+
         # NOTE: initialized states for forward
         if config.wpt_thind == -1:
-            print('Convert to raceline format.')
+            print("Convert to raceline format.")
             waypoints = Track.centerline_to_frenet(waypoints, velocity=5.0)
             # np.save('waypoints.npy', waypoints)
             config.wpt_xind = 1
@@ -553,12 +599,14 @@ class Track:
             config.wpt_vind = 5
         else:
             track = Track.from_numpy(waypoints, config.s_frame_max, downsample_step)
-            track.waypoints_distances = np.linalg.norm(track.waypoints[1:, (1, 2)] - track.waypoints[:-1, (1, 2)], axis=1)
-        
+            track.waypoints_distances = np.linalg.norm(
+                track.waypoints[1:, (1, 2)] - track.waypoints[:-1, (1, 2)], axis=1
+            )
+
         return track, config
 
-    def centerline_to_frenet(trajectory, velocity=5.0):   
-        '''
+    def centerline_to_frenet(trajectory, velocity=5.0):
+        """
         Converts a trajectory in the form [x_m, y_m, w_tr_right_m, w_tr_left_m] to [s_m; x_m; y_m; psi_rad; kappa_radpm; vx_mps; ax_mps2, w_tr_right_m, w_tr_left_m]
         Assumes constant velocity
 
@@ -568,14 +616,16 @@ class Track:
             Trajectory in the form [x_m, y_m, w_tr_right_m, w_tr_left_m]
         velocity : float, optional
             Velocity of the vehicle, by default 5.0
-        '''
+        """
         # Initialize variables
         # eps = 1e-5 * (np.random.randint(0, 1) - 1)
         eps = 0
         s = 0.0
         x = trajectory[0, 0]
         y = trajectory[0, 1]
-        psi = np.arctan2((trajectory[1, 1] - trajectory[0, 1]), (trajectory[1, 0] - trajectory[0, 0])) 
+        psi = np.arctan2(
+            (trajectory[1, 1] - trajectory[0, 1]), (trajectory[1, 0] - trajectory[0, 0])
+        )
         # curvature = calculate_curvature(trajectory[:, 0], trajectory[:, 1])
         waypoint_spline = CubicSplineND(trajectory[:, 0], trajectory[:, 1])
         vx = velocity
@@ -585,71 +635,93 @@ class Track:
 
         # Initialize output
         output = np.zeros((trajectory.shape[0], 7))
-        output[0, :] = np.array([s, x, y, psi, waypoint_spline.calc_curvature(s), vx, ax])
+        output[0, :] = np.array(
+            [s, x, y, psi, waypoint_spline.calc_curvature(s), vx, ax]
+        )
 
         # Iterate over trajectory
         for i in range(1, trajectory.shape[0]):
             # Calculate s
-            s += np.sqrt((trajectory[i, 0] - trajectory[i-1, 0])**2 + (trajectory[i, 1] - trajectory[i-1, 1])**2)
+            s += np.sqrt(
+                (trajectory[i, 0] - trajectory[i - 1, 0]) ** 2
+                + (trajectory[i, 1] - trajectory[i - 1, 1]) ** 2
+            )
             # Calculate psi
-            psi = np.arctan2((trajectory[i, 1] - trajectory[i-1, 1]), (trajectory[i, 0] - trajectory[i-1, 0]))
+            psi = np.arctan2(
+                (trajectory[i, 1] - trajectory[i - 1, 1]),
+                (trajectory[i, 0] - trajectory[i - 1, 0]),
+            )
             # Calculate kappa
             # eps = 1e-5 * (np.random.randint(0, 1) - 1)
             eps = 0
             kappa = waypoint_spline.calc_curvature(s)
-            if kappa < 5e-3: kappa = 0
+            if kappa < 5e-3:
+                kappa = 0
             # kappa = 0
             # kappa = (trajectory[i, 3] - trajectory[i, 2]) / (2 * np.sqrt((trajectory[i, 0] - trajectory[i-1, 0])**2 + (trajectory[i, 1] - trajectory[i-1, 1])**2)) + eps
             # Calculate ax
             ax = 0.0
 
             # Save to output
-            output[i, :] = np.array([s, trajectory[i, 0], trajectory[i, 1], psi, kappa, vx, ax])
+            output[i, :] = np.array(
+                [s, trajectory[i, 0], trajectory[i, 1], psi, kappa, vx, ax]
+            )
 
         return output
-    
-    def get_refernece_traj(self, state, target_speed=None, vind=5, speed_factor=1.0,
-                           horizon=10, DT=0.1):
-        _, dist, _, _, ind = nearest_point(np.array([state[0], state[1]]), 
-                                            self.waypoints[:, (1, 2)].copy())
-        
+
+    def get_refernece_traj(
+        self, state, target_speed=None, vind=5, speed_factor=1.0, horizon=10, DT=0.1
+    ):
+        _, dist, _, _, ind = nearest_point(
+            np.array([state[0], state[1]]), self.waypoints[:, (1, 2)].copy()
+        )
+
         if target_speed is None:
             # speed = self.waypoints[ind, vind] * speed_factor
             # speed = np.minimum(self.waypoints[ind, vind] * speed_factor, 20.)
             speed = state[3]
         else:
             speed = target_speed
-        
+
         # if ind < self.waypoints.shape[0] - self.n_steps:
         #     speeds = self.waypoints[ind:ind+self.n_steps, vind]
         # else:
         speeds = np.ones(horizon) * speed
-        
-        reference = get_reference_trajectory(speeds, dist, ind, 
-                                            self.waypoints.copy(), int(horizon),
-                                            self.waypoints_distances.copy(), DT=DT)
+
+        reference = get_reference_trajectory(
+            speeds,
+            dist,
+            ind,
+            self.waypoints.copy(),
+            int(horizon),
+            self.waypoints_distances.copy(),
+            DT=DT,
+        )
         orientation = state[4]
         reference[3, :][reference[3, :] - orientation > 5] = np.abs(
-            reference[3, :][reference[3, :] - orientation > 5] - (2 * np.pi))
+            reference[3, :][reference[3, :] - orientation > 5] - (2 * np.pi)
+        )
         reference[3, :][reference[3, :] - orientation < -5] = np.abs(
-            reference[3, :][reference[3, :] - orientation < -5] + (2 * np.pi))
-        
+            reference[3, :][reference[3, :] - orientation < -5] + (2 * np.pi)
+        )
+
         # reference[2] = np.where(reference[2] - speed > 5.0, speed + 5.0, reference[2])
         self.reference = reference.T
         return reference.T, ind
-    
+
+
 if __name__ == "__main__":
     # Load the racline.csv
     # track = Track.from_raceline_file(
     #     filepath=pathlib.Path("raceline.csv"), delimiter=";", downsample_step=10
     # )
     # waypoints = np.hstack((track.raceline.s.reshape(-1,1), track.raceline.points))
-    
+
     class Config(ConfigYAML):
         sim_time_step = 0.1
-        
-        map_dir = './f1tenth_racetracks/'
-        
+
+        map_dir = "./f1tenth_racetracks/"
+
         random_seed = None
         lmppi_exact = 0
         adaptive_covariance = 1
@@ -657,9 +729,9 @@ if __name__ == "__main__":
         n_iterations = 1
         run = 2
         use_blank_map = True
-        map_ext = '.png'
+        map_ext = ".png"
         map_scale = 1
-        
+
         n_samples = 1024
         control_dim = 2
         control_sample_std = [1.0, 1.0]
@@ -668,26 +740,33 @@ if __name__ == "__main__":
         init_ss_size = 4
         ss_ref_time_interval = 0.4
         ss_ref_speed_factor = 1.2
-        ss_weights = np.array([1., 1., 1.0, 1.0, 1.0])
-        
+        ss_weights = np.array([1.0, 1.0, 1.0, 1.0, 1.0])
+
         ss_relaxation_drop_down_iter = 300
         ss_relaxation_drop_down = 0.001
-    
-    
+
     config = Config()
     config.map_ind = 58
-    map_info = np.genfromtxt(config.map_dir + 'map_info.txt', delimiter='|', dtype='str')
-    track, config = Track.load_map(config.map_dir, map_info, config.map_ind, config, scale=config.map_scale, downsample_step=1)
+    map_info = np.genfromtxt(
+        config.map_dir + "map_info.txt", delimiter="|", dtype="str"
+    )
+    track, config = Track.load_map(
+        config.map_dir,
+        map_info,
+        config.map_ind,
+        config,
+        scale=config.map_scale,
+        downsample_step=1,
+    )
 
     print(track.frenet_to_cartesian(369.5279, -0.33358, 0.05985))
     print(track.frenet_to_cartesian_jax(369.5279, -0.33358, 0.05985))
-    
+
     print(track.cartesian_to_frenet(-0.47145, -0.33358, 0.05984, 0.0, 10))
     print(track.cartesian_to_frenet_jax(-0.47145, -0.33358, 0.05984, 0.0, 10))
-    
+
     print(track.frenet_to_cartesian(0, 0.33358, 0.05985))
     print(track.frenet_to_cartesian_jax(0, 0.33358, 0.05985))
-    
 
     # Get a random s, ey point and plot it colored by curvature
     POINTS_TO_TEST = 1000
@@ -721,7 +800,7 @@ if __name__ == "__main__":
     # bar = plt.colorbar(label="Curvature", extend='both')
     # plt.scatter(x, y, c=CURV, edgecolors='black', vmin=bar.get_ticks().min(), vmax=bar.get_ticks().max())
     # plt.title("Curvature Sampled vs Raceline")
-    
+
     # plt.figure()
     # plt.scatter(track.raceline.xs, track.raceline.ys, c=track.raceline.vxs)
     # bar = plt.colorbar(label="Velocity", extend='both')
@@ -760,33 +839,40 @@ if __name__ == "__main__":
     #     if np.abs(x - x1) > 0.01: print(f"Expected s: {x}, got: {x1}")
     #     if np.abs(y - y1) > 0.01: print(f"Expected ey: {y}, got: {y1}")
     #     if np.abs(psi - psi1) > 0.01: print(f"Expected ephi: {psi}, got: {psi1}")
-        
+
     #     s_, ey_, ephi_ = track.cartesian_to_frenet(x, y, psi)
     #     s_1, ey_1, ephi_1 = track.cartesian_to_frenet_jax(x1, y1, psi1)
     #     if np.abs(s_ - s_1) > 0.01: print(f"Expected s: {s_}, got: {s_1}")
-    #     if np.abs(ey_ - ey_1) > 0.01: 
+    #     if np.abs(ey_ - ey_1) > 0.01:
     #         print(f"Expected ey: {ey[i]}")
     #         print(f"Expected ey: {ey_}, got: {ey_1}")
     #         print(f"Expected s: {s_}, got: {s_1}")
     #         print(f"Expected ephi: {ephi_}, got: {ephi_1}")
     #     if np.abs(ephi_ - ephi_1) > 0.01: print(f"Expected ephi: {ephi_}, got: {ephi_1}")
-    
-    
+
     for i in range(POINTS_TO_TEST):
-        if np.abs(s[i] - points[i, 0]) > 0.01: print(f"Expected x: {s[i]}, got: {points[i, 0]}")
-        if np.abs(ey[i] - points[i, 1]) > 0.01: print(f"Expected y: {ey[i]}, got: {points[i, 1]}")
-        if np.abs(ephi[i] - points[i, 2]) > 0.01: print(f"Expected psi: {ephi[i]}, got: {points[i, 2]}")
+        if np.abs(s[i] - points[i, 0]) > 0.01:
+            print(f"Expected x: {s[i]}, got: {points[i, 0]}")
+        if np.abs(ey[i] - points[i, 1]) > 0.01:
+            print(f"Expected y: {ey[i]}, got: {points[i, 1]}")
+        if np.abs(ephi[i] - points[i, 2]) > 0.01:
+            print(f"Expected psi: {ephi[i]}, got: {points[i, 2]}")
     print("JAX Simple Frenet to Cartesian and Cartesian to Frenet tests passed!")
-    
+
     fig = plt.figure()
     plt.scatter(track.raceline.xs, track.raceline.ys, c=track.raceline.axs)
-    bar = plt.colorbar(label="Position", extend='both')
-    plt.scatter(points[:, 0], points[:, 1], c=points[:, 2], edgecolors='black', vmin=bar.get_ticks().min(), vmax=bar.get_ticks().max())
+    bar = plt.colorbar(label="Position", extend="both")
+    plt.scatter(
+        points[:, 0],
+        points[:, 1],
+        c=points[:, 2],
+        edgecolors="black",
+        vmin=bar.get_ticks().min(),
+        vmax=bar.get_ticks().max(),
+    )
     plt.title("Position Sampled vs Raceline")
     plt.show()
-    
-    
-    
+
     # Test out frenet to cartesian and cartesian to frenet
     # x = 0
     # y = 0
@@ -827,12 +913,27 @@ def nearest_point(point, trajectory):
         temp = point - projections[i]
         dists[i] = np.sqrt(np.sum(temp * temp))
     min_dist_segment = np.argmin(dists)
-    dist_from_segment_start = np.linalg.norm(diffs[min_dist_segment] * t[min_dist_segment])
-    return projections[min_dist_segment], dist_from_segment_start, dists[min_dist_segment], t[
-        min_dist_segment], min_dist_segment
-    
-def get_reference_trajectory(predicted_speeds, dist_from_segment_start, idx, 
-                             waypoints, n_steps, waypoints_distances, DT):
+    dist_from_segment_start = np.linalg.norm(
+        diffs[min_dist_segment] * t[min_dist_segment]
+    )
+    return (
+        projections[min_dist_segment],
+        dist_from_segment_start,
+        dists[min_dist_segment],
+        t[min_dist_segment],
+        min_dist_segment,
+    )
+
+
+def get_reference_trajectory(
+    predicted_speeds,
+    dist_from_segment_start,
+    idx,
+    waypoints,
+    n_steps,
+    waypoints_distances,
+    DT,
+):
     s_relative = np.zeros((n_steps + 1,))
     s_relative[0] = dist_from_segment_start
     s_relative[1:] = predicted_speeds * DT
@@ -846,39 +947,58 @@ def get_reference_trajectory(predicted_speeds, dist_from_segment_start, idx,
     index_absolute = np.mod(idx + index_relative, waypoints.shape[0] - 1)
 
     segment_part = s_relative - (
-            waypoints_distances_relative[index_relative] - waypoints_distances[index_absolute])
+        waypoints_distances_relative[index_relative]
+        - waypoints_distances[index_absolute]
+    )
 
-    t = (segment_part / waypoints_distances[index_absolute])
+    t = segment_part / waypoints_distances[index_absolute]
     # print(np.all(np.logical_and((t < 1.0), (t > 0.0))))
 
-    position_diffs = (waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, (1, 2)] -
-                        waypoints[index_absolute][:, (1, 2)])
-    position_diff_s = (waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, 0] -
-                        waypoints[index_absolute][:, 0])
-    orientation_diffs = (waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, 3] -
-                            waypoints[index_absolute][:, 3])
-    speed_diffs = (waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, 5] -
-                    waypoints[index_absolute][:, 5])
+    position_diffs = (
+        waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, (1, 2)]
+        - waypoints[index_absolute][:, (1, 2)]
+    )
+    position_diff_s = (
+        waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, 0]
+        - waypoints[index_absolute][:, 0]
+    )
+    orientation_diffs = (
+        waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, 3]
+        - waypoints[index_absolute][:, 3]
+    )
+    speed_diffs = (
+        waypoints[np.mod(index_absolute + 1, waypoints.shape[0] - 1)][:, 5]
+        - waypoints[index_absolute][:, 5]
+    )
 
-    interpolated_positions = waypoints[index_absolute][:, (1, 2)] + (t * position_diffs.T).T
+    interpolated_positions = (
+        waypoints[index_absolute][:, (1, 2)] + (t * position_diffs.T).T
+    )
     interpolated_s = waypoints[index_absolute][:, 0] + (t * position_diff_s)
     interpolated_s[np.where(interpolated_s > waypoints[-1, 0])] -= waypoints[-1, 0]
-    interpolated_orientations = waypoints[index_absolute][:, 3] + (t * orientation_diffs)
-    interpolated_orientations = (interpolated_orientations + np.pi) % (2 * np.pi) - np.pi
+    interpolated_orientations = waypoints[index_absolute][:, 3] + (
+        t * orientation_diffs
+    )
+    interpolated_orientations = (interpolated_orientations + np.pi) % (
+        2 * np.pi
+    ) - np.pi
     interpolated_speeds = waypoints[index_absolute][:, 5] + (t * speed_diffs)
-    
-    reference = np.array([
-        # Sort reference trajectory so the order of reference match the order of the states
-        interpolated_positions[:, 0],
-        interpolated_positions[:, 1],
-        interpolated_speeds,
-        interpolated_orientations,
-        # Fill zeros to the rest so number of references mathc number of states (x[k] - ref[k])
-        interpolated_s,
-        np.zeros(len(interpolated_speeds)),
-        np.zeros(len(interpolated_speeds))
-    ])
+
+    reference = np.array(
+        [
+            # Sort reference trajectory so the order of reference match the order of the states
+            interpolated_positions[:, 0],
+            interpolated_positions[:, 1],
+            interpolated_speeds,
+            interpolated_orientations,
+            # Fill zeros to the rest so number of references mathc number of states (x[k] - ref[k])
+            interpolated_s,
+            np.zeros(len(interpolated_speeds)),
+            np.zeros(len(interpolated_speeds)),
+        ]
+    )
     return reference
+
 
 def points_in_convex_hull(points_hull, points):
     """
@@ -888,10 +1008,18 @@ def points_in_convex_hull(points_hull, points):
     #         for eq in hull.equations)
     """
     from scipy.spatial import ConvexHull
+
     hull = ConvexHull(points_hull)
     eq = np.asarray(hull.equations)
-    tolerance=1e-2
-    arr = np.all(np.sum(eq[:, :-1][:, None, :].repeat(points.shape[0], axis=1) * \
-        points[None, :, :].repeat(eq.shape[0], axis=0), axis=2) + \
-            eq[:, -1][:, None].repeat(points.shape[0], axis=1) <= tolerance, axis=0)
+    tolerance = 1e-2
+    arr = np.all(
+        np.sum(
+            eq[:, :-1][:, None, :].repeat(points.shape[0], axis=1)
+            * points[None, :, :].repeat(eq.shape[0], axis=0),
+            axis=2,
+        )
+        + eq[:, -1][:, None].repeat(points.shape[0], axis=1)
+        <= tolerance,
+        axis=0,
+    )
     return arr

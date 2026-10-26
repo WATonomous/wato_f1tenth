@@ -1,122 +1,137 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef EKF_NODE_
 #define EKF_NODE_
 
+#include <tf2/LinearMath/Quaternion.h>
+
 #include <chrono>
+#include <Eigen/Dense>
 #include <memory>
 #include <string>
 #include <thread>
-#include <string>
-#include <Eigen/Dense>
-
-#include "rclcpp/rclcpp.hpp"
 
 #include "nav_msgs/msg/odometry.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
-
-#include <tf2/LinearMath/Quaternion.h>
 #include "std_msgs/msg/float32.hpp"
 
-//use of use
-using vector4d = Eigen::Matrix<double,4,1>;
-using vector5d = Eigen::Matrix<double,5,1>;
-using vector7d = Eigen::Matrix<double,7,1>;
-using matrix7d = Eigen::Matrix<double,7,7>;
-using matrix5d = Eigen::Matrix<double,5,5>;
-using matrix4d = Eigen::Matrix<double,4,4>;
-using matrix5x7d = Eigen::Matrix<double,5,7>;
-using matrix4x7d = Eigen::Matrix<double,4,7>;
-using matrix7x5d = Eigen::Matrix<double,7,5>;
-using matrix7x4d = Eigen::Matrix<double,7,4>;
+// use of use
+using vector4d = Eigen::Matrix<double, 4, 1>;
+using vector5d = Eigen::Matrix<double, 5, 1>;
+using vector7d = Eigen::Matrix<double, 7, 1>;
+using matrix7d = Eigen::Matrix<double, 7, 7>;
+using matrix5d = Eigen::Matrix<double, 5, 5>;
+using matrix4d = Eigen::Matrix<double, 4, 4>;
+using matrix5x7d = Eigen::Matrix<double, 5, 7>;
+using matrix4x7d = Eigen::Matrix<double, 4, 7>;
+using matrix7x5d = Eigen::Matrix<double, 7, 5>;
+using matrix7x4d = Eigen::Matrix<double, 7, 4>;
 
-enum state {
-    x = 0, 
-    y = 1, 
-    theta = 2, 
-    v = 3, 
-    theta_dot = 4,
-    ax = 5,
-    ay = 6
+enum state
+{
+  x = 0,
+  y = 1,
+  theta = 2,
+  v = 3,
+  theta_dot = 4,
+  ax = 5,
+  ay = 6
 };
 
-struct mu_and_sigma {
-    vector7d new_state;
-    matrix7d new_covariance;
-    rclcpp::Time current;
+struct mu_and_sigma
+{
+  vector7d new_state;
+  matrix7d new_covariance;
+  rclcpp::Time current;
 };
 
-class EKF_RT : public rclcpp::Node {
+class EKF_RT : public rclcpp::Node
+{
 public:
+  EKF_RT();
 
-    EKF_RT();
+private:
+  // publishers
 
-private:          
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ekf_odom_pub;
 
-    //publishers
+  // subscribers
 
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ekf_odom_pub;
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
 
-    //subscribers
+  // synced messages for throtel and steering input
 
-    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub;
+  // helper functions
+  double calculate_delta_t(rclcpp::Time current, rclcpp::Time prev);
+  void initalize_params();
+  void is_time_init();
 
-    //synced messages for throtel and steering input
-    
+  // callback function
+  void imu_callback(sensor_msgs::msg::Imu::SharedPtr imu_msg);
+  void odom_callback(nav_msgs::msg::Odometry::SharedPtr odom_msg);
 
-    //helper functions
-    double calculate_delta_t(rclcpp::Time current, rclcpp::Time prev);
-    void initalize_params ();
-    void is_time_init ();
+  // publishing
+  void publish_state();
 
-    //callback function
-    void imu_callback(sensor_msgs::msg::Imu::SharedPtr imu_msg);
-    void odom_callback(nav_msgs::msg::Odometry::SharedPtr odom_msg);
+  // prediction step
+  vector7d model_update(
+    const vector7d & mu_prev, const double & steering_input, const double & throtel_input, double & dt);
+  matrix7d jacobian_g_update(
+    const vector7d & mu_prev, const double & steering_input, const double & throtel_input, double & dt);
+  matrix7d predict_sigma(const matrix7d & sigma_prev, const matrix7d & jacobian_g);
+  mu_and_sigma prediction_step(
+    const vector7d & mu_prev,
+    const matrix7d & sigma_prev,
+    const std_msgs::msg::Float32 & steering_input,
+    const std_msgs::msg::Float32 & throtel_input);
 
-    //publishing
-    void publish_state ();
+  // correction step
+  vector4d imu_state_mapper(const vector7d & mu_predicted);
+  vector5d odom_state_mapper(const vector7d & mu_predicted);
+  vector4d imu_observation_maker(const sensor_msgs::msg::Imu & observation);
+  vector5d odom_observation_maker(const nav_msgs::msg::Odometry & observation);
 
-    //prediction step
-    vector7d model_update(const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt); 
-    matrix7d jacobian_g_update (const vector7d &mu_prev, const double &steering_input, const double &throtel_input, double &dt);
-    matrix7d predict_sigma (const matrix7d &sigma_prev, const matrix7d &jacobian_g); 
-    mu_and_sigma prediction_step(const vector7d &mu_prev, const matrix7d &sigma_prev, 
-        const std_msgs::msg::Float32 &steering_input, const std_msgs::msg::Float32 &throtel_input);
+  // data
+  std_msgs::msg::Float32 prev_steering, prev_throtel;
+  vector7d mu;
+  matrix7d sigma_t;
+  rclcpp::Time prev_update_time;
 
-    //correction step
-    vector4d imu_state_mapper(const vector7d &mu_predicted);
-    vector5d odom_state_mapper(const vector7d &mu_predicted);
-    vector4d imu_observation_maker(const sensor_msgs::msg::Imu &observation);
-    vector5d odom_observation_maker(const nav_msgs::msg::Odometry &observation);
+  bool init_time = false;
 
-    //data
-    std_msgs::msg::Float32 prev_steering, prev_throtel;
-    vector7d mu;
-    matrix7d sigma_t;
-    rclcpp::Time prev_update_time;
+  // process noise {x , y , theta, v, theta_dot, ax , ay}
+  matrix7d R;
 
-    bool init_time = false;
+  // sensor noise odom {x, y , theta , v, thata_dot}
+  matrix5d Q_odom;
 
-    //process noise {x , y , theta, v, theta_dot, ax , ay}
-    matrix7d R;
+  // sensor noise imu {theta , theta_dot, ax, ay}
+  matrix4d Q_imu;
 
-    //sensor noise odom {x, y , theta , v, thata_dot}
-    matrix5d Q_odom;
+  // H matrix for sensor model
+  matrix4x7d H_imu;  // 4 x 7 matrix
+  matrix5x7d H_odom;  // 5 / 7 matrix
 
-    //sensor noise imu {theta , theta_dot, ax, ay}
-    matrix4d Q_imu;
+  // Identity matrix
+  matrix7d I7;
 
-    //H matrix for sensor model 
-    matrix4x7d H_imu; // 4 x 7 matrix 
-    matrix5x7d H_odom; // 5 / 7 matrix 
-
-    //Identity matrix 
-    matrix7d I7; 
-
-    //parameters
-    std::string odom_topic, ekf_topic, imu_topic, throtel_topic, steering_topic, child_frame, header_frame;
-    double wheel_base, max_speed;
+  // parameters
+  std::string odom_topic, ekf_topic, imu_topic, throtel_topic, steering_topic, child_frame, header_frame;
+  double wheel_base, max_speed;
 };
-
-
 
 #endif

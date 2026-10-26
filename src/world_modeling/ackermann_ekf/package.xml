@@ -3,8 +3,8 @@
 <package format="3">
   <name>ackermann_ekf</name>
   <version>0.0.0</version>
-  <description>takes in a source of wheel odometrey and imu sensor data, 
-    and performs the Extended Kalman Filter using 
+  <description>takes in a source of wheel odometrey and imu sensor data,
+    and performs the Extended Kalman Filter using
     them to estimate state of an ackermann robot</description>
   <maintainer email="muhtasim.business@gmail.com">bolty</maintainer>
   <license>Apache-2.0</license>

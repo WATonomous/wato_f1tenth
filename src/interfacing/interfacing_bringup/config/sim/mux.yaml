@@ -2,12 +2,12 @@ ackermann_mux:
   ros__parameters:
     topics:
       emergency:
-        topic   : /drive/ebreak
-        timeout : 0.2
+        topic: /drive/ebreak
+        timeout: 0.2
         priority: 100
       joystick:
-        topic   : /drive/joystick
-        timeout : 0.2
+        topic: /drive/joystick
+        timeout: 0.2
         # strictly above keyboard/autonomy: ackermann_mux breaks ties by list order
         priority: 50
       keyboard:

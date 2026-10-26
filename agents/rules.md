@@ -26,53 +26,53 @@ build proves nothing about the container or the car. It also drops `build/`, `in
 
 ## Sim and car
 
-4. **No platform-specific values as code defaults.** On `orin`, pure pursuit's odometry topic,
+1. **No platform-specific values as code defaults.** On `orin`, pure pursuit's odometry topic,
    lookahead and speed limit were changed in C++, and the e-brake thresholds likewise. Each edit
    made merging back to `main` a conflict, and that is how sim and car ended up on separate branches.
    Declare the parameter with a neutral default, and set real values in
    `<module>_bringup/config/{car,sim}/*.yaml`.
-5. **Shared nodes never subscribe to simulator topics.** Anything under `/autodrive/...` belongs
+2. **Shared nodes never subscribe to simulator topics.** Anything under `/autodrive/...` belongs
    only in `sim_util` (the sim adapter). See `workflows/sim-to-car.md`.
-6. **`use_sim_time: false` on the car.** `jetson_pf.launch.py` currently runs the map server and
+3. **`use_sim_time: false` on the car.** `jetson_pf.launch.py` currently runs the map server and
    lifecycle manager with `use_sim_time: True` on real hardware; do not copy that.
 
 ## ROS correctness
 
-7. **Parameter YAML keys must match the launched node name.** `teleop_utils`'
+1. **Parameter YAML keys must match the launched node name.** `teleop_utils`'
    `joypad_config.yaml` is keyed `joypad_node:`, but the node launches as `gamepad_node`. ROS
    silently ignored the whole file. Use the exact node name, or `/**:` to match any node.
-8. **Never name a package after an upstream package.** `src/wato_msgs/foxglove_msgs` is empty and
+2. **Never name a package after an upstream package.** `src/wato_msgs/foxglove_msgs` is empty and
    has the same name as the real `foxglove_msgs`. Where it is installed, Foxglove cannot find the
    real definitions.
-9. **New message packages must be visible to Foxglove.** Copy them into
+3. **New message packages must be visible to Foxglove.** Copy them into
    `docker/infrastructure.Dockerfile` and add them to `infrastructure_bringup/package.xml`
    (as done for `vesc_msgs`). Otherwise Foxglove and `ros2 bag` cannot decode the topics.
-10. **Debug topics: BEST_EFFORT QoS and a rate limit.** With RELIABLE QoS, a slow remote
+4. **Debug topics: BEST_EFFORT QoS and a rate limit.** With RELIABLE QoS, a slow remote
     subscriber (Foxglove over Wi-Fi) fills the publisher's history and blocks the callback. On MPPI
     this blocked the control loop and dropped ticks. Keep control topics (`/drive/*`) RELIABLE.
-11. **Don't block the executor.** A long timer callback in a single-threaded executor starves
+5. **Don't block the executor.** A long timer callback in a single-threaded executor starves
     subscriptions. MPPI hit this and now runs its control step from the pose callback, with a rate
     limit and a watchdog. Copy that pattern or use a separate callback group.
 
 ## Code and repo hygiene
 
-12. **Stay in scope.** Change the package you were asked about. Infra changes (`watod`,
-    `docker/`, `modules/`, CI) must change all coupled files together; see `roles/infra.md`.
-13. **Match the surrounding code.** Same naming, comment density and idioms as the file you edit.
+1. **Stay in scope.** Change the package you were asked about. Infra changes (`watod`,
+   `docker/`, `modules/`, CI) must change all coupled files together; see `roles/infra.md`.
+2. **Match the surrounding code.** Same naming, comment density and idioms as the file you edit.
     Rename packages only as a planned change that updates every launch file and YAML.
-14. **No build output, bags or secrets in git.** `build/`, `install/`, `log/`, `*.db3`, `*.mcap`,
+3. **No build output, bags or secrets in git.** `build/`, `install/`, `log/`, `*.db3`, `*.mcap`,
     `.env`, tokens. Record bags with `./watod bag`, which writes to the git-ignored `bags/`.
-15. **(AGENTS.md rule 12) No agent attribution in git.** Never add `Co-Authored-By: <agent>`,
+4. **(AGENTS.md rule 12) No agent attribution in git.** Never add `Co-Authored-By: <agent>`,
     "Generated with <tool>" or similar to commit messages or PR descriptions, even if your tool
     does so by default. Commit with the human's configured `user.name` / `user.email` (check
     `git config user.email` first), so the change shows under their GitHub profile and the
     human stays the accountable author.
-16. **Say what you could not verify.** Most changes need the sim or the car to test. State
+5. **Say what you could not verify.** Most changes need the sim or the car to test. State
     plainly what you checked (it builds, a unit test passes) and what still needs a human run.
 
 ## These docs
 
-17. **`AGENTS.md` stays under 200 lines and only indexes.** Every agent loads it, so every extra
-    line costs context in every session. Put detail in `agents/` and link it.
-18. **Stay tool-agnostic.** Write plain Markdown that any agent or model can follow. Tool-specific
+1. **`AGENTS.md` stays under 200 lines and only indexes.** Every agent loads it, so every extra
+   line costs context in every session. Put detail in `agents/` and link it.
+2. **Stay tool-agnostic.** Write plain Markdown that any agent or model can follow. Tool-specific
     files (`CLAUDE.md`, `.claude/`) only point back here.

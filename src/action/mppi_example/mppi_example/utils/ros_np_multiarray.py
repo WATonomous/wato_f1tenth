@@ -9,11 +9,17 @@ from std_msgs.msg import MultiArrayDimension, Float32MultiArray
 
 def _numpy_to_multiarray(multiarray_type, np_array):
     multiarray = multiarray_type()
-    multiarray.layout.dim = [MultiArrayDimension(label='dim%d' % i,
-                                                 size=np_array.shape[i],
-                                                 stride=np_array.shape[i] * np_array.dtype.itemsize) for i in range(np_array.ndim)];
-    multiarray.data = np_array.reshape([1, -1])[0].tolist();
+    multiarray.layout.dim = [
+        MultiArrayDimension(
+            label="dim%d" % i,
+            size=np_array.shape[i],
+            stride=np_array.shape[i] * np_array.dtype.itemsize,
+        )
+        for i in range(np_array.ndim)
+    ]
+    multiarray.data = np_array.reshape([1, -1])[0].tolist()
     return multiarray
+
 
 def _multiarray_to_numpy(pytype, dtype, multiarray):
     dims = tuple(map(lambda x: x.size, multiarray.layout.dim))

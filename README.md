@@ -4,23 +4,23 @@ We're watonomous F1Tenth team (1/10th scale autonomous racing). We compete in F1
 The second model training annotations repo : https://github.com/WATonomous/f1tenth-training-annotation
 
 # Onboarding Steps
-Apart from the general WATOnomous onboarding, there are some Micro-specific things you'll have to read & learn before contributing. Don't worry, it's a lot lighter than the onboarding assignnmet 
+Apart from the general WATOnomous onboarding, there are some Micro-specific things you'll have to read & learn before contributing. Don't worry, it's a lot lighter than the onboarding assignnmet
 
-### Background Theory
+## Background Theory
 1. Course Syllabus:  https://docs.google.com/spreadsheets/d/1PaFYG7XC_XQ3ExdQGb-S8oJzzixoMOVjh4L1RjW0gT0/edit?gid=0#gid=0o
 
-Although not mandatory to study this in great detail, we **highly** reccommend skimming all the slides up to Module D. You can revisit this later when working on a specific component, but getting a general idea of what SLAM / Planning / Controls mean will be beneficial. 
+Although not mandatory to study this in great detail, we **highly** reccommend skimming all the slides up to Module D. You can revisit this later when working on a specific component, but getting a general idea of what SLAM / Planning / Controls mean will be beneficial.
 
-2. Competition Rules: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-racing-rules-2025/
+1. Competition Rules: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-racing-rules-2025/
 
 A lot of our software architecture choices are based on the rules.
 
 ### Environment Setup
 
 Our infrastructure consists of :
-1. AUTODrive physics simulator 
-2. Docker environment  
-  
+1. AUTODrive physics simulator
+2. Docker environment
+
 As such, you'll have to go through the `setup-windows.md` or `setup-linux.md` and follow the steps.
 
 ## Your First Mini Component
@@ -34,7 +34,7 @@ References: https://autodrive-ecosystem.github.io/competitions/roboracer-sim-rac
 
 note: This rosnode skeleton you'll most likely be building ontop of for your actual task, so getting this working well (no build errors, etc.) will save a lot of time in the future.
 
-## Whats next ? 
+## Whats next ?
 
 **Go read the system-architecture.md** to better understand how this repo works and why it is layed out that way
 
@@ -44,4 +44,4 @@ If you use an AI coding agent (Claude Code, Codex, Cursor, Aider, an open-weight
 
 When you change how something works, update the matching file in `agents/` in the same PR. Keep `AGENTS.md` under 200 lines and put the details in `agents/`.
 
-### Good Luck! 
+### Good Luck!

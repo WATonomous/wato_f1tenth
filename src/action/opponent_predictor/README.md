@@ -89,7 +89,7 @@ $$
 r_{\text{detect,min}} \le \|\mathbf{p}_{B}\| \le r_{\text{detect,max}}
 $$
 
-### Static Map Filtering
+## Static Map Filtering
 
 The detector removes points that fall on the static map. A scan point is rejected if its map cell or nearby inflated cells are occupied:
 
@@ -152,7 +152,7 @@ $$
 
 This ended up being the most important false-positive filter. In our debug bags, true opponent detections were usually very close to the raceline, while wall/noise detections tended to sit much farther away.
 
-### Dimension-Aware Center Correction
+## Dimension-Aware Center Correction
 
 A raw LiDAR cluster centroid is usually not the center of the opponent car. Depending on geometry, ego may see:
 
@@ -249,7 +249,7 @@ $$
 
 The detector publishes this as `/opponent/detection_odom`. The yaw is taken from the raceline yaw, not from noisy cluster orientation.
 
-### Candidate Scoring
+## Candidate Scoring
 
 Among valid clusters, the detector picks the lowest-cost candidate:
 

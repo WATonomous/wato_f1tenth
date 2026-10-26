@@ -1,3 +1,16 @@
+# Copyright (c) 2025-present WATonomous. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 cmake_minimum_required(VERSION 3.8)
 project(sim_util)
 
@@ -26,7 +39,7 @@ add_executable(ackermann_converter_node src/ackermann_converter.cpp)
 target_include_directories(ackermann_converter_node PUBLIC include)
 ament_target_dependencies(ackermann_converter_node rclcpp std_msgs ackermann_msgs)
 
-# laider scan remapper 
+# laider scan remapper
 add_executable(scan_remap_node src/scan_remap.cpp)
 target_include_directories(scan_remap_node PUBLIC include)
 ament_target_dependencies(scan_remap_node rclcpp sensor_msgs)

@@ -11,13 +11,11 @@
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-
 import jax.numpy as jnp
 
 
 # longitudinal tire forces
 def formula_longitudinal(kappa, gamma, F_z, params):
-
     # longitudinal coefficients
     tire_p_cx1 = params[46]  # Shape factor Cfx for longitudinal force
     tire_p_dx1 = params[47]  # Longitudinal friction Mux at Fznom
@@ -37,7 +35,7 @@ def formula_longitudinal(kappa, gamma, F_z, params):
     S_vx = F_z * tire_p_vx1
 
     kappa_x = kappa + S_hx
-    mu_x = tire_p_dx1 * (1 - tire_p_dx3 * gamma ** 2)
+    mu_x = tire_p_dx1 * (1 - tire_p_dx3 * gamma**2)
 
     C_x = tire_p_cx1
     D_x = mu_x * F_z
@@ -46,12 +44,15 @@ def formula_longitudinal(kappa, gamma, F_z, params):
     B_x = K_x / (C_x * D_x)
 
     # magic tire formula
-    return D_x * jnp.sin(C_x * jnp.arctan(B_x * kappa_x - E_x * (B_x * kappa_x - jnp.arctan(B_x * kappa_x))) + S_vx)
+    return D_x * jnp.sin(
+        C_x
+        * jnp.arctan(B_x * kappa_x - E_x * (B_x * kappa_x - jnp.arctan(B_x * kappa_x)))
+        + S_vx
+    )
 
 
 # lateral tire forces
 def formula_lateral(alpha, gamma, F_z, params):
-
     # lateral coefficients
     tire_p_cy1 = params[58]  # Shape factor Cfy for lateral forces
     tire_p_dy1 = params[59]  # Lateral friction Muy
@@ -73,7 +74,7 @@ def formula_lateral(alpha, gamma, F_z, params):
     S_vy = jnp.sign(gamma) * F_z * (tire_p_vy1 + tire_p_vy3 * jnp.fabs(gamma))
 
     alpha_y = alpha + S_hy
-    mu_y = tire_p_dy1 * (1 - tire_p_dy3 * gamma ** 2)
+    mu_y = tire_p_dy1 * (1 - tire_p_dy3 * gamma**2)
 
     C_y = tire_p_cy1
     D_y = mu_y * F_z
@@ -82,7 +83,16 @@ def formula_lateral(alpha, gamma, F_z, params):
     B_y = K_y / (C_y * D_y)
 
     # magic tire formula
-    F_y = D_y * jnp.sin(C_y * jnp.arctan(B_y * alpha_y - E_y * (B_y * alpha_y - jnp.arctan(B_y * alpha_y)))) + S_vy
+    F_y = (
+        D_y
+        * jnp.sin(
+            C_y
+            * jnp.arctan(
+                B_y * alpha_y - E_y * (B_y * alpha_y - jnp.arctan(B_y * alpha_y))
+            )
+        )
+        + S_vy
+    )
 
     res = []
     res.append(F_y)
@@ -92,7 +102,6 @@ def formula_lateral(alpha, gamma, F_z, params):
 
 # longitudinal tire forces for combined slip
 def formula_longitudinal_comb(kappa, alpha, F0_x, params):
-
     # longitudinal coefficients
     tire_r_bx1 = params[53]  # Slope factor for combined slip Fx reduction
     tire_r_bx2 = params[54]  # Variation of slope Fx reduction with kappa
@@ -110,17 +119,28 @@ def formula_longitudinal_comb(kappa, alpha, F0_x, params):
     B_xalpha = tire_r_bx1 * jnp.cos(jnp.arctan(tire_r_bx2 * kappa))
     C_xalpha = tire_r_cx1
     E_xalpha = tire_r_ex1
-    D_xalpha = F0_x / (jnp.cos(C_xalpha * jnp.arctan(
-        B_xalpha * S_hxalpha - E_xalpha * (B_xalpha * S_hxalpha - jnp.arctan(B_xalpha * S_hxalpha)))))
+    D_xalpha = F0_x / (
+        jnp.cos(
+            C_xalpha
+            * jnp.arctan(
+                B_xalpha * S_hxalpha
+                - E_xalpha * (B_xalpha * S_hxalpha - jnp.arctan(B_xalpha * S_hxalpha))
+            )
+        )
+    )
 
     # magic tire formula
     return D_xalpha * jnp.cos(
-        C_xalpha * jnp.arctan(B_xalpha * alpha_s - E_xalpha * (B_xalpha * alpha_s - jnp.arctan(B_xalpha * alpha_s))))
+        C_xalpha
+        * jnp.arctan(
+            B_xalpha * alpha_s
+            - E_xalpha * (B_xalpha * alpha_s - jnp.arctan(B_xalpha * alpha_s))
+        )
+    )
 
 
 # lateral tire forces for combined slip
 def formula_lateral_comb(kappa, alpha, gamma, mu_y, F_z, F0_y, params):
-
     # lateral coefficients
     tire_r_by1 = params[67]  # Slope factor for combined Fy reduction
     tire_r_by2 = params[68]  # Variation of slope Fy reduction with alpha
@@ -144,12 +164,33 @@ def formula_lateral_comb(kappa, alpha, gamma, mu_y, F_z, F0_y, params):
     B_ykappa = tire_r_by1 * jnp.cos(jnp.arctan(tire_r_by2 * (alpha - tire_r_by3)))
     C_ykappa = tire_r_cy1
     E_ykappa = tire_r_ey1
-    D_ykappa = F0_y / (jnp.cos(C_ykappa * jnp.arctan(
-        B_ykappa * S_hykappa - E_ykappa * (B_ykappa * S_hykappa - jnp.arctan(B_ykappa * S_hykappa)))))
+    D_ykappa = F0_y / (
+        jnp.cos(
+            C_ykappa
+            * jnp.arctan(
+                B_ykappa * S_hykappa
+                - E_ykappa * (B_ykappa * S_hykappa - jnp.arctan(B_ykappa * S_hykappa))
+            )
+        )
+    )
 
-    D_vykappa = mu_y * F_z * (tire_r_vy1 + tire_r_vy3 * gamma) * jnp.cos(jnp.arctan(tire_r_vy4 * alpha))
+    D_vykappa = (
+        mu_y
+        * F_z
+        * (tire_r_vy1 + tire_r_vy3 * gamma)
+        * jnp.cos(jnp.arctan(tire_r_vy4 * alpha))
+    )
     S_vykappa = D_vykappa * jnp.sin(tire_r_vy5 * jnp.arctan(tire_r_vy6 * kappa))
 
     # magic tire formula
-    return D_ykappa * jnp.cos(C_ykappa * jnp.arctan(
-        B_ykappa * kappa_s - E_ykappa * (B_ykappa * kappa_s - jnp.arctan(B_ykappa * kappa_s)))) + S_vykappa
+    return (
+        D_ykappa
+        * jnp.cos(
+            C_ykappa
+            * jnp.arctan(
+                B_ykappa * kappa_s
+                - E_ykappa * (B_ykappa * kappa_s - jnp.arctan(B_ykappa * kappa_s))
+            )
+        )
+        + S_vykappa
+    )

@@ -30,9 +30,7 @@ constexpr double kEps = 1e-9;
 
 double yawFromQuaternion(const geometry_msgs::msg::Quaternion & q)
 {
-  return std::atan2(
-    2.0 * (q.w * q.z + q.x * q.y),
-    1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+  return std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
 }
 
 geometry_msgs::msg::Quaternion yawToQuaternion(double yaw)
@@ -113,10 +111,8 @@ public:
     ego_odom_topic_ = declare_parameter<std::string>("ego_odom_topic", "/ego_racecar/odom");
     map_topic_ = declare_parameter<std::string>("map_topic", "/map");
     detected_odom_topic_ = declare_parameter<std::string>("detected_odom_topic", "/opponent/detection_odom");
-    detector_marker_topic_ =
-      declare_parameter<std::string>("detector_marker_topic", "/opponent/detection_markers");
-    detector_debug_topic_ =
-      declare_parameter<std::string>("detector_debug_topic", "/opponent/detection_debug");
+    detector_marker_topic_ = declare_parameter<std::string>("detector_marker_topic", "/opponent/detection_markers");
+    detector_debug_topic_ = declare_parameter<std::string>("detector_debug_topic", "/opponent/detection_debug");
 
     waypoint_path_ = declare_parameter<std::string>("waypoint_path", "waypoints/lev_testing/lev_blocked.csv");
     waypoint_path_absolute_ = declare_parameter<bool>("waypoint_path_absolute", false);
@@ -131,13 +127,12 @@ public:
     const auto debug_qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
 
     scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
-      scan_topic_, sensor_qos,
-      std::bind(&OpponentLidarDetectorNode::scanCallback, this, std::placeholders::_1));
+      scan_topic_, sensor_qos, std::bind(&OpponentLidarDetectorNode::scanCallback, this, std::placeholders::_1));
     ego_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      ego_odom_topic_, sensor_qos,
-      std::bind(&OpponentLidarDetectorNode::egoOdomCallback, this, std::placeholders::_1));
+      ego_odom_topic_, sensor_qos, std::bind(&OpponentLidarDetectorNode::egoOdomCallback, this, std::placeholders::_1));
     map_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
-      map_topic_, rclcpp::QoS(1).transient_local().reliable(),
+      map_topic_,
+      rclcpp::QoS(1).transient_local().reliable(),
       std::bind(&OpponentLidarDetectorNode::mapCallback, this, std::placeholders::_1));
 
     detection_pub_ = create_publisher<nav_msgs::msg::Odometry>(detected_odom_topic_, sensor_qos);
@@ -148,29 +143,29 @@ public:
     // (15 Hz x 25 mutex-protected param fetches was real overhead). The
     // refresh also rebuilds the inflated map if inflation/threshold/treat-
     // unknown changed, so live retuning still works.
-    params_timer_ = create_wall_timer(
-      std::chrono::milliseconds(500),
-      std::bind(&OpponentLidarDetectorNode::onParamsTimer, this));
+    params_timer_ =
+      create_wall_timer(std::chrono::milliseconds(500), std::bind(&OpponentLidarDetectorNode::onParamsTimer, this));
 
     RCLCPP_INFO(
       get_logger(),
       "Opponent LiDAR detector ready: scan=%s ego=%s map=%s waypoints=%zu",
-      scan_topic_.c_str(), ego_odom_topic_.c_str(), map_topic_.c_str(), waypoints_.size());
+      scan_topic_.c_str(),
+      ego_odom_topic_.c_str(),
+      map_topic_.c_str(),
+      waypoints_.size());
   }
 
   void onParamsTimer()
   {
     refreshLiveParams();
     // Rebuild the inflated mask iff a relevant param changed since last build.
-    const int desired_inflation = static_map_.info.resolution > 0.0 ?
-      static_cast<int>(std::ceil(wall_inflation_radius_ / static_map_.info.resolution)) :
-      0;
+    const int desired_inflation = static_map_.info.resolution > 0.0
+                                    ? static_cast<int>(std::ceil(wall_inflation_radius_ / static_map_.info.resolution))
+                                    : 0;
     if (
       map_received_ &&
-      (inflated_map_.empty() ||
-       desired_inflation != inflated_inflation_cells_ ||
-       occupied_threshold_ != inflated_occupied_threshold_ ||
-       treat_unknown_as_static_ != inflated_treat_unknown_))
+      (inflated_map_.empty() || desired_inflation != inflated_inflation_cells_ ||
+       occupied_threshold_ != inflated_occupied_threshold_ || treat_unknown_as_static_ != inflated_treat_unknown_))
     {
       rebuildInflatedMap();
     }
@@ -318,9 +313,7 @@ private:
     std::reverse(waypoints_.begin(), waypoints_.end());
     waypoints_.front().s = 0.0;
     for (std::size_t i = 1; i < waypoints_.size(); ++i) {
-      const double ds = std::hypot(
-        waypoints_[i].x - waypoints_[i - 1].x,
-        waypoints_[i].y - waypoints_[i - 1].y);
+      const double ds = std::hypot(waypoints_[i].x - waypoints_[i - 1].x, waypoints_[i].y - waypoints_[i - 1].y);
       waypoints_[i].s = waypoints_[i - 1].s + ds;
     }
   }
@@ -427,8 +420,7 @@ private:
     }
     const int width = static_cast<int>(info.width);
     const int height = static_cast<int>(info.height);
-    const int inflation_cells = std::max(0,
-      static_cast<int>(std::ceil(wall_inflation_radius_ / info.resolution)));
+    const int inflation_cells = std::max(0, static_cast<int>(std::ceil(wall_inflation_radius_ / info.resolution)));
 
     // Step 1: blocked-base mask (occupied OR unknown-as-static).
     std::vector<uint8_t> blocked(static_cast<std::size_t>(width) * height, 0);
@@ -472,9 +464,7 @@ private:
     inflated_occupied_threshold_ = occupied_threshold_;
     inflated_treat_unknown_ = treat_unknown_as_static_;
     RCLCPP_INFO(
-      get_logger(),
-      "Inflated static-map mask rebuilt: %dx%d, inflation_cells=%d",
-      width, height, inflation_cells);
+      get_logger(), "Inflated static-map mask rebuilt: %dx%d, inflation_cells=%d", width, height, inflation_cells);
   }
 
   // Grid-bucketed connected-components. Cell size = cluster_tolerance_, so
@@ -531,8 +521,8 @@ private:
         const int32_t cy = cy_of[idx];
         for (int32_t dy = -1; dy <= 1; ++dy) {
           for (int32_t dx = -1; dx <= 1; ++dx) {
-            const int64_t nk = (static_cast<int64_t>(cx + dx) << 32) ^
-              static_cast<int64_t>(static_cast<uint32_t>(cy + dy));
+            const int64_t nk =
+              (static_cast<int64_t>(cx + dx) << 32) ^ static_cast<int64_t>(static_cast<uint32_t>(cy + dy));
             auto it = grid.find(nk);
             if (it == grid.end()) {
               continue;
@@ -559,7 +549,8 @@ private:
   // Per-scan rejection tally so the user can see *why* clusters fail.
   // Filled by buildCandidate, aggregated in selectCandidate, summarized in
   // scanCallback (throttled). Not load-bearing — pure diagnostic.
-  struct RejectTally {
+  struct RejectTally
+  {
     int accepted = 0;
     int cluster_size = 0;
     int base_x = 0;
@@ -571,9 +562,16 @@ private:
     double best_proj_distance = std::numeric_limits<double>::infinity();
   };
 
-  enum class CandidateOutcome {
-    kAccepted, kClusterSize, kBaseX, kProjDistance, kExtent,
-    kProjDistancePost, kImpliedSpeed, kCandidateJump,
+  enum class CandidateOutcome
+  {
+    kAccepted,
+    kClusterSize,
+    kBaseX,
+    kProjDistance,
+    kExtent,
+    kProjDistancePost,
+    kImpliedSpeed,
+    kCandidateJump,
   };
 
   CandidateOutcome buildCandidate(
@@ -669,15 +667,11 @@ private:
       return CandidateOutcome::kProjDistancePost;
     }
 
-    candidate.score =
-      projection_weight_ * candidate.projection_distance +
-      range_weight_ * candidate.range;
+    candidate.score = projection_weight_ * candidate.projection_distance + range_weight_ * candidate.range;
 
     if (has_last_detection_) {
       const double age = (stamp - last_detection_stamp_).seconds();
-      const double jump = std::hypot(
-        candidate.center_x - last_detection_x_,
-        candidate.center_y - last_detection_y_);
+      const double jump = std::hypot(candidate.center_x - last_detection_x_, candidate.center_y - last_detection_y_);
       if (age >= 1e-3 && age < continuity_gate_timeout_) {
         const double candidate_s = unwrapS(candidate.center_s, last_detection_s_);
         const double implied_progress_speed = std::abs(candidate_s - last_detection_s_) / age;
@@ -710,18 +704,33 @@ private:
       // Track the best (smallest) projection distance we've seen this scan
       // — tells the user how close they are to the threshold.
       if (std::isfinite(candidate.projection_distance)) {
-        tally.best_proj_distance = std::min(
-          tally.best_proj_distance, candidate.projection_distance);
+        tally.best_proj_distance = std::min(tally.best_proj_distance, candidate.projection_distance);
       }
       switch (outcome) {
-        case CandidateOutcome::kAccepted: tally.accepted++; break;
-        case CandidateOutcome::kClusterSize: tally.cluster_size++; continue;
-        case CandidateOutcome::kBaseX: tally.base_x++; continue;
-        case CandidateOutcome::kProjDistance: tally.proj_distance++; continue;
-        case CandidateOutcome::kExtent: tally.extent++; continue;
-        case CandidateOutcome::kProjDistancePost: tally.proj_distance_post++; continue;
-        case CandidateOutcome::kImpliedSpeed: tally.implied_speed++; continue;
-        case CandidateOutcome::kCandidateJump: tally.candidate_jump++; continue;
+        case CandidateOutcome::kAccepted:
+          tally.accepted++;
+          break;
+        case CandidateOutcome::kClusterSize:
+          tally.cluster_size++;
+          continue;
+        case CandidateOutcome::kBaseX:
+          tally.base_x++;
+          continue;
+        case CandidateOutcome::kProjDistance:
+          tally.proj_distance++;
+          continue;
+        case CandidateOutcome::kExtent:
+          tally.extent++;
+          continue;
+        case CandidateOutcome::kProjDistancePost:
+          tally.proj_distance_post++;
+          continue;
+        case CandidateOutcome::kImpliedSpeed:
+          tally.implied_speed++;
+          continue;
+        case CandidateOutcome::kCandidateJump:
+          tally.candidate_jump++;
+          continue;
       }
       if (!found || candidate.score < selected.score) {
         selected = candidate;
@@ -772,9 +781,7 @@ private:
   }
 
   void publishMarkers(
-    const std::vector<ScanPoint> & dynamic_points,
-    const ClusterCandidate * selected,
-    const rclcpp::Time & stamp) const
+    const std::vector<ScanPoint> & dynamic_points, const ClusterCandidate * selected, const rclcpp::Time & stamp) const
   {
     visualization_msgs::msg::MarkerArray markers;
     visualization_msgs::msg::Marker clear;
@@ -867,8 +874,7 @@ private:
       selected ? static_cast<float>(selected->extent_t) : -1.0f,
       selected ? static_cast<float>(selected->extent_n) : -1.0f,
       static_cast<float>(progress_speed),
-      map_received_ ? 1.0f : 0.0f
-    };
+      map_received_ ? 1.0f : 0.0f};
     debug_pub_->publish(debug);
   }
 
@@ -879,11 +885,7 @@ private:
     const double yaw = yawFromQuaternion(msg->pose.pose.orientation);
     if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(yaw)) {
       have_ego_ = false;
-      RCLCPP_WARN_THROTTLE(
-        get_logger(),
-        *get_clock(),
-        1000,
-        "Ignoring non-finite ego odom measurement.");
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Ignoring non-finite ego odom measurement.");
       return;
     }
 
@@ -924,8 +926,8 @@ private:
       return;
     }
 
-    const rclcpp::Time stamp = msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0 ?
-      now() : rclcpp::Time(msg->header.stamp);
+    const rclcpp::Time stamp =
+      msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0 ? now() : rclcpp::Time(msg->header.stamp);
 
     const double cy = std::cos(ego_yaw_);
     const double sy = std::sin(ego_yaw_);
@@ -973,9 +975,7 @@ private:
       const double dt = (stamp - last_detection_stamp_).seconds();
       if (dt > 1e-3) {
         progress_speed = std::clamp(
-          (unwrapS(selected.center_s, last_detection_s_) - last_detection_s_) / dt,
-          0.0,
-          max_detection_speed_);
+          (unwrapS(selected.center_s, last_detection_s_) - last_detection_s_) / dt, 0.0, max_detection_speed_);
       }
     }
 
@@ -990,19 +990,28 @@ private:
       publishDebug(dynamic_points.size(), clusters.size(), nullptr, 0.0);
     }
 
-    const auto cb_dt_ms = std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - cb_t0).count();
-    const double best_d = std::isfinite(tally.best_proj_distance) ?
-      tally.best_proj_distance : -1.0;
+    const auto cb_dt_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cb_t0).count();
+    const double best_d = std::isfinite(tally.best_proj_distance) ? tally.best_proj_distance : -1.0;
     RCLCPP_INFO_THROTTLE(
-      get_logger(), *get_clock(), 2000,
+      get_logger(),
+      *get_clock(),
+      2000,
       "scanCallback %.2f ms | dyn_pts=%zu clusters=%zu | "
       "accepted=%d reject{size=%d, base_x=%d, proj=%d, extent=%d, "
       "proj_post=%d, speed=%d, jump=%d} best_proj_d=%.2f (thresh=%.2f)",
-      cb_dt_ms, dynamic_points.size(), clusters.size(),
-      tally.accepted, tally.cluster_size, tally.base_x, tally.proj_distance,
-      tally.extent, tally.proj_distance_post, tally.implied_speed,
-      tally.candidate_jump, best_d, max_raceline_projection_dist_);
+      cb_dt_ms,
+      dynamic_points.size(),
+      clusters.size(),
+      tally.accepted,
+      tally.cluster_size,
+      tally.base_x,
+      tally.proj_distance,
+      tally.extent,
+      tally.proj_distance_post,
+      tally.implied_speed,
+      tally.candidate_jump,
+      best_d,
+      max_raceline_projection_dist_);
   }
 
   std::string scan_topic_;

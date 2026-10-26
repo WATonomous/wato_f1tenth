@@ -1,3 +1,17 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /*
  * Author: Jordan Khatri
  * Last Modified: 2026-04-02
@@ -30,17 +44,18 @@
 #define COSTMAP_NODE_HPP_
 
 #include <chrono>
-#include <memory>
-#include <vector>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <vector>
 
-#include "rclcpp/rclcpp.hpp"
-#include "nav_msgs/msg/occupancy_grid.hpp"
-#include "sensor_msgs/msg/laser_scan.hpp"
-
-#include <tf2_ros/transform_listener.hpp>
-#include <tf2_ros/buffer.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
+
+#include "nav_msgs/msg/occupancy_grid.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 
 class CostmapNode : public rclcpp::Node
 {
@@ -68,9 +83,8 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
 
   void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
-  void publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &scan);
-  void bresenham(int x0, int y0, int x1, int y1,
-                 std::vector<int8_t> &grid_data);
+  void publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr & scan);
+  void bresenham(int x0, int y0, int x1, int y1, std::vector<int8_t> & grid_data);
 };
 
 #endif
