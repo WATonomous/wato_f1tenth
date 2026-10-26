@@ -80,11 +80,6 @@ launch:
             name: urg_node
             param:
               - from: "$(var config_dir)/sensors.yaml"
-        - node:
-            pkg: tf2_ros
-            exec: static_transform_publisher
-            name: static_baselink_to_camera
-            args: "--x 0.27 --y 0.0 --z 0.18 --frame-id base_link --child-frame-id camera_link"
 
   # Gamepad teleop: /joy -> /drive/joystick and /dead_man_switch
   - group:
@@ -123,8 +118,16 @@ launch:
       name: ebreak
       output: screen
 
-  # Intel RealSense (camera_link is the static TF above on the car): IMU on
-  # /camera/camera/imu, depth/color per config/<platform>/realsense.yaml
+  # Intel RealSense: IMU on /camera/camera/imu, depth/color per config/<platform>/realsense.yaml.
+  # base_link -> camera_link: above the lidar (x 0.27, z 0.11 + 0.20); the driver hangs its
+  # camera_*_frame / *_optical_frame TFs off camera_link.
+  - node:
+      if: "$(var realsense)"
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: static_baselink_to_camera
+      args: "--x 0.27 --y 0.0 --z 0.31 --frame-id base_link --child-frame-id camera_link"
+
   - node:
       if: "$(var realsense)"
       pkg: realsense2_camera

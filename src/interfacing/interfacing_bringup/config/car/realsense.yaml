@@ -3,7 +3,9 @@
 # The IMU is what we use: gyro + accel are combined into /camera/camera/imu.
 /**:
   ros__parameters:
-    base_frame_id: camera_link
+    # The driver prefixes camera_name ("camera"), so "link" -> camera_link, which interfacing
+    # attaches to base_link. "camera_link" here would give camera_camera_link and split the TF tree.
+    base_frame_id: link
     enable_gyro: true
     enable_accel: true
     unite_imu_method: 2  # 1 = copy, 2 = linear interpolation

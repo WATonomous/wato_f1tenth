@@ -49,6 +49,10 @@ Images: `infrastructure`, `interfacing` and `sim` use the CPU base. `world_model
 `perception` pick their base per architecture: x86 CPU or CUDA 12.9 + TensorRT, Jetson CUDA 12.8 +
 TensorRT on arm64. All bases are built locally with `./watod build-base` for now.
 
+RealSense: x86 uses the apt `librealsense2`. On arm64 the `interfacing` image rebuilds the same
+version with the RSUSB (libusb) backend over it and holds the apt package, because JetPack kernels
+lack the `hid_sensor` IIO drivers the kernel backend needs for the D435i IMU.
+
 ## Sim data flow
 
 ```text
@@ -82,11 +86,14 @@ Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeou
 
 ## TF tree
 
-`map -> odom -> base_link -> laser` (and `base_link -> camera_link` on the car)
+`map -> odom -> base_link -> laser` (and `base_link -> camera_link -> camera_*` with `REALSENSE=true`)
 
 - `map -> odom`: static identity in sim; the particle filter on the car; slam_toolbox when mapping.
 - `odom -> base_link`: the simulator in sim; the VESC / EKF path on the car.
 - `base_link -> laser`: static, x 0.27 m, z 0.11 m, from `interfacing` on both.
+- `base_link -> camera_link`: static, x 0.27 m, z 0.31 m (20 cm above the lidar), from
+  `interfacing` when the RealSense runs. The driver adds `camera_imu_optical_frame` and friends
+  under `camera_link` (`base_frame_id: link`, because the driver prefixes the camera name).
 
 ## Config locations
 
