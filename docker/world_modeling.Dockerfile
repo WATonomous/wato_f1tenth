@@ -39,6 +39,8 @@ ARG GPU
 #   - built through pip so setuptools' distutils shim works on Python 3.12
 #   - no -march=native, so an image built on one machine runs on others
 #   - CUDA (rmgpu, sm_87) only on the Jetson image (arm64 + GPU=nvidia); otherwise CPU methods
+#   - CHUNK_SIZE 2^20 rays: rmgpu fails ("invalid argument") on any call over CHUNK_SIZE, and
+#     the car config casts ~480k rays per update (8000 particles x ~60 beams)
 ARG RANGE_LIBC_COMMIT=781acfc9edea977b564c4cb5bdaa86e8f719ab7b
 # hadolint ignore=DL3003
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -50,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sed -i 's|compiler_flags = \["-w","-std=c++11"|compiler_flags = ["-w","-std=c++11","-fPIC"|' setup.py && \
     sed -i 's|, "-march=native"||' setup.py && \
     sed -i 's|-arch=sm_62|-arch=sm_87|' setup.py && \
+    sed -i 's|CHUNK_SIZE = "262144"|CHUNK_SIZE = "1048576"|' setup.py && grep -q 'CHUNK_SIZE = "1048576"' setup.py && \
     sed -i '/-DCMAKE_C_COMPILER/d; /-DCMAKE_CXX_COMPILER/d' setup.py && \
     sed -i "s|postargs = extra_postargs\['gcc'\]|self.set_executable('compiler_so', default_compiler_so); postargs = extra_postargs['gcc']|" setup.py && \
     if [ "${TARGETARCH}" = "arm64" ] && [ "${GPU}" = "nvidia" ]; then export WITH_CUDA=ON; else export WITH_CUDA=OFF; fi && \
