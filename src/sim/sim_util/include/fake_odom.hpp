@@ -36,6 +36,7 @@ public:
 private:
   // publisher and subscribers
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr localization_pub;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub;
 
@@ -49,6 +50,7 @@ private:
   // frame names
   std::string child_frame_name;
   std::string header_frame_name;
+  std::string localization_frame_name;
 
   // data
   std_msgs::msg::Float32 current_speed;

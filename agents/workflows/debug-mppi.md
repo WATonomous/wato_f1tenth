@@ -14,7 +14,7 @@ Sources (copied from `mppi_test`): `docs/mppi/` (`IMPORTANT_DEBUG_MPPI.md`, `rod
 | `mppi_bringup` | Params, maps and launch files (e7, ICRA, IV) |
 | `opponent_predictor` | Lidar clustering + Kalman filter along the raceline; `/opponent/predicted_path` |
 
-MPPI publishes `/drive`, remapped to `/drive/autonomy` in the `e7` launch files.
+MPPI publishes `/drive`, remapped to `/hal/drive/autonomy` in `mppi_cpp`'s `e7` launch file.
 
 ## Run
 
@@ -28,7 +28,7 @@ ros2 launch opponent_predictor e7_opp_pred.launch.py
 
 On the old `mppi_test` branch (as last driven): `docker exec` into the robot dev container,
 `ros2 launch mppi_cpp e7.launch.py`, and the predictor in a second terminal. Either way the
-particle filter must run first; MPPI needs `/pf/pose/odom`.
+particle filter must run first; MPPI reads `/hal/localization/odom` (`odom_topic`).
 
 ## First checks
 
@@ -53,7 +53,7 @@ ros2 topic echo /mppi/debug/min_opponent_dist
 - **Warm start reset.** Cleared when the time between control steps exceeds the horizon, or when
   the plan saturates: 5 or more of the first 6 actions at |a| >= `mppi_guard_aopt_threshold`
   (0.98) for `mppi_guard_saturation_callbacks` (4) ticks in a row.
-- **Several subscribers to `/pf/pose/odom`** (MPPI plus the opponent predictor) can lower the PF
+- **Several subscribers to `/hal/localization/odom`** (MPPI plus the opponent predictor) can lower the PF
   rate. A dedicated republisher was proposed but not built.
 - **Raceline format.** MPPI needs each waypoint's distance to the left and right wall.
 - **Lidar detector.** `front_fov_only: true` is currently required for correct behaviour (cause

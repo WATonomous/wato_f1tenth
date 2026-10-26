@@ -1,9 +1,9 @@
 # Hardware launch for e7_fifth_v3 (Jetson Orin), CUDA MPPI (mppi_cpp).
 # Mirrors mppi_bringup/launch/e7.launch.py: localization (particle_filter,
-# map_server) is brought up separately by bringup_robot/launch/jetson_pf.launch.py.
+# map_server) is brought up separately by world_modeling.launch.yaml.
 #
 # mppi_node publishes to "/drive"; the remapping below routes it into
-# bringup_robot's ackermann_mux "autonomy" input so e-stop/joystick priority
+# the ackermann_mux "autonomy" input (/hal/drive/autonomy) so e-stop/joystick priority
 # still works.
 
 from launch import LaunchDescription
@@ -84,8 +84,8 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "drive_topic",
-                default_value="/drive/autonomy",
-                description='Ackermann drive topic MPPI publishes to (bringup_robot ackermann_mux "autonomy" input, not /drive directly)',
+                default_value="/hal/drive/autonomy",
+                description='Ackermann drive topic MPPI publishes to (the ackermann_mux "autonomy" input, not /drive directly)',
             ),
             DeclareLaunchArgument(
                 "wall_map_yaml",

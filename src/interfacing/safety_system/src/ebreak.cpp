@@ -27,12 +27,12 @@ EBREAK_NODE::EBREAK_NODE()
 : Node("ebreak_node")
 {
   // topics
-  this->declare_parameter<std::string>("odom_topic", "/odom");
+  this->declare_parameter<std::string>("odom_topic", "/hal/odom");
   // this->declare_parameter<std::string>("speed_topic","/autodrive/f1tenth_1/speed");
-  this->declare_parameter<std::string>("laser_topic", "/scan");
-  this->declare_parameter<std::string>("ackermann_output_topic", "/drive/ebreak");
-  this->declare_parameter<std::string>("ackermann_mon_topic", "ackermann_cmd");
-  this->declare_parameter<std::string>("ackermann_steering_topic", "/drive/joystick");
+  this->declare_parameter<std::string>("laser_topic", "/hal/scan");
+  this->declare_parameter<std::string>("ackermann_output_topic", "/hal/drive/ebrake");
+  this->declare_parameter<std::string>("ackermann_mon_topic", "/hal/ackermann_cmd");
+  this->declare_parameter<std::string>("ackermann_steering_topic", "/hal/drive/joystick");
 
   // ttc time stages (lower the time, the more breaking need to be applied)
   this->declare_parameter<double>("ttc1", 0.1011);

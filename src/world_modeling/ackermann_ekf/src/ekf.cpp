@@ -555,9 +555,9 @@ void EKF::init_params()
 {
   // topic decliration
   this->declare_parameter<std::string>("ekf_topic", "/ekf/odom");
-  this->declare_parameter<std::string>("odom_topic", "/odom");
-  this->declare_parameter<std::string>("imu_topic", "/sensors/imu");
-  this->declare_parameter<std::string>("ackermann_topic", "/ackermann_cmd");
+  this->declare_parameter<std::string>("odom_topic", "/hal/odom");
+  this->declare_parameter<std::string>("imu_topic", "/hal/imu");
+  this->declare_parameter<std::string>("ackermann_topic", "/hal/ackermann_cmd");
 
   // frames declaration
   this->declare_parameter<std::string>("child_frame", "base_link");

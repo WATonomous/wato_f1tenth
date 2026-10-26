@@ -3,8 +3,10 @@
 # Entry point for the world_modeling container (see modules/docker-compose.yaml).
 #
 #   car: particle filter + map server (was the localization half of jetson_pf.launch.py)
-#   sim: localization comes from the sim adapter (fake odom), so only the planner runs
+#   sim: ground truth from the sim adapter (localization:=truth), so only the planner runs
 #   both: global planner; optional costmap, EKF, slam_toolbox mapping and RViz
+#
+# Whatever localizes publishes /hal/localization/odom (agents/workflows/sim-to-car.md).
 
 launch:
   - arg:
@@ -19,8 +21,8 @@ launch:
 
   - arg:
       name: localization
-      default: "$(eval '\"$(var platform)\" == \"car\" and \"$(var mapping)\".lower() != \"true\"')"
-      description: "Run the particle filter and map server"
+      default: "$(env LOCALIZATION auto)"
+      description: "pf (particle filter + map server), truth (sim adapter's ground truth), none, or auto (car: pf, sim: truth)"
 
   - arg:
       name: map
@@ -51,9 +53,13 @@ launch:
       name: share
       value: "$(find-pkg-share world_modeling_bringup)"
 
-  # Localization (car)
+  - let:
+      name: run_pf
+      value: "$(eval '(\"$(var localization)\" == \"pf\" or (\"$(var localization)\" == \"auto\" and \"$(var platform)\" == \"car\")) and \"$(var mapping)\".lower() != \"true\"')"
+
+  # Particle filter localization (car by default; in sim with localization:=pf map:=<sim map>)
   - group:
-      if: "$(var localization)"
+      if: "$(var run_pf)"
       children:
         - node:
             pkg: particle_filter
@@ -61,7 +67,10 @@ launch:
             name: particle_filter
             output: screen
             param:
-              - from: "$(var share)/config/car/localize.yaml"
+              - from: "$(var share)/config/$(var platform)/localize.yaml"
+            remap:
+              - from: /pf/pose/odom
+                to: /hal/localization/odom
         - node:
             pkg: nav2_map_server
             exec: map_server
@@ -98,7 +107,7 @@ launch:
       output: screen
       param:
         - name: scan_topic
-          value: /scan
+          value: /hal/scan
         - name: use_odometry
           value: true
         - name: map_frame

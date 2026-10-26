@@ -26,11 +26,19 @@ public:
   SCAN_REMAP()
   : Node("scan_remap")
   {
+    // AutoDRIVE lidar -> contract scan, restamped into our laser frame
+    this->declare_parameter<std::string>("input_topic", "/autodrive/roboracer_1/lidar");
+    this->declare_parameter<std::string>("output_topic", "/hal/scan");
+    this->declare_parameter<std::string>("frame_id", "laser");
+    frame_id = this->get_parameter("frame_id").as_string();
+
     // initalize pubs and subs
-    scan_pub = this->create_publisher<sensor_msgs::msg::LaserScan>("/scan", 10);
+    scan_pub = this->create_publisher<sensor_msgs::msg::LaserScan>(this->get_parameter("output_topic").as_string(), 10);
 
     scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      "/autodrive/roboracer_1/lidar", 10, std::bind(&SCAN_REMAP::laser_callback, this, std::placeholders::_1));
+      this->get_parameter("input_topic").as_string(),
+      10,
+      std::bind(&SCAN_REMAP::laser_callback, this, std::placeholders::_1));
   }
 
 private:
@@ -38,11 +46,13 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub;
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr scan_pub;
 
+  std::string frame_id;
+
   // functions
   void laser_callback(sensor_msgs::msg::LaserScan::SharedPtr msg)
   {
     sensor_msgs::msg::LaserScan new_scan = *msg;
-    new_scan.header.set__frame_id("laser");
+    new_scan.header.set__frame_id(frame_id);
     scan_pub->publish(new_scan);
   }
 };

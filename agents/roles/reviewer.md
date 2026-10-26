@@ -9,8 +9,8 @@ file, the line, and what goes wrong. Don't rewrite the change unless asked.
    or path hardcoded as a code default instead of YAML (`rules.md` rules 4 and 5).
 2. **Parameters.** Declared with a type and default; YAML keyed by the launched node name or `/**:`;
    new parameters added to the YAML that launch files actually load.
-3. **Drive path.** New drive sources publish on `/drive/<source>` with a mux entry (priority and
-   timeout), respect `/dead_man_switch`, and never publish `/ackermann_cmd` directly.
+3. **Drive path.** New drive sources publish on `/hal/drive/<source>` with a mux entry (priority and
+   timeout), respect `/hal/dead_man_switch`, and never publish `/hal/ackermann_cmd` directly.
 4. **QoS and timing.** Debug topics BEST_EFFORT and rate-limited; control topics RELIABLE; no long
    blocking work in timer callbacks of a single-threaded executor.
 5. **Car safety.** `use_sim_time: false` on car launch files; e-brake priority stays highest; no

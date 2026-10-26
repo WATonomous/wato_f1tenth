@@ -132,9 +132,7 @@ public:
     const rclcpp::QoS debug_qos = sensor_qos;  // BEST_EFFORT so slow viewers can't backpressure
 
     pose_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      cfg_.is_sim ? "/ego_racecar/odom" : "/pf/pose/odom",
-      sensor_qos,
-      [this](nav_msgs::msg::Odometry::ConstSharedPtr m) { pose_callback(std::move(m)); });
+      cfg_.odom_topic, sensor_qos, [this](nav_msgs::msg::Odometry::ConstSharedPtr m) { pose_callback(std::move(m)); });
     opp_sub_ = create_subscription<nav_msgs::msg::Path>(
       cfg_.opponent_path_topic, sensor_qos, [this](nav_msgs::msg::Path::ConstSharedPtr m) {
         opponent_path_callback(*m);
@@ -188,7 +186,8 @@ private:
   void declare_params()
   {
     Config & c = cfg_;
-    param("is_sim", c.is_sim, "true: /ego_racecar/odom; false: /pf/pose/odom.", true);
+    param("is_sim", c.is_sim, "true: sim, so skip the hardware pose-delta speed estimator.", true);
+    param("odom_topic", c.odom_topic, "Localization pose (Odometry); /hal/localization/odom on both platforms.", true);
     param("wpt_path_absolute", c.wpt_path_absolute, "Use wpt_path as absolute path to raceline CSV.", true);
     param("wpt_path", c.wpt_path, "Raceline CSV (absolute, or relative to mppi_cpp/data).", true);
     param("state_predictor", c.state_predictor, "Rollout model: dynamic_ST or kinematic_ST.", true);

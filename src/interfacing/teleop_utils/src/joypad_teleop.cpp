@@ -26,9 +26,9 @@ JOYPAD::JOYPAD()
 : Node("joypad_node")
 {
   // parameters
-  this->declare_parameter<std::string>("gamepad_topic", "/drive/joystick");
+  this->declare_parameter<std::string>("gamepad_topic", "/hal/drive/joystick");
   this->declare_parameter<std::string>("joy_topic", "/joy");
-  this->declare_parameter<std::string>("dead_man_topic", "/dead_man_switch");
+  this->declare_parameter<std::string>("dead_man_topic", "/hal/dead_man_switch");
   this->declare_parameter<std::string>("my_frame_id", "base_link");
 
   this->declare_parameter<float>("max_speed", 22.88);

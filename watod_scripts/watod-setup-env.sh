@@ -146,7 +146,7 @@ INTERFACING_IMAGE=${INTERFACING_IMAGE:-"$REGISTRY_URL/interfacing/interfacing"}
 SIM_IMAGE=${SIM_IMAGE:-"$REGISTRY_URL/sim/sim"}
 
 ################################  f1tenth platform  ##################################
-# car or sim. Step 3 of the migration replaces this default with auto-detection.
+# car or sim. Phase 1 of step 3 replaces this default with auto-detection.
 PLATFORM=${PLATFORM:-"sim"}
 # true to run slam_toolbox (mapping) instead of localization
 MAPPING=${MAPPING:-"false"}
@@ -154,6 +154,10 @@ MAPPING=${MAPPING:-"false"}
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
 # true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
 REALSENSE=${REALSENSE:-"false"}
+# Source of /hal/imu: realsense, vesc, none or auto (resolved in interfacing.launch.yaml)
+IMU=${IMU:-"auto"}
+# What publishes /hal/localization/odom: pf, truth, none or auto (car: pf; sim: truth)
+LOCALIZATION=${LOCALIZATION:-"auto"}
 # nvidia or none: picks the GPU or CPU base for action, perception and world_modeling.
 # Jetson -> nvidia; x86 -> nvidia only if nvidia-smi works and Docker has the nvidia runtime.
 if [[ -z "${GPU:-}" ]]; then
@@ -240,6 +244,8 @@ append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
 append "REALSENSE" "$REALSENSE"
+append "IMU" "$IMU"
+append "LOCALIZATION" "$LOCALIZATION"
 append "GPU" "$GPU"
 
 # ROS 2 Middleware

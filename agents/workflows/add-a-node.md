@@ -32,13 +32,14 @@ Look for an existing package that already does most of it before creating a new 
 
 ## 4. Topics and QoS
 
-- Subscribe and publish only contract topics: `/scan`, `/odom`, `/imu`, the localization
-  output, `/drive/<source>`, `/global_planner/path`, `/dead_man_switch`.
-- A new drive source publishes `AckermannDriveStamped` on `/drive/<source>`, and gets an entry
-  with a priority and a timeout in the mux YAML. It never publishes to `/ackermann_cmd` directly.
+- Subscribe and publish only contract topics: `/hal/scan`, `/hal/odom`, `/hal/imu`,
+  `/hal/localization/odom`, `/hal/drive/<source>`, `/hal/dead_man_switch`, plus
+  `/global_planner/path`. A new hardware-facing topic goes under `/hal/`.
+- A new drive source publishes `AckermannDriveStamped` on `/hal/drive/<source>`, and gets an entry
+  with a priority and a timeout in the mux YAML. It never publishes to `/hal/ackermann_cmd` directly.
 - Debug and visualization topics: `rclcpp::QoS(1).best_effort()` (Python: `qos_profile_sensor_data`
   or a BEST_EFFORT profile), behind a rate limit or a `enable_debug_vis` parameter.
-- Respect `/dead_man_switch` in anything that can move the car.
+- Respect `/hal/dead_man_switch` in anything that can move the car.
 
 ## 5. Launch
 

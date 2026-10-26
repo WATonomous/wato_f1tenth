@@ -44,6 +44,10 @@ add_executable(scan_remap_node src/scan_remap.cpp)
 target_include_directories(scan_remap_node PUBLIC include)
 ament_target_dependencies(scan_remap_node rclcpp sensor_msgs)
 
+# imu remapper
+add_executable(imu_remap_node src/imu_remap.cpp)
+ament_target_dependencies(imu_remap_node rclcpp sensor_msgs)
+
 # fake odom
 add_executable(fake_odom_node src/fake_odom.cpp)
 target_include_directories(fake_odom_node PUBLIC include)
@@ -52,6 +56,7 @@ ament_target_dependencies(fake_odom_node rclcpp sensor_msgs std_msgs nav_msgs tf
 install(TARGETS
   ackermann_converter_node
   scan_remap_node
+  imu_remap_node
   fake_odom_node
   DESTINATION lib/${PROJECT_NAME}
 )

@@ -5,6 +5,9 @@
 # Runs on both platforms:
 #   car: VESC, Hokuyo, joystick teleop, ackermann_mux, static TFs (was jetson_up.launch.py)
 #   sim: keyboard teleop, ackermann_mux, static TF (the drive half of minimumEx.launch.py)
+#
+# Drivers publish straight onto the /hal/* contract topics through remaps
+# (agents/workflows/sim-to-car.md).
 
 launch:
   - arg:
@@ -32,9 +35,29 @@ launch:
       default: "$(env REALSENSE false)"
       description: "Start the Intel RealSense driver (IMU on; depth/color per config)"
 
+  - arg:
+      name: imu
+      default: "$(env IMU auto)"
+      description: >-
+        Source of /hal/imu: realsense, vesc (not working as intended yet), none, or auto
+        (car: realsense when realsense:=true; sim: none, the sim container provides /hal/imu)
+
   - let:
       name: config_dir
       value: "$(find-pkg-share interfacing_bringup)/config/$(var platform)"
+
+  - let:
+      name: imu_source
+      value: "$(eval '(\"realsense\" if \"$(var platform)\" == \"car\" and \"$(var realsense)\".lower() == \"true\" else \"none\") if \"$(var imu)\" == \"auto\" else \"$(var imu)\"')"
+
+  # Each IMU driver publishes onto /hal/imu only when it is the selected source
+  - let:
+      name: realsense_imu_topic
+      value: "$(eval '\"/hal/imu\" if \"$(var imu_source)\" == \"realsense\" else \"/camera/camera/imu\"')"
+
+  - let:
+      name: vesc_imu_topic
+      value: "$(eval '\"/hal/imu\" if \"$(var imu_source)\" == \"vesc\" else \"sensors/imu/raw\"')"
 
   # base_link -> laser, same mounting on the car and in sim
   - node:
@@ -43,7 +66,7 @@ launch:
       name: static_baselink_to_laser
       args: "--x 0.27 --y 0.0 --z 0.11 --frame-id base_link --child-frame-id laser"
 
-  # Picks one drive command by priority and publishes /ackermann_cmd
+  # Picks one drive command by priority and publishes /hal/ackermann_cmd
   - node:
       pkg: ackermann_mux
       exec: ackermann_mux
@@ -51,37 +74,54 @@ launch:
       output: screen
       param:
         - from: "$(var config_dir)/mux.yaml"
+      remap:
+        - from: ackermann_cmd
+          to: /hal/ackermann_cmd
 
   # Car drivers
   - group:
       if: "$(eval '\"$(var platform)\" == \"car\"')"
       children:
+        # VESC IMU on sensors/imu/raw (-> /hal/imu with imu:=vesc). NOT WORKING AS INTENDED YET:
+        # it has no frame_id and its readings haven't been checked; debug before relying on it.
         - node:
             pkg: vesc_driver
             exec: vesc_driver_node
             name: vesc_driver_node
             param:
               - from: "$(var config_dir)/vesc.yaml"
+            remap:
+              - from: sensors/imu/raw
+                to: "$(var vesc_imu_topic)"
         - node:
             pkg: vesc_ackermann
             exec: vesc_to_odom_node
             name: vesc_to_odom_node
             param:
               - from: "$(var config_dir)/vesc.yaml"
+            remap:
+              - from: odom
+                to: /hal/odom
         - node:
             pkg: vesc_ackermann
             exec: ackermann_to_vesc_node
             name: ackermann_to_vesc_node
             param:
               - from: "$(var config_dir)/vesc.yaml"
+            remap:
+              - from: ackermann_cmd
+                to: /hal/ackermann_cmd
         - node:
             pkg: urg_node
             exec: urg_node_driver
             name: urg_node
             param:
               - from: "$(var config_dir)/sensors.yaml"
+            remap:
+              - from: scan
+                to: /hal/scan
 
-  # Gamepad teleop: /joy -> /drive/joystick and /dead_man_switch
+  # Gamepad teleop: /joy -> /hal/drive/joystick and /hal/dead_man_switch
   - group:
       if: "$(var joystick)"
       children:
@@ -103,14 +143,14 @@ launch:
             param:
               - from: "$(find-pkg-share teleop_utils)/config/joypad_config.yaml"
 
-  # Keyboard teleop: /cmd_vel -> /drive/keyboard (Foxglove teleop panel)
+  # Keyboard teleop: /cmd_vel -> /hal/drive/keyboard (Foxglove teleop panel)
   - node:
       if: "$(var keyboard)"
       pkg: teleop_utils
       exec: keyboard_converter
       name: keyboard_converter
 
-  # TTC emergency brake -> /drive/ebreak
+  # TTC emergency brake -> /hal/drive/ebrake
   - node:
       if: "$(var ebrake)"
       pkg: safety_node
@@ -118,7 +158,8 @@ launch:
       name: ebreak
       output: screen
 
-  # Intel RealSense: IMU on /camera/camera/imu, depth/color per config/<platform>/realsense.yaml.
+  # Intel RealSense: IMU on /camera/camera/imu (/hal/imu with imu:=realsense), depth/color per
+  # config/<platform>/realsense.yaml.
   # base_link -> camera_link: above the lidar (x 0.27, z 0.11 + 0.20); the driver hangs its
   # camera_*_frame / *_optical_frame TFs off camera_link.
   - node:
@@ -137,3 +178,6 @@ launch:
       output: screen
       param:
         - from: "$(var config_dir)/realsense.yaml"
+      remap:
+        - from: /camera/camera/imu
+          to: "$(var realsense_imu_topic)"

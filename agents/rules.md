@@ -35,6 +35,10 @@ build proves nothing about the container or the car. It also drops `build/`, `in
    only in `sim_util` (the sim adapter). See `workflows/sim-to-car.md`.
 3. **`use_sim_time: false` on the car.** `jetson_pf.launch.py` currently runs the map server and
    lifecycle manager with `use_sim_time: True` on real hardware; do not copy that.
+4. **(AGENTS.md rule 13) The contract lives under `/hal/`.** Before step 3, planners chose between
+   `/odom`, `/pf/pose/odom` and `/ego_racecar/odom` per branch, and nobody could tell at a glance
+   which topics were the hardware boundary. With one prefix, `ros2 topic list | grep /hal` shows
+   the whole contract, and a node that reads only `/hal/*` runs on both platforms unchanged.
 
 ## ROS correctness
 

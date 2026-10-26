@@ -59,6 +59,9 @@ the host: give the human the commands to run in the container, or ask before usi
 11. Build, test and run ROS code only inside the dev container, never on the host.
 12. Never credit an agent in git: no `Co-Authored-By` trailers, no "Generated with" lines, in
     commits or PRs. Commits use the human's own git identity, so GitHub shows their profile.
+13. Shared nodes talk to hardware and the sim only through the `/hal/*` contract (`/hal/scan`,
+    `/hal/odom`, `/hal/imu`, `/hal/localization/odom`, `/hal/drive/<source>`, ...). New
+    hardware-facing topics go under `/hal/`. See `agents/workflows/sim-to-car.md`.
 
 ## Index
 

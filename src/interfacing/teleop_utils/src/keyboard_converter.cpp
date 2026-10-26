@@ -21,7 +21,7 @@ KeyboardConverter::KeyboardConverter()
 {
   // parameters
   this->declare_parameter<std::string>("twist_topic", "/cmd_vel");
-  this->declare_parameter<std::string>("ackermann_topic", "/drive/keyboard");
+  this->declare_parameter<std::string>("ackermann_topic", "/hal/drive/keyboard");
 
   twist_topic = this->get_parameter("twist_topic").as_string();
   ackermann_topic = this->get_parameter("ackermann_topic").as_string();

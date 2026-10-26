@@ -9,7 +9,7 @@ occupancy_grid_generator:
     robot_frame: "base_link"
 
     # Topic names
-    scan_topic: "/scan"
+    scan_topic: "/hal/scan"
     output_topic: "/costmap"
 
     # Obstacle marking

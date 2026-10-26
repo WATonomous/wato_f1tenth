@@ -76,7 +76,7 @@ ROS commands need both setup files sourced, and a `timeout` so they return:
 ```bash
 ssh <host> 'docker ps --format "{{.Names}} {{.Status}}"'
 ssh <host> 'docker exec watod_wato-interfacing_bringup-1 bash -c "source /opt/ros/jazzy/setup.bash; \
-  source /opt/watonomous/setup.bash; timeout 6 ros2 topic hz /scan"'
+  source /opt/watonomous/setup.bash; timeout 6 ros2 topic hz /hal/scan"'
 ssh <host> 'docker logs --tail 50 watod_wato-world_modeling_bringup-1 2>&1'
 ```
 

@@ -72,7 +72,7 @@ mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0`
 # watod-config.local.sh on the Jetson
 export ACTIVE_MODULES="interfacing world_modeling action"   # interfacing alone = old jetson_up
 export PLATFORM="car"
-export REALSENSE="true"     # RealSense IMU on /camera/camera/imu
+export REALSENSE="true"     # RealSense IMU on /hal/imu (IMU=auto picks it on the car)
 export CONTROLLER="none"    # bench testing: no pure pursuit (default pure_pursuit)
 ./watod build-base      # once: CPU + Jetson CUDA/TensorRT bases (step 5 replaces this with a pull)
 ./watod build

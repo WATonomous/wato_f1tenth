@@ -8,7 +8,7 @@ MPPI follows (`mppi_bringup/waypoints/e7.csv`, loaded by
 are NO parameter overrides here -- every value lives in the YAML.
 
 Prerequisites (started separately):
-  - jetson_pf.launch.py -> /scan, /pf/pose/odom, and /map (e7_fifth_v3)
+  - world_modeling.launch.yaml -> /hal/scan, /hal/localization/odom, and /map (e7_fifth_v3)
   - e7.launch.py         -> MPPI controller (consumes /opponent/predicted_path)
 """
 

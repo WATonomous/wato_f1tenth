@@ -9,7 +9,8 @@ namespace mppi
 struct Config
 {
   // ---- startup (read once) ----
-  bool is_sim = true;
+  bool is_sim = true;  // true: no pose-delta speed estimator (sim odometry is perfect)
+  std::string odom_topic = "/hal/localization/odom";
   bool wpt_path_absolute = false;
   std::string wpt_path;
   std::string state_predictor = "dynamic_ST";  // dynamic_ST | kinematic_ST

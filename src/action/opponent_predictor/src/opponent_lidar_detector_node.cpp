@@ -107,8 +107,8 @@ public:
   OpponentLidarDetectorNode()
   : Node("opponent_lidar_detector_node")
   {
-    scan_topic_ = declare_parameter<std::string>("scan_topic", "/scan");
-    ego_odom_topic_ = declare_parameter<std::string>("ego_odom_topic", "/ego_racecar/odom");
+    scan_topic_ = declare_parameter<std::string>("scan_topic", "/hal/scan");
+    ego_odom_topic_ = declare_parameter<std::string>("ego_odom_topic", "/hal/localization/odom");
     map_topic_ = declare_parameter<std::string>("map_topic", "/map");
     detected_odom_topic_ = declare_parameter<std::string>("detected_odom_topic", "/opponent/detection_odom");
     detector_marker_topic_ = declare_parameter<std::string>("detector_marker_topic", "/opponent/detection_markers");

@@ -1,7 +1,7 @@
 opponent_lidar_detector:
   ros__parameters:
-    scan_topic: /scan
-    ego_odom_topic: /ego_racecar/odom
+    scan_topic: /hal/scan
+    ego_odom_topic: /hal/localization/odom
     map_topic: /map
     detected_odom_topic: /opponent/detection_odom
     detector_marker_topic: /opponent/detection_markers

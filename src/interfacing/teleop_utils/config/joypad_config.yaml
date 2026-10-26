@@ -5,7 +5,8 @@
 /**:
   ros__parameters:
     # Topic names
-    gamepad_topic: "/drive/joystick"
+    gamepad_topic: "/hal/drive/joystick"
+    dead_man_topic: "/hal/dead_man_switch"
     joy_topic: "/joy"
     my_frame_id: "base_link"
 

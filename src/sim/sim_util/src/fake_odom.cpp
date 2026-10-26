@@ -26,13 +26,24 @@ FakeOdom::FakeOdom()
   this->declare_parameter<double>("inital_speed", 0.0);
   // AutoDRIVE publishes the car's speed in the twist of its odometry topic
   this->declare_parameter<std::string>("speed_odom_topic", "/autodrive/roboracer_1/odom");
+  this->declare_parameter<std::string>("odom_topic", "/hal/odom");
+  // Ground-truth localization (localization:=truth): the same pose in the map frame,
+  // valid because map -> odom is a static identity then
+  this->declare_parameter<bool>("publish_localization", false);
+  this->declare_parameter<std::string>("localization_topic", "/hal/localization/odom");
+  this->declare_parameter<std::string>("localization_frame", "map");
 
   child_frame_name = this->get_parameter("child_frame").as_string();
   header_frame_name = this->get_parameter("header_frame").as_string();
+  localization_frame_name = this->get_parameter("localization_frame").as_string();
   current_speed.data = static_cast<float>(this->get_parameter("inital_speed").as_double());
 
   // publisher
-  odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+  odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(this->get_parameter("odom_topic").as_string(), 10);
+  if (this->get_parameter("publish_localization").as_bool()) {
+    localization_pub =
+      this->create_publisher<nav_msgs::msg::Odometry>(this->get_parameter("localization_topic").as_string(), 10);
+  }
 
   // subscriptions
   tf_sub = this->create_subscription<tf2_msgs::msg::TFMessage>(
@@ -88,6 +99,12 @@ void FakeOdom::publish_msgs(const nav_msgs::msg::Odometry & odom_msg)
   current_odom.twist.twist.linear.x = current_speed.data;
 
   odom_pub->publish(current_odom);
+
+  if (localization_pub) {
+    nav_msgs::msg::Odometry localization = current_odom;
+    localization.header.frame_id = localization_frame_name;
+    localization_pub->publish(localization);
+  }
 
   // publishing tf
   geometry_msgs::msg::TransformStamped t;

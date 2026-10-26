@@ -1,8 +1,8 @@
 particle_filter:
   ros__parameters:
     # topic names
-    scan_topic: '/scan'
-    odometry_topic: '/odom'
+    scan_topic: '/hal/scan'
+    odometry_topic: '/hal/odom'
     # range data downsampling
     angle_step: 18
     max_particles: 8000

@@ -40,6 +40,8 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
 | `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
+| `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
+| `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |
 | `GPU` | detected: `nvidia` or `none` | GPU or CPU base for `action`, `perception`, `world_modeling` |
 
 Device access: `PLATFORM=car` adds `modules/docker-compose.car.yaml` (host `/dev`, privileged,
@@ -55,29 +57,33 @@ lack the `hid_sensor` IIO drivers the kernel backend needs for the D435i IMU.
 
 ## Sim data flow
 
+All shared topics are the `/hal/*` contract (`workflows/sim-to-car.md`).
+
 ```text
 AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
-  /autodrive/roboracer_1/lidar          -> scan_remap_node     -> /scan
-  /tf + /autodrive/roboracer_1/odom     -> fake_odom_node      -> /odom (pose + speed)
+  /autodrive/roboracer_1/lidar          -> scan_remap_node     -> /hal/scan
+  /autodrive/roboracer_1/imu            -> imu_remap_node      -> /hal/imu
+  /tf + /autodrive/roboracer_1/odom     -> fake_odom_node      -> /hal/odom, /hal/localization/odom (ground truth)
   static map -> odom                                           (stands in for the PF)
-  /drive/{ebreak,joystick,keyboard,autonomy} -> ackermann_mux  -> /ackermann_cmd
-  /ackermann_cmd                        -> ackermann_converter -> /autodrive/roboracer_1/{throttle,steering}_command
+  /hal/drive/{ebrake,joystick,keyboard,autonomy} -> ackermann_mux -> /hal/ackermann_cmd
+  /hal/ackermann_cmd                    -> ackermann_converter -> /autodrive/roboracer_1/{throttle,steering}_command
   raceline CSV -> global_planner -> /global_planner/path
-  /global_planner/path + /odom + /dead_man_switch -> pure_pursuit -> /drive/autonomy
+  /global_planner/path + /hal/localization/odom + /hal/odom + /hal/dead_man_switch -> pure_pursuit -> /hal/drive/autonomy
 ```
 
 ## Car data flow (`PLATFORM=car`)
 
 ```text
-Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /scan
-VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /odom, sensors/imu
-/scan + /odom + map            -> particle_filter (rmgpu)      -> /pf/pose/odom, TF map->odom
-/joy                           -> joypad_node (gamepad_node)   -> /drive/joystick, /dead_man_switch
-/drive/*                       -> ackermann_mux                -> /ackermann_cmd -> ackermann_to_vesc -> VESC
-/global_planner/path + /pf/pose/odom + /odom -> pure_pursuit   -> /drive/autonomy
+Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /hal/scan
+VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sensors/imu
+RealSense D435i (USB)          -> realsense2_camera            -> /hal/imu (IMU=realsense)
+/hal/scan + /hal/odom + map    -> particle_filter (rmgpu)      -> /hal/localization/odom, TF map->odom
+/joy                           -> joypad_node (gamepad_node)   -> /hal/drive/joystick, /hal/dead_man_switch
+/hal/drive/*                   -> ackermann_mux                -> /hal/ackermann_cmd -> ackermann_to_vesc -> VESC
+/global_planner/path + /hal/localization/odom + /hal/odom -> pure_pursuit -> /hal/drive/autonomy
 ```
 
-The car config follows `mppi_test` (the car as last driven): PF on `/odom`, no EKF, no e-brake.
+The car config follows `mppi_test` (the car as last driven): PF on `/hal/odom`, no EKF, no e-brake.
 Both packages are kept and can be switched on (`ekf:=true`, `ebrake:=true`); the mux keeps the
 e-brake slot at priority 100.
 
@@ -110,7 +116,7 @@ Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeou
 - `watod` detects the platform too (today `PLATFORM` is set by hand; `GPU` is already
   detected, and `PLATFORM=car` already adds `modules/docker-compose.car.yaml` for devices and
   `runtime: nvidia`).
-- The localization output becomes `/localization/odom` on both platforms, so planners stop
-  choosing between `/odom` and `/pf/pose/odom`, plus a CI contract test.
+- `./watod contract` (live check) and a bag replay test in `./watod test` for the `/hal/*`
+  contract.
 
 See `workflows/sim-to-car.md` for the contract rules.

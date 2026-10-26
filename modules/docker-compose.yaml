@@ -89,6 +89,7 @@ services:
       - PLATFORM=${PLATFORM}
       - MAPPING=${MAPPING}
       - REALSENSE=${REALSENSE}
+      - IMU=${IMU}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}
@@ -215,6 +216,7 @@ services:
     environment:
       - PLATFORM=${PLATFORM}
       - MAPPING=${MAPPING}
+      - LOCALIZATION=${LOCALIZATION}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}
@@ -325,6 +327,7 @@ services:
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}
       - ZENOH_SESSION_CONFIG_URI=${ZENOH_SESSION_CONFIG_URI}
       - MAPPING=${MAPPING}
+      - LOCALIZATION=${LOCALIZATION}
     depends_on:
       infrastructure_bringup:
         condition: service_started

@@ -93,6 +93,14 @@
 ## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
 # export REALSENSE="true"
 
+## Source of /hal/imu: realsense, vesc (not working as intended yet), none or auto.
+## DEFAULT = "auto" (car: realsense when REALSENSE=true; sim: AutoDRIVE's IMU)
+# export IMU="realsense"
+
+## What publishes /hal/localization/odom: pf (particle filter), truth (sim ground truth) or none.
+## DEFAULT = "auto" (car: pf; sim: truth)
+# export LOCALIZATION="pf"
+
 ## GPU images: nvidia or none. DEFAULT = detected (Jetson or a working nvidia-smi + Docker
 ## nvidia runtime -> nvidia, else none). none builds action/perception/world_modeling on the CPU base.
 # export GPU="none"

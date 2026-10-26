@@ -64,8 +64,9 @@ docker exec -it watod_<user>-action_bringup_dev-1 bash -c \
 
 ```bash
 ros2 topic list
-ros2 topic hz /scan
-ros2 topic echo /drive/autonomy --once
+ros2 topic list | grep /hal          # the whole contract
+ros2 topic hz /hal/scan
+ros2 topic echo /hal/drive/autonomy --once
 ros2 param dump /<node_name>
 ros2 run tf2_tools view_frames
 ```

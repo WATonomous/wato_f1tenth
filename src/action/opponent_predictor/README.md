@@ -19,7 +19,7 @@ $$
 In ROS topics:
 
 $$
-/scan,\ /ego\_racecar/odom,\ /map
+/hal/scan,\ /hal/localization/odom,\ /map
 \rightarrow
 /opponent/detection\_odom
 \rightarrow
@@ -650,10 +650,10 @@ This lets the prediction start from the opponent's measured side of the track, w
 ### LiDAR Detector Parameters
 
 `scan_topic`
-: LaserScan input, usually `/scan`.
+: LaserScan input, usually `/hal/scan`.
 
 `ego_odom_topic`
-: Ego pose source used to transform scan points into `map`.
+: Ego pose source used to transform scan points into `map`, usually `/hal/localization/odom`.
 
 `map_topic`
 : Static occupancy map used to reject wall points.

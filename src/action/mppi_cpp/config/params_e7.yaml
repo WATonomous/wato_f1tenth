@@ -3,7 +3,8 @@ lmppi_node:
     # Startup parameters: read once when the node starts. Restart MPPI after
     # changing these because they affect subscriptions, rollout array shapes,
     # JAX compilation, or the random sampling stream.
-    is_sim: false                  # true: /ego_racecar/odom; false: /pf/pose/odom.
+    is_sim: false                  # true: sim, so skip the hardware pose-delta speed estimator.
+    odom_topic: /hal/localization/odom  # localization pose (the /hal contract)
     state_predictor: dynamic_ST   # Rollout model. dynamic_ST includes yaw rate/slip; kinematic_ST is simpler.
     n_samples: 8192               # Number of sampled control sequences. More is steadier but slower.
     # Can do higher for low speed and lower for high speed (corresponding to lookahead distance)
