@@ -38,6 +38,7 @@
   <depend>vision_msgs</depend>
   <depend>ackermann_msgs</depend>
   <depend>vesc_msgs</depend>
+  <depend>realsense2_camera_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

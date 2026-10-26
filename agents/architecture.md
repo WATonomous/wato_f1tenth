@@ -26,7 +26,7 @@ mounted at `/ws/src/<module>`.
 | Module | Packages | Runs |
 | --- | --- | --- |
 | `infrastructure` | `infrastructure_bringup`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays; builds `vesc_msgs` so Foxglove can decode it |
-| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`) | car: VESC, Hokuyo, joystick; both: mux, base_link->laser; sim: keyboard teleop |
+| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap` | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
 | `action` | `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | pure pursuit (default) or MPPI (`CONTROLLER=mppi`, untested) |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
@@ -39,6 +39,11 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `PLATFORM` | `sim` (default), `car` | which `config/<platform>/` YAML and which nodes start |
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
 | `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action` |
+| `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
+| `GPU` | detected: `nvidia` or `none` | GPU or CPU base for `action`, `perception`, `world_modeling` |
+
+Device access: `PLATFORM=car` adds `modules/docker-compose.car.yaml` (host `/dev`, privileged,
+nvidia runtime); sim on Linux adds `modules/docker-compose.pc.yaml` (host `/dev/input` for a gamepad).
 
 Images: `infrastructure`, `interfacing` and `sim` use the CPU base. `world_modeling`, `action` and
 `perception` pick their base per architecture: x86 CPU or CUDA 12.9 + TensorRT, Jetson CUDA 12.8 +

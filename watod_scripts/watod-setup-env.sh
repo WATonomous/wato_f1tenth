@@ -152,6 +152,8 @@ PLATFORM=${PLATFORM:-"sim"}
 MAPPING=${MAPPING:-"false"}
 # pure_pursuit, mppi or none
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
+# true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
+REALSENSE=${REALSENSE:-"false"}
 # nvidia or none: picks the GPU or CPU base for action, perception and world_modeling.
 # Jetson -> nvidia; x86 -> nvidia only if nvidia-smi works and Docker has the nvidia runtime.
 if [[ -z "${GPU:-}" ]]; then
@@ -237,6 +239,7 @@ append "SIM_IMAGE" "$SIM_IMAGE"
 append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
+append "REALSENSE" "$REALSENSE"
 append "GPU" "$GPU"
 
 # ROS 2 Middleware

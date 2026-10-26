@@ -14,8 +14,8 @@ launch:
 
   - arg:
       name: joystick
-      default: "$(eval '\"$(var platform)\" == \"car\"')"
-      description: "Start joy_node and the gamepad teleop"
+      default: "true"
+      description: "Start joy_node and the gamepad teleop (USB or Bluetooth pad, car and PC)"
 
   - arg:
       name: keyboard
@@ -26,6 +26,11 @@ launch:
       name: ebrake
       default: "false"
       description: "Start the TTC emergency brake (off until it is re-tuned)"
+
+  - arg:
+      name: realsense
+      default: "$(env REALSENSE false)"
+      description: "Start the Intel RealSense driver (IMU on; depth/color per config)"
 
   - let:
       name: config_dir
@@ -117,3 +122,15 @@ launch:
       exec: ebreak
       name: ebreak
       output: screen
+
+  # Intel RealSense (camera_link is the static TF above on the car): IMU on
+  # /camera/camera/imu, depth/color per config/<platform>/realsense.yaml
+  - node:
+      if: "$(var realsense)"
+      pkg: realsense2_camera
+      exec: realsense2_camera_node
+      name: camera
+      namespace: camera
+      output: screen
+      param:
+        - from: "$(var config_dir)/realsense.yaml"

@@ -90,6 +90,9 @@
 ## Controller in the action module: pure_pursuit, mppi or none. DEFAULT = "pure_pursuit"
 # export CONTROLLER="pure_pursuit"
 
+## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
+# export REALSENSE="true"
+
 ## GPU images: nvidia or none. DEFAULT = detected (Jetson or a working nvidia-smi + Docker
 ## nvidia runtime -> nvidia, else none). none builds action/perception/world_modeling on the CPU base.
 # export GPU="none"

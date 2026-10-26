@@ -1,0 +1,16 @@
+---
+# Intel RealSense driver (realsense2_camera). Started with REALSENSE=true or realsense:=true.
+# The IMU is what we use: gyro + accel are combined into /camera/camera/imu.
+/**:
+  ros__parameters:
+    base_frame_id: camera_link
+    enable_gyro: true
+    enable_accel: true
+    unite_imu_method: 2  # 1 = copy, 2 = linear interpolation
+    enable_sync: false
+    # Depth and color cost CPU/USB bandwidth; turn on when a node needs them
+    enable_depth: false
+    enable_color: false
+    enable_infra1: false
+    enable_infra2: false
+    pointcloud.enable: false
