@@ -23,7 +23,7 @@
 #
 # The pad's MAC is saved as CONTROLLER_MAC in watod-config.local.sh.
 
-set -euo pipefail
+set -uo pipefail
 
 MONO_DIR="$(cd -- "$(dirname -- "$(realpath "$0")")/.." && pwd)"
 LOCAL_CONFIG="$MONO_DIR/watod-config.local.sh"
@@ -86,39 +86,61 @@ wait_for_joystick() {
 
 cmd_pair() {
   need_bluetoothctl
-  bluetoothctl power on >/dev/null
-  bluetoothctl pairable on >/dev/null
 
-  # Forget the old pairing first: a pad paired to another machine (or re-flashed host)
-  # often fails to reconnect until both sides forget each other
-  if [[ -n "$CONTROLLER_MAC" ]]; then
-    echo "Removing the saved pairing for $CONTROLLER_MAC"
-    bluetoothctl remove "$CONTROLLER_MAC" >/dev/null 2>&1 || true
-  fi
+  # One live bluetoothctl session for the whole sequence: BlueZ forgets a scanned,
+  # unpaired device as soon as the scanning session ends, and the pairing agent
+  # only exists inside the session that registered it.
+  coproc BT { bluetoothctl > /dev/null 2>&1; }
+  bt() { echo "$1" >&"${BT[1]}"; sleep 0.5; }
+  trap 'bt quit 2>/dev/null || true' EXIT
+
+  bt "power on"
+  bt "pairable on"
+  bt "agent NoInputNoOutput"
+  bt "default-agent"
+
+  # Forget old pairings first (saved MAC, and any pad already known by name): a pad
+  # paired before (e.g. through the GUI) often refuses to re-pair until both sides forget
+  local old
+  for old in $CONTROLLER_MAC $(find_pad); do
+    echo "Removing the old pairing for $old"
+    bt "remove $old"
+  done
 
   echo "Put the pad in pairing mode now:"
   echo "  PS4: hold SHARE + PS until the light bar double-flashes"
   echo "  PS5: hold CREATE + PS until the light bar flashes fast"
-  echo "Scanning for ${SCAN_SECONDS}s..."
-  bluetoothctl --timeout "$SCAN_SECONDS" scan on >/dev/null 2>&1 || true
-
-  local mac
-  mac=$(find_pad)
+  echo "Scanning for up to ${SCAN_SECONDS}s..."
+  bt "scan on"
+  local mac="" waited=0
+  while [[ -z "$mac" && $waited -lt $SCAN_SECONDS ]]; do
+    sleep 1
+    waited=$((waited + 1))
+    mac=$(find_pad)
+  done
+  bt "scan off"
   if [[ -z "$mac" ]]; then
     echo "No gamepad found. Check it is flashing in pairing mode and run this again."
     exit 1
   fi
   echo "Found $(bluetoothctl info "$mac" | sed -n 's/^\s*Name: //p') at $mac, pairing..."
 
-  bluetoothctl remove "$mac" >/dev/null 2>&1 || true
-  bt_session 6 "agent NoInputNoOutput" "default-agent" "pair $mac"
-  bluetoothctl trust "$mac" >/dev/null
-  bt_session 4 "connect $mac"
-
+  bt "pair $mac"
+  for _ in $(seq 1 20); do
+    is_paired "$mac" && break
+    sleep 1
+  done
   if ! is_paired "$mac"; then
-    echo "Pairing failed. Put the pad back in pairing mode and run this again."
+    echo "Pairing failed (the pad may have left pairing mode). Run this again."
     exit 1
   fi
+  bt "trust $mac"
+  bt "connect $mac"
+  for _ in $(seq 1 10); do
+    is_connected "$mac" && break
+    sleep 1
+  done
+
   save_mac "$mac"
   echo "Paired and trusted; saved CONTROLLER_MAC=$mac in watod-config.local.sh."
   echo "From now on, pressing PS reconnects it."
