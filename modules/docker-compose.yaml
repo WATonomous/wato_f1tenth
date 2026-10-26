@@ -111,6 +111,8 @@ services:
       cache_from:
         - "${PERCEPTION_IMAGE:?}:source_${TAG}"
       target: source
+      args:
+        GPU: "${GPU:-nvidia}"
     image: "${PERCEPTION_IMAGE:?}:source_${TAG}"
 
   perception_deps:
@@ -121,6 +123,8 @@ services:
       cache_from:
         - "${PERCEPTION_IMAGE:?}:deps_${TAG}"
       target: dependencies
+      args:
+        GPU: "${GPU:-nvidia}"
     image: "${PERCEPTION_IMAGE:?}:deps_${TAG}"
 
   perception_bringup:
@@ -171,6 +175,8 @@ services:
       cache_from:
         - "${WORLD_MODELING_IMAGE:?}:source_${TAG}"
       target: source
+      args:
+        GPU: "${GPU:-nvidia}"
     image: "${WORLD_MODELING_IMAGE}:source_${TAG}"
 
   world_modeling_deps:
@@ -181,6 +187,8 @@ services:
       cache_from:
         - "${WORLD_MODELING_IMAGE:?}:deps_${TAG}"
       target: dependencies
+      args:
+        GPU: "${GPU:-nvidia}"
     image: "${WORLD_MODELING_IMAGE}:deps_${TAG}"
 
   world_modeling_bringup:
@@ -222,6 +230,8 @@ services:
       cache_from:
         - "${ACTION_IMAGE:?}:source_${TAG}"
       target: source
+      args:
+        GPU: "${GPU:-nvidia}"
     image: "${ACTION_IMAGE}:source_${TAG}"
 
   action_deps:
@@ -232,6 +242,8 @@ services:
       cache_from:
         - "${ACTION_IMAGE:?}:deps_${TAG}"
       target: dependencies
+      args:
+        GPU: "${GPU:-nvidia}"
     image: "${ACTION_IMAGE}:deps_${TAG}"
 
   action_bringup:

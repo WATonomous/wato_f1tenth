@@ -90,6 +90,10 @@
 ## Controller in the action module: pure_pursuit, mppi or none. DEFAULT = "pure_pursuit"
 # export CONTROLLER="pure_pursuit"
 
+## GPU images: nvidia or none. DEFAULT = detected (Jetson or a working nvidia-smi + Docker
+## nvidia runtime -> nvidia, else none). none builds action/perception/world_modeling on the CPU base.
+# export GPU="none"
+
 ############################### FOXGLOVE SETTINGS ##################################
 ## Size of the outgoing websocket buffer (bytes) for foxglove_bridge. Increase to prevent drops; default is 256 MiB.
 # export FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES="${FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES:-268435456}"

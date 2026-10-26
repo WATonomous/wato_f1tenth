@@ -152,6 +152,18 @@ PLATFORM=${PLATFORM:-"sim"}
 MAPPING=${MAPPING:-"false"}
 # pure_pursuit, mppi or none
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
+# nvidia or none: picks the GPU or CPU base for action, perception and world_modeling.
+# Jetson -> nvidia; x86 -> nvidia only if nvidia-smi works and Docker has the nvidia runtime.
+if [[ -z "${GPU:-}" ]]; then
+  if [[ -f /etc/nv_tegra_release ]]; then
+    GPU="nvidia"
+  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1 && \
+       docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia; then
+    GPU="nvidia"
+  else
+    GPU="none"
+  fi
+fi
 
 ################################  UID / GID  #########################################
 SETUID=$(id -u)
@@ -225,6 +237,7 @@ append "SIM_IMAGE" "$SIM_IMAGE"
 append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
+append "GPU" "$GPU"
 
 # ROS 2 Middleware
 append "RMW_IMPLEMENTATION" "$RMW_IMPLEMENTATION"

@@ -11,7 +11,18 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND NOT DEFINED ENV{CUDAARCHS})
   endif()
 endif()
 
-project(mppi_cpp LANGUAGES CXX CUDA)
+project(mppi_cpp LANGUAGES CXX)
+
+# CPU-only images (GPU=none) have no CUDA compiler: install an empty package instead of failing.
+include(CheckLanguage)
+check_language(CUDA)
+if(NOT CMAKE_CUDA_COMPILER)
+  message(WARNING "mppi_cpp: no CUDA compiler found, skipping the build (CPU-only image)")
+  find_package(ament_cmake REQUIRED)
+  ament_package()
+  return()
+endif()
+enable_language(CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

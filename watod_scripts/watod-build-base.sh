@@ -40,7 +40,7 @@ Builds f1tenth base images locally as ${BASE_REPO}:<tag>.
   cpu     ${CPU_TAG}
   gpu     ${GPU_TAG}      (x86_64 only)
   jetson  ${JETSON_TAG}   (aarch64 only)
-  all     every image this machine's architecture supports (default)
+  all     the CPU base, plus the GPU base if this machine has an NVIDIA GPU (default)
 EOF
 }
 
@@ -82,7 +82,13 @@ case "${1:-all}" in
   jetson) build_jetson ;;
   all)
     build_cpu
-    if [[ $(uname -m) == "x86_64" ]]; then build_gpu; else build_jetson; fi
+    if [[ -f /etc/nv_tegra_release ]]; then
+      build_jetson
+    elif [[ $(uname -m) == "x86_64" ]] && command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+      build_gpu
+    else
+      echo "No NVIDIA GPU found: built the CPU base only (GPU=none uses it for every module)."
+    fi
     ;;
   -h|--help|help) usage ;;
   *) usage; exit 1 ;;
