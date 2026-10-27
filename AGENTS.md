@@ -58,14 +58,17 @@ the host: give the human the commands to run in the container, or ask before usi
 10. Do not commit build output, bags (`*.db3`, `*.mcap`), maps you did not mean to add, or secrets.
     The one exception is the contract test bag in `src/sim/sim_bringup/test/data/`.
 11. Build, test and run ROS code only inside the dev container, never on the host.
-12. Never credit an agent in git: no `Co-Authored-By` trailers, no "Generated with" lines, in
-    commits or PRs. Commits use the human's own git identity, so GitHub shows their profile.
+12. Never credit an agent in git: no `Co-Authored-By` trailers for an agent, no "Generated with"
+    lines, in commits or PRs. Commits use the human's own git identity, so GitHub shows their profile.
 13. Shared nodes talk to hardware and the sim only through the `/hal/*` contract (`/hal/scan`,
     `/hal/odom`, `/hal/imu`, `/hal/localization/odom`, `/hal/drive/<source>`, ...). New
     hardware-facing topics go under `/hal/`. See `agents/workflows/sim-to-car.md`.
 14. Controllers and local planners are picked by file name (`CONTROLLER`, `LOCAL_PLANNER`); never
     edit `action.launch.yaml` to add one. Controllers publish only `/hal/drive/autonomy`; local
     planners publish only under `/local_planner/`. See `agents/workflows/add-controller.md`.
+15. Work ported from another branch keeps its original author as the git author; the human porting
+    it is added as `Co-authored-by`. No exception for anyone, unless `gh` shows the person asking
+    is an owner or admin of the repo (`agents/workflows/update-legacy-branch.md`).
 
 ## Index
 
@@ -83,6 +86,7 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/workflows/deploy-to-car.md` | You are preparing something to run on the Jetson |
 | `agents/workflows/remote-car.md` | You run commands on the car over SSH (build, start, check topics, logs) |
 | `agents/workflows/port-to-jazzy.md` | You are porting a package from Humble to Jazzy |
+| `agents/workflows/update-legacy-branch.md` | You are bringing an old-layout branch onto the new layout |
 | `agents/workflows/debug-mppi.md` | You are working on MPPI or the opponent predictor |
 | `agents/roles/reviewer.md` | You are asked to review a change or a PR |
 | `agents/roles/infra.md` | You are touching `watod`, Dockerfiles, compose files or CI |

@@ -44,6 +44,12 @@ def test_every_contract_topic_is_under_its_namespace():
     assert not {t["name"] for t in CONTRACT["topics"]} & set(CONTRACT["legacy"])
 
 
+def test_every_legacy_name_maps_to_a_current_topic():
+    current = {t["name"] for t in CONTRACT["topics"]}
+    for old, new in CONTRACT["legacy"].items():
+        assert new in current or new.startswith("/local_planner/vis/"), (old, new)
+
+
 def test_controller_and_local_planner_checks():
     def planning(controller, local_planner):
         sources = {"controller": controller, "local_planner": local_planner}

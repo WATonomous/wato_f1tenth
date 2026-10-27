@@ -13,7 +13,7 @@
 #   when         skipped unless that source is active: imu, localization, battery, controller,
 #                local_planner
 # tf:            parent -> child transforms that must resolve, same group / when keys
-# legacy:        pre-/hal names; they must not exist (a warning if only foxglove_bridge uses them)
+# legacy:        old name -> replacement; old names must not exist (a warning if only foxglove_bridge uses them)
 
 topics:
   - name: /hal/scan
@@ -115,19 +115,21 @@ tf:
   - {parent: base_link, child: laser, group: sensors}
 
 legacy:
-  - /scan
-  - /odom
-  - /imu
-  - /pf/pose/odom
-  - /localization/odom
-  - /ackermann_cmd
-  - /drive
-  - /drive/autonomy
-  - /drive/joystick
-  - /drive/keyboard
-  - /drive/ebreak
-  - /drive/ebrake
-  - /dead_man_switch
-  - /local_path
-  - /local_path_map
-  - /overtake_ready
+  # old name: its replacement. The checker only needs the keys; update-legacy-branch.md and
+  # agents/scripts/legacy_triage.py use the values to rename topics on old branches.
+  /scan: /hal/scan
+  /odom: /hal/odom
+  /imu: /hal/imu
+  /pf/pose/odom: /hal/localization/odom
+  /localization/odom: /hal/localization/odom
+  /ackermann_cmd: /hal/ackermann_cmd  # mux output: only the drivers; a controller uses /hal/drive/autonomy
+  /drive: /hal/drive/autonomy  # a controller's direct output (MPPI, gym_vis)
+  /drive/autonomy: /hal/drive/autonomy
+  /drive/joystick: /hal/drive/joystick
+  /drive/keyboard: /hal/drive/keyboard
+  /drive/ebreak: /hal/drive/ebrake
+  /drive/ebrake: /hal/drive/ebrake
+  /dead_man_switch: /hal/dead_man_switch
+  /local_path: /local_planner/path
+  /local_path_map: /local_planner/vis/path_map
+  /overtake_ready: /local_planner/active
