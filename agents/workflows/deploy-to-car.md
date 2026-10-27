@@ -65,6 +65,10 @@ mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0`
   get the host's IPv6 DNS servers first and can't reach them. The Jetson's
   `/etc/docker/daemon.json` sets `"dns": ["8.8.8.8", "1.1.1.1"]` (next to the nvidia runtime);
   keep it when re-flashing.
+- A full `./watod build` on the 8 GB Jetson builds several images at once and can run out of
+  memory (the build is killed, or the Jetson freezes and needs a power cycle). When more than
+  one module needs rebuilding, build them one at a time:
+  `for m in infrastructure interfacing world_modeling action; do ./watod -m $m build || break; done`.
 
 ## On `big_infra_update`
 
