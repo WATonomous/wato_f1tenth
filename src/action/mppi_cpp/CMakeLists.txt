@@ -54,6 +54,6 @@ ament_target_dependencies(mppi_node
   rclcpp ament_index_cpp ackermann_msgs geometry_msgs nav_msgs std_msgs visualization_msgs)
 
 install(TARGETS mppi_node DESTINATION lib/${PROJECT_NAME})
-install(DIRECTORY config launch data DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 
 ament_package()

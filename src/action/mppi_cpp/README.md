@@ -25,7 +25,7 @@ Differences from `mppi_example`
   (`opponent_behavior_mode`, `opponent_follow_*`, `opponent_pass_*`,
   `opponent_auto_*`) are gone; unknown YAML keys are ignored by rclcpp.
 - `map_dir` / `map_info.txt` loading is gone: `wpt_path` is the raceline CSV
-  (absolute, or relative to `mppi_cpp/data`). Raceline, map yaml and pgm live in
-  `data/`, so the package has no dependency on `mppi_bringup` / `bringup_robot`.
+  (absolute, or relative to `mppi_cpp/data`). The action bringup passes the track's
+  `race_tracks/tracks/<TRACK>/raceline_mppi.csv` and `map.yaml`.
 - The unused `/mppi/ego_odom_for_opp` relay and the `opponent_auto_*` debug
   topics are gone. Everything else under `/mppi/debug/*` is unchanged.

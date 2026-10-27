@@ -75,9 +75,10 @@ def generate_launch_description():
                 "wpt_path",
                 default_value=PathJoinSubstitution(
                     [
-                        FindPackageShare("mppi_cpp"),
-                        "data",
-                        "wato_office.csv",
+                        FindPackageShare("race_tracks"),
+                        "tracks",
+                        "wato_office",
+                        "raceline_mppi.csv",
                     ]
                 ),
                 description="Raceline CSV consumed by mppi_node",
@@ -91,9 +92,10 @@ def generate_launch_description():
                 "wall_map_yaml",
                 default_value=PathJoinSubstitution(
                     [
-                        FindPackageShare("mppi_cpp"),
-                        "data",
-                        "wato_office.yaml",
+                        FindPackageShare("race_tracks"),
+                        "tracks",
+                        "wato_office",
+                        "map.yaml",
                     ]
                 ),
                 description="Static map yaml used to build MPPI's wall-distance cost field",

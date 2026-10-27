@@ -37,10 +37,6 @@ add_executable(global_planner_node src/global_planner.cpp)
 target_include_directories(global_planner_node PUBLIC include)
 ament_target_dependencies(global_planner_node rclcpp std_msgs nav_msgs geometry_msgs ament_index_cpp)
 
-install(DIRECTORY assets/
-  DESTINATION share/${PROJECT_NAME}/assets
-)
-
 install(TARGETS
   global_planner_node
   DESTINATION lib/${PROJECT_NAME}

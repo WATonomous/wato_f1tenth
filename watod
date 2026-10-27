@@ -427,16 +427,18 @@ else
     popd > /dev/null
 fi
 
-# CONTROLLER and LOCAL_PLANNER name launch files in action_bringup; catch a typo here rather
-# than as a missing file deep inside ros2 launch
-for choice in "CONTROLLER controllers" "LOCAL_PLANNER local_planners"; do
-  read -r var dir <<< "$choice"
-  dir="$MONO_DIR/src/action/action_bringup/launch/$dir"
-  if [[ -d "$dir" && ! -f "$dir/${!var}.launch.yaml" ]]; then
-    echo "Error: $var=\"${!var}\" has no launch file in ${dir#"$MONO_DIR"/}." >&2
-    names=("$dir"/*.launch.yaml)
-    names=("${names[@]##*/}")
-    echo "Choose one of: ${names[*]%.launch.yaml}" >&2
+# CONTROLLER and LOCAL_PLANNER name launch files in action_bringup, TRACK a folder in race_tracks;
+# catch a typo here rather than as a missing file deep inside ros2 launch
+for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml" \
+  "LOCAL_PLANNER action/action_bringup/launch/local_planners .launch.yaml" \
+  "TRACK world_modeling/race_tracks/tracks /raceline.csv"; do
+  read -r var dir suffix <<< "$choice"
+  dir="$MONO_DIR/src/$dir"
+  if [[ -d "$dir" && ! -f "$dir/${!var}$suffix" ]]; then
+    echo "Error: $var=\"${!var}\" has no ${suffix#/} in ${dir#"$MONO_DIR"/}." >&2
+    names=("$dir"/*"$suffix")
+    names=("${names[@]%"$suffix"}")
+    echo "Choose one of: ${names[*]##*/}" >&2
     exit 1
   fi
 done
@@ -480,7 +482,7 @@ fi
 # ──────────────────────────── Run Contract ────────────────────────────
 
 if [[ -n ${RUN_CONTRACT:-} ]]; then
-  export COMPOSE_PROJECT_NAME PLATFORM IMU LOCALIZATION MAPPING REALSENSE
+  export COMPOSE_PROJECT_NAME PLATFORM IMU LOCALIZATION MAPPING REALSENSE CONTROLLER LOCAL_PLANNER
   "$MONO_DIR/watod_scripts/watod-contract.sh" "${CONTRACT_ARGS[@]}"
   exit $?
 fi

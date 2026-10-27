@@ -20,13 +20,14 @@ GlobalPlanner::GlobalPlanner()
 : Node("global_planner_node")
 {
   // parameters
-  this->declare_parameter<std::string>("file_directory", "/assets/optmial_clean_map.csv");
+  // race_tracks/tracks/<TRACK>/raceline.csv, set by world_modeling.launch.yaml
+  this->declare_parameter<std::string>("raceline_file", "");
   this->declare_parameter<std::string>("vis_topic", "/global_planner/vis");
   this->declare_parameter<std::string>("path_topic", "/global_planner/path");
   this->declare_parameter<std::string>("waypoint_frame_id", "map");
 
   // init pub and subs
-  file_directory = this->get_parameter("file_directory").as_string();
+  file_directory = this->get_parameter("raceline_file").as_string();
   path_pub_topic = this->get_parameter("path_topic").as_string();
   vis_pub_topic = this->get_parameter("vis_topic").as_string();
   waypoint_frame_id = this->get_parameter("waypoint_frame_id").as_string();
@@ -39,10 +40,10 @@ GlobalPlanner::GlobalPlanner()
   // vis_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>(vis_pub_topic,10);
 
   // check if the file is valid
-  const auto file_path = ament_index_cpp::get_package_share_directory("global_planner") + file_directory;
+  const auto & file_path = file_directory;
   std::ifstream file(file_path);
   if (!file.is_open()) {
-    RCLCPP_FATAL(this->get_logger(), "could not open the file, check file path again");
+    RCLCPP_FATAL(this->get_logger(), "could not open the raceline file '%s' (raceline_file)", file_path.c_str());
     rclcpp::shutdown();
     return;
   }

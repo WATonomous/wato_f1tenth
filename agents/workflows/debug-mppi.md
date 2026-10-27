@@ -20,7 +20,10 @@ MPPI publishes `/drive`, remapped to `/hal/drive/autonomy` in `mppi_cpp`'s `e7` 
 
 On `big_infra_update`: set `CONTROLLER=mppi` in `watod-config.local.sh`; `action.launch.yaml` then
 starts `launch/controllers/mppi.launch.yaml`, which includes `mppi_cpp`'s `e7.launch.py` (same
-params, raceline and wall map on both platforms for now). The opponent predictor is not wired
+params on both platforms for now; raceline and wall map from `race_tracks/tracks/<TRACK>/`).
+Maps and racelines live only in `race_tracks` now. `mppi_bringup`'s launch files, `mppi_example`'s
+`config.yaml` and `opponent_predictor`'s `waypoint_path` still name the deleted `waypoints/` and
+`maps/` folders: point them at `race_tracks` when they are made to run (step 4). The opponent predictor is not wired
 into a bringup yet; run it by hand in an `action:dev` container:
 
 ```bash

@@ -1,7 +1,6 @@
-# Global planner on the car. file_directory is relative to the global_planner share directory.
+# Global planner on the car. The raceline comes from TRACK (race_tracks/tracks/<TRACK>/raceline.csv).
 /**:
   ros__parameters:
-    file_directory: "/assets/e7_fifth_v3_optimal.csv"
     path_topic: "/global_planner/path"
     vis_topic: "/global_planner/vis"
     waypoint_frame_id: "map"

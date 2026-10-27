@@ -155,6 +155,10 @@ MAPPING=${MAPPING:-"false"}
 # Controller and local planner in action: file names in action_bringup/launch/{controllers,local_planners}/
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
 LOCAL_PLANNER=${LOCAL_PLANNER:-"none"}
+# Track: a folder in world_modeling/race_tracks/tracks/ (map + raceline). Car: the office; sim: AutoDRIVE
+if [[ -z ${TRACK:-} ]]; then
+  if [[ "$PLATFORM" == "car" ]]; then TRACK="wato_office"; else TRACK="autodrive"; fi
+fi
 # true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
 REALSENSE=${REALSENSE:-"false"}
 # true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
@@ -263,6 +267,7 @@ append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
 append "LOCAL_PLANNER" "$LOCAL_PLANNER"
+append "TRACK" "$TRACK"
 append "REALSENSE" "$REALSENSE"
 append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
 append "IMU" "$IMU"

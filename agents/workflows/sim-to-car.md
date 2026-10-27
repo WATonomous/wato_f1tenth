@@ -48,7 +48,7 @@ Only YAML values, never code:
 
 - Gains and limits (lookahead, speed limit, steering gain).
 - Safety thresholds (commit `26a774d` on `orin` moved the e-brake TTC from 0.39 s to about 0.10 s for the car).
-- Map and raceline file paths.
+- The track (`TRACK`, default `wato_office` on the car and `autodrive` in sim).
 - `use_sim_time` (true only if the sim publishes `/clock`; always false on the car).
 
 ## Rules

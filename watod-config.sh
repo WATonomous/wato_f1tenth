@@ -98,6 +98,11 @@
 ## (none). DEFAULT = "none"
 # export LOCAL_PLANNER="none"
 
+## Track: a folder in world_modeling/race_tracks/tracks/ (wato_office, e7_fifth_v3, e7_fifth_big,
+## autodrive). Picks the localization map, the global planner's raceline and MPPI's.
+## DEFAULT = "wato_office" on the car, "autodrive" in sim
+# export TRACK="wato_office"
+
 ## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
 # export REALSENSE="true"
 

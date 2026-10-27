@@ -25,6 +25,8 @@ WORKDIR ${AMENT_WS}/src
 
 # Copy in source code
 COPY src/action action
+# track maps and racelines (MPPI's raceline and wall cost)
+COPY src/world_modeling/race_tracks race_tracks
 COPY src/infrastructure/wato_lifecycle_manager wato_lifecycle_manager
 COPY src/wato_test wato_test
 

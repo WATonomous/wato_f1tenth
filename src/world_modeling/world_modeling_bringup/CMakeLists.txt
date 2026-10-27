@@ -16,7 +16,7 @@ project(world_modeling_bringup)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY config launch maps rviz
+install(DIRECTORY config launch rviz
   DESTINATION share/${PROJECT_NAME}
 )
 

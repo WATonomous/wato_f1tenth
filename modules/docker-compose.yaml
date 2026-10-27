@@ -207,6 +207,7 @@ services:
       - ${MONO_DIR}/maps:/opt/watonomous/maps
     environment:
       - PLATFORM=${PLATFORM}
+      - TRACK=${TRACK}
       - MAPPING=${MAPPING}
       - LOCALIZATION=${LOCALIZATION}
       - PF_VIZ=${PF_VIZ}
@@ -264,6 +265,7 @@ services:
     command: /bin/bash -c "ros2 launch action_bringup action.launch.yaml"
     environment:
       - PLATFORM=${PLATFORM}
+      - TRACK=${TRACK}
       - MAPPING=${MAPPING}
       - CONTROLLER=${CONTROLLER}
       - LOCAL_PLANNER=${LOCAL_PLANNER}

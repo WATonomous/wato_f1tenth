@@ -32,9 +32,9 @@ launch:
         them makes the filter ray-cast an extra scan and sample particles, which costs it its 40 Hz floor
 
   - arg:
-      name: map
-      default: "wato_office"
-      description: "Map name in world_modeling_bringup/maps (without .yaml)"
+      name: track
+      default: "$(env TRACK wato_office)"
+      description: "Track in race_tracks/tracks/: its map.yaml for localization, raceline.csv for the global planner"
 
   - arg:
       name: planner
@@ -94,7 +94,7 @@ launch:
             output: screen
             param:
               - name: yaml_filename
-                value: "$(var share)/maps/$(var map).yaml"
+                value: "$(find-pkg-share race_tracks)/tracks/$(var track)/map.yaml"
               - name: topic
                 value: map
               - name: frame_id
@@ -150,6 +150,8 @@ launch:
       output: screen
       param:
         - from: "$(var share)/config/$(var platform)/global_planner.yaml"
+        - name: raceline_file
+          value: "$(find-pkg-share race_tracks)/tracks/$(var track)/raceline.csv"
 
   - node:
       if: "$(var costmap)"

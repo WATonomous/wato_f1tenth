@@ -4,7 +4,7 @@ project(mppi_bringup)
 find_package(ament_cmake REQUIRED)
 
 install(
-  DIRECTORY config launch waypoints maps
+  DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
   PATTERN "__pycache__" EXCLUDE
   PATTERN "*.pyc" EXCLUDE
