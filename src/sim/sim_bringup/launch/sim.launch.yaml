@@ -17,12 +17,18 @@ launch:
       default: "$(env LOCALIZATION truth)"
       description: "truth: ground truth on /hal/localization/odom + static map -> odom; pf: the particle filter does both"
 
+  - arg:
+      name: bridge
+      default: "true"
+      description: "Start the AutoDRIVE bridge (false when a bag replays /autodrive/*, as in the contract test)"
+
   - let:
       name: truth
       value: "$(eval '\"$(var localization)\" in (\"truth\", \"auto\") and \"$(var mapping)\".lower() != \"true\"')"
 
   # AutoDRIVE ROS 2 bridge (Socket.IO server on port 4567 <-> /autodrive/* topics)
   - node:
+      if: "$(var bridge)"
       pkg: autodrive_roboracer
       exec: autodrive_bridge
       name: autodrive_bridge

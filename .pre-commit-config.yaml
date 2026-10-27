@@ -6,7 +6,7 @@
 # Third-party packages copied in from upstream: kept byte-identical so upstream
 # fixes can still be diffed in (vesc: BSD, particle_filter: MIT, ackermann_mux:
 # twist_mux fork). docs/mppi holds notes copied as-is from the mppi_test branch.
-exclude: '^(src/(interfacing/vesc|world_modeling/particle_filter|interfacing/ackermann_mux)/|docs/mppi/)'
+exclude: '^(src/(interfacing/vesc|world_modeling/particle_filter|interfacing/ackermann_mux)/|docs/mppi/|src/sim/sim_bringup/test/data/autodrive_contract/)'
 
 repos:
   # General-purpose sanity checks

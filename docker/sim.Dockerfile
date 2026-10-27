@@ -24,6 +24,8 @@ RUN curl -fsSL -o /tmp/autodrive_devkit.zip "${AUTODRIVE_DEVKIT_URL}" && \
 # Copy in source code
 COPY src/sim sim
 COPY src/wato_test wato_test
+# Contract checker for sim_bringup's bag replay test
+COPY src/infrastructure/hal_contract hal_contract
 
 ################################# Dependencies ################################
 # NOTE: You should be relying on ROSDEP as much as possible

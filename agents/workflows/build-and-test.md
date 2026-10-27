@@ -80,7 +80,10 @@ shell elsewhere needs the same values to see the topics.
 ./watod test                    # every module
 ./watod test world_modeling     # one module
 ./watod test action pure_pursuit
+./watod test sim sim_bringup    # /hal contract: bag replay through the sim adapter
 ```
+
+With the stack running, `./watod contract` checks the live `/hal/*` topics (see `sim-to-car.md`).
 
 Tests run in each module's `test` image with `rmw_fastrtps_cpp`. Lint-only tests were removed;
 linting runs through pre-commit:

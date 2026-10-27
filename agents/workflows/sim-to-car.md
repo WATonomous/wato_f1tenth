@@ -64,5 +64,18 @@ Only YAML values, never code:
 
 - Now: one branch. `PLATFORM=car|sim` (default `sim`, set in `watod-config.local.sh`) picks
   `<module>_bringup/config/car/` or `config/sim/` and which nodes start.
-- Rest of step 3: `watod` detects `PLATFORM` (from `/etc/nv_tegra_release`), and
-  `./watod contract` plus a bag replay test in `./watod test` check every topic above.
+- Rest of step 3: `watod` detects `PLATFORM` (from `/etc/nv_tegra_release`).
+
+## Checking the contract
+
+The contract lives in `src/infrastructure/hal_contract/config/contract.yaml`: each topic's type,
+minimum rate per platform, frame and required endpoints, the TF chain, and the old names that must
+be gone. Two things check it:
+
+- `./watod contract` checks the running stack (car or sim) and prints PASS / WARN / FAIL per
+  topic. Topics whose source is off (`IMU=none`, `LOCALIZATION=none`, mapping) are skipped. An old
+  name used only by `foxglove_bridge` is a warning: update that Foxglove layout.
+- `./watod test sim sim_bringup` replays `sim_bringup/test/data/autodrive_contract` through
+  `sim.launch.yaml` and checks the sensor topics, so a broken sim adapter fails in tests.
+
+Change the contract file in the same change as the topics it describes.

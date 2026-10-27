@@ -56,6 +56,7 @@ the host: give the human the commands to run in the container, or ask before usi
 8. Set `use_sim_time: false` for anything that runs on the car.
 9. Keep changes inside the package you were asked to change. Infra changes follow `agents/roles/infra.md`.
 10. Do not commit build output, bags (`*.db3`, `*.mcap`), maps you did not mean to add, or secrets.
+    The one exception is the contract test bag in `src/sim/sim_bringup/test/data/`.
 11. Build, test and run ROS code only inside the dev container, never on the host.
 12. Never credit an agent in git: no `Co-Authored-By` trailers, no "Generated with" lines, in
     commits or PRs. Commits use the human's own git identity, so GitHub shows their profile.
@@ -96,6 +97,7 @@ cp watod-config.sh watod-config.local.sh   # personal settings: ACTIVE_MODULES, 
 ./watod build                              # module images for ACTIVE_MODULES
 ./watod up                                 # start ACTIVE_MODULES + infrastructure
 ./watod test [module] [pkg...]             # colcon test in the module's test image
+./watod contract                           # check the running stack against the /hal contract
 ./watod -t action_bringup_dev              # shell into a dev container (module listed as "action:dev")
 
 # inside a dev container only (workspace: /ws)

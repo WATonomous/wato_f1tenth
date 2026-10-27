@@ -71,6 +71,7 @@ Commands
                               If nothing specified, runs tests in all modules
   bag <ros2-bag-args>...      Run ros2 bag commands (record/play/info/etc)
                               Runs in ./bags directory with auto-mounting
+  contract [checker-args]     Check the running stack against the /hal topic contract
 
 Examples
   watod up                              # docker compose up
@@ -90,6 +91,7 @@ Examples
   watod bag record -a                   # record all topics (auto-saves to ./bags)
   watod bag play my_bag                 # play bag from ./bags directory
   watod bag info my_bag                 # show bag info
+  watod contract                        # PASS/FAIL per /hal topic on the running stack
   watod -s                              # setup dev env (extracts all module headers)
   watod -s world_modeling               # setup dev env with specific module only
 
@@ -277,6 +279,11 @@ while [[ $# -gt 0 ]]; do
       # Pass all remaining arguments to watod-bag.sh
       BAG_ARGS=( "$@" )
       break ;;
+    contract)
+      RUN_CONTRACT=1
+      shift
+      CONTRACT_ARGS=( "$@" )
+      break ;;
     down)
       RUN_DOWN=1
       shift
@@ -435,6 +442,14 @@ if [[ -n ${RUN_BAG:-} ]]; then
   export RMW_IMPLEMENTATION ROS_DOMAIN_ID COMPOSE_PROJECT_NAME
   export ZENOH_ROUTER_CONFIG_URI ZENOH_SESSION_CONFIG_URI
   "$MONO_DIR/watod_scripts/watod-bag.sh" "${BAG_ARGS[@]}"
+  exit $?
+fi
+
+# ──────────────────────────── Run Contract ────────────────────────────
+
+if [[ -n ${RUN_CONTRACT:-} ]]; then
+  export COMPOSE_PROJECT_NAME PLATFORM IMU LOCALIZATION MAPPING REALSENSE
+  "$MONO_DIR/watod_scripts/watod-contract.sh" "${CONTRACT_ARGS[@]}"
   exit $?
 fi
 

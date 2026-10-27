@@ -1,0 +1,95 @@
+---
+# The /hal/* topic contract (agents/workflows/sim-to-car.md), checked by
+# `./watod contract` (live) and sim_bringup's bag replay test.
+#
+# topics:
+#   type         message type the graph must report
+#   group        sensors (what the adapters provide) or drive (mux inputs and output)
+#   min_hz       per platform; 0 or missing = no rate check (event-driven topics)
+#   frame_id     exact header frame, or "any" = any frame TF connects to base_link
+#   publishers / subscribers: true = at least one must exist
+#   when         skipped unless that source is active: imu, localization
+# tf:            parent -> child transforms that must resolve, same group / when keys
+# legacy:        pre-/hal names; they must not exist (a warning if only foxglove_bridge uses them)
+
+topics:
+  - name: /hal/scan
+    type: sensor_msgs/msg/LaserScan
+    group: sensors
+    frame_id: laser
+    min_hz: {car: 30.0, sim: 15.0}
+    publishers: true
+
+  - name: /hal/odom
+    type: nav_msgs/msg/Odometry
+    group: sensors
+    frame_id: odom
+    min_hz: {car: 40.0, sim: 15.0}
+    publishers: true
+
+  - name: /hal/imu
+    type: sensor_msgs/msg/Imu
+    group: sensors
+    frame_id: any
+    min_hz: {car: 150.0, sim: 15.0}
+    publishers: true
+    when: imu
+
+  - name: /hal/localization/odom
+    type: nav_msgs/msg/Odometry
+    group: sensors
+    frame_id: map
+    min_hz: {car: 20.0, sim: 15.0}
+    publishers: true
+    when: localization
+
+  - name: /hal/ackermann_cmd
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    publishers: true  # ackermann_mux
+    subscribers: true  # ackermann_to_vesc (car) / ackermann_converter (sim)
+
+  - name: /hal/drive/autonomy
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true  # ackermann_mux; the controller may be off (CONTROLLER=none)
+
+  - name: /hal/drive/joystick
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true
+
+  - name: /hal/drive/keyboard
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true
+
+  - name: /hal/drive/ebrake
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true
+
+  - name: /hal/dead_man_switch
+    type: std_msgs/msg/Bool
+    group: drive
+    publishers: true  # gamepad teleop
+
+tf:
+  - {parent: map, child: odom, group: sensors, when: localization}
+  - {parent: odom, child: base_link, group: sensors}
+  - {parent: base_link, child: laser, group: sensors}
+
+legacy:
+  - /scan
+  - /odom
+  - /imu
+  - /pf/pose/odom
+  - /localization/odom
+  - /ackermann_cmd
+  - /drive
+  - /drive/autonomy
+  - /drive/joystick
+  - /drive/keyboard
+  - /drive/ebreak
+  - /drive/ebrake
+  - /dead_man_switch
