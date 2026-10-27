@@ -519,8 +519,8 @@ void Pure_Pursuit_Node::init_parameters()
   this->declare_parameter<std::string>("local_frame_id", "base_link");
 
   this->declare_parameter<std::string>("global_path_topic", "/global_planner/path");
-  this->declare_parameter<std::string>("local_path_topic", "/local_path");
-  this->declare_parameter<std::string>("overtake_ready_topic", "/overtake_ready");
+  this->declare_parameter<std::string>("local_path_topic", "/local_planner/path");
+  this->declare_parameter<std::string>("overtake_ready_topic", "/local_planner/active");
   this->declare_parameter<std::string>("dead_man_active_topic", "/hal/dead_man_switch");
   this->declare_parameter<std::string>("ackermann_control_topic", "/hal/drive/autonomy");
   this->declare_parameter<std::string>("odom_topic", "/hal/localization/odom");

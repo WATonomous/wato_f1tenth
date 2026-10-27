@@ -32,12 +32,42 @@ def names(checks):
     return [ch.name for ch in checks]
 
 
-def test_every_contract_topic_is_under_hal():
+def test_every_contract_topic_is_under_its_namespace():
+    namespaces = {
+        "sensors": ("/hal/",),
+        "drive": ("/hal/",),
+        "planning": ("/global_planner/", "/local_planner/"),
+    }
     for t in CONTRACT["topics"]:
-        assert t["name"].startswith("/hal/")
+        assert t["name"].startswith(namespaces[t["group"]])
         assert t["type"].count("/") == 2
-        assert t["group"] in ("sensors", "drive")
     assert not {t["name"] for t in CONTRACT["topics"]} & set(CONTRACT["legacy"])
+
+
+def test_controller_and_local_planner_checks():
+    def planning(controller, local_planner):
+        sources = {"controller": controller, "local_planner": local_planner}
+        return {
+            ch.name: ch
+            for ch in c.topic_checks(CONTRACT, "car", {"drive", "planning"}, sources)
+        }
+
+    off = planning("none", "none")
+    assert not off["/hal/drive/autonomy"].publishers
+    assert off["/hal/drive/autonomy"].subscribers
+    assert "/global_planner/path" not in off
+    assert "/local_planner/path" not in off
+
+    pp = planning("pure_pursuit", "none")
+    assert pp["/hal/drive/autonomy"].publishers
+    assert pp["/global_planner/path"].publishers
+    assert "/local_planner/path" not in pp
+
+    both = planning("pure_pursuit", "frenet")
+    assert both["/local_planner/path"].frame_id == "base_link"
+    assert both["/local_planner/path"].subscribers
+    assert both["/local_planner/active"].publishers
+    assert not planning("none", "frenet")["/local_planner/path"].subscribers
 
 
 @pytest.mark.parametrize(

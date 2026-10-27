@@ -152,8 +152,9 @@ if [[ -z ${PLATFORM:-} ]]; then
 fi
 # true to run slam_toolbox (mapping) instead of localization
 MAPPING=${MAPPING:-"false"}
-# pure_pursuit, mppi or none
+# Controller and local planner in action: file names in action_bringup/launch/{controllers,local_planners}/
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
+LOCAL_PLANNER=${LOCAL_PLANNER:-"none"}
 # true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
 REALSENSE=${REALSENSE:-"false"}
 # true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
@@ -261,6 +262,7 @@ append "SIM_IMAGE" "$SIM_IMAGE"
 append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
+append "LOCAL_PLANNER" "$LOCAL_PLANNER"
 append "REALSENSE" "$REALSENSE"
 append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
 append "IMU" "$IMU"

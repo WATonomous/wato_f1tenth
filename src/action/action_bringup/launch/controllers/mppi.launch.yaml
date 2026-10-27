@@ -1,0 +1,12 @@
+---
+# MPPI (mppi_cpp): follows its own raceline CSV, not /global_planner/path or a local planner.
+# Same on both platforms for now: params, raceline and wall map come from mppi_cpp's e7 launch.
+# Untested on Jazzy until the JAX image step.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  - include:
+      file: "$(find-pkg-share mppi_cpp)/launch/e7.launch.py"

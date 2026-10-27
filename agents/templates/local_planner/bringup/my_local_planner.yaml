@@ -1,0 +1,14 @@
+# my_local_planner (LOCAL_PLANNER=my_local_planner). Copied to config/car/ and config/sim/; set
+# each platform's own values.
+/**:
+  ros__parameters:
+    odom_topic: "/hal/localization/odom"
+    speed_topic: "/hal/odom"
+    scan_topic: "/hal/scan"
+    global_path_topic: "/global_planner/path"
+    path_topic: "/local_planner/path"
+    active_topic: "/local_planner/active"
+    plan_hz: 20.0
+    stale_s: 0.5
+    # the planner (Params)
+    horizon_m: 3.0

@@ -2,8 +2,11 @@
 # action.launch.yaml
 # Entry point for the action container (see modules/docker-compose.yaml).
 #
-# controller:=pure_pursuit (default) runs pure pursuit with config/<platform>/pure_pursuit.yaml.
-# controller:=mppi starts mppi_cpp's e7 launch. MPPI is untested on Jazzy until the JAX image step.
+# Algorithms are picked by file name, so adding one never edits this file:
+#   CONTROLLER=<name>     starts launch/controllers/<name>.launch.yaml     (pure_pursuit, mppi, none)
+#   LOCAL_PLANNER=<name>  starts launch/local_planners/<name>.launch.yaml  (none)
+# Each one gets platform, config_dir (config/<platform>) and local_planner. Interfaces and the
+# add-controller / add-local-planner workflows: agents/workflows/add-controller.md.
 
 launch:
   - arg:
@@ -14,23 +17,23 @@ launch:
   - arg:
       name: controller
       default: "$(env CONTROLLER pure_pursuit)"
-      description: "pure_pursuit, mppi or none"
+      description: "a file name in launch/controllers/ (without .launch.yaml)"
 
-  - node:
-      if: "$(eval '\"$(var controller)\" == \"pure_pursuit\"')"
-      pkg: pure_pursuit
-      exec: pure_pursuit_node
-      name: pure_pursuit_node
-      output: screen
-      param:
-        - from: "$(find-pkg-share action_bringup)/config/$(var platform)/pure_pursuit.yaml"
+  - arg:
+      name: local_planner
+      default: "$(env LOCAL_PLANNER none)"
+      description: "a file name in launch/local_planners/ (without .launch.yaml)"
 
   - include:
-      if: "$(eval '\"$(var controller)\" == \"mppi\"')"
-      file: "$(find-pkg-share mppi_cpp)/launch/e7.launch.py"
+      file: "$(find-pkg-share action_bringup)/launch/local_planners/$(var local_planner).launch.yaml"
+      arg:
+        - {name: platform, value: "$(var platform)"}
+        - {name: config_dir, value: "$(find-pkg-share action_bringup)/config/$(var platform)"}
+        - {name: local_planner, value: "$(var local_planner)"}
 
-  # controller:=none starts no nodes; keep the container up instead of letting launch exit
-  - executable:
-      if: "$(eval '\"$(var controller)\" == \"none\"')"
-      cmd: sleep infinity
-      name: idle
+  - include:
+      file: "$(find-pkg-share action_bringup)/launch/controllers/$(var controller).launch.yaml"
+      arg:
+        - {name: platform, value: "$(var platform)"}
+        - {name: config_dir, value: "$(find-pkg-share action_bringup)/config/$(var platform)"}
+        - {name: local_planner, value: "$(var local_planner)"}

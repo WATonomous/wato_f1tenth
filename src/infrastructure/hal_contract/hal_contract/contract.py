@@ -88,6 +88,13 @@ def resolve_sources(
     return {"imu": imu, "localization": localization, "battery": battery}
 
 
+def _required(value, sources):
+    """publishers / subscribers: true, or a source name that must be active."""
+    if isinstance(value, str):
+        return sources.get(value, "none") != "none"
+    return bool(value)
+
+
 def _active(entry, groups, sources):
     if groups and entry.get("group") not in groups:
         return False
@@ -107,8 +114,8 @@ def topic_checks(contract, platform, groups, sources):
                 group=t["group"],
                 min_hz=float((t.get("min_hz") or {}).get(platform, 0.0)),
                 frame_id=t.get("frame_id", ""),
-                publishers=bool(t.get("publishers", False)),
-                subscribers=bool(t.get("subscribers", False)),
+                publishers=_required(t.get("publishers", False), sources),
+                subscribers=_required(t.get("subscribers", False), sources),
             )
         )
     return checks

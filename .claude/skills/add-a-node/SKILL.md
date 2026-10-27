@@ -1,6 +1,6 @@
 ---
 name: add-a-node
-description: Add a ROS 2 node or package to the F1TENTH stack so it runs unchanged in sim and on the car. Use when asked to create a new node, package, controller, planner or drive source.
+description: Add a ROS 2 node or package to the F1TENTH stack so it runs unchanged in sim and on the car. Use when asked to create a new node, package, global planner, estimator, driver or drive source. For a controller or local planner, use add-controller or add-local-planner instead.
 ---
 
 # Add a node

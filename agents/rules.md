@@ -40,6 +40,14 @@ build proves nothing about the container or the car. It also drops `build/`, `in
    which topics were the hardware boundary. With one prefix, `ros2 topic list | grep /hal` shows
    the whole contract, and a node that reads only `/hal/*` runs on both platforms unchanged.
 
+5. **(AGENTS.md rule 14) Algorithms are swapped by file name.** Before this, adding a controller
+   meant hand-editing `action.launch.yaml`, its YAML, `package.xml` and three comments, and pure
+   pursuit and MPPI were wired differently. Now `CONTROLLER=<name>` and `LOCAL_PLANNER=<name>`
+   pick `action_bringup/launch/{controllers,local_planners}/<name>.launch.yaml`, and
+   `action_bringup`'s registry test fails a half-registered one. Only the controller drives, so a
+   planner that published to `/hal/drive/*` would fight it through the mux; `/global_planner/*`
+   and `/local_planner/*` mirror each other so `ros2 topic list` shows who owns each path.
+
 ## ROS correctness
 
 1. **Parameter YAML keys must match the launched node name.** `teleop_utils`'

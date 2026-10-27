@@ -21,11 +21,13 @@
 /hal/drive/ebrake
 /hal/dead_man_switch
 
-# TF, map and plan
+# TF, map and plan (the /local_planner topics exist only with LOCAL_PLANNER set)
 /tf
 /tf_static
 /map
 /global_planner/path
+/local_planner/path
+/local_planner/active
 
 # VESC and gamepad
 /sensors/core

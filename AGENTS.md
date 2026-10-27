@@ -63,6 +63,9 @@ the host: give the human the commands to run in the container, or ask before usi
 13. Shared nodes talk to hardware and the sim only through the `/hal/*` contract (`/hal/scan`,
     `/hal/odom`, `/hal/imu`, `/hal/localization/odom`, `/hal/drive/<source>`, ...). New
     hardware-facing topics go under `/hal/`. See `agents/workflows/sim-to-car.md`.
+14. Controllers and local planners are picked by file name (`CONTROLLER`, `LOCAL_PLANNER`); never
+    edit `action.launch.yaml` to add one. Controllers publish only `/hal/drive/autonomy`; local
+    planners publish only under `/local_planner/`. See `agents/workflows/add-controller.md`.
 
 ## Index
 
@@ -74,6 +77,8 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/rules.md` | You want the reason behind a hard rule, or the full list |
 | `agents/workflows/build-and-test.md` | You need to build, run or test something |
 | `agents/workflows/add-a-node.md` | You are adding a node or a package |
+| `agents/workflows/add-controller.md` | You are adding or swapping a controller, or need the planner/controller interface |
+| `agents/workflows/add-local-planner.md` | You are adding or porting a local planner |
 | `agents/workflows/sim-to-car.md` | Code must behave the same in sim and on the car |
 | `agents/workflows/deploy-to-car.md` | You are preparing something to run on the Jetson |
 | `agents/workflows/remote-car.md` | You run commands on the car over SSH (build, start, check topics, logs) |

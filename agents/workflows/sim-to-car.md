@@ -35,7 +35,8 @@ through launch remaps; the old names (`/scan`, `/odom`, `/pf/pose/odom`, `/acker
 | TF | `map -> odom -> base_link -> laser` | static `map->odom` + `fake_odom` | particle filter + VESC odometry |
 
 Planners and controllers read the pose from `/hal/localization/odom` and the speed from
-`/hal/odom`. Internal and debug topics (`/global_planner/path`, `/pf/viz/*`, `/camera/camera/*`,
+`/hal/odom`. The planner interfaces, `/global_planner/*` and `/local_planner/*`, are in the same
+contract file (`add-controller.md`). Internal and debug topics (`/pf/viz/*`, `/camera/camera/*`,
 `/autodrive/*`, VESC `sensors/*`) keep their own names.
 
 The VESC IMU (`sensors/imu/raw`) has no `frame_id` and its readings haven't been checked. Wire

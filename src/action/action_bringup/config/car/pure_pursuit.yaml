@@ -3,12 +3,11 @@
     global_frame_id: "map"
     local_frame_id: "base_link"
     global_path_topic: "/global_planner/path"
-    local_path_topic: "/local_path"
-    overtake_ready_topic: "/overtake_ready"
+    local_path_topic: "/local_planner/path"
+    overtake_ready_topic: "/local_planner/active"
     dead_man_active_topic: "/hal/dead_man_switch"
     ackermann_control_topic: "/hal/drive/autonomy"
     odom_topic: "/hal/localization/odom"
-    overtake_enable: true
     speed_limit_active: true
     speed_limit: 3.0
     max_steering_angle: 0.52

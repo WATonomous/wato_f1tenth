@@ -28,7 +28,7 @@
 ##   - interfacing          :   car drivers (VESC, Hokuyo), teleop, ackermann_mux
 ##   - perception           :   perception nodes (empty for now)
 ##   - world_modeling       :   localization, mapping, global planner
-##   - action               :   control (pure pursuit; MPPI with CONTROLLER=mppi)
+##   - action               :   control: CONTROLLER (pure pursuit, MPPI) and LOCAL_PLANNER
 ##   - sim                  :   AutoDRIVE sim adapter (simulator runs on the host)
 ##
 ## Examples:
@@ -90,8 +90,13 @@
 ## Run slam_toolbox to build a map instead of localizing. DEFAULT = "false"
 # export MAPPING="true"
 
-## Controller in the action module: pure_pursuit, mppi or none. DEFAULT = "pure_pursuit"
+## Controller in the action module: a file name in action_bringup/launch/controllers/
+## (pure_pursuit, mppi, none). DEFAULT = "pure_pursuit"
 # export CONTROLLER="pure_pursuit"
+
+## Local planner in the action module: a file name in action_bringup/launch/local_planners/
+## (none). DEFAULT = "none"
+# export LOCAL_PLANNER="none"
 
 ## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
 # export REALSENSE="true"

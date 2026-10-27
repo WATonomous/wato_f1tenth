@@ -28,4 +28,5 @@ fi
 docker exec "$infra_container" bash -c \
   'source /opt/ros/$ROS_DISTRO/setup.bash && source /opt/watonomous/setup.bash && ros2 run hal_contract check "$@"' \
   _ --platform "$PLATFORM" --imu "$IMU" --localization "$LOCALIZATION" \
-  --mapping "$MAPPING" --realsense "$REALSENSE" "$@"
+  --mapping "$MAPPING" --realsense "$REALSENSE" \
+  --controller "$CONTROLLER" --local-planner "$LOCAL_PLANNER" "$@"

@@ -19,6 +19,8 @@
 /tf
 /tf_static
 /global_planner/path
+/local_planner/path
+/local_planner/active
 
 # AutoDRIVE raw output
 /autodrive/roboracer_1/lidar

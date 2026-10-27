@@ -4,8 +4,10 @@ Checklist for adding a ROS 2 node or package so it works in sim and on the car w
 
 ## 1. Decide where it goes
 
-- A new feature (planner, controller, estimator): its own package under the matching module:
-  `src/world_modeling/`, `src/action/` or `src/interfacing/`.
+- A controller or local planner: follow `add-controller.md` or `add-local-planner.md` instead;
+  they start from a template and register it so `CONTROLLER` / `LOCAL_PLANNER` can select it.
+- Any other feature (global planner, estimator, driver): its own package under the matching
+  module: `src/world_modeling/`, `src/action/` or `src/interfacing/`.
 - Sim-only glue (anything that reads `/autodrive/...`): `sim_util`, never a shared package.
 - Car-only drivers: `src/interfacing/`, started only when `platform` is `car`.
 - Messages: a `<name>_msgs` package. Never reuse an upstream package name.
@@ -34,7 +36,7 @@ Look for an existing package that already does most of it before creating a new 
 
 - Subscribe and publish only contract topics: `/hal/scan`, `/hal/odom`, `/hal/imu`,
   `/hal/localization/odom`, `/hal/drive/<source>`, `/hal/dead_man_switch`, plus
-  `/global_planner/path`. A new hardware-facing topic goes under `/hal/`.
+  `/global_planner/*` and `/local_planner/*`. A new hardware-facing topic goes under `/hal/`.
 - A new drive source publishes `AckermannDriveStamped` on `/hal/drive/<source>`, and gets an entry
   with a priority and a timeout in the mux YAML. It never publishes to `/hal/ackermann_cmd` directly.
 - Debug and visualization topics: `rclcpp::QoS(1).best_effort()` (Python: `qos_profile_sensor_data`

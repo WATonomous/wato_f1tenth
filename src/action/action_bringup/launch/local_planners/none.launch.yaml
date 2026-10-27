@@ -1,0 +1,7 @@
+---
+# No local planner: controllers follow /global_planner/path only.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}

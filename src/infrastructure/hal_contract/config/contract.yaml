@@ -1,14 +1,17 @@
 ---
-# The /hal/* topic contract (agents/workflows/sim-to-car.md), checked by
+# The /hal/* topic contract (agents/workflows/sim-to-car.md), plus the planner interfaces
+# (/global_planner/*, /local_planner/*: agents/workflows/add-controller.md), checked by
 # `./watod contract` (live) and sim_bringup's bag replay test.
 #
 # topics:
 #   type         message type the graph must report
-#   group        sensors (what the adapters provide) or drive (mux inputs and output)
+#   group        sensors (what the adapters provide), drive (mux inputs and output) or planning
 #   min_hz       per platform; 0 or missing = no rate check (event-driven topics)
 #   frame_id     exact header frame, or "any" = any frame TF connects to base_link
-#   publishers / subscribers: true = at least one must exist
-#   when         skipped unless that source is active: imu, localization, battery
+#   publishers / subscribers: true = at least one must exist; a source name (controller,
+#                local_planner) = at least one while that source is active
+#   when         skipped unless that source is active: imu, localization, battery, controller,
+#                local_planner
 # tf:            parent -> child transforms that must resolve, same group / when keys
 # legacy:        pre-/hal names; they must not exist (a warning if only foxglove_bridge uses them)
 
@@ -59,7 +62,8 @@ topics:
   - name: /hal/drive/autonomy
     type: ackermann_msgs/msg/AckermannDriveStamped
     group: drive
-    subscribers: true  # ackermann_mux; the controller may be off (CONTROLLER=none)
+    publishers: controller  # the controller, unless CONTROLLER=none
+    subscribers: true  # ackermann_mux
 
   - name: /hal/drive/joystick
     type: ackermann_msgs/msg/AckermannDriveStamped
@@ -81,6 +85,30 @@ topics:
     group: drive
     publishers: true  # gamepad teleop
 
+  # Planner interfaces. The global planner publishes its path latched, once, so no rate or frame
+  # check: the checker's volatile subscription only sees messages sent while it listens.
+  - name: /global_planner/path
+    type: nav_msgs/msg/Path
+    group: planning
+    publishers: true  # global_planner (world_modeling)
+    when: controller
+
+  # Local planner (LOCAL_PLANNER): the path to follow in base_link, starting at the car, with the
+  # target speed in z; /local_planner/active (latched) says when to follow it over the global path.
+  - name: /local_planner/path
+    type: nav_msgs/msg/Path
+    group: planning
+    frame_id: base_link
+    publishers: true
+    subscribers: controller
+    when: local_planner
+
+  - name: /local_planner/active
+    type: std_msgs/msg/Bool
+    group: planning
+    publishers: true
+    when: local_planner
+
 tf:
   - {parent: map, child: odom, group: sensors, when: localization}
   - {parent: odom, child: base_link, group: sensors}
@@ -100,3 +128,6 @@ legacy:
   - /drive/ebreak
   - /drive/ebrake
   - /dead_man_switch
+  - /local_path
+  - /local_path_map
+  - /overtake_ready

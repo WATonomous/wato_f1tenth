@@ -28,7 +28,7 @@ mounted at `/ws/src/<module>`.
 | `infrastructure` | `infrastructure_bringup`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays; builds `vesc_msgs` so Foxglove can decode it |
 | `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap` | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
-| `action` | `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | pure pursuit (default) or MPPI (`CONTROLLER=mppi`, untested) |
+| `action` | `action_bringup`, `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
 | `perception` | `perception_bringup` | nothing yet |
 
@@ -38,7 +38,8 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | --- | --- | --- |
 | `PLATFORM` | detected: `car` on a Jetson, else `sim` | which `config/<platform>/` YAML, which nodes start, default `ACTIVE_MODULES` |
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
-| `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action` |
+| `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
+| `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
 | `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |

@@ -19,7 +19,8 @@ MPPI publishes `/drive`, remapped to `/hal/drive/autonomy` in `mppi_cpp`'s `e7` 
 ## Run
 
 On `big_infra_update`: set `CONTROLLER=mppi` in `watod-config.local.sh`; `action.launch.yaml` then
-includes `mppi_cpp`'s `e7.launch.py` instead of pure pursuit. The opponent predictor is not wired
+starts `launch/controllers/mppi.launch.yaml`, which includes `mppi_cpp`'s `e7.launch.py` (same
+params, raceline and wall map on both platforms for now). The opponent predictor is not wired
 into a bringup yet; run it by hand in an `action:dev` container:
 
 ```bash

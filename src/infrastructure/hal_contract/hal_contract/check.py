@@ -123,10 +123,14 @@ def main():
     )
     parser.add_argument("--mapping", default=os.environ.get("MAPPING", "false"))
     parser.add_argument("--realsense", default=os.environ.get("REALSENSE", "false"))
+    parser.add_argument("--controller", default=os.environ.get("CONTROLLER", "none"))
+    parser.add_argument(
+        "--local-planner", default=os.environ.get("LOCAL_PLANNER", "none")
+    )
     parser.add_argument(
         "--group",
         action="append",
-        choices=["sensors", "drive"],
+        choices=["sensors", "drive", "planning"],
         help="only these groups",
     )
     parser.add_argument(
@@ -151,6 +155,8 @@ def main():
         as_bool(args.mapping),
         as_bool(args.realsense),
     )
+    sources["controller"] = args.controller
+    sources["local_planner"] = args.local_planner
     groups = set(args.group or [])
     checks = c.topic_checks(spec, args.platform, groups, sources)
     tfs = c.tf_checks(spec, groups, sources)
@@ -159,7 +165,8 @@ def main():
     node = Checker(checks)
     print(
         f"/hal contract check: platform={args.platform} imu={sources['imu']} "
-        f"localization={sources['localization']} groups={','.join(sorted(groups)) or 'all'}"
+        f"localization={sources['localization']} controller={args.controller} "
+        f"local_planner={args.local_planner} groups={','.join(sorted(groups)) or 'all'}"
     )
     spin_for(node, args.warmup)
     node.subscribe()

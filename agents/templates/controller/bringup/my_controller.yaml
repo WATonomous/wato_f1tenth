@@ -1,0 +1,19 @@
+# my_controller (CONTROLLER=my_controller). Copied to config/car/ and config/sim/; set each
+# platform's own gains and limits.
+/**:
+  ros__parameters:
+    odom_topic: "/hal/localization/odom"
+    speed_topic: "/hal/odom"
+    global_path_topic: "/global_planner/path"
+    local_path_topic: "/local_planner/path"
+    local_active_topic: "/local_planner/active"
+    dead_man_topic: "/hal/dead_man_switch"
+    drive_topic: "/hal/drive/autonomy"
+    debug_topic: "/debug/my_controller/target"
+    control_hz: 50.0
+    stale_s: 0.5
+    enable_debug_vis: false
+    # the control law (Params)
+    max_speed: 1.0
+    max_steering_angle: 0.4
+    wheelbase: 0.33

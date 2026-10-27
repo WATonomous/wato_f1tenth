@@ -4,5 +4,6 @@ All agent instructions live in `AGENTS.md`, so every tool shares one source. Rea
 
 @AGENTS.md
 
-Skills in `.claude/skills/` wrap the shared workflows: `add-a-node`, `port-to-jazzy`,
-`car-bringup`, and `car-ssh` (run commands on the Jetson over SSH from this machine).
+Skills in `.claude/skills/` wrap the shared workflows: `add-a-node`, `add-controller`,
+`add-local-planner`, `port-to-jazzy`, `car-bringup`, and `car-ssh` (run commands on the Jetson
+over SSH from this machine).
