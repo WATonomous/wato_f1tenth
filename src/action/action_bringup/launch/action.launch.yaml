@@ -28,3 +28,9 @@ launch:
   - include:
       if: "$(eval '\"$(var controller)\" == \"mppi\"')"
       file: "$(find-pkg-share mppi_cpp)/launch/e7.launch.py"
+
+  # controller:=none starts no nodes; keep the container up instead of letting launch exit
+  - executable:
+      if: "$(eval '\"$(var controller)\" == \"none\"')"
+      cmd: sleep infinity
+      name: idle

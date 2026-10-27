@@ -39,7 +39,7 @@ topics:
     type: nav_msgs/msg/Odometry
     group: sensors
     frame_id: map
-    min_hz: {car: 20.0, sim: 15.0}
+    min_hz: {car: 40.0, sim: 15.0}  # car: 40 Hz is the particle filter's hard floor (goal 50)
     publishers: true
     when: localization
 

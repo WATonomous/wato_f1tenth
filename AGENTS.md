@@ -25,7 +25,7 @@ Step 2 (catch up to `wato_monorepo_template`) has landed in the code:
 | --- | --- | --- |
 | ROS 2 | Jazzy, Ubuntu 24.04 | |
 | Infra | template `watod`, modules `infrastructure interfacing perception world_modeling action sim` | |
-| Sim vs car | one branch; `PLATFORM=car` or `sim` (default `sim`) picks config | step 3: `watod` detects the platform and GPU |
+| Sim vs car | one branch; `watod` detects `PLATFORM` (car on a Jetson) and `GPU`; `/hal/*` contract | |
 | Middleware | CycloneDDS, `ROS_DOMAIN_ID=0` (no Zenoh) | |
 | Images | built locally with `./watod build-base` | step 5: prebuilt multi-arch images on GHCR |
 | MPPI / JAX | packages present, off by default (`CONTROLLER=mppi`), untested | step 4: JAX image |
@@ -104,9 +104,9 @@ cp watod-config.sh watod-config.local.sh   # personal settings: ACTIVE_MODULES, 
 colcon build --packages-select <pkg> && source install/setup.bash
 ```
 
-Sim: `ACTIVE_MODULES="interfacing world_modeling action sim"` with the AutoDRIVE simulator on the
-host. Car: `ACTIVE_MODULES="interfacing world_modeling action"` and `PLATFORM=car`. The old
-`jetson_up` is `interfacing` alone; the old `jetson_pf` is all three on the car.
+With nothing set, `./watod up` runs the full stack for the machine: `interfacing world_modeling
+action sim` on a PC (AutoDRIVE simulator on the host), `interfacing world_modeling action` on the
+Jetson. The old `jetson_up` is `ACTIVE_MODULES="interfacing"`; the old `jetson_pf` is the car default.
 
 Working on the car: never log an agent into the shared Jetson. Run the agent on your own machine
 and send commands over SSH (`agents/workflows/remote-car.md`). If `ssh -o BatchMode=yes <host> true`

@@ -36,6 +36,11 @@ launch:
       description: "Start the Intel RealSense driver (IMU on; depth/color per config)"
 
   - arg:
+      name: realsense_images
+      default: "$(env REALSENSE_IMAGES false)"
+      description: "Also stream RealSense color + depth (640x480 @ 30 Hz)"
+
+  - arg:
       name: imu
       default: "$(env IMU auto)"
       description: >-
@@ -178,6 +183,10 @@ launch:
       output: screen
       param:
         - from: "$(var config_dir)/realsense.yaml"
+        - name: enable_color
+          value: "$(var realsense_images)"
+        - name: enable_depth
+          value: "$(var realsense_images)"
       remap:
         - from: /camera/camera/imu
           to: "$(var realsense_imu_topic)"

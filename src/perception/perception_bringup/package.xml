@@ -11,6 +11,8 @@
 
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>rmw_cyclonedds_cpp</exec_depend>
+  <!-- decode compressed / zstd image topics -->
+  <exec_depend>image_transport_plugins</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

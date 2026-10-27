@@ -25,6 +25,13 @@ launch:
       description: "pf (particle filter + map server), truth (sim adapter's ground truth), none, or auto (car: pf, sim: truth)"
 
   - arg:
+      name: pf_viz
+      default: "$(env PF_VIZ false)"
+      description: >-
+        Publish the particle filter's /pf/viz/* debug topics. Off by default: every subscriber to
+        them makes the filter ray-cast an extra scan and sample particles, which costs it its 40 Hz floor
+
+  - arg:
       name: map
       default: "wato_office"
       description: "Map name in world_modeling_bringup/maps (without .yaml)"
@@ -68,9 +75,18 @@ launch:
             output: screen
             param:
               - from: "$(var share)/config/$(var platform)/localize.yaml"
+              - name: viz
+                value: "$(eval '1 if \"$(var pf_viz)\".lower() == \"true\" else 0')"
             remap:
               - from: /pf/pose/odom
                 to: /hal/localization/odom
+            # One BLAS/OpenMP thread: numpy's thread pool otherwise fights the rest of the
+            # stack for the Orin's six cores and the update rate drops below 40 Hz
+            env:
+              - name: OPENBLAS_NUM_THREADS
+                value: "1"
+              - name: OMP_NUM_THREADS
+                value: "1"
         - node:
             pkg: nav2_map_server
             exec: map_server

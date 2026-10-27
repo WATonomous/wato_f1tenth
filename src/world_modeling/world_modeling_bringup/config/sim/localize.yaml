@@ -7,8 +7,8 @@ particle_filter:
     angle_step: 18
     max_particles: 4000
     squash_factor: 2.2
-    # visualization
-    viz: 1
+    # visualization: /pf/viz/* topics, set by world_modeling.launch.yaml from PF_VIZ (default off)
+    viz: 0
     max_viz_particles: 60
     # ray marching method
     range_method: 'pcddt'

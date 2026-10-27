@@ -40,6 +40,8 @@
   <depend>vesc_msgs</depend>
   <depend>realsense2_camera_msgs</depend>
   <depend>nav2_msgs</depend>
+  <!-- republish / decode compressed image topics (recording, Foxglove) -->
+  <exec_depend>image_transport_plugins</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

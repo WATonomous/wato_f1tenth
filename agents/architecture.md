@@ -36,16 +36,25 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 
 | Variable | Values | Effect |
 | --- | --- | --- |
-| `PLATFORM` | `sim` (default), `car` | which `config/<platform>/` YAML and which nodes start |
+| `PLATFORM` | detected: `car` on a Jetson, else `sim` | which `config/<platform>/` YAML, which nodes start, default `ACTIVE_MODULES` |
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
 | `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
 | `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |
-| `GPU` | detected: `nvidia` or `none` | GPU or CPU base for `action`, `perception`, `world_modeling` |
+| `GPU` | detected: `nvidia` or `none` | GPU or CPU base for `action`, `perception`, `world_modeling`; `nvidia` on a PC adds the GPU overlay |
+| `REALSENSE_IMAGES` | `false` (default), `true` | RealSense color + depth, 640x480 @ 30 Hz |
+| `BAG_CPUSET` | `4,5` on the car, empty elsewhere | CPUs the bag recorder container may use |
+| `PF_VIZ` | `false` (default), `true` | particle filter `/pf/viz/*` debug topics (cost it CPU per update) |
 
-Device access: `PLATFORM=car` adds `modules/docker-compose.car.yaml` (host `/dev`, privileged,
-nvidia runtime); sim on Linux adds `modules/docker-compose.pc.yaml` (host `/dev/input` for a gamepad).
+With `ACTIVE_MODULES` unset, `watod` runs the full stack for the platform: `interfacing
+world_modeling action` on the car, plus `sim` on a PC.
+
+Overlays (`watod_scripts/watod-compose.sh`): `PLATFORM=car` adds `modules/docker-compose.car.yaml`
+(host `/dev`, privileged, nvidia runtime for the GPU modules). On a PC, `/dev/input` adds
+`modules/docker-compose.pc.yaml` (gamepad), and `GPU=nvidia` adds `modules/docker-compose.gpu.yaml`
+(GPU for `world_modeling`, `action`, `perception`). If a PC has an NVIDIA GPU but Docker has no
+nvidia runtime, `watod` warns and runs CPU-only.
 
 Images: `infrastructure`, `interfacing` and `sim` use the CPU base. `world_modeling`, `action` and
 `perception` pick their base per architecture: x86 CPU or CUDA 12.9 + TensorRT, Jetson CUDA 12.8 +
@@ -111,12 +120,7 @@ Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeou
 | gamepad mapping | `teleop_utils/config/joypad_config.yaml` |
 | MPPI | `mppi_cpp/config/params_e7.yaml`, `mppi_bringup/config/` |
 
-## Still to come (step 3)
+## Contract check
 
-- `watod` detects the platform too (today `PLATFORM` is set by hand; `GPU` is already
-  detected, and `PLATFORM=car` already adds `modules/docker-compose.car.yaml` for devices and
-  `runtime: nvidia`).
-- `./watod contract` (live check) and a bag replay test in `./watod test` for the `/hal/*`
-  contract.
-
-See `workflows/sim-to-car.md` for the contract rules.
+`./watod contract` checks the running stack against the `/hal/*` contract; `./watod test sim
+sim_bringup` replays a recorded AutoDRIVE bag through the sim adapter. See `workflows/sim-to-car.md` for the contract rules.

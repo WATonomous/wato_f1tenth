@@ -25,6 +25,30 @@ if [[ $# -gt 0 && "$1" == "ls" ]]; then
   exit 0
 fi
 
+# record --preset NAME: replace the flag with the topic list in
+# infrastructure_bringup/config/bag_presets/NAME.txt (one topic per line, # comments)
+if [[ $# -gt 0 && "$1" == "record" ]]; then
+  declare -a expanded=()
+  while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "--preset" ]]; then
+      preset_file="$MONO_DIR/src/infrastructure/infrastructure_bringup/config/bag_presets/${2:-}.txt"
+      if [[ ! -f "$preset_file" ]]; then
+        echo "Unknown preset '${2:-}'. Available:"
+        find "$MONO_DIR/src/infrastructure/infrastructure_bringup/config/bag_presets/" -name '*.txt' -printf '  %f\n' | sed 's/\.txt$//'
+        exit 1
+      fi
+      mapfile -t preset_topics < <(sed 's/#.*//; s/[[:space:]]//g; /^$/d' "$preset_file")
+      echo "Preset ${2}: ${#preset_topics[@]} topics"
+      expanded+=("--topics" "${preset_topics[@]}")
+      shift 2
+    else
+      expanded+=("$1")
+      shift
+    fi
+  done
+  set -- "${expanded[@]}"
+fi
+
 # Check if this is a record command without output specified
 # If so, add default output with timestamp
 declare -a ros2_bag_args=("$@")
@@ -112,7 +136,16 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${infra_container}$"; then
   exit 1
 fi
 
+# BAG_CPUSET (watod-setup-env.sh; "4,5" on the car) keeps the recorder off the cores the
+# particle filter and drivers need
+declare -a cpuset_args=()
+if [[ -n "${BAG_CPUSET:-}" ]]; then
+  cpuset_args=("--cpuset-cpus" "$BAG_CPUSET")
+  echo "Recorder limited to CPUs $BAG_CPUSET"
+fi
+
 docker run --rm \
+  "${cpuset_args[@]}" \
   --ulimit memlock=-1 \
   --ipc host \
   --network host \

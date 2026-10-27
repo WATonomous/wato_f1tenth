@@ -21,6 +21,8 @@
   <exec_depend>urg_node</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>realsense2_description</exec_depend>
+  <!-- compressed (JPEG) / zstd / compressedDepth / theora image topics from the RealSense -->
+  <exec_depend>image_transport_plugins</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

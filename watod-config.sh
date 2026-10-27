@@ -36,6 +36,9 @@
 ##   - "interfacing world_modeling action"       : full stack on the car (PLATFORM=car)
 ##   - "interfacing"                             : car drivers and teleop only (was jetson_up)
 ##   - "action:dev"                              : action in dev mode (editable)
+##
+## DEFAULT = the full stack for the detected platform:
+##   car: "interfacing world_modeling action"; PC: "interfacing world_modeling action sim"
 
 # export ACTIVE_MODULES=""
 
@@ -81,7 +84,7 @@
 # export ROS_DOMAIN_ID=""
 
 ############################### F1TENTH PLATFORM ##################################
-## car or sim. DEFAULT = "sim" (auto-detected in a later step of the migration)
+## car or sim. DEFAULT = detected: "car" on a Jetson (/etc/nv_tegra_release), else "sim"
 # export PLATFORM="car"
 
 ## Run slam_toolbox to build a map instead of localizing. DEFAULT = "false"
@@ -93,6 +96,14 @@
 ## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
 # export REALSENSE="true"
 
+## Also stream RealSense color + depth (640x480 @ 30 Hz), recorded as JPEG / zstd by
+## `watod bag record --preset car`. DEFAULT = "false"
+# export REALSENSE_IMAGES="true"
+
+## CPUs the bag recorder container may use (docker --cpuset-cpus), so recording can't
+## starve the particle filter. DEFAULT = "4,5" on the car, no limit elsewhere ("" = no limit)
+# export BAG_CPUSET="4,5"
+
 ## Source of /hal/imu: realsense, vesc (not working as intended yet), none or auto.
 ## DEFAULT = "auto" (car: realsense when REALSENSE=true; sim: AutoDRIVE's IMU)
 # export IMU="realsense"
@@ -100,6 +111,11 @@
 ## What publishes /hal/localization/odom: pf (particle filter), truth (sim ground truth) or none.
 ## DEFAULT = "auto" (car: pf; sim: truth)
 # export LOCALIZATION="pf"
+
+## Publish the particle filter's /pf/viz/* debug topics (particles, fake scan, pose). They cost
+## it extra work per update, so leave them off unless you are debugging localization.
+## DEFAULT = "false"
+# export PF_VIZ="true"
 
 ## GPU images: nvidia or none. DEFAULT = detected (Jetson or a working nvidia-smi + Docker
 ## nvidia runtime -> nvidia, else none). none builds action/perception/world_modeling on the CPU base.

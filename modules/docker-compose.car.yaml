@@ -25,3 +25,5 @@ services:
   world_modeling_bringup_dev: *car-gpu
   action_bringup: *car-gpu
   action_bringup_dev: *car-gpu
+  perception_bringup: *car-gpu
+  perception_bringup_dev: *car-gpu

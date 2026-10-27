@@ -49,6 +49,38 @@ the `orin` / `mppi_test` checklist below as the fallback.
 mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0` (USB serial), `166:*` (ACM serial, VESC) and
 `10:229` (`/dev/uhid`, Bluetooth HID). If a driver can't open its device, check these first.
 
+## One-time Jetson host setup
+
+A human runs these once per Jetson (they need sudo); re-run them after a re-flash.
+
+```bash
+# 1. Keep the kernel's webcam driver off the RealSense. librealsense (RSUSB backend, needed for
+#    the IMU) and uvcvideo otherwise fight over the camera about once a second; under color +
+#    depth load that stalls the IMU ("Motion Module force pause") and the VESC on the same hub.
+echo "blacklist uvcvideo" | sudo tee /etc/modprobe.d/blacklist-uvcvideo.conf
+sudo modprobe -r uvcvideo
+
+# 2. Pin CPU and GPU clocks at boot. Without jetson_clocks the GPU idles at 306 MHz and the
+#    particle filter (GPU ray casting) drops to ~40 Hz; with it, ~50 Hz.
+sudo tee /etc/systemd/system/jetson-clocks.service > /dev/null <<'EOF'
+[Unit]
+Description=jetson_clocks: pin CPU/GPU/EMC clocks for the F1TENTH stack
+After=nvpmodel.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/jetson_clocks
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl enable --now jetson-clocks.service
+
+# 3. Docker DNS (see Known traps): "dns": ["8.8.8.8", "1.1.1.1"] in /etc/docker/daemon.json
+```
+
+Check: `./watod contract` passes with `/hal/localization/odom` at 40 Hz or more (goal 50).
+
 ## Known traps
 
 - Old layout only: `jetson_pf.launch.py` runs the map server with `use_sim_time: True`
@@ -73,14 +105,15 @@ mount `/dev`, and allow these device cgroups: `13:*` (input / joystick), `188:0`
 ## On `big_infra_update`
 
 ```bash
-# watod-config.local.sh on the Jetson
-export ACTIVE_MODULES="interfacing world_modeling action"   # interfacing alone = old jetson_up
-export PLATFORM="car"
-export REALSENSE="true"     # RealSense IMU on /hal/imu (IMU=auto picks it on the car)
-export CONTROLLER="none"    # bench testing: no pure pursuit (default pure_pursuit)
+# watod-config.local.sh on the Jetson. PLATFORM=car and ACTIVE_MODULES="interfacing
+# world_modeling action" are detected; set them only to override (interfacing alone = old jetson_up)
+export REALSENSE="true"         # RealSense IMU on /hal/imu (IMU=auto picks it on the car)
+export REALSENSE_IMAGES="true"  # also color + depth 640x480 @ 30 Hz, for recording
+export CONTROLLER="none"        # bench testing: no pure pursuit (default pure_pursuit)
 ./watod build-base      # once: CPU + Jetson CUDA/TensorRT bases (step 5 replaces this with a pull)
-./watod build
+./watod build           # or one module at a time (see Known traps)
 ./watod up              # deploy mode: no manual colcon build
+./watod contract        # every /hal topic at its rate; the particle filter must hold 40 Hz
 ```
 
 | Old launch | New equivalent |
@@ -94,5 +127,20 @@ export CONTROLLER="none"    # bench testing: no pure pursuit (default pure_pursu
 Agents run these over SSH from the developer's machine, never logged into the car: see
 `remote-car.md`.
 
-Power mode, clocks and core pinning stay manual (checklist steps 5 and 9). After step 5 the car
+Power mode and core pinning stay manual (checklist steps 5 and 9); clocks come from the
+`jetson-clocks` service (One-time Jetson host setup). After step 5 the car
 pulls prebuilt arm64 images from GHCR, pinned to a dated `car-YYYY-MM-DD` tag on race days.
+
+## Recording on the car
+
+```bash
+./watod bag record --preset car   # Ctrl-C to stop; saved under ./bags
+```
+
+The `car` preset (`infrastructure_bringup/config/bag_presets/car.txt`) records the `/hal`
+contract, TF, the map and plan, VESC state, the gamepad and, with `REALSENSE_IMAGES=true`, color
+(JPEG) and depth (zstd) at about 30 Hz. It leaves out `/pf/viz/*`: the particle filter does extra
+ray casting and sampling for every subscriber to those, which costs it its 40 Hz floor. They are
+off unless `PF_VIZ=true` (debugging localization); avoid `record -a` on the car with them on.
+The recorder container runs on CPUs 4 and 5 (`BAG_CPUSET`). The Orin Nano has no
+hardware video encoder, so image compression runs on the CPU in the RealSense driver.

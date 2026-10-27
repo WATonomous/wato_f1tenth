@@ -89,6 +89,7 @@ Examples
   watod test perception                 # run tests only in perception module
   watod test world_modeling prediction  # run tests only for prediction package
   watod bag record -a                   # record all topics (auto-saves to ./bags)
+  watod bag record --preset car         # record the car topic list (bag_presets/car.txt)
   watod bag play my_bag                 # play bag from ./bags directory
   watod bag info my_bag                 # show bag info
   watod contract                        # PASS/FAIL per /hal topic on the running stack
@@ -311,6 +312,22 @@ COMPOSE_CMD=( "$@" )
 # Export WATCLOUD_MODE so watod-compose.sh and watod-test.sh can use it
 export WATCLOUD_MODE="${WATCLOUD_MODE:-false}"
 
+# f1tenth platform: car on a Jetson, sim anywhere else (PLATFORM in watod-config.local.sh wins).
+# Detected here, before ACTIVE_MODULES, because the module defaults depend on it.
+if [[ -z ${PLATFORM:-} ]]; then
+  if [[ -f /etc/nv_tegra_release ]]; then PLATFORM="car"; else PLATFORM="sim"; fi
+fi
+export PLATFORM
+
+# Modules to run when ACTIVE_MODULES isn't set: the full stack for this platform
+default_active_modules() {
+  if [[ "$PLATFORM" == "car" ]]; then
+    ACTIVE_MODULES=(interfacing world_modeling action)
+  else
+    ACTIVE_MODULES=(interfacing world_modeling action sim)
+  fi
+}
+
 # Build compose file list for direct docker compose calls
 WATCLOUD_COMPOSE_ARGS=()
 if [[ "$WATCLOUD_MODE" == "true" ]]; then
@@ -345,8 +362,8 @@ if [[ -n ${RUN_DOWN:-} ]]; then
   else
     # "watod down" - stop modules from ACTIVE_MODULES config + infrastructure
     # Need to determine ACTIVE_MODULES from config (already sourced above)
-    if [[ -z ${ACTIVE_MODULES+x} ]]; then
-      ACTIVE_MODULES=()
+    if [[ -z ${ACTIVE_MODULES:-} ]]; then
+      default_active_modules
     elif [[ ! ${ACTIVE_MODULES@a} =~ a ]]; then
       # ACTIVE_MODULES is set but not an array, convert it
       # shellcheck disable=SC2128
@@ -378,9 +395,9 @@ fi
 if [[ ${#CLI_MODULES[@]} -gt 0 ]]; then
   # Use modules specified via CLI flags
   ACTIVE_MODULES=("${CLI_MODULES[@]}")
-elif [[ -z ${ACTIVE_MODULES+x} ]]; then
-  # ACTIVE_MODULES not set, initialize as empty array
-  ACTIVE_MODULES=()
+elif [[ -z ${ACTIVE_MODULES:-} ]]; then
+  # ACTIVE_MODULES not set: the full stack for the detected platform
+  default_active_modules
 elif [[ ! ${ACTIVE_MODULES@a} =~ a ]]; then
   # ACTIVE_MODULES is set but not an array, convert it
   # shellcheck disable=SC2128
@@ -438,7 +455,7 @@ fi
 
 if [[ -n ${RUN_BAG:-} ]]; then
   # Export variables needed by watod-bag.sh
-  export MONO_DIR MODULES_DIR BAG_DIRECTORY INFRASTRUCTURE_IMAGE TAG
+  export MONO_DIR MODULES_DIR BAG_DIRECTORY INFRASTRUCTURE_IMAGE TAG BAG_CPUSET
   export RMW_IMPLEMENTATION ROS_DOMAIN_ID COMPOSE_PROJECT_NAME
   export ZENOH_ROUTER_CONFIG_URI ZENOH_SESSION_CONFIG_URI
   "$MONO_DIR/watod_scripts/watod-bag.sh" "${BAG_ARGS[@]}"

@@ -146,26 +146,42 @@ INTERFACING_IMAGE=${INTERFACING_IMAGE:-"$REGISTRY_URL/interfacing/interfacing"}
 SIM_IMAGE=${SIM_IMAGE:-"$REGISTRY_URL/sim/sim"}
 
 ################################  f1tenth platform  ##################################
-# car or sim. Phase 1 of step 3 replaces this default with auto-detection.
-PLATFORM=${PLATFORM:-"sim"}
+# car on a Jetson, sim anywhere else (watod detects it; this covers sourcing the script directly)
+if [[ -z ${PLATFORM:-} ]]; then
+  if [[ -f /etc/nv_tegra_release ]]; then PLATFORM="car"; else PLATFORM="sim"; fi
+fi
 # true to run slam_toolbox (mapping) instead of localization
 MAPPING=${MAPPING:-"false"}
 # pure_pursuit, mppi or none
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
 # true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
 REALSENSE=${REALSENSE:-"false"}
+# true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
+REALSENSE_IMAGES=${REALSENSE_IMAGES:-"false"}
+# CPUs for the bag recorder container (docker --cpuset-cpus), so recording can't starve the
+# particle filter. Car default: the last two of the Orin's six cores. Empty = no limit.
+if [[ -z ${BAG_CPUSET+x} ]]; then
+  if [[ "$PLATFORM" == "car" ]]; then BAG_CPUSET="4,5"; else BAG_CPUSET=""; fi
+fi
 # Source of /hal/imu: realsense, vesc, none or auto (resolved in interfacing.launch.yaml)
 IMU=${IMU:-"auto"}
 # What publishes /hal/localization/odom: pf, truth, none or auto (car: pf; sim: truth)
 LOCALIZATION=${LOCALIZATION:-"auto"}
+# true to publish the particle filter's /pf/viz/* debug topics (they slow it down)
+PF_VIZ=${PF_VIZ:-"false"}
 # nvidia or none: picks the GPU or CPU base for action, perception and world_modeling.
 # Jetson -> nvidia; x86 -> nvidia only if nvidia-smi works and Docker has the nvidia runtime.
 if [[ -z "${GPU:-}" ]]; then
   if [[ -f /etc/nv_tegra_release ]]; then
     GPU="nvidia"
-  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1 && \
-       docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia; then
-    GPU="nvidia"
+  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+    if docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia; then
+      GPU="nvidia"
+    else
+      GPU="none"
+      echo "Warning: NVIDIA GPU found but Docker has no nvidia runtime; running CPU-only." >&2
+      echo "         Install the NVIDIA Container Toolkit to use the GPU." >&2
+    fi
   else
     GPU="none"
   fi
@@ -244,8 +260,10 @@ append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
 append "REALSENSE" "$REALSENSE"
+append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
 append "IMU" "$IMU"
 append "LOCALIZATION" "$LOCALIZATION"
+append "PF_VIZ" "$PF_VIZ"
 append "GPU" "$GPU"
 
 # ROS 2 Middleware

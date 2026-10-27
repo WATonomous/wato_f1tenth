@@ -10,9 +10,13 @@
     enable_accel: true
     unite_imu_method: 2  # 1 = copy, 2 = linear interpolation
     enable_sync: false
-    # Depth and color cost CPU/USB bandwidth; turn on when a node needs them
+    # Color and depth cost CPU/USB bandwidth: off unless REALSENSE_IMAGES=true (realsense_images:=true
+    # in interfacing.launch.yaml turns both on). 640x480 @ 30 Hz keeps recording at 25 Hz+ without
+    # taking the particle filter's CPU; record them through image_transport (compressed / zstd).
     enable_depth: false
     enable_color: false
+    rgb_camera.color_profile: "640,480,30"
+    depth_module.depth_profile: "640,480,30"
     enable_infra1: false
     enable_infra2: false
     pointcloud.enable: false

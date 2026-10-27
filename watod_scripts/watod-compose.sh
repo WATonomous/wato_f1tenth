@@ -109,12 +109,18 @@ if [[ "${WATCLOUD_MODE:-false}" == "true" ]]; then
   WATCLOUD_COMPOSE_FILES=("-f" "modules/docker-compose.watcloud.yaml")
 fi
 
-# Platform overlay from .env: car -> devices + nvidia runtime; sim on Linux -> gamepad access
+# Platform overlays from .env: car -> devices + nvidia runtime; a PC -> gamepad access
+# (Linux with /dev/input) and the GPU for the GPU modules when GPU=nvidia
 declare -a CAR_COMPOSE_FILES=()
 if [[ -f "modules/.env" ]] && grep -q '^PLATFORM=car$' "modules/.env"; then
   CAR_COMPOSE_FILES=("-f" "modules/docker-compose.car.yaml")
-elif [[ -d /dev/input ]]; then
-  CAR_COMPOSE_FILES=("-f" "modules/docker-compose.pc.yaml")
+else
+  if [[ -d /dev/input ]]; then
+    CAR_COMPOSE_FILES+=("-f" "modules/docker-compose.pc.yaml")
+  fi
+  if [[ -f "modules/.env" ]] && grep -q '^GPU=nvidia$' "modules/.env"; then
+    CAR_COMPOSE_FILES+=("-f" "modules/docker-compose.gpu.yaml")
+  fi
 fi
 
 declare -a DEFAULT_PRE_COMPOSE_FILES=("-f" "modules/docker-compose.yaml" "${WATCLOUD_COMPOSE_FILES[@]}" "-f" "modules/docker-compose.dep.yaml")

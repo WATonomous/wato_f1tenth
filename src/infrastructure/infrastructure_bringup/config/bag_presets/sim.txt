@@ -1,0 +1,32 @@
+# Sim recording preset: ./watod bag record --preset sim
+#
+# The /hal contract plus AutoDRIVE's raw output, so a recording can be replayed through the
+# sim adapter (like sim_bringup's contract test) or used as sim data.
+
+# /hal contract
+/hal/scan
+/hal/odom
+/hal/imu
+/hal/localization/odom
+/hal/ackermann_cmd
+/hal/drive/autonomy
+/hal/drive/joystick
+/hal/drive/keyboard
+/hal/drive/ebrake
+/hal/dead_man_switch
+
+# TF and plan
+/tf
+/tf_static
+/global_planner/path
+
+# AutoDRIVE raw output
+/autodrive/roboracer_1/lidar
+/autodrive/roboracer_1/imu
+/autodrive/roboracer_1/odom
+/autodrive/roboracer_1/ips
+/autodrive/roboracer_1/steering
+/autodrive/roboracer_1/throttle
+/autodrive/roboracer_1/left_encoder
+/autodrive/roboracer_1/right_encoder
+/autodrive/roboracer_1/front_camera
