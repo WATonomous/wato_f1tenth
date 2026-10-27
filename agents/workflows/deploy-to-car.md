@@ -134,13 +134,22 @@ pulls prebuilt arm64 images from GHCR, pinned to a dated `car-YYYY-MM-DD` tag on
 ## Recording on the car
 
 ```bash
-./watod bag record --preset car   # Ctrl-C to stop; saved under ./bags
+./watod bag record   # car preset by default (BAG_PRESET); Ctrl-C to stop; saved under ./bags
 ```
 
 The `car` preset (`infrastructure_bringup/config/bag_presets/car.txt`) records the `/hal`
-contract, TF, the map and plan, VESC state, the gamepad and, with `REALSENSE_IMAGES=true`, color
+contract (including `/hal/battery`), TF, the map and plan, VESC state, the gamepad and, with `REALSENSE_IMAGES=true`, color
 (JPEG) and depth (zstd) at about 30 Hz. It leaves out `/pf/viz/*`: the particle filter does extra
 ray casting and sampling for every subscriber to those, which costs it its 40 Hz floor. They are
 off unless `PF_VIZ=true` (debugging localization); avoid `record -a` on the car with them on.
 The recorder container runs on CPUs 4 and 5 (`BAG_CPUSET`). The Orin Nano has no
 hardware video encoder, so image compression runs on the CPU in the RealSense driver.
+
+## Battery
+
+`vesc_battery` publishes the drive pack on `/hal/battery` (`sensor_msgs/BatteryState`): voltage,
+an estimated charge (resting-LiPo curve with the load sag added back), and health (`DEAD` =
+critical). It logs a warning below 3.7 V per cell and an error below 3.6 V per cell; the Jetson runs
+off the same pack, so treat critical as "stop now". The VESC only measures its own current, so the
+estimate is voltage based. To watch it, import `infrastructure_bringup/config/foxglove/battery.json`
+in Foxglove (Layouts > Import from file).

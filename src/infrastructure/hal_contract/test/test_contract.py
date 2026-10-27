@@ -43,12 +43,28 @@ def test_every_contract_topic_is_under_hal():
 @pytest.mark.parametrize(
     "platform,kw,expected",
     [
-        ("car", {}, {"imu": "none", "localization": "pf"}),
-        ("car", {"realsense": True}, {"imu": "realsense", "localization": "pf"}),
-        ("car", {"imu": "vesc"}, {"imu": "vesc", "localization": "pf"}),
-        ("sim", {}, {"imu": "sim", "localization": "truth"}),
-        ("sim", {"localization": "pf"}, {"imu": "sim", "localization": "pf"}),
-        ("sim", {"mapping": True}, {"imu": "sim", "localization": "none"}),
+        ("car", {}, {"imu": "none", "localization": "pf", "battery": "vesc"}),
+        (
+            "car",
+            {"realsense": True},
+            {"imu": "realsense", "localization": "pf", "battery": "vesc"},
+        ),
+        (
+            "car",
+            {"imu": "vesc"},
+            {"imu": "vesc", "localization": "pf", "battery": "vesc"},
+        ),
+        ("sim", {}, {"imu": "sim", "localization": "truth", "battery": "none"}),
+        (
+            "sim",
+            {"localization": "pf"},
+            {"imu": "sim", "localization": "pf", "battery": "none"},
+        ),
+        (
+            "sim",
+            {"mapping": True},
+            {"imu": "sim", "localization": "none", "battery": "none"},
+        ),
     ],
 )
 def test_resolve_sources_mirrors_launch_auto_rules(platform, kw, expected):
@@ -58,7 +74,7 @@ def test_resolve_sources_mirrors_launch_auto_rules(platform, kw, expected):
 def test_inactive_sources_and_groups_are_skipped():
     sources = c.resolve_sources("car", localization="none")
     checks = names(c.topic_checks(CONTRACT, "car", {"sensors"}, sources))
-    assert checks == ["/hal/scan", "/hal/odom"]
+    assert checks == ["/hal/scan", "/hal/odom", "/hal/battery"]
     assert [
         (t.parent, t.child) for t in c.tf_checks(CONTRACT, {"sensors"}, sources)
     ] == [

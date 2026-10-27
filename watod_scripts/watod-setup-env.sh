@@ -160,6 +160,8 @@ REALSENSE=${REALSENSE:-"false"}
 REALSENSE_IMAGES=${REALSENSE_IMAGES:-"false"}
 # CPUs for the bag recorder container (docker --cpuset-cpus), so recording can't starve the
 # particle filter. Car default: the last two of the Orin's six cores. Empty = no limit.
+# Topic preset for `watod bag record` with no topics (bag_presets/<name>.txt); "" = none
+BAG_PRESET=${BAG_PRESET-"$PLATFORM"}
 if [[ -z ${BAG_CPUSET+x} ]]; then
   if [[ "$PLATFORM" == "car" ]]; then BAG_CPUSET="4,5"; else BAG_CPUSET=""; fi
 fi

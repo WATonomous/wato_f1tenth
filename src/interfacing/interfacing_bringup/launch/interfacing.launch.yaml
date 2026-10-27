@@ -125,6 +125,14 @@ launch:
             remap:
               - from: scan
                 to: /hal/scan
+        # Drive battery from VESC telemetry -> /hal/battery (the Jetson shares the pack)
+        - node:
+            pkg: vesc_battery
+            exec: battery_node
+            name: vesc_battery
+            output: screen
+            param:
+              - from: "$(var config_dir)/battery.yaml"
 
   # Gamepad teleop: /joy -> /hal/drive/joystick and /hal/dead_man_switch
   - group:

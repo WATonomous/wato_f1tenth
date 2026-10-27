@@ -25,6 +25,21 @@ if [[ $# -gt 0 && "$1" == "ls" ]]; then
   exit 0
 fi
 
+# record with no topic selection uses BAG_PRESET (watod-setup-env.sh: the platform's preset,
+# car or sim); -a, --topics, --preset, a regex or topic names keep their usual meaning
+if [[ $# -gt 0 && "$1" == "record" && -n "${BAG_PRESET:-}" ]]; then
+  selects_topics=false
+  for arg in "${@:2}"; do
+    case "$arg" in
+      -a|--all|--all-topics|--all-services|--topics|--preset|-e|--regex|/*) selects_topics=true ;;
+    esac
+  done
+  if [[ "$selects_topics" == "false" ]]; then
+    echo "No topics given: using preset '$BAG_PRESET' (BAG_PRESET)"
+    set -- "$@" --preset "$BAG_PRESET"
+  fi
+fi
+
 # record --preset NAME: replace the flag with the topic list in
 # infrastructure_bringup/config/bag_presets/NAME.txt (one topic per line, # comments)
 if [[ $# -gt 0 && "$1" == "record" ]]; then

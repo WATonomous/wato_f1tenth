@@ -89,7 +89,8 @@ Examples
   watod test perception                 # run tests only in perception module
   watod test world_modeling prediction  # run tests only for prediction package
   watod bag record -a                   # record all topics (auto-saves to ./bags)
-  watod bag record --preset car         # record the car topic list (bag_presets/car.txt)
+  watod bag record                      # record this platform's preset (car or sim topic list)
+  watod bag record --preset car         # record a named preset (bag_presets/car.txt)
   watod bag play my_bag                 # play bag from ./bags directory
   watod bag info my_bag                 # show bag info
   watod contract                        # PASS/FAIL per /hal topic on the running stack
@@ -455,7 +456,7 @@ fi
 
 if [[ -n ${RUN_BAG:-} ]]; then
   # Export variables needed by watod-bag.sh
-  export MONO_DIR MODULES_DIR BAG_DIRECTORY INFRASTRUCTURE_IMAGE TAG BAG_CPUSET
+  export MONO_DIR MODULES_DIR BAG_DIRECTORY INFRASTRUCTURE_IMAGE TAG BAG_CPUSET BAG_PRESET
   export RMW_IMPLEMENTATION ROS_DOMAIN_ID COMPOSE_PROJECT_NAME
   export ZENOH_ROUTER_CONFIG_URI ZENOH_SESSION_CONFIG_URI
   "$MONO_DIR/watod_scripts/watod-bag.sh" "${BAG_ARGS[@]}"

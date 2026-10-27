@@ -26,7 +26,7 @@ mounted at `/ws/src/<module>`.
 | Module | Packages | Runs |
 | --- | --- | --- |
 | `infrastructure` | `infrastructure_bringup`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays; builds `vesc_msgs` so Foxglove can decode it |
-| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
+| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap` | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
 | `action` | `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | pure pursuit (default) or MPPI (`CONTROLLER=mppi`, untested) |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
@@ -86,6 +86,7 @@ AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
 Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /hal/scan
 VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sensors/imu
 RealSense D435i (USB)          -> realsense2_camera            -> /hal/imu (IMU=realsense)
+VESC /sensors/core             -> vesc_battery                 -> /hal/battery (3S 5000 mAh pack)
 /hal/scan + /hal/odom + map    -> particle_filter (rmgpu)      -> /hal/localization/odom, TF map->odom
 /joy                           -> joypad_node (gamepad_node)   -> /hal/drive/joystick, /hal/dead_man_switch
 /hal/drive/*                   -> ackermann_mux                -> /hal/ackermann_cmd -> ackermann_to_vesc -> VESC
@@ -118,6 +119,8 @@ Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeou
 | PF, raceline, maps, RViz | `world_modeling_bringup/config/{car,sim}/`, `maps/`, `rviz/` |
 | pure pursuit | `action_bringup/config/{car,sim}/pure_pursuit.yaml` |
 | gamepad mapping | `teleop_utils/config/joypad_config.yaml` |
+| battery (cells, capacity, warn/critical) | `interfacing_bringup/config/car/battery.yaml` |
+| Foxglove layouts | `infrastructure_bringup/config/foxglove/` (import in Foxglove: Layouts > Import) |
 | MPPI | `mppi_cpp/config/params_e7.yaml`, `mppi_bringup/config/` |
 
 ## Contract check

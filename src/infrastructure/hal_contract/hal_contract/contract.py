@@ -72,7 +72,7 @@ def load(path):
 def resolve_sources(
     platform, imu="auto", localization="auto", mapping=False, realsense=False
 ):
-    """Mirror the launch files' auto rules: which IMU and localization source is running."""
+    """Mirror the launch files' auto rules: which IMU, localization and battery source is running."""
     if imu == "auto":
         if platform == "sim":
             imu = "sim"  # the sim container relays AutoDRIVE's IMU
@@ -81,10 +81,11 @@ def resolve_sources(
     if localization == "auto":
         localization = "pf" if platform == "car" else "truth"
     if mapping:
-        localization = (
-            "none"  # slam_toolbox maps; nothing publishes /hal/localization/odom
-        )
-    return {"imu": imu, "localization": localization}
+        # slam_toolbox maps; nothing publishes /hal/localization/odom
+        localization = "none"
+    # The VESC reports the drive pack on the car; AutoDRIVE has no battery
+    battery = "vesc" if platform == "car" else "none"
+    return {"imu": imu, "localization": localization, "battery": battery}
 
 
 def _active(entry, groups, sources):

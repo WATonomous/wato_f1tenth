@@ -100,6 +100,10 @@
 ## `watod bag record --preset car`. DEFAULT = "false"
 # export REALSENSE_IMAGES="true"
 
+## Topic preset for `watod bag record` with no topics given (infrastructure_bringup/config/
+## bag_presets/<name>.txt). DEFAULT = the platform: "car" or "sim". "" = no default.
+# export BAG_PRESET="car"
+
 ## CPUs the bag recorder container may use (docker --cpuset-cpus), so recording can't
 ## starve the particle filter. DEFAULT = "4,5" on the car, no limit elsewhere ("" = no limit)
 # export BAG_CPUSET="4,5"

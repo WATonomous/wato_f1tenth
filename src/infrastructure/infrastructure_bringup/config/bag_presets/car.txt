@@ -13,6 +13,7 @@
 /hal/odom
 /hal/imu
 /hal/localization/odom
+/hal/battery
 /hal/ackermann_cmd
 /hal/drive/autonomy
 /hal/drive/joystick

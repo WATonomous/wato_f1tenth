@@ -28,6 +28,7 @@ through launch remaps; the old names (`/scan`, `/odom`, `/pf/pose/odom`, `/acker
 | `/hal/odom` | `Odometry`, `odom -> base_link` (wheel, or perfect sim odom) | `fake_odom_node` | `vesc_to_odom_node` |
 | `/hal/imu` | `Imu` | `imu_remap_node` (frame `imu_link`) | RealSense (`IMU=realsense`, default with `REALSENSE=true`) or VESC (`IMU=vesc`, not working as intended yet) |
 | `/hal/localization/odom` | `Odometry`, frame `map` | `fake_odom_node` ground truth (`LOCALIZATION=truth`, default) or `particle_filter` (`pf`, needs a sim map) | `particle_filter` |
+| `/hal/battery` | `BatteryState` (drive pack: voltage, %, health) | none (AutoDRIVE has no battery) | `vesc_battery` from VESC `/sensors/core` |
 | `/hal/drive/{autonomy,joystick,keyboard,ebrake}` | `AckermannDriveStamped` | shared nodes | shared nodes |
 | `/hal/dead_man_switch` | `Bool` (transient local) | gamepad teleop | gamepad teleop |
 | `/hal/ackermann_cmd` | `AckermannDriveStamped` (mux output) | `ackermann_converter_node` drives AutoDRIVE | `ackermann_to_vesc_node` drives the VESC |

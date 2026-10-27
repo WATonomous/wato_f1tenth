@@ -8,7 +8,7 @@
 #   min_hz       per platform; 0 or missing = no rate check (event-driven topics)
 #   frame_id     exact header frame, or "any" = any frame TF connects to base_link
 #   publishers / subscribers: true = at least one must exist
-#   when         skipped unless that source is active: imu, localization
+#   when         skipped unless that source is active: imu, localization, battery
 # tf:            parent -> child transforms that must resolve, same group / when keys
 # legacy:        pre-/hal names; they must not exist (a warning if only foxglove_bridge uses them)
 
@@ -42,6 +42,13 @@ topics:
     min_hz: {car: 40.0, sim: 15.0}  # car: 40 Hz is the particle filter's hard floor (goal 50)
     publishers: true
     when: localization
+
+  - name: /hal/battery
+    type: sensor_msgs/msg/BatteryState
+    group: sensors
+    min_hz: {car: 4.0}
+    publishers: true
+    when: battery  # car only: the VESC reports the pack, AutoDRIVE has no battery
 
   - name: /hal/ackermann_cmd
     type: ackermann_msgs/msg/AckermannDriveStamped
