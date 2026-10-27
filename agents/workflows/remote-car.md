@@ -54,7 +54,10 @@ ssh <host> 'cd <repo> && git log --oneline -1 && git status --short'
 
 - **Normal:** commit on the developer's machine, the human pushes, and the car runs `git pull`.
 - **Quick test before committing:** `scp` the changed files into the car's repo, build and test.
-  Once the human has pushed, run `git checkout -- <files>` on the car before `git pull`.
+  Once the human has pushed, run `git checkout -- <files>` on the car before `git pull`, and
+  delete any *new* files you copied: `git checkout` leaves untracked files alone, and `git pull`
+  refuses to overwrite them. Check they match first:
+  `git show origin/<branch>:<file> | cmp - <file>`.
 
 ## 5. Long commands
 
