@@ -31,7 +31,11 @@
       "Bash(docker images:*)",
       "Bash(docker logs:*)",
       "Bash(./watod ps:*)",
-      "Bash(./watod help)"
+      "Bash(./watod help)",
+      "Bash(python3 agents/scripts/legacy_triage.py:*)",
+      "Bash(gh api user --jq .login)",
+      "Bash(gh api repos/WATonomous/wato_f1tenth --jq .permissions.admin)"
+
     ],
     "ask": [
       "Bash(./watod up:*)",
