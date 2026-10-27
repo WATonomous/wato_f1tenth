@@ -93,6 +93,13 @@ topics:
     publishers: true  # global_planner (world_modeling)
     when: controller
 
+  # The same raceline with the distances to the track edges (TrackWidth per pose), latched
+  - name: /global_planner/reference_track
+    type: global_planner/msg/ReferenceTrack
+    group: planning
+    publishers: true
+    when: controller
+
   # Local planner (LOCAL_PLANNER): the path to follow in base_link, starting at the car, with the
   # target speed in z; /local_planner/active (latched) says when to follow it over the global path.
   - name: /local_planner/path

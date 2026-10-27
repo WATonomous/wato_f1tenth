@@ -20,7 +20,7 @@ file gets the args `platform`, `config_dir` (`action_bringup/config/<platform>`)
 
 | Role | Reads | Publishes |
 | --- | --- | --- |
-| Global planner (`world_modeling`) | map, raceline CSV | `/global_planner/path` (latched, once) |
+| Global planner (`world_modeling`) | the track's `raceline.csv` (`TRACK`) | `/global_planner/path`, `/global_planner/reference_track` (with track edge distances); latched, once |
 | Local planner (`LOCAL_PLANNER`) | `/hal/localization/odom`, `/hal/odom`, `/hal/scan`, `/global_planner/path` | `/local_planner/path`, `/local_planner/active` |
 | Controller (`CONTROLLER`) | `/hal/localization/odom`, `/hal/odom`, the paths, `/hal/dead_man_switch` | `/hal/drive/autonomy` only |
 

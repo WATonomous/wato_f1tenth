@@ -15,6 +15,8 @@ COPY src/wato_test wato_test
 
 # Copy in every msgs package so Foxglove and ros2 bag can decode them
 COPY src/interfacing/vesc/vesc_msgs vesc_msgs
+# global_planner's ReferenceTrack, so Foxglove and ros2 bag can decode /global_planner/reference_track
+COPY src/world_modeling/global_planner global_planner
 
 ################################# Dependencies ################################
 # NOTE: You should be relying on ROSDEP as much as possible

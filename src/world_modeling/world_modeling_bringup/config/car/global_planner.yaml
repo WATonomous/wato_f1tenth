@@ -2,5 +2,5 @@
 /**:
   ros__parameters:
     path_topic: "/global_planner/path"
-    vis_topic: "/global_planner/vis"
+    reference_track_topic: "/global_planner/reference_track"
     waypoint_frame_id: "map"
