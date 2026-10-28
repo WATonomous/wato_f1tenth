@@ -1,0 +1,7 @@
+---
+# perception.launch.yaml
+# Entry point for the perception container (see modules/docker-compose.yaml).
+# Empty for now: f1tenth has no perception nodes yet (the RealSense camera from
+# mppi_test comes back here when it is needed).
+
+launch: []

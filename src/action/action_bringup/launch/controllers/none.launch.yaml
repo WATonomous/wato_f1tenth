@@ -1,0 +1,12 @@
+---
+# No controller: nothing publishes /hal/drive/autonomy (bench tests, teleop only).
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  # starts no nodes; keep the container up instead of letting launch exit
+  - executable:
+      cmd: sleep infinity
+      name: idle

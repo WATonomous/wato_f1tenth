@@ -1,0 +1,6 @@
+# Global planner on the car. The raceline comes from TRACK (race_tracks/tracks/<TRACK>/raceline.csv).
+/**:
+  ros__parameters:
+    path_topic: "/global_planner/path"
+    reference_track_topic: "/global_planner/reference_track"
+    waypoint_frame_id: "map"

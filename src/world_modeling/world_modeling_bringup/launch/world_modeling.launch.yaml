@@ -1,0 +1,170 @@
+---
+# world_modeling.launch.yaml
+# Entry point for the world_modeling container (see modules/docker-compose.yaml).
+#
+#   car: particle filter + map server (was the localization half of jetson_pf.launch.py)
+#   sim: ground truth from the sim adapter (localization:=truth), so only the planner runs
+#   both: global planner; optional costmap, EKF, slam_toolbox mapping and RViz
+#
+# Whatever localizes publishes /hal/localization/odom (agents/workflows/sim-to-car.md).
+
+launch:
+  - arg:
+      name: platform
+      default: "$(env PLATFORM sim)"
+      description: "car or sim"
+
+  - arg:
+      name: mapping
+      default: "$(env MAPPING false)"
+      description: "Run slam_toolbox to build a map instead of localizing"
+
+  - arg:
+      name: localization
+      default: "$(env LOCALIZATION auto)"
+      description: "pf (particle filter + map server), truth (sim adapter's ground truth), none, or auto (car: pf, sim: truth)"
+
+  - arg:
+      name: pf_viz
+      default: "$(env PF_VIZ false)"
+      description: >-
+        Publish the particle filter's /pf/viz/* debug topics. Off by default: every subscriber to
+        them makes the filter ray-cast an extra scan and sample particles, which costs it its 40 Hz floor
+
+  - arg:
+      name: track
+      default: "$(env TRACK wato_office)"
+      description: "Track in race_tracks/tracks/: its map.yaml for localization, raceline.csv for the global planner"
+
+  - arg:
+      name: planner
+      default: "true"
+      description: "Run the global planner"
+
+  - arg:
+      name: costmap
+      default: "false"
+      description: "Run the occupancy grid generator"
+
+  - arg:
+      name: ekf
+      default: "false"
+      description: "Run the ackermann EKF (off on the car since mppi_test)"
+
+  - arg:
+      name: rviz
+      default: "false"
+      description: "Start RViz with the localization or mapping layout"
+
+  - let:
+      name: share
+      value: "$(find-pkg-share world_modeling_bringup)"
+
+  - let:
+      name: run_pf
+      value: "$(eval '(\"$(var localization)\" == \"pf\" or (\"$(var localization)\" == \"auto\" and \"$(var platform)\" == \"car\")) and \"$(var mapping)\".lower() != \"true\"')"
+
+  # Particle filter localization (car by default; in sim with localization:=pf map:=<sim map>)
+  - group:
+      if: "$(var run_pf)"
+      children:
+        - node:
+            pkg: particle_filter
+            exec: particle_filter
+            name: particle_filter
+            output: screen
+            param:
+              - from: "$(var share)/config/$(var platform)/localize.yaml"
+              - name: viz
+                value: "$(eval '1 if \"$(var pf_viz)\".lower() == \"true\" else 0')"
+            remap:
+              - from: /pf/pose/odom
+                to: /hal/localization/odom
+            # One BLAS/OpenMP thread: numpy's thread pool otherwise fights the rest of the
+            # stack for the Orin's six cores and the update rate drops below 40 Hz
+            env:
+              - name: OPENBLAS_NUM_THREADS
+                value: "1"
+              - name: OMP_NUM_THREADS
+                value: "1"
+        - node:
+            pkg: nav2_map_server
+            exec: map_server
+            name: map_server
+            output: screen
+            param:
+              - name: yaml_filename
+                value: "$(find-pkg-share race_tracks)/tracks/$(var track)/map.yaml"
+              - name: topic
+                value: map
+              - name: frame_id
+                value: map
+              - name: use_sim_time
+                value: false
+        - node:
+            pkg: nav2_lifecycle_manager
+            exec: lifecycle_manager
+            name: lifecycle_manager_localization
+            output: screen
+            param:
+              - name: use_sim_time
+                value: false
+              - name: autostart
+                value: true
+              - name: node_names
+                value: ["map_server"]
+
+  # Mapping (either platform)
+  - node:
+      if: "$(var mapping)"
+      pkg: slam_toolbox
+      exec: async_slam_toolbox_node
+      name: slam_toolbox
+      output: screen
+      param:
+        - name: scan_topic
+          value: /hal/scan
+        - name: use_odometry
+          value: true
+        - name: map_frame
+          value: map
+        - name: odom_frame
+          value: odom
+        - name: base_frame
+          value: base_link
+        - name: use_sim_time
+          value: false
+
+  - node:
+      if: "$(var ekf)"
+      pkg: ackermann_ekf
+      exec: ekf
+      name: ekf
+      output: screen
+
+  - node:
+      if: "$(var planner)"
+      pkg: global_planner
+      exec: global_planner_node
+      name: global_planner_node
+      output: screen
+      param:
+        - from: "$(var share)/config/$(var platform)/global_planner.yaml"
+        - name: raceline_file
+          value: "$(find-pkg-share race_tracks)/tracks/$(var track)/raceline.csv"
+
+  - node:
+      if: "$(var costmap)"
+      pkg: costmap
+      exec: costmap_node
+      name: occupancy_grid_generator
+      param:
+        - from: "$(find-pkg-share costmap)/config/params.yaml"
+
+  - node:
+      if: "$(var rviz)"
+      pkg: rviz2
+      exec: rviz2
+      name: rviz2
+      output: screen
+      args: "-d $(var share)/rviz/$(eval '\"mapping\" if \"$(var mapping)\".lower() == \"true\" else \"mylocalize\"').rviz"

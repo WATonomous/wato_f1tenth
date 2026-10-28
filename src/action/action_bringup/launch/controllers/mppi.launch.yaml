@@ -1,0 +1,15 @@
+---
+# MPPI (mppi_cpp): follows the track's raceline_mppi.csv (its own [s;x;y;psi;k;vx;ax;...] format),
+# not /global_planner/path or a local planner, and builds its wall cost from the track's map.
+# Only tracks with a raceline_mppi.csv work (wato_office). Untested on Jazzy until the JAX image step.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  - include:
+      file: "$(find-pkg-share mppi_cpp)/launch/e7.launch.py"
+      arg:
+        - {name: wpt_path, value: "$(find-pkg-share race_tracks)/tracks/$(env TRACK wato_office)/raceline_mppi.csv"}
+        - {name: wall_map_yaml, value: "$(find-pkg-share race_tracks)/tracks/$(env TRACK wato_office)/map.yaml"}

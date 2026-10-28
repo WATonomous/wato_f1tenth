@@ -1,0 +1,142 @@
+---
+# The /hal/* topic contract (agents/workflows/sim-to-car.md), plus the planner interfaces
+# (/global_planner/*, /local_planner/*: agents/workflows/add-controller.md), checked by
+# `./watod contract` (live) and sim_bringup's bag replay test.
+#
+# topics:
+#   type         message type the graph must report
+#   group        sensors (what the adapters provide), drive (mux inputs and output) or planning
+#   min_hz       per platform; 0 or missing = no rate check (event-driven topics)
+#   frame_id     exact header frame, or "any" = any frame TF connects to base_link
+#   publishers / subscribers: true = at least one must exist; a source name (controller,
+#                local_planner) = at least one while that source is active
+#   when         skipped unless that source is active: imu, localization, battery, controller,
+#                local_planner
+# tf:            parent -> child transforms that must resolve, same group / when keys
+# legacy:        old name -> replacement; old names must not exist (a warning if only foxglove_bridge uses them)
+
+topics:
+  - name: /hal/scan
+    type: sensor_msgs/msg/LaserScan
+    group: sensors
+    frame_id: laser
+    min_hz: {car: 30.0, sim: 15.0}
+    publishers: true
+
+  - name: /hal/odom
+    type: nav_msgs/msg/Odometry
+    group: sensors
+    frame_id: odom
+    min_hz: {car: 40.0, sim: 15.0}
+    publishers: true
+
+  - name: /hal/imu
+    type: sensor_msgs/msg/Imu
+    group: sensors
+    frame_id: any
+    min_hz: {car: 150.0, sim: 15.0}
+    publishers: true
+    when: imu
+
+  - name: /hal/localization/odom
+    type: nav_msgs/msg/Odometry
+    group: sensors
+    frame_id: map
+    min_hz: {car: 40.0, sim: 15.0}  # car: 40 Hz is the particle filter's hard floor (goal 50)
+    publishers: true
+    when: localization
+
+  - name: /hal/battery
+    type: sensor_msgs/msg/BatteryState
+    group: sensors
+    min_hz: {car: 4.0}
+    publishers: true
+    when: battery  # car only: the VESC reports the pack, AutoDRIVE has no battery
+
+  - name: /hal/ackermann_cmd
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    publishers: true  # ackermann_mux
+    subscribers: true  # ackermann_to_vesc (car) / ackermann_converter (sim)
+
+  - name: /hal/drive/autonomy
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    publishers: controller  # the controller, unless CONTROLLER=none
+    subscribers: true  # ackermann_mux
+
+  - name: /hal/drive/joystick
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true
+
+  - name: /hal/drive/keyboard
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true
+
+  - name: /hal/drive/ebrake
+    type: ackermann_msgs/msg/AckermannDriveStamped
+    group: drive
+    subscribers: true
+
+  - name: /hal/dead_man_switch
+    type: std_msgs/msg/Bool
+    group: drive
+    publishers: true  # gamepad teleop
+
+  # Planner interfaces. The global planner publishes its path latched, once, so no rate or frame
+  # check: the checker's volatile subscription only sees messages sent while it listens.
+  - name: /global_planner/path
+    type: nav_msgs/msg/Path
+    group: planning
+    publishers: true  # global_planner (world_modeling)
+    when: controller
+
+  # The same raceline with the distances to the track edges (TrackWidth per pose), latched
+  - name: /global_planner/reference_track
+    type: global_planner/msg/ReferenceTrack
+    group: planning
+    publishers: true
+    when: controller
+
+  # Local planner (LOCAL_PLANNER): the path to follow in base_link, starting at the car, with the
+  # target speed in z; /local_planner/active (latched) says when to follow it over the global path.
+  - name: /local_planner/path
+    type: nav_msgs/msg/Path
+    group: planning
+    frame_id: base_link
+    publishers: true
+    subscribers: controller
+    when: local_planner
+
+  - name: /local_planner/active
+    type: std_msgs/msg/Bool
+    group: planning
+    publishers: true
+    when: local_planner
+
+tf:
+  - {parent: map, child: odom, group: sensors, when: localization}
+  - {parent: odom, child: base_link, group: sensors}
+  - {parent: base_link, child: laser, group: sensors}
+
+legacy:
+  # old name: its replacement. The checker only needs the keys; update-legacy-branch.md and
+  # agents/scripts/legacy_triage.py use the values to rename topics on old branches.
+  /scan: /hal/scan
+  /odom: /hal/odom
+  /imu: /hal/imu
+  /pf/pose/odom: /hal/localization/odom
+  /localization/odom: /hal/localization/odom
+  /ackermann_cmd: /hal/ackermann_cmd  # mux output: only the drivers; a controller uses /hal/drive/autonomy
+  /drive: /hal/drive/autonomy  # a controller's direct output (MPPI, gym_vis)
+  /drive/autonomy: /hal/drive/autonomy
+  /drive/joystick: /hal/drive/joystick
+  /drive/keyboard: /hal/drive/keyboard
+  /drive/ebreak: /hal/drive/ebrake
+  /drive/ebrake: /hal/drive/ebrake
+  /dead_man_switch: /hal/dead_man_switch
+  /local_path: /local_planner/path
+  /local_path_map: /local_planner/vis/path_map
+  /overtake_ready: /local_planner/active

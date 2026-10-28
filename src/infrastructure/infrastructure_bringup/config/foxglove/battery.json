@@ -1,0 +1,117 @@
+{
+  "configById": {
+    "Gauge!battery_pct": {
+      "path": "/hal/battery.percentage",
+      "minValue": 0,
+      "maxValue": 1,
+      "colorMode": "colormap",
+      "colorMap": "red-yellow-green",
+      "gradient": [
+        "#0000ff",
+        "#ff00ff"
+      ],
+      "reverse": false,
+      "foxglovePanelTitle": "Battery charge (0-1)"
+    },
+    "Indicator!battery_health": {
+      "path": "/hal/battery.power_supply_health",
+      "style": "background",
+      "fallbackColor": "#808080",
+      "fallbackLabel": "NO DATA (VESC off or unpowered)",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "1",
+          "color": "#2e9d47",
+          "label": "OK"
+        },
+        {
+          "operator": "=",
+          "rawValue": "3",
+          "color": "#d62828",
+          "label": "CRITICAL: stop and charge"
+        },
+        {
+          "operator": "=",
+          "rawValue": "4",
+          "color": "#e07a00",
+          "label": "OVERVOLTAGE: check cell count"
+        }
+      ],
+      "foxglovePanelTitle": "Battery health"
+    },
+    "Plot!battery_voltage": {
+      "paths": [
+        {
+          "value": "/hal/battery.voltage",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pack V"
+        },
+        {
+          "value": "/hal/battery.cell_voltage[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "cell V"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 300,
+      "foxglovePanelTitle": "Battery voltage"
+    },
+    "Plot!battery_current": {
+      "paths": [
+        {
+          "value": "/hal/battery.current",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "A (negative = discharging, VESC only)"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 300,
+      "foxglovePanelTitle": "Motor current"
+    },
+    "RawMessages!battery_raw": {
+      "topicPath": "/hal/battery",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "/hal/battery"
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": {
+      "first": "Gauge!battery_pct",
+      "second": "Indicator!battery_health",
+      "direction": "column",
+      "splitPercentage": 70
+    },
+    "second": {
+      "first": {
+        "first": "Plot!battery_voltage",
+        "second": "Plot!battery_current",
+        "direction": "column"
+      },
+      "second": "RawMessages!battery_raw",
+      "direction": "row",
+      "splitPercentage": 65
+    },
+    "direction": "row",
+    "splitPercentage": 30
+  }
+}

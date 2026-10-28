@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>sim_bringup</name>
+  <version>0.0.0</version>
+  <description>Launch and configuration for the sim module (AutoDRIVE adapter)</description>
+  <maintainer email="hello@watonomous.ca">WATonomous</maintainer>
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>rmw_cyclonedds_cpp</exec_depend>
+  <exec_depend>autodrive_roboracer</exec_depend>
+  <exec_depend>sim_util</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <!-- Contract test: bag replay through the sim adapter, checked by hal_contract -->
+  <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_ros</test_depend>
+  <test_depend>ros2bag</test_depend>
+  <test_depend>rosbag2_storage_mcap</test_depend>
+  <test_depend>hal_contract</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

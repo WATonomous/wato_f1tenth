@@ -1,0 +1,18 @@
+---
+# TODO: one line on the controller. Started by CONTROLLER=<this file's name>.
+# Interface: agents/workflows/add-controller.md.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  - node:
+      pkg: my_controller
+      exec: my_controller_node
+      name: my_controller_node
+      output: screen
+      param:
+        - from: "$(var config_dir)/my_controller.yaml"
+        - name: use_local_planner
+          value: "$(eval '\"$(var local_planner)\" != \"none\"')"

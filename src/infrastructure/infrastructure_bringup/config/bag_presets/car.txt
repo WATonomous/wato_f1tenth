@@ -1,0 +1,44 @@
+# Car recording preset: ./watod bag record --preset car
+#
+# What later work needs from a drive: the /hal contract, TF, the plan, VESC state, the
+# gamepad, and the RealSense images when REALSENSE_IMAGES=true. Images go through
+# image_transport: color as JPEG (compressed), depth lossless (zstd), about 30 Hz each.
+#
+# Left out on purpose: /pf/viz/* (the particle filter ray-casts an extra scan and samples
+# particles for every subscriber, which costs it its 40 Hz floor), raw images (~1 MB per
+# frame through DDS), and the RealSense metadata/extrinsics topics.
+
+# /hal contract
+/hal/scan
+/hal/odom
+/hal/imu
+/hal/localization/odom
+/hal/battery
+/hal/ackermann_cmd
+/hal/drive/autonomy
+/hal/drive/joystick
+/hal/drive/keyboard
+/hal/drive/ebrake
+/hal/dead_man_switch
+
+# TF, map and plan (the /local_planner topics exist only with LOCAL_PLANNER set)
+/tf
+/tf_static
+/map
+/global_planner/path
+/global_planner/reference_track
+/local_planner/path
+/local_planner/active
+
+# VESC and gamepad
+/sensors/core
+/sensors/servo_position_command
+/commands/motor/speed
+/commands/servo/position
+/joy
+
+# RealSense images (published only with REALSENSE_IMAGES=true)
+/camera/camera/color/image_raw/compressed
+/camera/camera/color/camera_info
+/camera/camera/depth/image_rect_raw/zstd
+/camera/camera/depth/camera_info

@@ -1,0 +1,18 @@
+---
+# Pure pursuit: follows /global_planner/path, and /local_planner/path while the local planner
+# holds /local_planner/active true (only when LOCAL_PLANNER is set).
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  - node:
+      pkg: pure_pursuit
+      exec: pure_pursuit_node
+      name: pure_pursuit_node
+      output: screen
+      param:
+        - from: "$(var config_dir)/pure_pursuit.yaml"
+        - name: overtake_enable
+          value: "$(eval '\"$(var local_planner)\" != \"none\"')"

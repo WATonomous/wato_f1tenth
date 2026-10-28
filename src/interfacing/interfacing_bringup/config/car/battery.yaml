@@ -1,0 +1,16 @@
+---
+# Drive battery monitor (vesc_battery): VESC telemetry -> /hal/battery (sensor_msgs/BatteryState).
+# The pack also powers the Jetson and sensors, so a critical battery browns out the whole car.
+/**:
+  ros__parameters:
+    cells: 3            # 3S LiPo
+    capacity_ah: 5.0    # 5000 mAh
+    # Pack resistance used to add the load sag (I * R) back before estimating the charge
+    internal_resistance_ohm: 0.03
+    smoothing_s: 3.0
+    publish_hz: 5.0
+    # Conservative: on 2026-10-26 the car shut down ~20 min after reading 11.4 V (3.8 V/cell) at
+    # rest, so the Jetson's supply cuts out well above the usual 3.3 V/cell. Tune after a full
+    # discharge.
+    warn_cell_v: 3.7      # 11.1 V
+    critical_cell_v: 3.6  # 10.8 V

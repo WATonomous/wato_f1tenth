@@ -1,0 +1,58 @@
+# Add a node
+
+Checklist for adding a ROS 2 node or package so it works in sim and on the car without edits.
+
+## 1. Decide where it goes
+
+- A controller or local planner: follow `add-controller.md` or `add-local-planner.md` instead;
+  they start from a template and register it so `CONTROLLER` / `LOCAL_PLANNER` can select it.
+- Any other feature (global planner, estimator, driver): its own package under the matching
+  module: `src/world_modeling/`, `src/action/` or `src/interfacing/`.
+- Sim-only glue (anything that reads `/autodrive/...`): `sim_util`, never a shared package.
+- Car-only drivers: `src/interfacing/`, started only when `platform` is `car`.
+- Messages: a `<name>_msgs` package. Never reuse an upstream package name.
+
+Look for an existing package that already does most of it before creating a new one.
+
+## 2. Package skeleton
+
+- C++: `ament_cmake`. Prefer `target_link_libraries(<target> <dep>::<dep>)` over
+  `ament_target_dependencies` in new code, since the latter is deprecated upstream.
+- Python: `ament_python`, no `tests_require` in `setup.py`.
+- Declare every dependency in `package.xml`; the Docker build installs them with rosdep.
+- Name executables `<thing>_node`, matching the existing packages.
+
+## 3. Parameters
+
+- Declare every tunable with a type and a neutral default:
+  `declare_parameter<double>("speed_limit", 1.0)` in C++, `declare_parameter('speed_limit', 1.0)`
+  in Python. Never declare without a default.
+- Topic names are parameters too (`odom_topic`, `scan_topic`, ...), with defaults that follow
+  the topic contract in `sim-to-car.md`.
+- Put real values in YAML: `<module>_bringup/config/car/<node>.yaml` and `config/sim/<node>.yaml`.
+  Key the YAML by the exact launched node name, or `/**:`.
+
+## 4. Topics and QoS
+
+- Subscribe and publish only contract topics: `/hal/scan`, `/hal/odom`, `/hal/imu`,
+  `/hal/localization/odom`, `/hal/drive/<source>`, `/hal/dead_man_switch`, plus
+  `/global_planner/*` and `/local_planner/*`. A new hardware-facing topic goes under `/hal/`.
+- A new drive source publishes `AckermannDriveStamped` on `/hal/drive/<source>`, and gets an entry
+  with a priority and a timeout in the mux YAML. It never publishes to `/hal/ackermann_cmd` directly.
+- Debug and visualization topics: `rclcpp::QoS(1).best_effort()` (Python: `qos_profile_sensor_data`
+  or a BEST_EFFORT profile), behind a rate limit or a `enable_debug_vis` parameter.
+- Respect `/hal/dead_man_switch` in anything that can move the car.
+
+## 5. Launch
+
+- Add the node to `<module>_bringup/launch/<module>.launch.yaml` with
+  `param: [{from: "$(var config_dir)/<node>.yaml"}]`, and add the package as an `exec_depend` of
+  the bringup. Use `if:` with `$(var platform)` when it only runs on the car or in sim.
+- A lifecycle node is also listed in a `wato_lifecycle_manager`'s `node_names` (see the template's
+  `DEVELOPING.md`). Existing f1tenth nodes are regular nodes.
+
+## 6. Test and hand back
+
+- Unit-test the logic that can run without ROS or the sim.
+- Build only your package, inside the dev container, never on the host (`workflows/build-and-test.md`).
+- In your summary, list the new topics and parameters and what still needs a sim or car run.

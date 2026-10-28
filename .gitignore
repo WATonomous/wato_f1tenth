@@ -1,6 +1,27 @@
+__pycache__/
+code_server_config/*/extensions
+code_server_config/*/start_code_server.sh
+*.pyc
+*.swp
 .env
-__pycache__
 .vscode/
-wato_env
+.claude/*
+!.claude/CLAUDE.md
+!.claude/settings.json
+!.claude/skills/
+ssh_config/
+.ruff_cache/
 
 watod-config.local.sh
+
+/bags/
+build/
+install/
+log/
+/external/
+/weights/
+/models/
+/maps/
+
+# f1tenth (root-anchored above so src/**/maps is still tracked)
+wato_env

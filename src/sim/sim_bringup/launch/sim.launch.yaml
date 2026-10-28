@@ -1,0 +1,78 @@
+---
+# sim.launch.yaml
+# Entry point for the sim container (see modules/docker-compose.yaml).
+#
+# The AutoDRIVE bridge plus the sim adapter, which turns AutoDRIVE topics into the
+# /hal/* contract topics (agents/workflows/sim-to-car.md).
+# The AutoDRIVE simulator itself runs on the host and connects to the bridge on port 4567.
+
+launch:
+  - arg:
+      name: mapping
+      default: "$(env MAPPING false)"
+      description: "When mapping, slam_toolbox publishes map -> odom instead of the static TF"
+
+  - arg:
+      name: localization
+      default: "$(env LOCALIZATION truth)"
+      description: "truth: ground truth on /hal/localization/odom + static map -> odom; pf: the particle filter does both"
+
+  - arg:
+      name: bridge
+      default: "true"
+      description: "Start the AutoDRIVE bridge (false when a bag replays /autodrive/*, as in the contract test)"
+
+  - let:
+      name: truth
+      value: "$(eval '\"$(var localization)\" in (\"truth\", \"auto\") and \"$(var mapping)\".lower() != \"true\"')"
+
+  # AutoDRIVE ROS 2 bridge (Socket.IO server on port 4567 <-> /autodrive/* topics)
+  - node:
+      if: "$(var bridge)"
+      pkg: autodrive_roboracer
+      exec: autodrive_bridge
+      name: autodrive_bridge
+      output: screen
+
+  # /tf + AutoDRIVE speed -> /hal/odom and odom -> base_link (perfect odometry; the car's drifts),
+  # plus /hal/localization/odom with localization:=truth
+  - node:
+      pkg: sim_util
+      exec: fake_odom_node
+      name: fake_odom_node
+      param:
+        - name: publish_localization
+          value: "$(var truth)"
+
+  # /autodrive/roboracer_1/lidar -> /hal/scan (frame laser)
+  - node:
+      pkg: sim_util
+      exec: scan_remap_node
+      name: scan_remap_node
+
+  # /autodrive/roboracer_1/imu -> /hal/imu (frame imu_link)
+  - node:
+      pkg: sim_util
+      exec: imu_remap_node
+      name: imu_remap_node
+
+  # base_link -> imu_link: where AutoDRIVE mounts its IMU (x 0.08, z 0.055)
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: static_baselink_to_imu
+      args: "--x 0.08 --y 0.0 --z 0.055 --frame-id base_link --child-frame-id imu_link"
+
+  # /hal/ackermann_cmd -> AutoDRIVE throttle and steering commands
+  - node:
+      pkg: sim_util
+      exec: ackermann_converter_node
+      name: ackermann_converter
+
+  # map -> odom identity, standing in for the particle filter
+  - node:
+      if: "$(var truth)"
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: static_map_to_odom
+      args: "--frame-id map --child-frame-id odom"

@@ -1,0 +1,39 @@
+---
+# action.launch.yaml
+# Entry point for the action container (see modules/docker-compose.yaml).
+#
+# Algorithms are picked by file name, so adding one never edits this file:
+#   CONTROLLER=<name>     starts launch/controllers/<name>.launch.yaml     (pure_pursuit, mppi, none)
+#   LOCAL_PLANNER=<name>  starts launch/local_planners/<name>.launch.yaml  (none)
+# Each one gets platform, config_dir (config/<platform>) and local_planner. Interfaces and the
+# add-controller / add-local-planner workflows: agents/workflows/add-controller.md.
+
+launch:
+  - arg:
+      name: platform
+      default: "$(env PLATFORM sim)"
+      description: "car or sim"
+
+  - arg:
+      name: controller
+      default: "$(env CONTROLLER pure_pursuit)"
+      description: "a file name in launch/controllers/ (without .launch.yaml)"
+
+  - arg:
+      name: local_planner
+      default: "$(env LOCAL_PLANNER none)"
+      description: "a file name in launch/local_planners/ (without .launch.yaml)"
+
+  - include:
+      file: "$(find-pkg-share action_bringup)/launch/local_planners/$(var local_planner).launch.yaml"
+      arg:
+        - {name: platform, value: "$(var platform)"}
+        - {name: config_dir, value: "$(find-pkg-share action_bringup)/config/$(var platform)"}
+        - {name: local_planner, value: "$(var local_planner)"}
+
+  - include:
+      file: "$(find-pkg-share action_bringup)/launch/controllers/$(var controller).launch.yaml"
+      arg:
+        - {name: platform, value: "$(var platform)"}
+        - {name: config_dir, value: "$(find-pkg-share action_bringup)/config/$(var platform)"}
+        - {name: local_planner, value: "$(var local_planner)"}

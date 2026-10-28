@@ -1,0 +1,16 @@
+---
+# TODO: one line on the planner. Started by LOCAL_PLANNER=<this file's name>.
+# Interface: agents/workflows/add-local-planner.md.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  - node:
+      pkg: my_local_planner
+      exec: my_local_planner_node
+      name: my_local_planner_node
+      output: screen
+      param:
+        - from: "$(var config_dir)/my_local_planner.yaml"

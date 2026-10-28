@@ -1,0 +1,24 @@
+ackermann_mux:
+  ros__parameters:
+    topics:
+      # TTC emergency brake (safety_node). Off by default (interfacing ebrake:=false);
+      # highest priority so it beats manual override once it is enabled.
+      emergency:
+        topic: /hal/drive/ebrake
+        timeout: 0.2
+        priority: 100
+      joystick:
+        topic: /hal/drive/joystick
+        timeout: 0.2
+        # Highest priority: manual override must beat autonomy. Ties in
+        # ackermann_mux are broken by list order, so this must be strictly
+        # greater than keyboard/autonomy, not equal.
+        priority: 50
+      keyboard:
+        topic: /hal/drive/keyboard
+        timeout: 0.2
+        priority: 25
+      autonomy:
+        topic: /hal/drive/autonomy
+        timeout: 0.2
+        priority: 25

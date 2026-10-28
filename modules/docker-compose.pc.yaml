@@ -1,0 +1,17 @@
+---
+# PC overlay: added by watod when PLATFORM=sim on a Linux machine with /dev/input
+# (see watod_scripts/watod-compose.sh).
+#
+# interfacing can read a gamepad on the PC: USB pads and Bluetooth pads paired on the
+# host both show up under /dev/input (js*, event*), including ones connected after the
+# container starts.
+x-pc-gamepad: &pc-gamepad
+  volumes:
+    - /dev/input:/dev/input
+    - /run/udev:/run/udev:ro
+  device_cgroup_rules:
+    - 'c 13:* rmw'  # input: joystick / gamepad
+
+services:
+  interfacing_bringup: *pc-gamepad
+  interfacing_bringup_dev: *pc-gamepad

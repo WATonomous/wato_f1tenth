@@ -1,0 +1,88 @@
+---
+services:
+#################### INFRASTRUCTURE SERVICE ####################
+  infrastructure_bringup_test:
+    profiles: ["infrastructure_test"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: infrastructure_bringup
+    build:
+      target: build
+    image: "${INFRASTRUCTURE_IMAGE:?}:test_${TAG}"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      # tf_static_relay (template, Python) has no tests; pytest exits 5 on an empty suite
+      - COLCON_TEST_PACKAGES_SKIP_ARGS=--packages-skip tf_static_relay
+
+#################### INTERFACING SERVICE ####################
+  interfacing_bringup_test:
+    profiles: ["interfacing_test"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: interfacing_bringup
+    build:
+      target: build
+    image: "${INTERFACING_IMAGE:?}:test_${TAG}"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+#################### PERCEPTION SERVICE ####################
+  perception_bringup_test:
+    profiles: ["perception_test"]
+    build:
+      context: ..
+      dockerfile: docker/template.Dockerfile
+      args:
+        MODULE_SOURCE: "${PERCEPTION_IMAGE:?}:source_${TAG}"
+        MODULE_DEPS: "${PERCEPTION_IMAGE:?}:deps_${TAG}"
+      target: build
+    image: "${PERCEPTION_IMAGE:?}:test_${TAG}"
+    runtime: runc
+    deploy:
+      resources:
+        reservations:
+          devices: []
+    ipc: host
+    network_mode: host
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - NVIDIA_VISIBLE_DEVICES=
+      - NVIDIA_DRIVER_CAPABILITIES=
+
+#################### WORLD MODELING SERVICE ####################
+  world_modeling_bringup_test:
+    profiles: ["world_modeling_test"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: world_modeling_bringup
+    build:
+      target: build
+    image: "${WORLD_MODELING_IMAGE:?}:test_${TAG}"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+#################### ACTION SERVICE ####################
+  action_bringup_test:
+    profiles: ["action_test"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: action_bringup
+    build:
+      target: build
+    image: "${ACTION_IMAGE:?}:test_${TAG}"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      # mppi_example (JAX) has no tests yet and is deferred to the JAX image step
+      - COLCON_TEST_PACKAGES_SKIP_ARGS=--packages-skip mppi_example
+
+#################### SIM SERVICE ####################
+  sim_bringup_test:
+    profiles: ["sim_test"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: sim_bringup
+    build:
+      target: build
+    image: "${SIM_IMAGE:?}:test_${TAG}"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp

@@ -1,137 +1,513 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# Copyright (c) 2025-present WATonomous. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Copyright (c) 2025‑present WATonomous.
+# SPDX‑License‑Identifier: Apache‑2.0
+set -euo pipefail
 
 programname="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-MONO_DIR="$(dirname "$(realpath "$0")")"
-MODULES_DIR="$MONO_DIR/modules"
-ANSIBLE_TMP_DIR=/tmp/ansible-tmp-$USER
 
-function usage {
-    echo "Usage: $programname [OPTIONS]... [COMMAND]..."
-    echo "Executes \"docker compose COMMAND\" in the the monorepo with appropriate environment variables."
-    echo "  -v --verbose                    verbose mode. Currently, prints .env variables"                     
-    echo "  -t --terminal [service_name]    open a bash terminal into the desired service (eg: perception)."
-    echo ""
-    echo "Examples:" 
-    echo "  watod up                       start containers (docker compose up)"
-    echo "  watod down                     stop and remove containers (docker compose down)"
-    echo "  watod ps [--services]          list containers in the current project and show their current status (docker compose ps)"
-    echo "  watod -t perception            open a bash terminal into the perception container."
-    echo ""
-    echo " More Info on Docker Compose: https://docs.docker.com/compose/reference/overview/"
-    exit 0
+# Discover monorepo directory by searching up from current directory
+find_monorepo_root() {
+  local dir="$PWD"
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/watod-config.sh" ]]; then
+      echo "$dir"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+
+  # Fallback to script location if not found
+  cd -- "$(dirname -- "$(realpath "$0")")" && pwd
 }
 
-function run_compose {
-    cd $MONO_DIR
-    if [ ! -z "$(source $MODULES_DIR/.env && echo $ACTIVE_MODULES)" ] && [ -z "$MODULES" ]; then 
-        MODULES="$(source $MODULES_DIR/.env && printf -- " -f $MODULES_DIR/docker-compose.%s.yaml" ${ACTIVE_MODULES[@]})"
+MONO_DIR="$(find_monorepo_root)"
+MODULES_DIR="$MONO_DIR/modules"
+
+# Always arrays → safe to expand with "${arr[@]}"
+declare -a COMPOSE_CMD=()
+
+usage() {
+  cat <<EOF
+Usage: $programname [OPTIONS]... [COMMAND]...
+
+Executes 'docker compose COMMAND' in the monorepo with the correct
+compose files and environment variables.
+
+Options
+  -v, --verbose               Print env setup output
+  -m, --module MODULE         Add a specific module (can be used multiple times)
+                              Use "all" for all modules
+                              Append :dev for dev mode (e.g., -m perception:dev)
+  -t, --terminal SERVICE      Run 'docker compose up -d' (if needed) and open
+                              a bash shell in the SERVICE container
+  -s, --setup-dev-env [MOD]   Setup VSCode dev environment (extract headers)
+                              Use 'all' for all modules, or specify module(s)
+  -h, --help                  Show this help and exit
+
+Commands
+  install                     Install watod to /usr/local/bin (requires sudo)
+  build-base [cpu|gpu|jetson] Build the f1tenth base images locally (run before build)
+  controller [pair|connect|status|forget]
+                              Pair / reconnect a Bluetooth PS4 or PS5 pad (runs on the host)
+  down                        Stop ACTIVE_MODULES containers + infrastructure
+  down <service>              Stop only the specified service(s)
+  down all                    Stop all watod containers (all modules/profiles)
+  test [MODULE] [PACKAGE...]  Run colcon test in specified module
+                              If MODULE specified, tests only that module
+                              If PACKAGE(s) specified, tests only those packages
+                              If nothing specified, runs tests in all modules
+  bag <ros2-bag-args>...      Run ros2 bag commands (record/play/info/etc)
+                              Runs in ./bags directory with auto-mounting
+  contract [checker-args]     Check the running stack against the /hal topic contract
+
+Examples
+  watod up                              # docker compose up
+  watod ps --services                   # docker compose ps --services
+  watod -m all up                       # start all modules in deploy mode
+  watod -m all:dev up                   # start all modules in dev mode
+  watod down                            # stop ACTIVE_MODULES + infrastructure
+  watod down foxglove                   # stop only the foxglove service
+  watod down all                        # stop all watod containers
+  watod -m perception down              # stop only perception module (no infrastructure)
+  watod -m perception -m action up      # start only perception and action
+  watod -m perception:dev up            # start perception in dev mode
+  watod -t perception                   # open a shell in the 'perception' service
+  watod test                            # run tests in all modules
+  watod test perception                 # run tests only in perception module
+  watod test world_modeling prediction  # run tests only for prediction package
+  watod bag record -a                   # record all topics (auto-saves to ./bags)
+  watod bag record                      # record this platform's preset (car or sim topic list)
+  watod bag record --preset car         # record a named preset (bag_presets/car.txt)
+  watod bag play my_bag                 # play bag from ./bags directory
+  watod bag info my_bag                 # show bag info
+  watod contract                        # PASS/FAIL per /hal topic on the running stack
+  watod -s                              # setup dev env (extracts all module headers)
+  watod -s world_modeling               # setup dev env with specific module only
+
+More info: https://docs.docker.com/compose/reference/overview/
+EOF
+}
+
+# Get all available modules
+# Returns list of modules (excludes infrastructure which is added automatically)
+get_all_modules() {
+  echo "action"
+  echo "interfacing"
+  echo "perception"
+  echo "world_modeling"
+  echo "sim"
+}
+
+# Parse ACTIVE_MODULES and build profile arrays
+# Input: ACTIVE_MODULES can contain "module", "module:dev", "all", or "all:dev"
+# Output: ALL_PROFILES, PRE_PROFILES arrays
+# Args:
+#   $1 - blacklist: space-separated list of modules to exclude (optional)
+#   $2 - all_variants: if "true", include both dev and non-dev profiles for all modules
+build_profile_arrays() {
+  local blacklist=${1:-""}
+  local all_variants=${2:-"false"}
+
+  ALL_PROFILES=()
+  PRE_PROFILES=()
+
+  # If all_variants is true, build profiles for all modules (dev and non-dev)
+  if [[ "$all_variants" == "true" ]]; then
+    for module in $(get_all_modules); do
+      PRE_PROFILES+=( "${module}_pre" )
+      ALL_PROFILES+=( "$module" )
+      ALL_PROFILES+=( "${module}_dev" )
+    done
+    # Add infrastructure profiles
+    PRE_PROFILES+=( "infrastructure_pre" )
+    ALL_PROFILES+=( "infrastructure" )
+    return
+  fi
+
+  # Check if "all" or "all:dev" is in ACTIVE_MODULES
+  local has_all=false
+  local all_is_dev=false
+
+  for m in "${ACTIVE_MODULES[@]}"; do
+    if [[ "$m" == "all" ]]; then
+      has_all=true
+      break
+    elif [[ "$m" == "all:dev" ]]; then
+      has_all=true
+      all_is_dev=true
+      break
+    fi
+  done
+
+  # If "all" is specified, expand it to all available modules
+  if $has_all; then
+    local all_modules
+    all_modules=$(get_all_modules)
+    ACTIVE_MODULES=()
+
+    while IFS= read -r module; do
+      [[ -z "$module" ]] && continue
+      if $all_is_dev; then
+        ACTIVE_MODULES+=("$module:dev")
+      else
+        ACTIVE_MODULES+=("$module")
+      fi
+    done <<< "$all_modules"
+  fi
+
+  # ACTIVE_MODULES is already an array
+  for m in "${ACTIVE_MODULES[@]}"; do
+    local module_name="$m"
+    local is_dev=false
+
+    # Check if this is a dev module
+    if [[ "$m" == *":dev" ]]; then
+      module_name="${m%:dev}"
+      is_dev=true
     fi
 
-    echo "Running docker compose --profile ${MODE_OF_OPERATION}${MODULES[@]} $@"
-    DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker compose --profile ${MODE_OF_OPERATION[@]}${MODULES[@]} "$@"
+    # Skip if module is in blacklist
+    if [[ -n "$blacklist" && " $blacklist " =~ \ $module_name\  ]]; then
+      continue
+    fi
+
+    # Always add pre profile (just the name, no --profile flag)
+    PRE_PROFILES+=( "$module_name"_pre )
+
+    # Add to ALL_PROFILES (just the name, no --profile flag)
+    if $is_dev; then
+      ALL_PROFILES+=( "$module_name"_dev )
+    else
+      ALL_PROFILES+=( "$module_name" )
+    fi
+  done
+
+  # Always add infrastructure profiles (unless in CI or in blacklist)
+  if [[ -z ${CI:-} && -z ${GITHUB_ACTIONS:-} ]]; then
+    if [[ -z "$blacklist" || ! " $blacklist " =~ \ infrastructure\  ]]; then
+      PRE_PROFILES+=( "infrastructure_pre" )
+      ALL_PROFILES+=( "infrastructure" )
+    fi
+  fi
+
+  # Add claude_code profile if CLAUDE_CODE is enabled (defaults to true)
+  if [[ "${CLAUDE_CODE:-true}" == "true" ]]; then
+    ALL_PROFILES+=( "claude_code" )
+  fi
 }
 
-# in case you need help
-if [ "$1" = 'help' ]; then
-    usage
-fi
+# ─────────────────────────── Argument parsing ────────────────────────────
 
-# in case you have nothing to say
-if [ $# = 0 ]; then
-    usage
-fi
+[[ $# -eq 0 ]] && usage && exit 0
 
-# run options
-COMPOSE_CMD=""
-while [[ $# -gt 0 ]] ; do
-    key="$1"
-    case $key in
-      -v|--verbose)
-        VERBOSE=1
-        shift # past argument
-        ;;
-      -d|--setup-dev-env)
-        SETUP_DEV_ENVIRONMENT=1
+# Array to collect modules from CLI flags
+declare -a CLI_MODULES=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -v|--verbose)
+      VERBOSE=1
+      shift
+      ;;
+    -m|--module)
+      shift
+      MODULE_NAME=${1:-}
+      [[ -z $MODULE_NAME ]] && { echo "Missing module name after -m/--module"; usage; exit 1; }
+      CLI_MODULES+=("$MODULE_NAME")
+      shift
+      ;;
+    -t|--terminal)
+      START_TERMINAL=1
+      shift
+      SERVICE_NAME=${1:-}
+      [[ -z $SERVICE_NAME ]] && { echo "Missing service name after -t"; usage; exit 1; }
+      shift
+      ;;
+    -h|--help|help)
+      usage; exit 0 ;;
+    install)
+      "$MONO_DIR/watod_scripts/watod-install.sh"
+      exit $?
+      ;;
+    build-base)
+      shift
+      "$MONO_DIR/watod_scripts/watod-build-base.sh" "$@"
+      exit $?
+      ;;
+    controller)
+      shift
+      "$MONO_DIR/watod_scripts/watod-controller.sh" "$@"
+      exit $?
+      ;;
+    -s|--setup-dev-env)
+      shift
+      "$MONO_DIR/watod_scripts/watod-setup-dev-env.sh" "$@"
+      exit $?
+      ;;
+    test)
+      RUN_TESTS=1
+      shift
+      # Collect service name and optional packages
+      # Usage: watod test [module] [package...]
+      declare -a TEST_SERVICES=()
+      declare -a TEST_PACKAGES=()
+      # First non-flag arg is the module/service
+      if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+        TEST_SERVICES+=("$1")
         shift
-        SERVICE_NAME=$1
-        if [ -z "$SERVICE_NAME" ]; then
-            echo "Expected watod -d SERVICE_NAME"
-            usage
-        fi
+        # Remaining non-flag args are package names
+        while [[ $# -gt 0 && ! "$1" =~ ^- ]]; do
+          TEST_PACKAGES+=("$1")
+          shift
+        done
+      fi
+      break ;;
+    bag)
+      RUN_BAG=1
+      shift
+      # Pass all remaining arguments to watod-bag.sh
+      BAG_ARGS=( "$@" )
+      break ;;
+    contract)
+      RUN_CONTRACT=1
+      shift
+      CONTRACT_ARGS=( "$@" )
+      break ;;
+    down)
+      RUN_DOWN=1
+      shift
+      # Collect service names if provided
+      declare -a DOWN_SERVICES=()
+      while [[ $# -gt 0 && ! "$1" =~ ^- ]]; do
+        DOWN_SERVICES+=("$1")
         shift
-        ;;
-      -c|--setup-completion)
-        SETUP_COMPLETION=1
-        shift
-        ;;
-      -t|--terminal)
-        START_TERMINAL=1
-        shift
-        SERVICE_NAME=$1
-        if [ -z "$SERVICE_NAME" ]; then
-            echo "Expected watod -t SERVICE_NAME"
-            usage
-        fi
-        shift
-        ;;
-      -h|--help) # in case you got this far, but still need help :)
-        usage
-        ;;
-      *) # unknown option
-        break
-        ;;
-    esac
+      done
+      break ;;
+    *)  # first non‑option → rest is docker‑compose cmd
+      break ;;
+  esac
 done
 
-if [[ $# -gt 0 ]]; then
-	COMPOSE_CMD="${COMPOSE_CMD} $@"
+# The remaining CLI words are the compose sub‑command and its flags
+COMPOSE_CMD=( "$@" )
+
+# ─────────────────────────── Environment setup ───────────────────────────
+
+# Config files (local overrides main)
+[[ -f "$MONO_DIR/watod-config.sh"       ]] && source "$MONO_DIR/watod-config.sh"
+[[ -f "$MONO_DIR/watod-config.local.sh" ]] && source "$MONO_DIR/watod-config.local.sh"
+
+# Export WATCLOUD_MODE so watod-compose.sh and watod-test.sh can use it
+export WATCLOUD_MODE="${WATCLOUD_MODE:-false}"
+
+# f1tenth platform: car on a Jetson, sim anywhere else (PLATFORM in watod-config.local.sh wins).
+# Detected here, before ACTIVE_MODULES, because the module defaults depend on it.
+if [[ -z ${PLATFORM:-} ]]; then
+  if [[ -f /etc/nv_tegra_release ]]; then PLATFORM="car"; else PLATFORM="sim"; fi
+fi
+export PLATFORM
+
+# Modules to run when ACTIVE_MODULES isn't set: the full stack for this platform
+default_active_modules() {
+  if [[ "$PLATFORM" == "car" ]]; then
+    ACTIVE_MODULES=(interfacing world_modeling action)
+  else
+    ACTIVE_MODULES=(interfacing world_modeling action sim)
+  fi
+}
+
+# Build compose file list for direct docker compose calls
+WATCLOUD_COMPOSE_ARGS=()
+if [[ "$WATCLOUD_MODE" == "true" ]]; then
+  WATCLOUD_COMPOSE_ARGS=("-f" "modules/docker-compose.watcloud.yaml")
 fi
 
-# Allow for local overrides of any of the below parameters (prioritized your local config)
-if [ -f "$MONO_DIR/watod-config.local.sh" ]; then
-	source "$MONO_DIR/watod-config.local.sh"
-elif [ -f "$MONO_DIR/watod-config.sh" ]; then
-	source "$MONO_DIR/watod-config.sh"
-fi
+# ────────────────────────────── Run Down ─────────────────────────────────
+# Handle 'down' command
+if [[ -n ${RUN_DOWN:-} ]]; then
+  cd "$MONO_DIR"
 
-MODE_OF_OPERATION=${MODE_OF_OPERATION:-"deploy"}
-PLATFORM=${PLATFORM:-"amd64"}
+  if [[ ${#DOWN_SERVICES[@]} -gt 0 && "${DOWN_SERVICES[0]}" == "all" ]]; then
+    # "watod down all" - stop everything (all modules, all variants)
+    build_profile_arrays "" "true"
+  elif [[ ${#CLI_MODULES[@]} -gt 0 ]]; then
+    # "watod -m <module> down" - stop only the specified module (no infrastructure)
+    ACTIVE_MODULES=("${CLI_MODULES[@]}")
+    build_profile_arrays "infrastructure"
+  elif [[ ${#DOWN_SERVICES[@]} -gt 0 ]]; then
+    # "watod down <service_name>" - stop only specific service(s)
+    # Build all profiles so docker compose can find the service
+    build_profile_arrays "" "true"
 
-# generate .env file from watod_scripts/watod-setup-docker-env.sh
-if [ ! -z $VERBOSE ]; then # if we want to see all verbose coming from setting up env
-    cd $MONO_DIR && . ./watod_scripts/watod-setup-docker-env.sh
-else
-    cd $MONO_DIR && . ./watod_scripts/watod-setup-docker-env.sh &> /dev/null
-fi
+    # Convert to --profile flags
+    DOWN_PROFILE_FLAGS=()
+    for p in "${ALL_PROFILES[@]}"; do
+      DOWN_PROFILE_FLAGS+=("--profile" "$p")
+    done
 
-# override to use arm64 images
-if [ "$PLATFORM" = "arm64" ]; then
-    echo "BASE_IMAGE_OVERRIDE=ghcr.io/watonomous/robot_base/base:humble-arm64" >> "$MODULES_DIR/.env"
-else
-    echo "BASE_IMAGE_OVERRIDE=ghcr.io/watonomous/robot_base/base:humble-ubuntu22.04" >> "$MODULES_DIR/.env"
-fi
-
-if [ ! -z $SETUP_COMPLETION ]; then
-    source ./watod_scripts/watod-completion.bash
-fi
-
-# custom docker compose command to setup development environments outside containers
-if [ ! -z $SETUP_DEV_ENVIRONMENT ]; then
-    source ./watod_scripts/watod-setup-dev-env.sh $SERVICE_NAME
-    exit
-fi
-
-if [ ! -z "$COMPOSE_CMD" ]; then
-    ADDITIONAL_ARGS=""
-    # If we are starting a terminal, run docker compose up with the -d argument
-    if [ ! -z "$START_TERMINAL" ] && [[ ! " ${COMPOSE_CMD[@]} " =~ " -d " ]] && [[ " ${COMPOSE_CMD[@]} " =~ " up " ]]; then
-        ADDITIONAL_ARGS="-d"
+    docker compose --env-file modules/.env -f modules/docker-compose.yaml "${WATCLOUD_COMPOSE_ARGS[@]}" -f modules/docker-compose.dep.yaml -f modules/docker-compose.dev.yaml "${DOWN_PROFILE_FLAGS[@]}" down "${DOWN_SERVICES[@]}"
+    exit $?
+  else
+    # "watod down" - stop modules from ACTIVE_MODULES config + infrastructure
+    # Need to determine ACTIVE_MODULES from config (already sourced above)
+    if [[ -z ${ACTIVE_MODULES:-} ]]; then
+      default_active_modules
+    elif [[ ! ${ACTIVE_MODULES@a} =~ a ]]; then
+      # ACTIVE_MODULES is set but not an array, convert it
+      # shellcheck disable=SC2128
+      read -ra ACTIVE_MODULES <<<"$ACTIVE_MODULES"
     fi
-    run_compose ${COMPOSE_CMD[@]} ${ADDITIONAL_ARGS}
+
+    if [[ ${#ACTIVE_MODULES[@]} -eq 0 ]]; then
+      echo "Error: No modules to stop. Set ACTIVE_MODULES in watod-config.sh or use:" >&2
+      echo "  watod down <service>        # stop a specific service" >&2
+      echo "  watod down all              # stop all watod containers" >&2
+      echo "  watod -m perception down    # stop only perception module" >&2
+      exit 1
+    fi
+
+    build_profile_arrays ""
+  fi
+
+  # Convert to --profile flags
+  DOWN_PROFILE_FLAGS=()
+  for p in "${ALL_PROFILES[@]}"; do
+    DOWN_PROFILE_FLAGS+=("--profile" "$p")
+  done
+
+  docker compose --env-file modules/.env -f modules/docker-compose.yaml "${WATCLOUD_COMPOSE_ARGS[@]}" -f modules/docker-compose.dep.yaml -f modules/docker-compose.dev.yaml "${DOWN_PROFILE_FLAGS[@]}" down
+  exit $?
 fi
 
-if [ ! -z "$START_TERMINAL" ]; then
-    echo "Starting bash shell in service $SERVICE_NAME":
-    run_compose exec $SERVICE_NAME /bin/bash
+# Determine ACTIVE_MODULES: CLI flags take precedence over config
+if [[ ${#CLI_MODULES[@]} -gt 0 ]]; then
+  # Use modules specified via CLI flags
+  ACTIVE_MODULES=("${CLI_MODULES[@]}")
+elif [[ -z ${ACTIVE_MODULES:-} ]]; then
+  # ACTIVE_MODULES not set: the full stack for the detected platform
+  default_active_modules
+elif [[ ! ${ACTIVE_MODULES@a} =~ a ]]; then
+  # ACTIVE_MODULES is set but not an array, convert it
+  # shellcheck disable=SC2128
+  read -ra ACTIVE_MODULES <<<"$ACTIVE_MODULES"
+fi
+
+# Check if any modules were specified
+if [[ ${#ACTIVE_MODULES[@]} -eq 0 ]]; then
+  echo "Error: No modules specified. Use -m/--module or set ACTIVE_MODULES in watod-config.sh" >&2
+  echo "Example: watod -m perception up" >&2
+  echo "         watod -m all up" >&2
+  exit 1
+fi
+
+# Save original ACTIVE_MODULES before watod-setup-env.sh adds infrastructure
+ORIGINAL_ACTIVE_MODULES=("${ACTIVE_MODULES[@]}")
+
+# Generate .env via helper script
+if [[ -n ${VERBOSE:-} ]]; then
+    pushd "$MONO_DIR" > /dev/null
+    source ./watod_scripts/watod-setup-env.sh          # env vars persist
+    popd > /dev/null
+else
+    pushd "$MONO_DIR" > /dev/null
+    source ./watod_scripts/watod-setup-env.sh &>/dev/null
+    popd > /dev/null
+fi
+
+# CONTROLLER and LOCAL_PLANNER name launch files in action_bringup, TRACK a folder in race_tracks;
+# catch a typo here rather than as a missing file deep inside ros2 launch
+for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml" \
+  "LOCAL_PLANNER action/action_bringup/launch/local_planners .launch.yaml" \
+  "TRACK world_modeling/race_tracks/tracks /raceline.csv"; do
+  read -r var dir suffix <<< "$choice"
+  dir="$MONO_DIR/src/$dir"
+  if [[ -d "$dir" && ! -f "$dir/${!var}$suffix" ]]; then
+    echo "Error: $var=\"${!var}\" has no ${suffix#/} in ${dir#"$MONO_DIR"/}." >&2
+    names=("$dir"/*"$suffix")
+    names=("${names[@]%"$suffix"}")
+    echo "Choose one of: ${names[*]##*/}" >&2
+    exit 1
+  fi
+done
+
+# ────────────────────────────── Run Tests ────────────────────────────────
+
+if [[ -n ${RUN_TESTS:-} ]]; then
+  # Temporarily set ACTIVE_MODULES to only test user-specified modules (not infrastructure)
+  SAVED_ACTIVE_MODULES=("${ACTIVE_MODULES[@]}")
+  ACTIVE_MODULES=("${ORIGINAL_ACTIVE_MODULES[@]}")
+
+  # Build test profiles array from original modules only
+  build_profile_arrays ""
+
+  # Call the test script with profiles as arguments
+  declare -a TEST_ARGS=("--pre-profiles" "${PRE_PROFILES[@]}" "--all-profiles" "${ALL_PROFILES[@]}")
+  if [[ ${#TEST_SERVICES[@]} -gt 0 ]]; then
+    TEST_ARGS+=("--services" "${TEST_SERVICES[@]}")
+  fi
+  if [[ ${#TEST_PACKAGES[@]} -gt 0 ]]; then
+    TEST_ARGS+=("--packages" "${TEST_PACKAGES[@]}")
+  fi
+  "$MONO_DIR/watod_scripts/watod-test.sh" "${TEST_ARGS[@]}"
+
+  # Restore ACTIVE_MODULES
+  ACTIVE_MODULES=("${SAVED_ACTIVE_MODULES[@]}")
+  exit $?
+fi
+
+# ────────────────────────────── Run Bag ──────────────────────────────
+
+if [[ -n ${RUN_BAG:-} ]]; then
+  # Export variables needed by watod-bag.sh
+  export MONO_DIR MODULES_DIR BAG_DIRECTORY INFRASTRUCTURE_IMAGE TAG BAG_CPUSET BAG_PRESET
+  export RMW_IMPLEMENTATION ROS_DOMAIN_ID COMPOSE_PROJECT_NAME
+  export ZENOH_ROUTER_CONFIG_URI ZENOH_SESSION_CONFIG_URI
+  "$MONO_DIR/watod_scripts/watod-bag.sh" "${BAG_ARGS[@]}"
+  exit $?
+fi
+
+# ──────────────────────────── Run Contract ────────────────────────────
+
+if [[ -n ${RUN_CONTRACT:-} ]]; then
+  export COMPOSE_PROJECT_NAME PLATFORM IMU LOCALIZATION MAPPING REALSENSE CONTROLLER LOCAL_PLANNER
+  "$MONO_DIR/watod_scripts/watod-contract.sh" "${CONTRACT_ARGS[@]}"
+  exit $?
+fi
+
+# ─────────────────────────── Execute compose ─────────────────────────────
+
+if [[ ${#COMPOSE_CMD[@]} -gt 0 ]]; then
+  # Build profile arrays
+  build_profile_arrays ""
+
+  # Delegate to watod-compose.sh
+  "$MONO_DIR/watod_scripts/watod-compose.sh" "${COMPOSE_CMD[@]}" --pre-profiles "${PRE_PROFILES[@]}" --all-profiles "${ALL_PROFILES[@]}"
+fi
+
+# Open interactive shell if requested
+if [[ -n ${START_TERMINAL:-} ]]; then
+  # Build profile arrays
+  build_profile_arrays ""
+
+  # Check if service is running
+  if ! docker compose -f "$MONO_DIR/modules/docker-compose.yaml" ps "$SERVICE_NAME" 2>/dev/null | grep -q "Up"; then
+    echo "Error: Service '$SERVICE_NAME' is not running." >&2
+    exit 1
+  fi
+
+  echo "Opening bash shell in service '$SERVICE_NAME'..."
+  "$MONO_DIR/watod_scripts/watod-compose.sh" exec -it -e TERM="${TERM:-xterm-256color}" "$SERVICE_NAME" /bin/bash --pre-profiles "${PRE_PROFILES[@]}" --all-profiles "${ALL_PROFILES[@]}"
 fi

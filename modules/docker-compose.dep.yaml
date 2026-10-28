@@ -1,0 +1,43 @@
+---
+services:
+#################### INFRASTRUCTURE SERVICES ####################
+  infrastructure_bringup:
+    profiles: ["infrastructure"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: infrastructure_bringup
+
+#################### INTERFACING SERVICE ####################
+  interfacing_bringup:
+    profiles: ["interfacing"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: interfacing_bringup
+
+#################### PERCEPTION SERVICE ####################
+  perception_bringup:
+    profiles: ["perception"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: perception_bringup
+
+#################### WORLD MODELING SERVICE ####################
+  world_modeling_bringup:
+    profiles: ["world_modeling"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: world_modeling_bringup
+
+#################### ACTION SERVICE ####################
+  action_bringup:
+    profiles: ["action"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: action_bringup
+
+#################### SIM SERVICE ####################
+  sim_bringup:
+    profiles: ["sim"]
+    extends:
+      file: ${COMPOSE_EXTEND_FILE}
+      service: sim_bringup
