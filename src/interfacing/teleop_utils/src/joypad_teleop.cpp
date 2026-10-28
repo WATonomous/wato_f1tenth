@@ -41,7 +41,7 @@ JOYPAD::JOYPAD()
   this->declare_parameter<int>("safety_button", 0);
   this->declare_parameter<int>("reverse_button", 4);
   this->declare_parameter<int>("pit_limit_button", 5);
-  this->declare_parameter<int>("autonomy_button", 5);
+  this->declare_parameter<int>("autonomy_button", 10);
   this->declare_parameter<double>("joy_timeout_s", 0.5);
 
   gamepad_topic = this->get_parameter("gamepad_topic").as_string();

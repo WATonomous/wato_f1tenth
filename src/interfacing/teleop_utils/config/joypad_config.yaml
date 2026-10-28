@@ -20,11 +20,13 @@
     throttel_axis: 5   # R2
     break_axis: 2      # L2 (axis 4 is right-stick Y, which rests at 0 and would add constant brake)
 
-    # Button mappings (toggles: joy_node runs with sticky_buttons)
+    # Button mappings (toggles: joy_node runs with sticky_buttons). joy_node uses SDL's
+    # game-controller layout: 0 cross, 1 circle, 2 square, 3 triangle, 5 PS, 9 L1, 10 R1
+    # (checked on the DualShock 4 on 2026-10-27)
     safety_button: 0     # X: manual control on/off (beats autonomy in the mux)
-    autonomy_button: 5   # R1: dead man switch, autonomy on/off (after manual, toggle it off and on)
+    autonomy_button: 10  # R1: dead man switch, autonomy on/off (after manual, toggle it off and on)
     reverse_button: 1    # O: reverse (toggle while joy sticky_buttons is on)
-    pit_limit_button: 2  # triangle
+    pit_limit_button: 2  # square
 
     # Release the dead man if /joy goes quiet this long (pad disconnected while R1 is on)
     joy_timeout_s: 0.5
