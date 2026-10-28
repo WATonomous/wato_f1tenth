@@ -18,21 +18,10 @@ find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
-include_directories(include)
+# Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 
 add_executable(stanley_controller src/stanley_controller.cpp)
+target_include_directories(stanley_controller PUBLIC include)
 ament_target_dependencies(stanley_controller rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs ackermann_msgs tf2 tf2_ros tf2_geometry_msgs
   visualization_msgs)
 
