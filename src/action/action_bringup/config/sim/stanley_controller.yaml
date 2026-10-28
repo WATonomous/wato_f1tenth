@@ -1,27 +1,18 @@
-# Stanley Controller parameters
-#
-# Load with:
-#   ros2 run stanley_controller stanley_controller --ros-args \
-#     --params-file <path>/stanley_params.yaml
-#
-# The node name below MUST match the node's actual name, or the params
-# are ignored silently. Confirm with: ros2 node list
-stanley_controller_node:
+# stanley_controller (CONTROLLER=stanley), sim values. Tuning notes: stanley_controller/TESTING.md.
+/**:
   ros__parameters:
 
     # ---- topics ----
     global_path_topic:       "/global_planner/path"
-    dead_man_active_topic:   "/dead_man_switch"
-    ackermann_control_topic: "/drive/autonomy"
-    # On the real car these are NOT the sim topics - set them to whatever
-    # localization / the VESC actually publish. Check: ros2 topic list | grep odom
-    odom_topic:              "/autodrive/roboracer_1/odom"
-    speed_topic:             "/autodrive/roboracer_1/odom"
-    
+    dead_man_active_topic:   "/hal/dead_man_switch"
+    ackermann_control_topic: "/hal/drive/autonomy"
+    odom_topic:              "/hal/localization/odom"  # pose
+    speed_topic:             "/hal/odom"               # speed
+
     # ---- frames ----
     global_frame_id: "map"        # markers + path live here
     local_frame_id:  "base_link"  # drive command frame
-  
+
     # ---- speed ----
     speed_limit_active: true
     speed_limit: 5.0            # m/s hard cap. START LOW on the real car, raise once trusted.
