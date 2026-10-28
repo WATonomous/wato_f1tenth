@@ -28,7 +28,7 @@
 
 struct button_and_axis
 {
-  int throttle_axis, steering_axis, break_axis, safety_button, reverse_button, pitLimit_button;
+  int throttle_axis, steering_axis, break_axis, safety_button, reverse_button, pitLimit_button, autonomy_button;
 };
 
 class JOYPAD : public rclcpp::Node
@@ -41,21 +41,28 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr gamepad_sub;
   rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackerman_pub;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr dead_man_pub_;
+  rclcpp::TimerBase::SharedPtr watchdog_;
 
   // functions
   void gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg);
+  void publishDeadMan(bool active);
+  void watchdogCallback();
   float trigger_maper(const float r2);
   float steering_mapper(const float ls);
 
   // parameters
   std::string joy_topic, gamepad_topic, dead_man_topic, my_frame_id;
   float max_speed, max_steering_rate, steering_gain;
+  double joy_timeout_s;
   ackermann_msgs::msg::AckermannDrive emergancy_drive_msg;
 
   // data
   float direction = 1;
   bool reversing = false;
   bool was_armed_ = false;
+  bool dead_man_ = false;
+  bool autonomy_blocked_ = false;
+  rclcpp::Time last_joy_{0, 0, RCL_ROS_TIME};
 
   // buttons
   button_and_axis ba;

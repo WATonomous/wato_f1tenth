@@ -41,6 +41,8 @@ JOYPAD::JOYPAD()
   this->declare_parameter<int>("safety_button", 0);
   this->declare_parameter<int>("reverse_button", 4);
   this->declare_parameter<int>("pit_limit_button", 5);
+  this->declare_parameter<int>("autonomy_button", 5);
+  this->declare_parameter<double>("joy_timeout_s", 0.5);
 
   gamepad_topic = this->get_parameter("gamepad_topic").as_string();
   joy_topic = this->get_parameter("joy_topic").as_string();
@@ -59,6 +61,8 @@ JOYPAD::JOYPAD()
   ba.safety_button = this->get_parameter("safety_button").as_int();
   ba.reverse_button = this->get_parameter("reverse_button").as_int();
   ba.pitLimit_button = this->get_parameter("pit_limit_button").as_int();
+  ba.autonomy_button = this->get_parameter("autonomy_button").as_int();
+  joy_timeout_s = this->get_parameter("joy_timeout_s").as_double();
 
   // pubs and sub
   ackerman_pub = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(gamepad_topic, 10);
@@ -69,38 +73,70 @@ JOYPAD::JOYPAD()
   gamepad_sub = this->create_subscription<sensor_msgs::msg::Joy>(
     joy_topic, 20, std::bind(&JOYPAD::gamepadCallback, this, std::placeholders::_1));
 
+  // dead man watchdog: if /joy stops (pad disconnected, joy_node gone) while the autonomy button
+  // is held, the latched dead man would stay true and autonomy would keep driving
+  watchdog_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&JOYPAD::watchdogCallback, this));
+
   // emergancy drive message initalization
   emergancy_drive_msg.speed = 0.0;
   emergancy_drive_msg.steering_angle = 0.0;
+}
+
+void JOYPAD::publishDeadMan(bool active)
+{
+  std_msgs::msg::Bool dead_man_bool;
+  dead_man_bool.data = active;
+  dead_man_pub_->publish(dead_man_bool);
+  dead_man_ = active;
+}
+
+void JOYPAD::watchdogCallback()
+{
+  if (dead_man_ && last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() > joy_timeout_s) {
+    RCLCPP_WARN(
+      this->get_logger(), "no %s for %.1f s: releasing the dead man switch", joy_topic.c_str(), joy_timeout_s);
+    publishDeadMan(false);
+  }
 }
 
 void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
 {
   ackermann_msgs::msg::AckermannDrive drive;
   ackermann_msgs::msg::AckermannDriveStamped drive_msg;
-  std_msgs::msg::Bool dead_man_bool;
 
   drive_msg.header.frame_id = my_frame_id;
   drive_msg.header.stamp = msg->header.stamp;
 
   bool pit_speed_limit = false;
-  bool armed = msg->buttons.at(ba.safety_button);
+  last_joy_ = this->now();
 
-  // emergancy / deadman switch: on the arm->disarm edge, publish one zero
-  // command so the last thing downstream sees is a stop, then go quiet on
-  // gamepad_topic. ackermann_mux (timeout: 0.2s in mux.yaml) then sees the
-  // topic expire and falls through to autonomy. Publishing zero every
-  // message here (instead of once) would keep gamepad_topic fresh forever
-  // and permanently lock out autonomy regardless of arm state.
+  // Two buttons, both toggles (joy_node runs with sticky_buttons):
+  //   safety_button (X) on: manual control. This node publishes on gamepad_topic, which beats
+  //     autonomy in ackermann_mux, and the dead man is released.
+  //   autonomy_button (R1) on, X off: the dead man switch; autonomy may drive. Toggling it off
+  //     stops the controller.
+  // Turning manual on also blocks autonomy until R1 is toggled off and on again, so turning
+  // manual off (after using X to stop the car) never lets autonomy drive off by itself.
+  bool armed = msg->buttons.at(ba.safety_button);
+  bool autonomy_on = msg->buttons.at(ba.autonomy_button);
+  if (armed) {
+    autonomy_blocked_ = true;
+  } else if (!autonomy_on) {
+    autonomy_blocked_ = false;
+  }
+  bool autonomy = !armed && autonomy_on && !autonomy_blocked_;
+
+  // On the manual->released edge, publish one zero command so the last thing downstream sees is a
+  // stop, then go quiet on gamepad_topic. ackermann_mux (timeout: 0.2s in mux.yaml) then sees the
+  // topic expire and falls through to autonomy. Publishing zero every message here (instead of
+  // once) would keep gamepad_topic fresh forever and permanently lock out autonomy.
   if (!armed) {
     if (was_armed_) {
       drive_msg.drive = emergancy_drive_msg;
       ackerman_pub->publish(drive_msg);
-      dead_man_bool.data = false;
-      dead_man_pub_->publish(dead_man_bool);
       was_armed_ = false;
     }
-    // RCLCPP_INFO(this->get_logger(),"press x to activate drive");
+    publishDeadMan(autonomy);
     return;
   }
   was_armed_ = true;
@@ -140,11 +176,10 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
     drive.speed = -1.5;
   }
 
-  // publish the message
-  dead_man_bool.data = true;
+  // publish the message; manual control releases the dead man so autonomy stops
   drive_msg.drive = drive;
   ackerman_pub->publish(drive_msg);
-  dead_man_pub_->publish(dead_man_bool);
+  publishDeadMan(false);
 }
 
 float JOYPAD::trigger_maper(const float r2)

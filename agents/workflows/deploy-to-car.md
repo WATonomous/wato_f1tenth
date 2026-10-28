@@ -40,8 +40,10 @@ the `orin` / `mppi_test` checklist below as the fallback.
 9. **Core pinning** (optional, when running MPPI):
    `sudo taskset -cp 0-2 $(pgrep -f particle_filter)`, `3-5` for `mppi_node`, `5` for
    `opponent_predictor`.
-10. **Check.** `ros2 topic hz /scan`, `/odom`, `/pf/pose/odom`; drive with the controller while
-    holding the dead-man button before enabling autonomy.
+10. **Check.** `ros2 topic hz /scan`, `/odom`, `/pf/pose/odom`. Gamepad buttons toggle:
+    **X** turns manual control on and off (it beats autonomy); **R1**, the dead man switch, turns
+    autonomy on and off. After manual control, toggle R1 off and on to hand back to autonomy.
+    Try both with the wheels off the ground first.
 
 ## Container access to devices
 
