@@ -88,6 +88,12 @@ hold the dead-man switch until the checks pass.
 
 ## Known car quirks
 
+- DDS on the car runs over loopback only (`docker/config/cyclonedds_car.xml`, set by the car
+  overlay), because eduroam changes the car's address when it roams and CycloneDDS can't follow
+  that. So `ros2` commands from a laptop don't see the car: run them on the car with
+  `docker exec` as above, and use Foxglove (`ws://<car>:20002`, preferably its Tailscale
+  address, which doesn't change) for viewing.
+
 - Docker on the Jetson sets `"dns": ["8.8.8.8", "1.1.1.1"]` in `/etc/docker/daemon.json`.
   Without it, builds fail on Wi-Fi networks that hand out IPv6 DNS servers
   (see `deploy-to-car.md`).

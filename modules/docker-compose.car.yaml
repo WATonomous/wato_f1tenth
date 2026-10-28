@@ -4,11 +4,24 @@
 # interfacing gets the host's /dev, so USB and Bluetooth devices plugged in after the
 # container starts (VESC, Hokuyo adapter, PS4 pad) show up without restarting it, as on
 # the old orin robot container. The GPU modules get the Jetson's nvidia runtime.
+#
+# Every ROS service talks DDS over loopback only (docker/config/cyclonedds_car.xml): the car's
+# Wi-Fi address changes when it roams, and CycloneDDS can't follow that at runtime.
+x-car-dds-env: &car-dds-env
+  CYCLONEDDS_URI: file:///opt/watonomous/cyclonedds_car.xml
+
+x-car-dds: &car-dds
+  environment: *car-dds-env
+  volumes:
+    - ../docker/config/cyclonedds_car.xml:/opt/watonomous/cyclonedds_car.xml:ro
+
 x-car-devices: &car-devices
   privileged: true
+  environment: *car-dds-env
   volumes:
     - /dev:/dev
     - /run/udev:/run/udev:ro  # udev names such as /dev/sensors/vesc
+    - ../docker/config/cyclonedds_car.xml:/opt/watonomous/cyclonedds_car.xml:ro
   device_cgroup_rules:
     - 'c 13:* rmw'  # input: joystick / gamepad, including Bluetooth
     - 'c 188:* rmw'  # USB serial (ttyUSB)
@@ -17,8 +30,12 @@ x-car-devices: &car-devices
 
 x-car-gpu: &car-gpu
   runtime: nvidia
+  environment: *car-dds-env
+  volumes:
+    - ../docker/config/cyclonedds_car.xml:/opt/watonomous/cyclonedds_car.xml:ro
 
 services:
+  infrastructure_bringup: *car-dds
   interfacing_bringup: *car-devices
   interfacing_bringup_dev: *car-devices
   world_modeling_bringup: *car-gpu

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CycloneDDS on the car: loopback only. Mounted and selected (CYCLONEDDS_URI) by
+  modules/docker-compose.car.yaml and by `watod bag` when PLATFORM=car.
+
+  Every ROS process on the car runs on this host (network_mode: host), so none of them needs the
+  Wi-Fi. On eduroam the car gets a new address whenever it roams between access points, and
+  Cyclone can't follow an address change at runtime: on 2026-10-27 every node stopped hearing the
+  others, the gamepad's stop included, and localization shut itself down. On loopback that can't
+  happen. Foxglove (websocket) and SSH are unaffected; ros2 commands from a laptop over DDS no
+  longer see the car (run them on the car with docker exec).
+-->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain Id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="lo"/>
+      </Interfaces>
+      <!-- lo has no multicast: discover by unicast to the peers below -->
+      <AllowMulticast>false</AllowMulticast>
+    </General>
+    <Discovery>
+      <!-- Unicast discovery probes one port per participant index; one index per ROS process -->
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+      <Peers>
+        <Peer address="127.0.0.1"/>
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>

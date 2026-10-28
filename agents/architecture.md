@@ -53,7 +53,8 @@ With `ACTIVE_MODULES` unset, `watod` runs the full stack for the platform: `inte
 world_modeling action` on the car, plus `sim` on a PC.
 
 Overlays (`watod_scripts/watod-compose.sh`): `PLATFORM=car` adds `modules/docker-compose.car.yaml`
-(host `/dev`, privileged, nvidia runtime for the GPU modules). On a PC, `/dev/input` adds
+(host `/dev`, privileged, nvidia runtime for the GPU modules, and DDS over loopback only:
+`docker/config/cyclonedds_car.xml`, so the Wi-Fi roaming can't cut the nodes off from each other). On a PC, `/dev/input` adds
 `modules/docker-compose.pc.yaml` (gamepad), and `GPU=nvidia` adds `modules/docker-compose.gpu.yaml`
 (GPU for `world_modeling`, `action`, `perception`). If a PC has an NVIDIA GPU but Docker has no
 nvidia runtime, `watod` warns and runs CPU-only.

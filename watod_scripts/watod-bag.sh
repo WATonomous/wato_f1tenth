@@ -159,8 +159,17 @@ if [[ -n "${BAG_CPUSET:-}" ]]; then
   echo "Recorder limited to CPUs $BAG_CPUSET"
 fi
 
+# On the car, DDS runs over loopback only (docker/config/cyclonedds_car.xml, as in
+# modules/docker-compose.car.yaml); the recorder must use the same, or it sees no topics
+declare -a dds_args=()
+if [[ "${PLATFORM:-}" == "car" ]]; then
+  dds_args=("-v" "$MONO_DIR/docker/config/cyclonedds_car.xml:/opt/watonomous/cyclonedds_car.xml:ro"
+    "-e" "CYCLONEDDS_URI=file:///opt/watonomous/cyclonedds_car.xml")
+fi
+
 docker run --rm \
   "${cpuset_args[@]}" \
+  "${dds_args[@]}" \
   --ulimit memlock=-1 \
   --ipc host \
   --network host \
