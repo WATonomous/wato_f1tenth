@@ -10,12 +10,12 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         ackermann_control_topic, 10);
 
     debug_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-        "/debug/stanley_markers", 10);
-    cte_pub_          = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte", 10);
-    heading_err_pub_  = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_error", 10);
-    heading_term_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_term", 10);
-    cte_term_pub_     = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte_term", 10);
-    delta_pub_        = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/delta_cmd", 10);
+        "/debug/stanley/markers", rclcpp::SensorDataQoS());
+    cte_pub_          = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte", rclcpp::SensorDataQoS());
+    heading_err_pub_  = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_error", rclcpp::SensorDataQoS());
+    heading_term_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_term", rclcpp::SensorDataQoS());
+    cte_term_pub_     = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte_term", rclcpp::SensorDataQoS());
+    delta_pub_        = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/delta_cmd", rclcpp::SensorDataQoS());
 
     //subscriptions
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
@@ -39,7 +39,14 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
     odom_topic, 10,
     [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
-        current_pose     = *msg;
+        current_pose = *msg;
+    }
+);
+
+    //speed comes from /hal/odom: localization pose doesn't carry a reliable twist on the car
+    speed_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    speed_topic, 10,
+    [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         current_velocity = msg->twist.twist.linear.x;
     }
 );
@@ -261,9 +268,10 @@ void Stanley_Controller_Node::init_parameters() {
 
     //declare parameters
     this->declare_parameter<std::string>("global_path_topic", "/global_planner/path");
-    this->declare_parameter<std::string>("dead_man_active_topic", "/dead_man_switch");
-    this->declare_parameter<std::string>("ackermann_control_topic", "/drive/autonomy");
-    this->declare_parameter<std::string>("odom_topic", "/autodrive/roboracer_1/odom");
+    this->declare_parameter<std::string>("dead_man_active_topic", "/hal/dead_man_switch");
+    this->declare_parameter<std::string>("ackermann_control_topic", "/hal/drive/autonomy");
+    this->declare_parameter<std::string>("odom_topic", "/hal/localization/odom");
+    this->declare_parameter<std::string>("speed_topic", "/hal/odom");
     
 
     this->declare_parameter<std::string>("global_frame_id", "map");
@@ -287,6 +295,7 @@ void Stanley_Controller_Node::init_parameters() {
     dead_man_active_topic   = this->get_parameter("dead_man_active_topic").as_string();
     ackermann_control_topic = this->get_parameter("ackermann_control_topic").as_string();
     odom_topic              = this->get_parameter("odom_topic").as_string();
+    speed_topic             = this->get_parameter("speed_topic").as_string();
    
 
     global_frame_id = this->get_parameter("global_frame_id").as_string();

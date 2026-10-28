@@ -62,6 +62,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dead_man_sub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
     
 
     //timer
@@ -93,6 +94,7 @@ private:
     std::string dead_man_active_topic;
     std::string ackermann_control_topic;
     std::string odom_topic;
+    std::string speed_topic;
     
 
     std::string global_frame_id;
