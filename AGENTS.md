@@ -18,21 +18,23 @@ Everything runs in Docker through `./watod`, a wrapper around `docker compose`.
 
 ## Where the repo is right now
 
-The repo is in the middle of an infrastructure migration on the `big_infra_update` branch.
-Step 2 (catch up to `wato_monorepo_template`) has landed in the code:
+Steps 1-3 of the infrastructure migration are done (merged from `big_infra_update`): one
+branch runs both the sim and the car on the `wato_monorepo_template` infrastructure.
 
-| | Now (`big_infra_update`) | Still to come |
+| | Now | Still to come |
 | --- | --- | --- |
 | ROS 2 | Jazzy, Ubuntu 24.04 | |
 | Infra | template `watod`, modules `infrastructure interfacing perception world_modeling action sim` | |
 | Sim vs car | one branch; `watod` detects `PLATFORM` (car on a Jetson) and `GPU`; `/hal/*` contract | |
-| Middleware | CycloneDDS, `ROS_DOMAIN_ID=0` (no Zenoh) | |
+| Middleware | CycloneDDS, `ROS_DOMAIN_ID=0` (no Zenoh); loopback only on the car | |
+| Algorithms | `CONTROLLER`, `LOCAL_PLANNER`, `TRACK` pick controller, local planner and track by name | |
 | Images | built locally with `./watod build-base` | step 5: prebuilt multi-arch images on GHCR |
 | MPPI / JAX | packages present, off by default (`CONTROLLER=mppi`), untested | step 4: JAX image |
 
 Migration steps: 1 agents directory -> 2 catch up to the template -> 3 topic contract,
 shims and platform detection -> 4 JAX image -> 5 prebuilt multi-arch images.
-`main` (sim), `orin` and `mppi_test` (car) are the old layout and get deprecated after the port.
+The old-layout branches (`orin`, `mppi_test` and older feature branches, tagged `legacy/*`)
+are deprecated: bring their work over with `agents/workflows/update-legacy-branch.md`.
 If a doc in `agents/` disagrees with the code, trust the code and flag the doc.
 
 ## Hard rules
