@@ -397,7 +397,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         m.color.g = 1.0; m.color.a = 1.0;
         arr.markers.push_back(m);
     }
-
+    
     // 4. CTE line (colour by sign, intensity by magnitude)
     {
         visualization_msgs::msg::Marker m;

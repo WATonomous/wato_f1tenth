@@ -32,5 +32,12 @@ Source shell first
 | `closest_point_window` | 20 | denser path / higher speed | — |
 
 
+## Install Foxglove
 
+apt update
 
+apt install -y ros-humble-foxglove-bridge
+
+source /opt/ros/humble/setup.bash
+
+ros2 run foxglove_bridge foxglove_bridge

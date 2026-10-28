@@ -17,11 +17,11 @@ stanley_controller_node:
     # localization / the VESC actually publish. Check: ros2 topic list | grep odom
     odom_topic:              "/autodrive/roboracer_1/odom"
     speed_topic:             "/autodrive/roboracer_1/odom"
-
+    
     # ---- frames ----
     global_frame_id: "map"        # markers + path live here
     local_frame_id:  "base_link"  # drive command frame
-
+  
     # ---- speed ----
     speed_limit_active: true
     speed_limit: 5.0            # m/s hard cap. START LOW on the real car, raise once trusted.
