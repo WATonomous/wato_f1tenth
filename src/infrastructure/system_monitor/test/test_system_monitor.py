@@ -138,3 +138,17 @@ def test_blackbox_never_overwrites_a_run_with_the_same_start_time(tmp_path):
     assert second.path != first.path
     with open(first.path) as f:
         assert list(csv.DictReader(f))[0]["pack_voltage_v"] == "11.000"
+
+
+def test_a_sensor_file_that_fails_oddly_is_skipped(jetson, monkeypatch):
+    # On the car one thermal zone's temp read raised TypeError inside the decoder, not OSError
+    real_open = open
+
+    def flaky_open(path, *args, **kwargs):
+        if str(path).endswith("thermal_zone0/temp"):
+            raise TypeError("can't concat NoneType to bytes")
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", flaky_open)
+    assert readers.temperatures(jetson) == []  # zone0 skipped, zone1 is disabled anyway
+    assert readers.module_power_w(readers.power_rails(jetson)) == pytest.approx(10.0)

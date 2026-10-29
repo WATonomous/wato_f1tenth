@@ -32,10 +32,12 @@ GPU_LOAD_FILES = (
 
 
 def _read(root, path):
+    # Any failure means "no value": some Jetson sensor files fail with errors other than OSError
+    # (a TypeError from the decoder on the car, 2026-10-29), and one bad file must not stop the rest
     try:
         with open(os.path.join(root, path)) as f:
             return f.read().strip()
-    except OSError:
+    except Exception:
         return None
 
 

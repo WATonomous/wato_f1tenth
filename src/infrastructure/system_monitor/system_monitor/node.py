@@ -79,8 +79,12 @@ class SystemMonitor(Node):
         self.create_subscription(
             VescStateStamped, p("vesc_topic").value, self.on_vesc, 10
         )
-        self.create_timer(1.0 / p("status_hz").value, self.publish_status)
-        self.create_timer(1.0 / p("power_hz").value, self.publish_power)
+        self.create_timer(
+            1.0 / p("status_hz").value, lambda: self.guarded(self.publish_status)
+        )
+        self.create_timer(
+            1.0 / p("power_hz").value, lambda: self.guarded(self.publish_power)
+        )
 
         self.blackbox = None
         if p("blackbox_dir").value:
@@ -91,6 +95,15 @@ class SystemMonitor(Node):
 
     def now_s(self):
         return self.get_clock().now().nanoseconds * 1e-9
+
+    def guarded(self, step):
+        """Run a timer step; log a failure instead of letting it kill the node (and the black box)."""
+        try:
+            step()
+        except Exception as e:  # noqa: BLE001 - the monitor must outlive any one bad reading
+            self.get_logger().error(
+                f"{step.__name__} failed: {e!r}", throttle_duration_sec=10.0
+            )
 
     def on_vesc(self, msg):
         self.pack_v = msg.state.voltage_input
