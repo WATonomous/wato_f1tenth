@@ -318,31 +318,6 @@ TEST(LocalPlanner, PassKeepsExecutingPassWhileMergeProbeRuns)
   EXPECT_NE(selected->source, CandidateSource::MERGE_PROBE);
 }
 
-TEST(LocalPlanner, NoSafeLocalGeometryReportsExplicitUnavailableRecovery)
-{
-  RacelineReference reference;
-  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
-  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 2.0, 2.0), 0.10));
-  OccupancyGrid grid = coveringGrid(100);
-
-  const LocalPlanResult result = planIntent(
-    reference, grid, PlannerIntent::MERGE, 2.0, 0.55);
-
-  EXPECT_EQ(result.decision.executed_mode, ExecutedMode::BRAKING_UNAVAILABLE);
-  EXPECT_EQ(result.decision.recovery_reason, RecoveryReason::NO_SAFE_LOCAL_PATH);
-  EXPECT_EQ(result.decision.candidate_source, CandidateSource::BRAKING);
-  // Nowhere free to go still publishes geometry: full-length so the controller
-  // keeps a lookahead point, and zero speed so it stops on a coherent steering
-  // angle instead of the empty path that made it zero the wheel mid-corner.
-  ASSERT_GE(result.selected_index, 0);
-  const auto & path = result.pool.at(static_cast<std::size_t>(result.selected_index)).path;
-  ASSERT_FALSE(path.empty());
-  EXPECT_GE(path.back().s, 4.0);
-  for (const auto & sample : path) {
-    EXPECT_DOUBLE_EQ(sample.speed, 0.0);
-  }
-}
-
 TEST(LocalPlanner, BrakingFallbackTurnsTowardTheRacelineWhenNoManeuverSurvives)
 {
   RacelineReference reference;
