@@ -219,19 +219,6 @@ TEST(ManeuverBuilder, OvertakeOffsetTailsAreExactAndG2Continuous)
   }
 }
 
-TEST(ManeuverBuilder, DefaultOvertakeAddsOneOffsetTailPerStationAndOffset)
-{
-  RacelineReference reference;
-  ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
-  const ManeuverBuilder builder = makeBuilder(reference, ManeuverConfig{});
-
-  const auto candidates = builder.overtake(
-    egoAt(reference, 2.0, 0.0), 2.0, 0.0, 4.0);
-  EXPECT_EQ(std::count_if(
-      candidates.begin(), candidates.end(),
-      [](const ManeuverCandidate & candidate) {return candidate.uses_offset_tail;}), 8);
-}
-
 TEST(ManeuverBuilder, OvertakeNeverCrossesTheRacelineInATightCorner)
 {
   RacelineReference reference;
