@@ -2,7 +2,7 @@
 # the frame adapter at the injected topic:
 #
 #   ros2 launch costmap_test_tools injected_costmap.launch.py
-#   ros2 launch local_planning local-planner.launch.py raw_grid_topic:=/costmap_injected
+#   ros2 launch frenet_planner local-planner.launch.py raw_grid_topic:=/costmap_injected
 #
 # Test-only.  Never include this from a real-car launch.
 
