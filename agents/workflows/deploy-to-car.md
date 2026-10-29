@@ -103,6 +103,7 @@ Check: `./watod contract` passes with `/hal/localization/odom` at 40 Hz or more 
   memory (the build is killed, or the Jetson freezes and needs a power cycle). When more than
   one module needs rebuilding, build them one at a time:
   `for m in infrastructure interfacing world_modeling action; do ./watod -m $m build || break; done`.
+  Keep the car plugged in while building (`build.md`, "On the car").
 
 ## On `big_infra_update`
 

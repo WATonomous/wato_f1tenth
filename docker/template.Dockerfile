@@ -9,8 +9,10 @@ ARG MODULE_DEPS
 
 # Scan for rosdeps from the source stage
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN apt-get -qq update && \
-    rosdep install --from-paths . --ignore-src -r -s > /tmp/rosdep_output && \
+# rosdep -s resolves keys from its own database and checks what is installed with dpkg, so it
+# needs no apt index: no apt-get update here, which ran on every source change (same output on
+# every module, checked 2026-10-29)
+RUN rosdep install --from-paths . --ignore-src -r -s > /tmp/rosdep_output && \
     (grep 'apt-get install' /tmp/rosdep_output || true) \
         | awk '{print $3}' \
         | sort > /tmp/colcon_install_list && \
@@ -29,6 +31,7 @@ ARG MODULE_DEPS
 COPY --from=rosdep_scan /tmp/colcon_install_list /tmp/colcon_install_list
 COPY --from=rosdep_scan /tmp/colcon_pip_install_list /tmp/colcon_pip_install_list
 RUN apt-get update && \
+    apt-get install -qq -y --no-install-recommends ccache && \
     if [ -s /tmp/colcon_install_list ]; then \
       xargs -a /tmp/colcon_install_list apt-fast install -qq -y --no-install-recommends; \
     fi && \
@@ -36,10 +39,6 @@ RUN apt-get update && \
     if [ -s /tmp/colcon_pip_install_list ]; then \
       xargs -a /tmp/colcon_pip_install_list pip3 install --no-cache-dir; \
     fi
-
-# Copy in source code from rosdep_scan stage (which comes from MODULE_SOURCE)
-WORKDIR ${AMENT_WS}
-COPY --from=rosdep_scan ${AMENT_WS}/src src
 
 # Dependency Cleanup
 WORKDIR /
@@ -54,13 +53,30 @@ COPY docker/config/rmw_zenoh_session_config.json5 ${WATONOMOUS_INSTALL}/rmw_zeno
 COPY docker/config/wato_entrypoint.sh ${WATONOMOUS_INSTALL}/wato_entrypoint.sh
 ENTRYPOINT ["/opt/watonomous/wato_entrypoint.sh"]
 
+# Copy in source code from rosdep_scan stage (which comes from MODULE_SOURCE). Last, so a source
+# change re-runs only the steps after it, not the dependency cleanup and config copies above.
+WORKDIR ${AMENT_WS}
+COPY --from=rosdep_scan ${AMENT_WS}/src src
+WORKDIR /
+
 ################################ Build ################################
 FROM rosdep_install AS build
 
-# Build and Install ROS2 packages
+# Build and Install ROS2 packages. ccache keeps compiled objects in a BuildKit cache mount shared by
+# every module and kept between image builds, so a rebuild only compiles files that changed, and
+# packages copied into several modules (wato_test, wato_lifecycle_manager) compile once. The cache
+# lives in Docker's build cache, not in the image (`docker builder prune` clears it). build/ stays
+# in the image: the test images (this stage) run colcon test from it.
 WORKDIR ${AMENT_WS}
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" && \
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+ARG TARGETARCH
+# content: hash the compiler itself, so objects are shared between modules on different base images
+ENV CCACHE_DIR=/ccache CCACHE_COMPILERCHECK=content CCACHE_MAXSIZE=5G
+RUN --mount=type=cache,id=f1tenth-ccache-${TARGETARCH},target=/ccache \
+    . "/opt/ros/${ROS_DISTRO}/setup.sh" && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+      -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache && \
+    (ccache --show-stats || true) && \
     cp -r install/. "${WATONOMOUS_INSTALL}"
 
 ################################ Deploy ################################

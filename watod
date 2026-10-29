@@ -313,6 +313,13 @@ COMPOSE_CMD=( "$@" )
 # Export WATCLOUD_MODE so watod-compose.sh and watod-test.sh can use it
 export WATCLOUD_MODE="${WATCLOUD_MODE:-false}"
 
+# No provenance attestations on locally built images. With them, every export gets a fresh
+# timestamp and so a new image ID, and each module's build starts FROM its source/deps images by
+# tag: a new ID re-ran every step after it, so a rebuild with nothing changed took as long as a cold
+# build (135 s vs 5 s for infrastructure, measured 2026-10-29). CI that publishes images (step 5)
+# can turn them back on with BUILDX_NO_DEFAULT_ATTESTATIONS=0.
+export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
+
 # f1tenth platform: car on a Jetson, sim anywhere else (PLATFORM in watod-config.local.sh wins).
 # Detected here, before ACTIVE_MODULES, because the module defaults depend on it.
 if [[ -z ${PLATFORM:-} ]]; then

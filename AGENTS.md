@@ -81,6 +81,7 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/architecture.md` | You need the layout, packages, topics, TF tree or launch files |
 | `agents/rules.md` | You want the reason behind a hard rule, or the full list |
 | `agents/workflows/build-and-test.md` | You need to build, run or test something |
+| `agents/workflows/build.md` | You build images: which machine, which command, keeping rebuilds fast |
 | `agents/workflows/add-a-node.md` | You are adding a node or a package |
 | `agents/workflows/add-controller.md` | You are adding or swapping a controller, or need the planner/controller interface |
 | `agents/workflows/add-local-planner.md` | You are adding or porting a local planner |

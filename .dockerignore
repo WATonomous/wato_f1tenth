@@ -1,0 +1,10 @@
+# Keep Docker's build context to what the Dockerfiles copy (src/, docker/config/). BuildKit only
+# sends the paths a COPY names, but this keeps recordings and build output out of any other builder.
+# Don't exclude *.mcap globally: src/sim/sim_bringup/test/data/ holds the contract test bag.
+.git/
+bags/
+build/
+install/
+log/
+**/__pycache__/
+**/*.pyc
