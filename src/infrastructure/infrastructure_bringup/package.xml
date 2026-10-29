@@ -38,7 +38,7 @@
   <depend>vision_msgs</depend>
   <depend>ackermann_msgs</depend>
   <depend>vesc_msgs</depend>
-  <depend>global_planner</depend>
+  <depend>wato_msgs</depend>
   <depend>realsense2_camera_msgs</depend>
   <depend>nav2_msgs</depend>
   <!-- republish / decode compressed image topics (recording, Foxglove) -->

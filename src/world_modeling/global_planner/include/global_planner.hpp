@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-#include "global_planner/msg/reference_track.hpp"
+#include "wato_msgs/msg/reference_track.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -31,9 +31,9 @@ public:
 private:
   void retrieveData(std::ifstream & file);
 
-  global_planner::msg::ReferenceTrack reference_track_;
+  wato_msgs::msg::ReferenceTrack reference_track_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
-  rclcpp::Publisher<global_planner::msg::ReferenceTrack>::SharedPtr reference_pub_;
+  rclcpp::Publisher<wato_msgs::msg::ReferenceTrack>::SharedPtr reference_pub_;
   std::string waypoint_frame_id_;
 };
 
