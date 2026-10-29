@@ -128,7 +128,7 @@ autonomy dead man; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has
 | pure pursuit | `action_bringup/config/{car,sim}/pure_pursuit.yaml` |
 | gamepad mapping | `teleop_utils/config/joypad_config.yaml` |
 | battery (cells, capacity, warn/critical) | `interfacing_bringup/config/car/battery.yaml` |
-| Foxglove layouts | `infrastructure_bringup/config/foxglove/` (import in Foxglove: Layouts > Import) |
+| Foxglove layouts | `config/car.json`, `config/sim.json` at the repo root (control status, track, battery, system, camera, TF tabs); `infrastructure_bringup/config/foxglove/battery.json`. Import in Foxglove: Layouts > Import |
 | MPPI | `mppi_cpp/config/params_e7.yaml`, `mppi_bringup/config/` |
 
 ## Contract check

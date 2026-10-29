@@ -20,6 +20,7 @@
 /tf_static
 /global_planner/path
 /global_planner/reference_track
+/global_planner/edges
 /local_planner/path
 /local_planner/active
 
