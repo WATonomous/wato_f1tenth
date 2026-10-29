@@ -15,6 +15,10 @@ ssh_config/
 watod-config.local.sh
 
 /bags/
+src/bags/
+*.mcap
+*.db3
+!src/sim/sim_bringup/test/data/**/*.mcap
 build/
 install/
 log/
