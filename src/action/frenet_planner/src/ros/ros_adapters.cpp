@@ -64,10 +64,10 @@ nav_msgs::msg::Path pathToRos(const Path & path, const rclcpp::Time & stamp, con
   return msg;
 }
 
-msg::PlannerDecision plannerDecisionToRos(
+wato_msgs::msg::PlannerDecision plannerDecisionToRos(
   const PlannerDecisionData & data, const rclcpp::Time & stamp, const std::string & frame_id)
 {
-  msg::PlannerDecision out;
+  wato_msgs::msg::PlannerDecision out;
   out.header.stamp = stamp;
   out.header.frame_id = frame_id;
   out.requested_intent = static_cast<uint8_t>(data.requested_intent);

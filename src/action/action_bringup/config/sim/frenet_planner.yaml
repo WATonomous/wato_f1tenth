@@ -1,7 +1,9 @@
+# frenet_planner (LOCAL_PLANNER=frenet), sim values. Both nodes read this file; the
+# other platform's copy is config/car/frenet_planner.yaml.
 occupancy_grid_frame_adapter_node:
   ros__parameters:
-    raw_grid_topic: "/costmap"
-    grid_topic: "/occupancy_grid"
+    raw_grid_topic: "/costmap"  # world_modeling costmap (base_link)
+    grid_topic: "/local_planner/occupancy_grid"
     frame_id: "map"
 
 planner_node:
@@ -62,9 +64,9 @@ planner_node:
 
     reference_track_topic: "/global_planner/reference_track"  # index-aligned with width table
     width_lookup_spacing_m: 0.10
-    occupancy_grid_topic: "/occupancy_grid"
-    odom_topic: "/odom"
-    steering_command_topic: "/drive/autonomy"
+    occupancy_grid_topic: "/local_planner/occupancy_grid"
+    odom_topic: "/hal/localization/odom"  # pose and speed
+    steering_command_topic: "/hal/drive/autonomy"  # read only: the controller's steering seeds the start curvature
     steering_command_timeout_s: 0.06
     odom_timeout_s: 0.25
     wheelbase_m: 0.33
@@ -76,13 +78,15 @@ planner_node:
     map_frame: "map"
     controller_frame: "base_link"
 
-    local_path_topic: "/local_path"
-    local_path_map_topic: "/local_path_map"
-    overtake_ready_topic: "/overtake_ready"
-    decision_topic: "/planner_decision"
-    visualization_topic: "/local_planner_viz"
-    track_bounds_visualization_topic: "/local_planner_track_bounds_viz"
-    projection_visualization_topic: "/local_planner_projection_viz"
+    local_path_topic: "/local_planner/path"  # base_link, what the controller follows
+    overtake_ready_topic: "/local_planner/active"
+    decision_topic: "/local_planner/debug/decision"  # every cycle, BEST_EFFORT
+    # Debug markers and the map-frame path copy: BEST_EFFORT, at most visualization_rate_hz
+    visualization_rate_hz: 10.0
+    local_path_map_topic: "/local_planner/vis/path_map"
+    visualization_topic: "/local_planner/vis/candidates"
+    track_bounds_visualization_topic: "/local_planner/vis/track_bounds"
+    projection_visualization_topic: "/local_planner/vis/projection"
     publish_projection_markers: true
     publish_all_candidates: true  # costly: repeats generation pass; disable for timed runs
-    all_candidates_visualization_topic: "/local_planner_all_candidates_viz"
+    all_candidates_visualization_topic: "/local_planner/vis/all_candidates"

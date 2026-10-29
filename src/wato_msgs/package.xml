@@ -3,7 +3,7 @@
 <package format="3">
   <name>wato_msgs</name>
   <version>0.0.0</version>
-  <description>Messages shared across F1TENTH modules (ReferenceTrack, TrackWidth)</description>
+  <description>Messages shared across F1TENTH modules (ReferenceTrack, TrackWidth, PlannerDecision)</description>
   <maintainer email="rohan.raina04@gmail.com">Rohan Raina</maintainer>
   <license>Apache-2.0</license>
 

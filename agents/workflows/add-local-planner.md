@@ -7,7 +7,9 @@ follows right now: around an opponent, or away from an obstacle. Read "How selec
 ## Local planner interface
 
 - **Inputs:** `/hal/localization/odom` (pose, map frame), `/hal/odom` (speed), `/hal/scan`
-  (subscribe with sensor-data QoS), `/global_planner/path` (latched: RELIABLE + TRANSIENT_LOCAL).
+  (subscribe with sensor-data QoS), `/global_planner/path` (latched: RELIABLE + TRANSIENT_LOCAL),
+  `/global_planner/reference_track` (the same, with track widths), and `/costmap` (base_link
+  occupancy grid; world_modeling starts it whenever `LOCAL_PLANNER` is set).
 - **`/local_planner/path`** (`nav_msgs/Path`, RELIABLE): `frame_id` `base_link` (x forward,
   y left), starting at the car, target speed in each pose's `position.z`. Publish it at a steady
   rate while it applies. `./watod contract` checks the frame.

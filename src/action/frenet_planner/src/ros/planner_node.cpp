@@ -102,6 +102,8 @@ PlannerNode::PlannerNode()
   reference_.setProjectionConfig(config_.projection);
   steering_received_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
   const auto latched = rclcpp::QoS(1).transient_local().reliable();
+  // Debug topics: a slow remote subscriber must never block the planning cycle
+  const auto debug = rclcpp::QoS(1).best_effort();
 
   odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
     config_.odom_topic, 10, [this](nav_msgs::msg::Odometry::SharedPtr msg) { odom_ = std::move(msg); });
@@ -165,17 +167,17 @@ PlannerNode::PlannerNode()
     });
 
   local_path_pub_ = create_publisher<nav_msgs::msg::Path>(config_.local_path_topic, 10);
-  local_path_map_pub_ = create_publisher<nav_msgs::msg::Path>(config_.local_path_map_topic, 10);
+  local_path_map_pub_ = create_publisher<nav_msgs::msg::Path>(config_.local_path_map_topic, debug);
   overtake_ready_pub_ = create_publisher<std_msgs::msg::Bool>(config_.overtake_ready_topic, latched);
-  decision_pub_ = create_publisher<msg::PlannerDecision>(config_.decision_topic, 10);
-  visualization_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(config_.visualization_topic, 10);
+  decision_pub_ = create_publisher<wato_msgs::msg::PlannerDecision>(config_.decision_topic, debug);
+  visualization_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(config_.visualization_topic, debug);
   track_bounds_visualization_pub_ =
     create_publisher<visualization_msgs::msg::MarkerArray>(config_.track_bounds_visualization_topic, latched);
   projection_visualization_pub_ =
-    create_publisher<visualization_msgs::msg::MarkerArray>(config_.projection_visualization_topic, 10);
+    create_publisher<visualization_msgs::msg::MarkerArray>(config_.projection_visualization_topic, debug);
   if (config_.publish_all_candidates) {
     all_candidates_visualization_pub_ =
-      create_publisher<visualization_msgs::msg::MarkerArray>(config_.all_candidates_visualization_topic, 10);
+      create_publisher<visualization_msgs::msg::MarkerArray>(config_.all_candidates_visualization_topic, debug);
     RCLCPP_INFO(
       get_logger(),
       "Publishing every generated candidate on %s (debug; costs generation)",
@@ -267,9 +269,9 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.path_max_hold_s = declare_parameter("path_max_hold_s", 0.15);
   cfg.reference_track_topic = declare_parameter("reference_track_topic", "/global_planner/reference_track");
   cfg.width_lookup_spacing_m = declare_parameter("width_lookup_spacing_m", 0.10);
-  cfg.occupancy_grid_topic = declare_parameter("occupancy_grid_topic", "/occupancy_grid");
-  cfg.odom_topic = declare_parameter("odom_topic", "/odom");
-  cfg.steering_command_topic = declare_parameter("steering_command_topic", "/drive/autonomy");
+  cfg.occupancy_grid_topic = declare_parameter("occupancy_grid_topic", "/local_planner/occupancy_grid");
+  cfg.odom_topic = declare_parameter("odom_topic", "/hal/localization/odom");
+  cfg.steering_command_topic = declare_parameter("steering_command_topic", "/hal/drive/autonomy");
   cfg.steering_command_timeout_s = declare_parameter("steering_command_timeout_s", 0.06);
   cfg.odom_timeout_s = declare_parameter("odom_timeout_s", 0.25);
   cfg.wheelbase_m = declare_parameter("wheelbase_m", 0.33);
@@ -292,25 +294,27 @@ PlannerNode::NodeConfig PlannerNode::loadConfig()
   cfg.diagnostics_enabled = declare_parameter("diagnostics_enabled", true);
   cfg.map_frame = declare_parameter("map_frame", "map");
   cfg.controller_frame = declare_parameter("controller_frame", "base_link");
-  cfg.local_path_topic = declare_parameter("local_path_topic", "/local_path");
-  cfg.local_path_map_topic = declare_parameter("local_path_map_topic", "/local_path_map");
-  cfg.overtake_ready_topic = declare_parameter("overtake_ready_topic", "/overtake_ready");
-  cfg.decision_topic = declare_parameter("decision_topic", "/planner_decision");
-  cfg.visualization_topic = declare_parameter("visualization_topic", "/local_planner_viz");
+  cfg.local_path_topic = declare_parameter("local_path_topic", "/local_planner/path");
+  cfg.local_path_map_topic = declare_parameter("local_path_map_topic", "/local_planner/vis/path_map");
+  cfg.overtake_ready_topic = declare_parameter("overtake_ready_topic", "/local_planner/active");
+  cfg.decision_topic = declare_parameter("decision_topic", "/local_planner/debug/decision");
+  cfg.visualization_topic = declare_parameter("visualization_topic", "/local_planner/vis/candidates");
   cfg.track_bounds_visualization_topic =
-    declare_parameter("track_bounds_visualization_topic", "/local_planner_track_bounds_viz");
+    declare_parameter("track_bounds_visualization_topic", "/local_planner/vis/track_bounds");
   cfg.projection_visualization_topic =
-    declare_parameter("projection_visualization_topic", "/local_planner_projection_viz");
+    declare_parameter("projection_visualization_topic", "/local_planner/vis/projection");
   cfg.publish_projection_markers = declare_parameter("publish_projection_markers", true);
   cfg.publish_all_candidates = declare_parameter("publish_all_candidates", false);
   cfg.all_candidates_visualization_topic =
-    declare_parameter("all_candidates_visualization_topic", "/local_planner_all_candidates_viz");
+    declare_parameter("all_candidates_visualization_topic", "/local_planner/vis/all_candidates");
+  cfg.visualization_rate_hz = declare_parameter("visualization_rate_hz", 10.0);
   return cfg;
 }
 
 void PlannerNode::planningCycle()
 {
   const rclcpp::Time cycle_stamp = now();
+  const bool publish_visualization = visualizationDue(cycle_stamp);
   CycleProfile profile;
   RecordCycleOnExit record{diagnostics_, profile};
   const ScopedTimer cycle_timer{profile.cycle_ms};
@@ -333,7 +337,9 @@ void PlannerNode::planningCycle()
   }
 
   state_machine_.update(odom, grid_, StateUpdateContext{cycle_stamp.seconds(), costmap_sequence_, costmap_stamp_s_});
-  visualization_.publishProjection(odom, state_machine_.state(), now(), *projection_visualization_pub_);
+  if (publish_visualization) {
+    visualization_.publishProjection(odom, state_machine_.state(), now(), *projection_visualization_pub_);
+  }
   BoundaryState ego;
   ego.x = odom.position.x;
   ego.y = odom.position.y;
@@ -350,7 +356,9 @@ void PlannerNode::planningCycle()
   // Ahead of plan() and outside its intent branching on purpose: FOLLOW returns
   // from plan() before generating anything, so this is the only place the debug
   // view can see the maneuver families on a steady lap.
-  publishAllCandidates(ego, state_machine_.state(), cycle_stamp);
+  if (publish_visualization) {
+    publishAllCandidates(ego, state_machine_.state(), cycle_stamp);
+  }
 
   const double now_s = cycle_stamp.seconds();
   if (held_path_ && state_machine_.state().intent != held_intent_) {
@@ -442,19 +450,19 @@ void PlannerNode::planningCycle()
   }
 
   const auto map_path = pathToRos(*publish_path, cycle_stamp, config_.map_frame);
-  // The controller contract is the map-frame path. Pure pursuit re-transforms
-  // the lookahead point every tick, so a missing map→base_link TF must not
-  // starve /local_path_map or clear /overtake_ready. /local_path is leftover
-  // viz/compat and is only published when that transform is available.
-  local_path_map_pub_->publish(map_path);
-  profile.outcome.path_published = true;
+  // The controller contract is the base_link path (agents/workflows/add-local-planner.md). It is
+  // only published when map -> base_link is available; the map-frame copy is debug output.
   nav_msgs::msg::Path controller_path;
   if (transformPathToControllerFrame(map_path, controller_path)) {
     local_path_pub_->publish(controller_path);
+    profile.outcome.path_published = true;
   } else {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Local path transform unavailable");
   }
-  visualization_.publishCandidates(result, cycle_stamp, *visualization_pub_);
+  if (publish_visualization) {
+    local_path_map_pub_->publish(map_path);
+    visualization_.publishCandidates(result, cycle_stamp, *visualization_pub_);
+  }
   publishOvertakeReady(true);
 }
 
@@ -589,8 +597,23 @@ void PlannerNode::publishEmptyLocalPath(const rclcpp::Time & stamp)
 {
   nav_msgs::msg::Path empty;
   empty.header.stamp = stamp;
+  empty.header.frame_id = config_.controller_frame;
+  local_path_pub_->publish(empty);
   empty.header.frame_id = config_.map_frame;
   local_path_map_pub_->publish(empty);
+}
+
+bool PlannerNode::visualizationDue(const rclcpp::Time & stamp)
+{
+  if (config_.visualization_rate_hz <= 0.0) {
+    return false;
+  }
+  if (last_visualization_stamp_ && (stamp - *last_visualization_stamp_).seconds() < 1.0 / config_.visualization_rate_hz)
+  {
+    return false;
+  }
+  last_visualization_stamp_ = stamp;
+  return true;
 }
 
 }  // namespace frenet_planner
