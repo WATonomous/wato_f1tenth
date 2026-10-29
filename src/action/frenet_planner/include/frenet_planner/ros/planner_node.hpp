@@ -11,7 +11,7 @@
 #include "frenet_planner/state/racing_state_machine.hpp"
 
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
-#include <global_planner/msg/reference_track.hpp>
+#include <wato_msgs/msg/reference_track.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -116,7 +116,7 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;
-  rclcpp::Subscription<global_planner::msg::ReferenceTrack>::SharedPtr reference_track_sub_;
+  rclcpp::Subscription<wato_msgs::msg::ReferenceTrack>::SharedPtr reference_track_sub_;
   rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr steering_sub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_map_pub_;

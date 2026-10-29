@@ -35,7 +35,7 @@ GlobalPlanner::GlobalPlanner()
   const auto qos = rclcpp::QoS(1).transient_local().reliable();
   path_pub_ = create_publisher<nav_msgs::msg::Path>(get_parameter("path_topic").as_string(), qos);
   reference_pub_ =
-    create_publisher<global_planner::msg::ReferenceTrack>(get_parameter("reference_track_topic").as_string(), qos);
+    create_publisher<wato_msgs::msg::ReferenceTrack>(get_parameter("reference_track_topic").as_string(), qos);
   // Published once, so latched like the path; it is what Foxglove draws the track edges from
   edges_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(get_parameter("edges_topic").as_string(), qos);
 
@@ -117,7 +117,7 @@ void GlobalPlanner::retrieveData(std::ifstream & file)
     std::getline(row, left, ',');
 
     geometry_msgs::msg::PoseStamped waypoint;
-    global_planner::msg::TrackWidth width;
+    wato_msgs::msg::TrackWidth width;
     try {
       waypoint.pose.position.x = std::stod(x);
       waypoint.pose.position.y = std::stod(y);

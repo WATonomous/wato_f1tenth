@@ -95,7 +95,7 @@ topics:
 
   # The same raceline with the distances to the track edges (TrackWidth per pose), latched
   - name: /global_planner/reference_track
-    type: global_planner/msg/ReferenceTrack
+    type: wato_msgs/msg/ReferenceTrack
     group: planning
     publishers: true
     when: controller

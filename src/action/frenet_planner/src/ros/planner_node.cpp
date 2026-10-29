@@ -96,9 +96,9 @@ PlannerNode::PlannerNode()
         ++costmap_sequence_;
         costmap_stamp_s_ = rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()).seconds();
       });
-  reference_track_sub_ = create_subscription<global_planner::msg::ReferenceTrack>(
+  reference_track_sub_ = create_subscription<wato_msgs::msg::ReferenceTrack>(
     config_.reference_track_topic, latched,
-    [this](const global_planner::msg::ReferenceTrack::SharedPtr msg) {
+    [this](const wato_msgs::msg::ReferenceTrack::SharedPtr msg) {
       if (msg->path.poses.size() != msg->widths.size()) {
         RCLCPP_ERROR(
           get_logger(), "Reference/width count mismatch: path=%zu widths=%zu",
