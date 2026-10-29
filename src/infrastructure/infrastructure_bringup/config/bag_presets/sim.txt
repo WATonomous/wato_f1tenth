@@ -36,3 +36,8 @@
 
 # Computer health (system_monitor)
 /system/status
+
+# Who has control (drive_status, ackermann_mux, gamepad)
+/control/status
+/control/active_input
+/control/mode

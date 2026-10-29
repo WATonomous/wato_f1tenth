@@ -26,7 +26,7 @@ mounted at `/ws/src/<module>`.
 | Module | Packages | Runs |
 | --- | --- | --- |
 | `infrastructure` | `infrastructure_bringup`, `f1tenth_msgs`, `system_monitor`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays, `system_monitor` (`/system/status`, and on the car `/system/power` plus the black box: `workflows/power.md`); builds `vesc_msgs` so Foxglove can decode it |
-| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
+| `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `drive_status`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap`, `race_tracks` (data, also copied into `action`) | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
 | `action` | `action_bringup`, `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
@@ -91,8 +91,10 @@ VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sen
 RealSense D435i (USB)          -> realsense2_camera            -> /hal/imu (IMU=realsense)
 VESC /sensors/core             -> vesc_battery                 -> /hal/battery (3S 5000 mAh pack)
 /hal/scan + /hal/odom + map    -> particle_filter (rmgpu)      -> /hal/localization/odom, TF map->odom
-/joy                           -> joypad_node (gamepad_node)   -> /hal/drive/joystick, /hal/dead_man_switch
+/joy                           -> joypad_node (gamepad_node)   -> /hal/drive/joystick, /hal/dead_man_switch, /control/mode
 /hal/drive/*                   -> ackermann_mux                -> /hal/ackermann_cmd -> ackermann_to_vesc -> VESC
+                                                                  /control/active_input (which input is in control)
+/control/* + dead man + cmd    -> drive_status                 -> /control/status (the status panel)
 /global_planner/path + /hal/localization/odom + /hal/odom -> pure_pursuit -> /hal/drive/autonomy
 ```
 
@@ -101,7 +103,9 @@ Both packages are kept and can be switched on (`ekf:=true`, `ebrake:=true`); the
 e-brake slot at priority 100.
 
 Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeouts), in
-`interfacing_bringup/config/{car,sim}/mux.yaml`.
+`interfacing_bringup/config/{car,sim}/mux.yaml`. Gamepad buttons toggle: X = manual (wins), R1 =
+autonomy dead man; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has control in one word
+(`AUTONOMY`, `STOPPED`, `MANUAL`, `KEYBOARD`, `EBRAKE`, `NO_COMMAND`).
 
 ## TF tree
 

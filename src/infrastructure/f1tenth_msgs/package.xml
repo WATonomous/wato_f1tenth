@@ -3,7 +3,7 @@
 <package format="3">
   <name>f1tenth_msgs</name>
   <version>0.0.0</version>
-  <description>F1TENTH messages: system health, power and drive status</description>
+  <description>F1TENTH messages: system health, power and control status</description>
   <maintainer email="hello@watonomous.ca">WATonomous</maintainer>
   <license>Apache-2.0</license>
 

@@ -46,3 +46,8 @@
 # Computer health and pack power (system_monitor)
 /system/status
 /system/power
+
+# Who has control (drive_status, ackermann_mux, gamepad)
+/control/status
+/control/active_input
+/control/mode
