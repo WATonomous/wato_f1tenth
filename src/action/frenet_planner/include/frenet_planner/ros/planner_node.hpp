@@ -1,5 +1,36 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_ROS_PLANNER_NODE_HPP
 #define FRENET_PLANNER_ROS_PLANNER_NODE_HPP
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include <wato_msgs/msg/reference_track.hpp>
 
 #include "frenet_planner/curves/frenet_connection_generator.hpp"
 #include "frenet_planner/maneuvers/maneuver_builder.hpp"
@@ -9,22 +40,6 @@
 #include "frenet_planner/ros/planner_diagnostics.hpp"
 #include "frenet_planner/ros/planner_visualization.hpp"
 #include "frenet_planner/state/racing_state_machine.hpp"
-
-#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
-#include <wato_msgs/msg/reference_track.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/bool.hpp>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
-#include <visualization_msgs/msg/marker_array.hpp>
-
-#include <memory>
-#include <optional>
-#include <string>
-#include <cstdint>
 
 namespace frenet_planner
 {
@@ -79,11 +94,8 @@ private:
   NodeConfig loadConfig();
   void planningCycle();
   std::optional<Odometry> odometryInMap();
-  bool transformPathToControllerFrame(
-    const nav_msgs::msg::Path & map_path,
-    nav_msgs::msg::Path & controller_path);
-  void publishAllCandidates(
-    const BoundaryState & ego, const TacticalState & state, const rclcpp::Time & stamp);
+  bool transformPathToControllerFrame(const nav_msgs::msg::Path & map_path, nav_msgs::msg::Path & controller_path);
+  void publishAllCandidates(const BoundaryState & ego, const TacticalState & state, const rclcpp::Time & stamp);
   void publishUnavailable(const rclcpp::Time & cycle_stamp);
   void publishDecision(const PlannerDecisionData & data);
   void publishOvertakeReady(bool ready);
@@ -123,12 +135,9 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr overtake_ready_pub_;
   rclcpp::Publisher<msg::PlannerDecision>::SharedPtr decision_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr visualization_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-    track_bounds_visualization_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-    projection_visualization_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-    all_candidates_visualization_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr track_bounds_visualization_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr projection_visualization_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr all_candidates_visualization_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

@@ -1,5 +1,16 @@
-#include "frenet_planner/ros/planner_visualization.hpp"
-#include "frenet_planner/core/geometry.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 
@@ -13,7 +24,11 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/ros/planner_visualization.hpp"
 
 namespace frenet_planner
 {
@@ -21,7 +36,7 @@ namespace
 {
 
 using MarkerArray = visualization_msgs::msg::MarkerArray;
-using namespace std::chrono_literals;
+using namespace std::chrono_literals;  // NOLINT(build/namespaces)
 
 std::vector<Point> circleLine(double radius, int count)
 {
@@ -37,18 +52,15 @@ class MarkerReceiver
 {
 public:
   explicit MarkerReceiver(const std::string & name)
-  : node_(std::make_shared<rclcpp::Node>(name)),
-    publisher_(node_->create_publisher<MarkerArray>(name + "/markers", 10)),
-    subscription_(node_->create_subscription<MarkerArray>(
-        name + "/markers", 10,
-        [this](MarkerArray::SharedPtr message) {last_ = std::move(message);})),
-    executor_()
+  : node_(std::make_shared<rclcpp::Node>(name))
+  , publisher_(node_->create_publisher<MarkerArray>(name + "/markers", 10))
+  , subscription_(node_->create_subscription<MarkerArray>(
+      name + "/markers", 10, [this](MarkerArray::SharedPtr message) { last_ = std::move(message); }))
+  , executor_()
   {
     executor_.add_node(node_);
     const auto deadline = std::chrono::steady_clock::now() + 2s;
-    while (publisher_->get_subscription_count() == 0 &&
-      std::chrono::steady_clock::now() < deadline)
-    {
+    while (publisher_->get_subscription_count() == 0 && std::chrono::steady_clock::now() < deadline) {
       executor_.spin_some();
       std::this_thread::sleep_for(10ms);
     }
@@ -57,8 +69,15 @@ public:
     }
   }
 
-  PlannerVisualization::MarkerPublisher & publisher() {return *publisher_;}
-  rclcpp::Time now() const {return node_->now();}
+  PlannerVisualization::MarkerPublisher & publisher()
+  {
+    return *publisher_;
+  }
+
+  rclcpp::Time now() const
+  {
+    return node_->now();
+  }
 
   MarkerArray::SharedPtr take()
   {
@@ -161,8 +180,7 @@ TEST_F(PlannerVisualizationTest, BrakingArcsDrawByOutcomeAndCarryASpeedGradient)
     EvaluatedCandidate evaluated;
     evaluated.candidate_index = arc;
     evaluated.source = CandidateSource::BRAKING;
-    evaluated.collision.status = arc == 0 ?
-      CollisionStatus::COLLISION : CollisionStatus::FREE;
+    evaluated.collision.status = arc == 0 ? CollisionStatus::COLLISION : CollisionStatus::FREE;
     result.evaluated.push_back(evaluated);
   }
   result.selected_index = 1;
@@ -175,10 +193,9 @@ TEST_F(PlannerVisualizationTest, BrakingArcsDrawByOutcomeAndCarryASpeedGradient)
   ASSERT_NE(message, nullptr);
 
   const auto find = [&message](const std::string & ns) {
-      return std::find_if(
-        message->markers.begin(), message->markers.end(),
-        [&ns](const auto & marker) {return marker.ns == ns;});
-    };
+    return std::find_if(
+      message->markers.begin(), message->markers.end(), [&ns](const auto & marker) { return marker.ns == ns; });
+  };
   const auto arcs = find("braking_paths");
   ASSERT_NE(arcs, message->markers.end());
   // The rejected arc is drawn too, in red, so an unavailable cycle is readable.

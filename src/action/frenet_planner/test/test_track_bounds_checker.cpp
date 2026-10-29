@@ -1,11 +1,25 @@
-#include "frenet_planner/collision/track_bounds_checker.hpp"
-#include "frenet_planner/core/geometry.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <limits>
 #include <vector>
+
+#include "frenet_planner/collision/track_bounds_checker.hpp"
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -23,9 +37,7 @@ std::vector<Point> circleLine(double radius, int count)
   return points;
 }
 
-OccupancyGrid makeGrid(
-  int width, int height, double resolution, double origin_x, double origin_y,
-  int8_t fill)
+OccupancyGrid makeGrid(int width, int height, double resolution, double origin_x, double origin_y, int8_t fill)
 {
   OccupancyGrid grid;
   grid.width = width;
@@ -41,8 +53,7 @@ OccupancyGrid coveringGrid(int8_t fill)
   return makeGrid(400, 400, 0.20, -40.0, -40.0, fill);
 }
 
-std::vector<TrackWidth> uniformWidths(
-  const RacelineReference & reference, double right, double left)
+std::vector<TrackWidth> uniformWidths(const RacelineReference & reference, double right, double left)
 {
   return std::vector<TrackWidth>(reference.waypointCount(), TrackWidth{right, left});
 }
@@ -60,8 +71,7 @@ CurveSample offsetSample(const RacelineReference & reference, double s, double d
 }
 
 std::vector<CurveSample> offsetPath(
-  const RacelineReference & reference, double s0, double s1, double d,
-  double ds = 0.20)
+  const RacelineReference & reference, double s0, double s1, double d, double ds = 0.20)
 {
   std::vector<CurveSample> path;
   for (double s = s0; s <= s1 + 1e-9; s += ds) {
@@ -71,9 +81,7 @@ std::vector<CurveSample> offsetPath(
   return path;
 }
 
-void stampFootprint(
-  OccupancyGrid & grid, const CurveSample & sample, const VehicleGeometry & vehicle,
-  int8_t value)
+void stampFootprint(OccupancyGrid & grid, const CurveSample & sample, const VehicleGeometry & vehicle, int8_t value)
 {
   const Point centers[] = {
     Point(sample.x, sample.y),
@@ -82,10 +90,8 @@ void stampFootprint(
       sample.y + vehicle.front_circle_offset_m * std::sin(sample.heading)),
   };
   for (const Point & p : centers) {
-    const int col = static_cast<int>(
-      std::floor((p.x - grid.origin.x) / grid.resolution));
-    const int row = static_cast<int>(
-      std::floor((p.y - grid.origin.y) / grid.resolution));
+    const int col = static_cast<int>(std::floor((p.x - grid.origin.x) / grid.resolution));
+    const int row = static_cast<int>(std::floor((p.y - grid.origin.y) / grid.resolution));
     if (col < 0 || col >= grid.width || row < 0 || row >= grid.height) {
       continue;
     }
@@ -100,8 +106,7 @@ TEST(TrackBoundsChecker, MissingWidthsAreOk)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const TrackBoundsChecker checker(reference, VehicleGeometry{});
-  const auto result = checker.check(
-    offsetPath(reference, 2.0, 4.0, 0.75), coveringGrid(-1));
+  const auto result = checker.check(offsetPath(reference, 2.0, 4.0, 0.75), coveringGrid(-1));
   EXPECT_TRUE(result.ok);
 }
 
@@ -110,12 +115,10 @@ TEST(TrackBoundsChecker, UnknownWideOffsetIsRejected)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
-  const auto result = checker.check(
-    offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(-1));
+  const auto result = checker.check(offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(-1));
   EXPECT_FALSE(result.ok);
 }
 
@@ -124,12 +127,10 @@ TEST(TrackBoundsChecker, KnownFreeSkipsWidth)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
-  const auto result = checker.check(
-    offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(0));
+  const auto result = checker.check(offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(0));
   EXPECT_TRUE(result.ok);
 }
 
@@ -138,12 +139,10 @@ TEST(TrackBoundsChecker, KnownOccupiedSkipsWidth)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
-  const auto result = checker.check(
-    offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(100));
+  const auto result = checker.check(offsetPath(reference, 2.0, 4.0, 0.55), coveringGrid(100));
   EXPECT_TRUE(result.ok);
 }
 
@@ -152,8 +151,7 @@ TEST(TrackBoundsChecker, OutOfGridUsesWidth)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto ego = reference.sampleAtS(2.0);
@@ -167,12 +165,10 @@ TEST(TrackBoundsChecker, UnknownOnRacelineStaysInsideBounds)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.0, 0.0), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.0, 0.0), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
-  const auto result = checker.check(
-    offsetPath(reference, 2.0, 4.0, 0.0), coveringGrid(-1));
+  const auto result = checker.check(offsetPath(reference, 2.0, 4.0, 0.0), coveringGrid(-1));
   EXPECT_TRUE(result.ok);
 }
 
@@ -181,8 +177,7 @@ TEST(TrackBoundsChecker, KnownPrefixThenUnknownSuffixChecksTheUnseen)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(circleLine(30.0, 240)));
   const VehicleGeometry vehicle;
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.40, 0.40), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.40, 0.40), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   const auto known = offsetPath(reference, 2.0, 3.0, 0.55);
@@ -211,8 +206,7 @@ TEST(TrackBoundsChecker, TrustsTheSamplesOwnStationAndOffset)
   const VehicleGeometry vehicle;
   // Asymmetric bounds, so reading d with the wrong sign would pick the wrong
   // cap and the test would notice.
-  ASSERT_TRUE(reference.setTrackWidths(
-      uniformWidths(reference, 0.20, 0.90), 0.10));
+  ASSERT_TRUE(reference.setTrackWidths(uniformWidths(reference, 0.20, 0.90), 0.10));
   const TrackBoundsChecker checker(reference, vehicle);
 
   // 0.55 to the left is inside the 0.90 left bound.

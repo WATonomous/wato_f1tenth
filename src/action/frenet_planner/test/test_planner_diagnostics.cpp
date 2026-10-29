@@ -1,4 +1,16 @@
-#include "frenet_planner/ros/planner_diagnostics.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 #include <rcutils/logging.h>
@@ -8,7 +20,10 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include "frenet_planner/ros/planner_diagnostics.hpp"
 
 namespace frenet_planner
 {
@@ -40,12 +55,14 @@ public:
     return result;
   }
 
-  const std::vector<std::string> & messages() const {return messages_;}
+  const std::vector<std::string> & messages() const
+  {
+    return messages_;
+  }
 
 private:
   static void handle(
-    const rcutils_log_location_t *, int, const char *, rcutils_time_point_value_t,
-    const char * format, va_list * args)
+    const rcutils_log_location_t *, int, const char *, rcutils_time_point_value_t, const char * format, va_list * args)
   {
     if (active_ == nullptr) {
       return;
@@ -102,12 +119,12 @@ TEST(PlannerDiagnostics, LogsOnlyEdgeTriggeredControllerVisibleTransitions)
   PlannerDecisionData decision;
   decision.terminal_d_m = 0.3;
   const auto record = [&](bool path_published, bool steering_fresh) {
-      CycleProfile sample;
-      sample.outcome.decision = decision;
-      sample.outcome.path_published = path_published;
-      sample.outcome.steering_fresh = steering_fresh;
-      diagnostics.recordCycle(std::move(sample));
-    };
+    CycleProfile sample;
+    sample.outcome.decision = decision;
+    sample.outcome.path_published = path_published;
+    sample.outcome.steering_fresh = steering_fresh;
+    diagnostics.recordCycle(std::move(sample));
+  };
   record(false, false);
   EXPECT_EQ(capture.count("LOCAL_PLANNER_EVENT"), 0U);
 

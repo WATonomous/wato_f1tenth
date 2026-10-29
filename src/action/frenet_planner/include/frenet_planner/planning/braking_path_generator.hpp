@@ -1,11 +1,25 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_PLANNING_BRAKING_PATH_GENERATOR_HPP
 #define FRENET_PLANNER_PLANNING_BRAKING_PATH_GENERATOR_HPP
+
+#include <vector>
 
 #include "frenet_planner/core/types.hpp"
 #include "frenet_planner/maneuvers/maneuver_builder.hpp"
 #include "frenet_planner/reference/raceline_reference.hpp"
-
-#include <vector>
 
 namespace frenet_planner
 {
@@ -14,13 +28,13 @@ struct BrakingConfig
 {
   double horizon_m = 4.0;
   double sample_spacing_m = 0.1;
-  double decel_mps2 = 5.0;           // may exceed nominal profile decel
-  double min_velocity_mps = 1.0;     // floor; stopped car cannot steer back
+  double decel_mps2 = 5.0;  // may exceed nominal profile decel
+  double min_velocity_mps = 1.0;  // floor; stopped car cannot steer back
   double friction_coeff = 1.0;
   double max_steering_angle_rad = 0.52;
   double wheelbase_m = 0.33;
   std::vector<double> pursuit_lookaheads_m{1.0, 2.0, 3.0};  // reference carrot distance
-  std::vector<double> effort_levels{1.0, 0.5, 0.25, 0.0};   // turn budget fraction; 0 = straight brake
+  std::vector<double> effort_levels{1.0, 0.5, 0.25, 0.0};  // turn budget fraction; 0 = straight brake
 
   double allowedCurvature(double v) const;  // min(steering, friction); grows as v falls
 };
@@ -37,17 +51,18 @@ class BrakingPathGenerator
 public:
   BrakingPathGenerator(const RacelineReference & reference, BrakingConfig config);
 
-  std::vector<ManeuverCandidate> generate(
-    const BoundaryState & ego, double ego_s, double ego_d) const;
+  std::vector<ManeuverCandidate> generate(const BoundaryState & ego, double ego_s, double ego_d) const;
 
   std::vector<BrakingArcParams> arcParams() const;
 
-  const BrakingConfig & config() const {return config_;}
+  const BrakingConfig & config() const
+  {
+    return config_;
+  }
 
 private:
   ManeuverCandidate integrate(
-    const BoundaryState & ego, double ego_s, double ego_d,
-    const BrakingArcParams & params) const;
+    const BoundaryState & ego, double ego_s, double ego_d, const BrakingArcParams & params) const;
 
   const RacelineReference & reference_;
   BrakingConfig config_;

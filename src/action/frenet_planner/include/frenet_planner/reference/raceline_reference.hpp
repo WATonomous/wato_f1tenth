@@ -1,27 +1,41 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_REFERENCE_RACELINE_REFERENCE_HPP
 #define FRENET_PLANNER_REFERENCE_RACELINE_REFERENCE_HPP
 
-#include "frenet_planner/core/types.hpp"
-
 #include <cstddef>
 #include <vector>
+
+#include "frenet_planner/core/types.hpp"
 
 namespace frenet_planner
 {
 
 struct ProjectionConfig
 {
-  double seed_window_m = 2.0;           // +/- arc length around seed; keep >> max seed step
-  double tangent_tolerance_rad = 1.2;   // reject wrong loop branch by heading
+  double seed_window_m = 2.0;  // +/- arc length around seed; keep >> max seed step
+  double tangent_tolerance_rad = 1.2;  // reject wrong loop branch by heading
   double max_plausible_offset_m = 3.0;  // stale seed if nearest foot farther than this
 };
 
 struct Projection
 {
   double s = 0.0;
-  double d = 0.0;   // signed lateral offset, positive left
+  double d = 0.0;  // signed lateral offset, positive left
 
-  bool seed_was_stale = false;         // fell back to full-loop search
+  bool seed_was_stale = false;  // fell back to full-loop search
   bool heading_check_relaxed = false;  // tangent tolerance was widened
 };
 
@@ -48,21 +62,47 @@ class RacelineReference
 {
 public:
   bool setRacingLine(const std::vector<Point> & points);
-  void setProjectionConfig(const ProjectionConfig & config) {projection_config_ = config;}
-  const ProjectionConfig & projectionConfig() const {return projection_config_;}
 
-  bool valid() const {return valid_;}
-  double totalLength() const {return total_length_m_;}
-  std::size_t waypointCount() const {return points_.size();}
+  void setProjectionConfig(const ProjectionConfig & config)
+  {
+    projection_config_ = config;
+  }
 
-  bool setTrackWidths(
-    const std::vector<TrackWidth> & widths,
-    double spacing_m);
+  const ProjectionConfig & projectionConfig() const
+  {
+    return projection_config_;
+  }
+
+  bool valid() const
+  {
+    return valid_;
+  }
+
+  double totalLength() const
+  {
+    return total_length_m_;
+  }
+
+  std::size_t waypointCount() const
+  {
+    return points_.size();
+  }
+
+  bool setTrackWidths(const std::vector<TrackWidth> & widths, double spacing_m);
   void clearTrackWidths();
-  bool trackWidthsValid() const {return track_widths_valid_;}
+
+  bool trackWidthsValid() const
+  {
+    return track_widths_valid_;
+  }
+
   SustainableBounds rawBounds(double s) const;
   WidthLookupSample widthSample(std::size_t index) const;
-  std::size_t widthSampleCount() const {return raw_left_m_.size();}
+
+  std::size_t widthSampleCount() const
+  {
+    return raw_left_m_.size();
+  }
 
   ReferenceGeometrySample sampleAtS(double s) const;
   double velocityAtS(double s) const;
@@ -79,10 +119,10 @@ private:
   struct SplineSegment
   {
     // Cubic in t = s - segment_start, valid over t in [0, length].
-    double a = 0.0;   // value at t = 0
-    double b = 0.0;   // first derivative at t = 0
-    double c = 0.0;   // second derivative at t = 0, halved
-    double d = 0.0;   // third derivative, sixthed
+    double a = 0.0;  // value at t = 0
+    double b = 0.0;  // first derivative at t = 0
+    double c = 0.0;  // second derivative at t = 0, halved
+    double d = 0.0;  // third derivative, sixthed
   };
 
   std::size_t segmentAt(double s_wrapped, double & t) const;
@@ -105,11 +145,7 @@ private:
     bool & found,
     double & best_dist_sq) const;
 
-  Projection searchAllSegments(
-    const Point & p,
-    double heading,
-    double tolerance_rad,
-    bool & found) const;
+  Projection searchAllSegments(const Point & p, double heading, double tolerance_rad, bool & found) const;
 
   double refineOnSegment(const Point & p, std::size_t segment, double t_initial) const;
 
@@ -129,6 +165,6 @@ private:
   std::vector<double> raw_left_m_;
 };
 
-} // namespace frenet_planner
+}  // namespace frenet_planner
 
-#endif // FRENET_PLANNER_REFERENCE_RACELINE_REFERENCE_HPP
+#endif  // FRENET_PLANNER_REFERENCE_RACELINE_REFERENCE_HPP

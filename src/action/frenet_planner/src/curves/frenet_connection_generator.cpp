@@ -1,9 +1,24 @@
-#include "frenet_planner/curves/frenet_connection_generator.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/curves/frenet_connection_generator.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -28,7 +43,7 @@ double FrenetConnectionConfig::allowedCurvature(double v) const
   return std::min(max_curvature_inv_m, friction_coeff * kGravityMps2 / (v * v));
 }
 
-//convert frenet to cartesian path
+// convert frenet to cartesian path
 FrenetConnectionResult FrenetConnectionGenerator::generate(
   const ReferenceWindow & window,
   std::size_t i_start,
@@ -37,9 +52,7 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
   std::vector<CurveSample> & path,
   double speed_mps) const
 {
-  if (!window.valid() || i_end <= i_start || i_end >= window.size() ||
-    !(polynomial.delta_s > kEpsilon))
-  {
+  if (!window.valid() || i_end <= i_start || i_end >= window.size() || !(polynomial.delta_s > kEpsilon)) {
     return rejected(RejectReason::CHART_SINGULAR);
   }
 
@@ -55,9 +68,9 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
   const double max_curvature = config_.allowedCurvature(speed_mps);
 
   const auto reject = [&](RejectReason reason) {
-      path.resize(restore_to);
-      return rejected(reason);
-    };
+    path.resize(restore_to);
+    return rejected(reason);
+  };
 
   // Trapezoidal accumulation of the exact differential
   // ds_path = sqrt(A^2 + d'^2) ds_ref
@@ -71,8 +84,7 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
 
     const double d = polynomial.evaluate(t);
     const double d_prime = polynomial.evaluateDerivative(t) * inverse_delta_s;
-    const double d_double_prime =
-      polynomial.evaluateSecondDerivative(t) * inverse_delta_s_sq;
+    const double d_double_prime = polynomial.evaluateSecondDerivative(t) * inverse_delta_s_sq;
 
     const double tangent_scale = 1.0 - reference.curvature * d;
     if (!(tangent_scale > kEpsilon) || !std::isfinite(tangent_scale)) {
@@ -85,12 +97,10 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
     }
 
     const double normal_term = reference.curvature * tangent_scale + d_double_prime;
-    const double tangential_term =
-      -reference.curvature_derivative * d - 2.0 * reference.curvature * d_prime;
+    const double tangential_term = -reference.curvature_derivative * d - 2.0 * reference.curvature * d_prime;
     const double norm_sq = tangent_scale * tangent_scale + d_prime * d_prime;
     const double speed_factor = std::sqrt(norm_sq);
-    const double curvature =
-      (tangent_scale * normal_term - d_prime * tangential_term) / (norm_sq * speed_factor);
+    const double curvature = (tangent_scale * normal_term - d_prime * tangential_term) / (norm_sq * speed_factor);
     if (!std::isfinite(curvature) || std::abs(curvature) > max_curvature) {
       return reject(RejectReason::CURVATURE_LIMIT);
     }
@@ -113,8 +123,9 @@ FrenetConnectionResult FrenetConnectionGenerator::generate(
     sample.speed = 0.0;
     sample.raceline_s = reference.s_wrapped;
     sample.d = d;
-    if (!std::isfinite(sample.x) || !std::isfinite(sample.y) ||
-      !std::isfinite(sample.heading) || !std::isfinite(sample.s))
+    if (
+      !std::isfinite(sample.x) || !std::isfinite(sample.y) || !std::isfinite(sample.heading) ||
+      !std::isfinite(sample.s))
     {
       return reject(RejectReason::CHART_SINGULAR);
     }

@@ -1,8 +1,18 @@
-#include "frenet_planner/planning/local_planner.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/scoped_timer.hpp"
-#include "frenet_planner/speed/velocity_profile.hpp"
-#include "worker_pool.hpp"
+#include "frenet_planner/planning/local_planner.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -11,6 +21,10 @@
 #include <limits>
 #include <tuple>
 #include <vector>
+
+#include "frenet_planner/core/scoped_timer.hpp"
+#include "frenet_planner/speed/velocity_profile.hpp"
+#include "worker_pool.hpp"  // NOLINT(build/include_subdir)
 
 namespace frenet_planner
 {
@@ -23,8 +37,7 @@ PublishedPathChoice choosePublishedPath(
   double path_min_hold_s,
   double path_max_hold_s)
 {
-  const bool held_usable = held_available && held_collision_usable && hold_age_s >= 0.0 &&
-    hold_age_s < path_max_hold_s;
+  const bool held_usable = held_available && held_collision_usable && hold_age_s >= 0.0 && hold_age_s < path_max_hold_s;
   if (planned_mode == ExecutedMode::HELD_PATH) {
     return held_usable ? PublishedPathChoice::HELD : PublishedPathChoice::NONE;
   }
@@ -34,9 +47,7 @@ PublishedPathChoice choosePublishedPath(
     }
     return selected_available ? PublishedPathChoice::SELECTED : PublishedPathChoice::NONE;
   }
-  if (planned_mode == ExecutedMode::BRAKING_FALLBACK ||
-    planned_mode == ExecutedMode::BRAKING_UNAVAILABLE)
-  {
+  if (planned_mode == ExecutedMode::BRAKING_FALLBACK || planned_mode == ExecutedMode::BRAKING_UNAVAILABLE) {
     return selected_available ? PublishedPathChoice::SELECTED : PublishedPathChoice::NONE;
   }
   return PublishedPathChoice::NONE;
@@ -44,15 +55,11 @@ PublishedPathChoice choosePublishedPath(
 
 namespace
 {
-void appendCandidates(
-  LocalPlanResult & result,
-  std::vector<ManeuverCandidate> candidates,
-  CandidateSource source)
+void appendCandidates(LocalPlanResult & result, std::vector<ManeuverCandidate> candidates, CandidateSource source)
 {
   const int first = static_cast<int>(result.pool.size());
-  result.pool.insert(result.pool.end(),
-    std::make_move_iterator(candidates.begin()),
-    std::make_move_iterator(candidates.end()));
+  result.pool.insert(
+    result.pool.end(), std::make_move_iterator(candidates.begin()), std::make_move_iterator(candidates.end()));
   for (int i = first; i < static_cast<int>(result.pool.size()); ++i) {
     EvaluatedCandidate evaluated;
     evaluated.candidate_index = i;
@@ -61,25 +68,29 @@ void appendCandidates(
   }
 }
 
-void fillSelectedMetrics(
-  LocalPlanResult & result)
+void fillSelectedMetrics(LocalPlanResult & result)
 {
-  if (result.selected_index < 0) {return;}
+  if (result.selected_index < 0) {
+    return;
+  }
   const auto & candidate = result.pool.at(static_cast<std::size_t>(result.selected_index));
-  const auto eval = std::find_if(result.evaluated.begin(), result.evaluated.end(),
-      [&result](const auto & item) {return item.candidate_index == result.selected_index;});
+  const auto eval = std::find_if(result.evaluated.begin(), result.evaluated.end(), [&result](const auto & item) {
+    return item.candidate_index == result.selected_index;
+  });
   if (eval != result.evaluated.end()) {
     result.decision.clearance_class = eval->collision.status;
     result.decision.minimum_clearance_m = eval->collision.minimum_clearance_m;
     result.decision.candidate_source = eval->source;
   }
-  if (candidate.path.empty()) {return;}
+  if (candidate.path.empty()) {
+    return;
+  }
   result.decision.selected_offset_tail = candidate.uses_offset_tail;
   result.decision.selected_max_abs_d_m = candidate.max_abs_d_m;
   result.decision.min_speed_mps = std::numeric_limits<double>::infinity();
   for (const auto & sample : candidate.path) {
-    result.decision.max_abs_curvature_inv_m = std::max(
-      result.decision.max_abs_curvature_inv_m, std::abs(sample.curvature));
+    result.decision.max_abs_curvature_inv_m =
+      std::max(result.decision.max_abs_curvature_inv_m, std::abs(sample.curvature));
     result.decision.min_speed_mps = std::min(result.decision.min_speed_mps, sample.speed);
     result.decision.max_speed_mps = std::max(result.decision.max_speed_mps, sample.speed);
   }
@@ -95,14 +106,15 @@ LocalPlanner::LocalPlanner(
   CollisionConfig collision_config,
   VelocityProfileConfig velocity_config,
   BrakingConfig braking_config)
-: reference_(reference), builder_(builder), vehicle_geometry_(vehicle_geometry),
-  velocity_config_(velocity_config),
-  collision_checker_(vehicle_geometry_, grid_policy, collision_config),
-  track_bounds_checker_(reference_, vehicle_geometry_),
-  braking_generator_(reference_, braking_config),
-  selector_(collision_config.soft_inflation_distance_m)
-{
-}
+: reference_(reference)
+, builder_(builder)
+, vehicle_geometry_(vehicle_geometry)
+, velocity_config_(velocity_config)
+, collision_checker_(vehicle_geometry_, grid_policy, collision_config)
+, track_bounds_checker_(reference_, vehicle_geometry_)
+, braking_generator_(reference_, braking_config)
+, selector_(collision_config.soft_inflation_distance_m)
+{}
 
 void LocalPlanner::buildGridCache(OccupancyGrid & grid) const
 {
@@ -110,10 +122,7 @@ void LocalPlanner::buildGridCache(OccupancyGrid & grid) const
 }
 
 LocalPlanResult LocalPlanner::plan(
-  const TacticalState & state,
-  const BoundaryState & ego,
-  const OccupancyGrid & grid,
-  bool held_path_usable) const
+  const TacticalState & state, const BoundaryState & ego, const OccupancyGrid & grid, bool held_path_usable) const
 {
   LocalPlanResult result;
   const ScopedTimer cycle_timer{result.decision.cycle_time_ms};
@@ -129,7 +138,8 @@ LocalPlanResult LocalPlanner::plan(
   result.decision.costmap_sequence = state.costmap_sequence;
   result.decision.costmap_stamp_s = state.costmap_stamp_s;
   result.decision.opponent_observation_sequence = state.opponent_observation_sequence;
-  if (state.intent == PlannerIntent::PASS &&
+  if (
+    state.intent == PlannerIntent::PASS &&
     state.committed_transition_reason == TransitionReason::OPPONENT_CLEARANCE_LOST)
   {
     result.decision.recovery_reason = RecoveryReason::OPPONENT_CLEARANCE_LOST;
@@ -154,26 +164,18 @@ LocalPlanResult LocalPlanner::plan(
     return result;
   }
 
-  auto appendGenerated = [&](CandidateSource source, auto generator) {
-      appendCandidates(result, generator(), source);
-    };
+  auto appendGenerated = [&](CandidateSource source, auto generator) { appendCandidates(result, generator(), source); };
 
   if (!result.decision.track_bounds_ready) {
     // FOLLOW remains available through the global raceline consumer. Local
     // maneuvers require the matching, index-aligned width message.
   } else if (state.intent == PlannerIntent::OVERTAKE) {
-    appendGenerated(CandidateSource::OVERTAKE, [&]() {
-        return builder_.overtake(
-          ego, state.ego_s, state.ego_d, state.opponent.s);
-    });
+    appendGenerated(
+      CandidateSource::OVERTAKE, [&]() { return builder_.overtake(ego, state.ego_s, state.ego_d, state.opponent.s); });
   } else if (state.intent == PlannerIntent::PASS) {
-    appendGenerated(CandidateSource::PASS_PREFERRED, [&]() {
-        return builder_.pass(ego, state.ego_s, state.ego_d);
-    });
+    appendGenerated(CandidateSource::PASS_PREFERRED, [&]() { return builder_.pass(ego, state.ego_s, state.ego_d); });
   } else {
-    appendGenerated(CandidateSource::MERGE, [&]() {
-        return builder_.merge(ego, state.ego_s, state.ego_d);
-    });
+    appendGenerated(CandidateSource::MERGE, [&]() { return builder_.merge(ego, state.ego_s, state.ego_d); });
   }
 
   evaluateFrom(result, 0, state.intent, grid, ego, state.ego_s);
@@ -181,13 +183,9 @@ LocalPlanResult LocalPlanner::plan(
   if (state.intent == PlannerIntent::PASS) {
     tryPassFamily(result, 0, ego, state.ego_s, state.ego_d, grid);
   }
-  if (state.intent == PlannerIntent::PASS &&
-    state.proposed_intent == PlannerIntent::MERGE)
-  {
+  if (state.intent == PlannerIntent::PASS && state.proposed_intent == PlannerIntent::MERGE) {
     const std::size_t first = result.evaluated.size();
-    appendGenerated(CandidateSource::MERGE_PROBE, [&]() {
-        return builder_.merge(ego, state.ego_s, state.ego_d);
-    });
+    appendGenerated(CandidateSource::MERGE_PROBE, [&]() { return builder_.merge(ego, state.ego_s, state.ego_d); });
     evaluateFrom(result, first, PlannerIntent::MERGE, grid, ego, state.ego_s);
     std::vector<EvaluatedCandidate> probes(
       result.evaluated.begin() + static_cast<std::ptrdiff_t>(first), result.evaluated.end());
@@ -205,7 +203,9 @@ LocalPlanResult LocalPlanner::plan(
 
   std::vector<double> costs;
   for (const auto & evaluated : result.evaluated) {
-    if (evaluated.velocity_feasible) {costs.push_back(evaluated.traversal_time_s);}
+    if (evaluated.velocity_feasible) {
+      costs.push_back(evaluated.traversal_time_s);
+    }
   }
   if (!costs.empty()) {
     std::sort(costs.begin(), costs.end());
@@ -227,7 +227,8 @@ LocalPlanResult LocalPlanner::plan(
   }
 
   fillSelectedMetrics(result);
-  if (result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK ||
+  if (
+    result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK ||
     result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE)
   {
     result.decision.candidate_source = CandidateSource::BRAKING;
@@ -246,23 +247,24 @@ void LocalPlanner::evaluateFrom(
 {
   const std::size_t count = result.evaluated.size() - first;
   parallelFor(count, [&](std::size_t k) {
-      auto & evaluated = result.evaluated[first + k];
-      auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-      evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
-    });
+    auto & evaluated = result.evaluated[first + k];
+    auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+    evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+  });
 
   std::vector<TrackBoundsCheckResult> width_checks(count);
   parallelFor(count, [&](std::size_t k) {
-      auto & evaluated = result.evaluated[first + k];
-      if (evaluated.collision.status == CollisionStatus::COLLISION ||
-        evaluated.collision.status == CollisionStatus::OUT_OF_GRID)
-      {
-        return;
-      }
-      auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-      width_checks[k] = track_bounds_checker_.check(candidate.path, grid);
-      evaluated.track_bounds_ok = width_checks[k].ok;
-    });
+    auto & evaluated = result.evaluated[first + k];
+    if (
+      evaluated.collision.status == CollisionStatus::COLLISION ||
+      evaluated.collision.status == CollisionStatus::OUT_OF_GRID)
+    {
+      return;
+    }
+    auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+    width_checks[k] = track_bounds_checker_.check(candidate.path, grid);
+    evaluated.track_bounds_ok = width_checks[k].ok;
+  });
 
   const double terminal_s = reference_.wrapS(ego_s + builder_.config().horizon_m);
   for (std::size_t k = 0; k < count; ++k) {
@@ -280,8 +282,8 @@ void LocalPlanner::evaluateFrom(
       ++result.decision.track_bounds_rejected;
       continue;
     }
-    const auto velocity = assignVelocityProfile(
-      candidate.path, ego.speed, ego_s, terminal_s, profile_intent, reference_, velocity_config_);
+    const auto velocity =
+      assignVelocityProfile(candidate.path, ego.speed, ego_s, terminal_s, profile_intent, reference_, velocity_config_);
     evaluated.velocity_feasible = velocity.feasible;
     evaluated.traversal_time_s = velocity.traversal_time_s;
     if (!velocity.feasible) {
@@ -304,8 +306,7 @@ void LocalPlanner::tryPassFamily(
     result.evaluated.begin() + static_cast<std::ptrdiff_t>(first),
     result.evaluated.end(),
     [](const EvaluatedCandidate & item) {
-      return item.source == CandidateSource::PASS_PREFERRED &&
-             item.velocity_feasible &&
+      return item.source == CandidateSource::PASS_PREFERRED && item.velocity_feasible &&
              item.collision.status == CollisionStatus::FREE;
     });
   if (preferred_is_free) {
@@ -317,15 +318,10 @@ void LocalPlanner::tryPassFamily(
 }
 
 void LocalPlanner::selectBraking(
-  LocalPlanResult & result,
-  const BoundaryState & ego,
-  double ego_s,
-  double ego_d,
-  const OccupancyGrid & grid) const
+  LocalPlanResult & result, const BoundaryState & ego, double ego_s, double ego_d, const OccupancyGrid & grid) const
 {
   const std::size_t first = result.evaluated.size();
-  appendCandidates(
-    result, braking_generator_.generate(ego, ego_s, ego_d), CandidateSource::BRAKING);
+  appendCandidates(result, braking_generator_.generate(ego, ego_s, ego_d), CandidateSource::BRAKING);
   const std::size_t count = result.evaluated.size() - first;
   if (count == 0) {
     result.decision.executed_mode = ExecutedMode::BRAKING_UNAVAILABLE;
@@ -334,27 +330,32 @@ void LocalPlanner::selectBraking(
   }
 
   parallelFor(count, [&](std::size_t k) {
-      auto & evaluated = result.evaluated[first + k];
-      const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-      evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
-      evaluated.track_bounds_ok = track_bounds_checker_.check(candidate.path, grid).ok;
-      // Deliberately no assignVelocityProfile: braking owns its speeds
-    });
+    auto & evaluated = result.evaluated[first + k];
+    const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+    evaluated.collision = collision_checker_.collisionCheck(candidate.path, grid);
+    evaluated.track_bounds_ok = track_bounds_checker_.check(candidate.path, grid).ok;
+    // Deliberately no assignVelocityProfile: braking owns its speeds
+  });
 
-  // Only a seen obstacle disqualifies an arc. 
+  // Only a seen obstacle disqualifies an arc.
 
   const auto score = [&](std::size_t k) {
-      const auto & evaluated = result.evaluated[first + k];
-      const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
-      const bool free = evaluated.collision.status == CollisionStatus::FREE;
-      const bool usable = evaluated.collision.status != CollisionStatus::COLLISION;
-      return std::make_tuple(
-        usable, free, evaluated.track_bounds_ok,
-        evaluated.collision.minimum_clearance_m, -std::abs(candidate.terminal_d));
-    };
+    const auto & evaluated = result.evaluated[first + k];
+    const auto & candidate = result.pool.at(static_cast<std::size_t>(evaluated.candidate_index));
+    const bool free = evaluated.collision.status == CollisionStatus::FREE;
+    const bool usable = evaluated.collision.status != CollisionStatus::COLLISION;
+    return std::make_tuple(
+      usable,
+      free,
+      evaluated.track_bounds_ok,
+      evaluated.collision.minimum_clearance_m,
+      -std::abs(candidate.terminal_d));
+  };
   std::size_t best = 0;
   for (std::size_t k = 1; k < count; ++k) {
-    if (score(k) > score(best)) {best = k;}
+    if (score(k) > score(best)) {
+      best = k;
+    }
   }
 
   const auto & winner = result.evaluated[first + best];

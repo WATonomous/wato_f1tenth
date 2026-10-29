@@ -1,12 +1,26 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_MANEUVERS_MANEUVER_BUILDER_HPP
 #define FRENET_PLANNER_MANEUVERS_MANEUVER_BUILDER_HPP
+
+#include <vector>
 
 #include "frenet_planner/core/types.hpp"
 #include "frenet_planner/curves/frenet_connection_generator.hpp"
 #include "frenet_planner/reference/raceline_reference.hpp"
 #include "frenet_planner/reference/reference_window.hpp"
-
-#include <vector>
 
 namespace frenet_planner
 {
@@ -16,10 +30,10 @@ using Path = std::vector<CurveSample>;
 struct ManeuverCandidate
 {
   Path path;
-  double passing_d = 0.0;   // lateral offset at pass point (beside opponent)
-  double terminal_d = 0.0;    // lateral offset at horizon
+  double passing_d = 0.0;  // lateral offset at pass point (beside opponent)
+  double terminal_d = 0.0;  // lateral offset at horizon
   double maneuver_distance_m = 0.0;
-  double max_abs_d_m = 0.0;   // worst |d| along path; can exceed terminal_d
+  double max_abs_d_m = 0.0;  // worst |d| along path; can exceed terminal_d
   bool uses_offset_tail = true;  // diagnostic: path ends with constant-offset tail
 };
 
@@ -44,31 +58,23 @@ public:
     VehicleGeometry vehicle_geometry);
 
   std::vector<ManeuverCandidate> overtake(
-    const BoundaryState & ego,
-    double ego_s,
-    double ego_d,
-    double opponent_rear_s) const;
-  std::vector<ManeuverCandidate> pass(
-    const BoundaryState & ego, double ego_s, double ego_d) const;
-  std::vector<ManeuverCandidate> recover(
-    const BoundaryState & ego, double ego_s, double ego_d) const;
-  std::vector<ManeuverCandidate> merge(
-    const BoundaryState & ego, double ego_s, double ego_d) const;
-  const ManeuverConfig & config() const {return config_;}
+    const BoundaryState & ego, double ego_s, double ego_d, double opponent_rear_s) const;
+  std::vector<ManeuverCandidate> pass(const BoundaryState & ego, double ego_s, double ego_d) const;
+  std::vector<ManeuverCandidate> recover(const BoundaryState & ego, double ego_s, double ego_d) const;
+  std::vector<ManeuverCandidate> merge(const BoundaryState & ego, double ego_s, double ego_d) const;
+
+  const ManeuverConfig & config() const
+  {
+    return config_;
+  }
 
 private:
   bool prepareWindow(const BoundaryState & ego, double ego_s) const;  // per-cycle ref grid + plan speed
 
-  bool startBoundary(
-    const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & result) const;
-  bool boundary(
-    double s, double d, double heading_offset, FrenetBoundary & result) const;  // d'' = 0
-  bool connect(
-    Path & path, const FrenetBoundary & start, const FrenetBoundary & end,
-    double & max_abs_d) const;
-  bool appendOffsetTail(
-    Path & path, double start_s, double reference_distance_m, double d,
-    double & max_abs_d) const;
+  bool startBoundary(const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & result) const;
+  bool boundary(double s, double d, double heading_offset, FrenetBoundary & result) const;  // d'' = 0
+  bool connect(Path & path, const FrenetBoundary & start, const FrenetBoundary & end, double & max_abs_d) const;
+  bool appendOffsetTail(Path & path, double start_s, double reference_distance_m, double d, double & max_abs_d) const;
 
   bool staysOnSide(const Path & path, int side) const;
   std::vector<double> offsets(int side) const;
@@ -80,6 +86,7 @@ private:
     double d = 0.0;
     double heading_offset = 0.0;
   };
+
   struct ChainSpec
   {
     std::vector<Waypoint> waypoints;
@@ -94,8 +101,7 @@ private:
     double tail_d = 0.0;
   };
 
-  bool beginGeneration(
-    const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & start) const;
+  bool beginGeneration(const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & start) const;
   std::vector<ManeuverCandidate> sampleChains(
     const FrenetBoundary & start, const std::vector<ChainSpec> & chains) const;
 
@@ -103,10 +109,10 @@ private:
   const FrenetConnectionGenerator & curve_generator_;
   ManeuverConfig config_;
   VehicleGeometry vehicle_geometry_;
-  mutable ReferenceWindow window_;       // per-cycle cache; entry points stay const
+  mutable ReferenceWindow window_;  // per-cycle cache; entry points stay const
   mutable double plan_speed_mps_ = 0.0;
 };
 
-} // namespace frenet_planner
+}  // namespace frenet_planner
 
-#endif // FRENET_PLANNER_MANEUVERS_MANEUVER_BUILDER_HPP
+#endif  // FRENET_PLANNER_MANEUVERS_MANEUVER_BUILDER_HPP
