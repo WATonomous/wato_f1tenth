@@ -159,16 +159,17 @@ void CostmapNode::publish_costmap(const sensor_msgs::msg::LaserScan::SharedPtr &
     float range = scan->ranges[i];
     bool marks_obstacle = true;
 
-    // Positive infinity means the laser saw no obstacle within its range.
+    // No return: AutoDRIVE sends +inf, the car's Hokuyo sends 65.533 m (past range_max).
     // Trace the ray to range_max so that observed space is still marked free.
-    if (std::isinf(range) && range > 0.0f) {
+    if (range > scan->range_max) {
       range = scan->range_max;
       marks_obstacle = false;
     }
 
-    // if (!std::isfinite(range) || range < scan->range_min || range > scan->range_max) {
-    //   continue;
-    // }
+    // NaN, -inf and anything below range_min are errors, not hits (the Hokuyo sends 0.004 m)
+    if (std::isnan(range) || range < scan->range_min) {
+      continue;
+    }
 
     float angle = scan->angle_min + i * scan->angle_increment;
 
