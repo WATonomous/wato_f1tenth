@@ -25,6 +25,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 
 struct button_and_axis
 {
@@ -41,11 +42,13 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr gamepad_sub;
   rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackerman_pub;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr dead_man_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mode_pub_;
   rclcpp::TimerBase::SharedPtr watchdog_;
 
   // functions
   void gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg);
   void publishDeadMan(bool active);
+  void publishMode(const std::string & mode);
   void watchdogCallback();
   float trigger_maper(const float r2);
   float steering_mapper(const float ls);
@@ -62,6 +65,7 @@ private:
   bool was_armed_ = false;
   bool dead_man_ = false;
   bool autonomy_blocked_ = false;
+  std::string mode_;
   rclcpp::Time last_joy_{0, 0, RCL_ROS_TIME};
 
   // buttons

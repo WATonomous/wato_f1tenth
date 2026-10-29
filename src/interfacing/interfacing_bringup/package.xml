@@ -19,6 +19,7 @@
   <exec_depend>vesc_driver</exec_depend>
   <exec_depend>vesc_ackermann</exec_depend>
   <exec_depend>vesc_battery</exec_depend>
+  <exec_depend>drive_status</exec_depend>
   <exec_depend>urg_node</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>realsense2_description</exec_depend>

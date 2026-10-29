@@ -35,7 +35,13 @@ x-car-gpu: &car-gpu
     - ../docker/config/cyclonedds_car.xml:/opt/watonomous/cyclonedds_car.xml:ro
 
 services:
-  infrastructure_bringup: *car-dds
+  # system_monitor's black box (logs/blackbox/ in the repo, git-ignored): kept on the host so the
+  # last seconds before a power cut survive the container
+  infrastructure_bringup:
+    environment: *car-dds-env
+    volumes:
+      - ../docker/config/cyclonedds_car.xml:/opt/watonomous/cyclonedds_car.xml:ro
+      - ../logs/blackbox:/blackbox
   interfacing_bringup: *car-devices
   interfacing_bringup_dev: *car-devices
   world_modeling_bringup: *car-gpu

@@ -38,6 +38,10 @@
   <depend>vision_msgs</depend>
   <depend>ackermann_msgs</depend>
   <depend>vesc_msgs</depend>
+
+  <!-- system health and power: /system/status, /system/power -->
+  <exec_depend>system_monitor</exec_depend>
+  <depend>f1tenth_msgs</depend>
   <depend>global_planner</depend>
   <depend>realsense2_camera_msgs</depend>
   <depend>nav2_msgs</depend>

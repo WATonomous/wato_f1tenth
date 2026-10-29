@@ -38,6 +38,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 
 #include <list>
@@ -74,9 +75,15 @@ public:
 
   bool hasPriority(const VelocityTopicHandle & ackermann);
 
+  /// Name of the input that currently passes through (its key under "topics"), or "none"
+  std::string activeInput();
+
   void publishAckermann(const ackermann_msgs::msg::AckermannDriveStamped::ConstSharedPtr & msg);
 
   void updateDiagnostics();
+
+  /// Publish activeInput() on change (f1tenth: who has control, for the status panel)
+  void updateActiveInput();
 
 protected:
   typedef AckermannMuxDiagnostics diagnostics_type;
@@ -96,6 +103,10 @@ protected:
   std::shared_ptr<lock_topic_container> lock_hs_;
 
   rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr cmd_pub_;
+
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr active_pub_;
+  rclcpp::TimerBase::SharedPtr active_timer_;
+  std::string active_input_;
 
   ackermann_msgs::msg::AckermannDriveStamped last_cmd_;
 

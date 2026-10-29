@@ -1,0 +1,7 @@
+# system_monitor on a PC: computer health only. There is no VESC or power monitor, so no
+# /system/power and no black box.
+/**:
+  ros__parameters:
+    status_hz: 1.0
+    temperature_alarm_c: 90.0
+    blackbox_dir: ""

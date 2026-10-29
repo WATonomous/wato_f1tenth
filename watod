@@ -62,6 +62,7 @@ Commands
   build-base [cpu|gpu|jetson] Build the f1tenth base images locally (run before build)
   controller [pair|connect|status|forget]
                               Pair / reconnect a Bluetooth PS4 or PS5 pad (runs on the host)
+  blackbox [list|<file>]      Read the car's black box: the last seconds before a power cut
   down                        Stop ACTIVE_MODULES containers + infrastructure
   down <service>              Stop only the specified service(s)
   down all                    Stop all watod containers (all modules/profiles)
@@ -252,6 +253,11 @@ while [[ $# -gt 0 ]]; do
       "$MONO_DIR/watod_scripts/watod-controller.sh" "$@"
       exit $?
       ;;
+    blackbox)
+      shift
+      "$MONO_DIR/watod_scripts/watod-blackbox.sh" "$@"
+      exit $?
+      ;;
     -s|--setup-dev-env)
       shift
       "$MONO_DIR/watod_scripts/watod-setup-dev-env.sh" "$@"
@@ -312,6 +318,13 @@ COMPOSE_CMD=( "$@" )
 
 # Export WATCLOUD_MODE so watod-compose.sh and watod-test.sh can use it
 export WATCLOUD_MODE="${WATCLOUD_MODE:-false}"
+
+# No provenance attestations on locally built images. With them, every export gets a fresh
+# timestamp and so a new image ID, and each module's build starts FROM its source/deps images by
+# tag: a new ID re-ran every step after it, so a rebuild with nothing changed took as long as a cold
+# build (135 s vs 5 s for infrastructure, measured 2026-10-29). CI that publishes images (step 5)
+# can turn them back on with BUILDX_NO_DEFAULT_ATTESTATIONS=0.
+export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
 
 # f1tenth platform: car on a Jetson, sim anywhere else (PLATFORM in watod-config.local.sh wins).
 # Detected here, before ACTIVE_MODULES, because the module defaults depend on it.

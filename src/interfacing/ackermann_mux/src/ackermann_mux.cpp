@@ -101,6 +101,30 @@ void AckermannMux::init()
     DIAGNOSTICS_PERIOD, [this]() -> void {
       updateDiagnostics();
     });
+
+  /// f1tenth: which input has control, latched and sent on change. Checked every 100 ms rather than
+  /// per message, so it also turns to "none" when every input has gone quiet.
+  std::string active_topic;
+  this->get_parameter_or("active_input_topic", active_topic, std::string("/control/active_input"));
+  active_pub_ = this->create_publisher<std_msgs::msg::String>(
+    active_topic, rclcpp::QoS(1).transient_local().reliable());
+  active_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds(100), [this]() -> void {updateActiveInput();});
+}
+
+void AckermannMux::updateActiveInput()
+{
+  const auto active = activeInput();
+  if (active == active_input_) {
+    return;
+  }
+  active_input_ = active;
+  // Handle names keep their parameter prefix ("topics.joystick"): publish the input's own name
+  const auto name = active.substr(active.rfind('.') + 1);
+  RCLCPP_INFO(get_logger(), "in control: %s", name.c_str());
+  std_msgs::msg::String msg;
+  msg.data = name;
+  active_pub_->publish(msg);
 }
 
 void AckermannMux::updateDiagnostics()
@@ -169,10 +193,15 @@ int AckermannMux::getLockPriority()
 
 bool AckermannMux::hasPriority(const VelocityTopicHandle & ackermann)
 {
+  return ackermann.getName() == activeInput();
+}
+
+std::string AckermannMux::activeInput()
+{
   const auto lock_priority = getLockPriority();
 
   LockTopicHandle::priority_type priority = 0;
-  std::string velocity_name = "NULL";
+  std::string velocity_name = "none";
 
   /// max_element on the priority of velocity topic handles satisfying
   /// that is NOT masked by the lock priority:
@@ -186,7 +215,7 @@ bool AckermannMux::hasPriority(const VelocityTopicHandle & ackermann)
     }
   }
 
-  return ackermann.getName() == velocity_name;
+  return velocity_name;
 }
 
 }  // namespace ackermann_mux

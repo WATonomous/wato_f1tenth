@@ -29,6 +29,7 @@ JOYPAD::JOYPAD()
   this->declare_parameter<std::string>("gamepad_topic", "/hal/drive/joystick");
   this->declare_parameter<std::string>("joy_topic", "/joy");
   this->declare_parameter<std::string>("dead_man_topic", "/hal/dead_man_switch");
+  this->declare_parameter<std::string>("mode_topic", "/control/mode");
   this->declare_parameter<std::string>("my_frame_id", "base_link");
 
   this->declare_parameter<float>("max_speed", 22.88);
@@ -69,6 +70,10 @@ JOYPAD::JOYPAD()
 
   dead_man_pub_ =
     this->create_publisher<std_msgs::msg::Bool>(dead_man_topic, rclcpp::QoS(1).transient_local().reliable());
+  // MANUAL, AUTONOMY, BLOCKED, IDLE or NO_GAMEPAD, latched and sent on change (the status panel)
+  mode_pub_ = this->create_publisher<std_msgs::msg::String>(
+    this->get_parameter("mode_topic").as_string(), rclcpp::QoS(1).transient_local().reliable());
+  publishMode("NO_GAMEPAD");
 
   gamepad_sub = this->create_subscription<sensor_msgs::msg::Joy>(
     joy_topic, 20, std::bind(&JOYPAD::gamepadCallback, this, std::placeholders::_1));
@@ -90,8 +95,22 @@ void JOYPAD::publishDeadMan(bool active)
   dead_man_ = active;
 }
 
+void JOYPAD::publishMode(const std::string & mode)
+{
+  if (mode == mode_) {
+    return;
+  }
+  mode_ = mode;
+  std_msgs::msg::String msg;
+  msg.data = mode;
+  mode_pub_->publish(msg);
+}
+
 void JOYPAD::watchdogCallback()
 {
+  if (last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() > joy_timeout_s) {
+    publishMode("NO_GAMEPAD");
+  }
   if (dead_man_ && last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() > joy_timeout_s) {
     RCLCPP_WARN(
       this->get_logger(), "no %s for %.1f s: releasing the dead man switch", joy_topic.c_str(), joy_timeout_s);
@@ -125,6 +144,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
     autonomy_blocked_ = false;
   }
   bool autonomy = !armed && autonomy_on && !autonomy_blocked_;
+  publishMode(armed ? "MANUAL" : autonomy ? "AUTONOMY" : (autonomy_on && autonomy_blocked_) ? "BLOCKED" : "IDLE");
 
   // On the manual->released edge, publish one zero command so the last thing downstream sees is a
   // stop, then go quiet on gamepad_topic. ackermann_mux (timeout: 0.2s in mux.yaml) then sees the
