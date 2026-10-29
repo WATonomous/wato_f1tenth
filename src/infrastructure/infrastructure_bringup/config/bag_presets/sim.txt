@@ -20,6 +20,7 @@
 /tf_static
 /global_planner/path
 /global_planner/reference_track
+/global_planner/edges
 /local_planner/path
 /local_planner/active
 
@@ -33,3 +34,11 @@
 /autodrive/roboracer_1/left_encoder
 /autodrive/roboracer_1/right_encoder
 /autodrive/roboracer_1/front_camera
+
+# Computer health (system_monitor)
+/system/status
+
+# Who has control (drive_status, ackermann_mux, gamepad)
+/control/status
+/control/active_input
+/control/mode

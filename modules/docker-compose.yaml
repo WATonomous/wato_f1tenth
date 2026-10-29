@@ -1,4 +1,6 @@
 ---
+# No cache_from: these images are only built locally until step 5 publishes them to GHCR, and each
+# build tried to pull a cache from there and got 403. The local build cache is used without it.
 services:
 
   #################### INFRASTRUCTURE SERVICES ####################
@@ -7,8 +9,6 @@ services:
     build:
       context: ..
       dockerfile: docker/infrastructure.Dockerfile
-      cache_from:
-        - "${INFRASTRUCTURE_IMAGE:?}:source_${TAG}"
       target: source
     image: "${INFRASTRUCTURE_IMAGE:?}:source_${TAG}"
 
@@ -17,8 +17,6 @@ services:
     build:
       context: ..
       dockerfile: docker/infrastructure.Dockerfile
-      cache_from:
-        - "${INFRASTRUCTURE_IMAGE:?}:deps_${TAG}"
       target: dependencies
     image: "${INFRASTRUCTURE_IMAGE:?}:deps_${TAG}"
 
@@ -34,13 +32,11 @@ services:
       args:
         MODULE_SOURCE: "${INFRASTRUCTURE_IMAGE:?}:source_${TAG}"
         MODULE_DEPS: "${INFRASTRUCTURE_IMAGE:?}:deps_${TAG}"
-      cache_from:
-        - "${INFRASTRUCTURE_IMAGE:?}:${TAG}"
-        - "${INFRASTRUCTURE_IMAGE:?}:main"
       target: deploy
     image: "${INFRASTRUCTURE_IMAGE:?}:${TAG}"
     command: /bin/bash -c "ros2 launch infrastructure_bringup infrastructure.launch.yaml foxglove_port:=${FOXGLOVE_BRIDGE_PORT:?}"
     environment:
+      - PLATFORM=${PLATFORM}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}
@@ -52,8 +48,6 @@ services:
     build:
       context: ..
       dockerfile: docker/interfacing.Dockerfile
-      cache_from:
-        - "${INTERFACING_IMAGE:?}:source_${TAG}"
       target: source
     image: "${INTERFACING_IMAGE}:source_${TAG}"
 
@@ -62,8 +56,6 @@ services:
     build:
       context: ..
       dockerfile: docker/interfacing.Dockerfile
-      cache_from:
-        - "${INTERFACING_IMAGE:?}:deps_${TAG}"
       target: dependencies
     image: "${INTERFACING_IMAGE}:deps_${TAG}"
 
@@ -79,9 +71,6 @@ services:
       args:
         MODULE_SOURCE: "${INTERFACING_IMAGE}:source_${TAG}"
         MODULE_DEPS: "${INTERFACING_IMAGE}:deps_${TAG}"
-      cache_from:
-        - "${INTERFACING_IMAGE}:${TAG}"
-        - "${INTERFACING_IMAGE}:main"
       target: deploy
     image: "${INTERFACING_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch interfacing_bringup interfacing.launch.yaml"
@@ -91,6 +80,9 @@ services:
       - REALSENSE=${REALSENSE}
       - REALSENSE_IMAGES=${REALSENSE_IMAGES}
       - IMU=${IMU}
+      - CONTROLLER=${CONTROLLER}
+      - LOCAL_PLANNER=${LOCAL_PLANNER}
+      - TRACK=${TRACK}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}
@@ -111,8 +103,6 @@ services:
     build:
       context: ..
       dockerfile: docker/perception.Dockerfile
-      cache_from:
-        - "${PERCEPTION_IMAGE:?}:source_${TAG}"
       target: source
       args:
         GPU: "${GPU:-nvidia}"
@@ -123,8 +113,6 @@ services:
     build:
       context: ..
       dockerfile: docker/perception.Dockerfile
-      cache_from:
-        - "${PERCEPTION_IMAGE:?}:deps_${TAG}"
       target: dependencies
       args:
         GPU: "${GPU:-nvidia}"
@@ -142,9 +130,6 @@ services:
       args:
         MODULE_SOURCE: "${PERCEPTION_IMAGE:?}:source_${TAG}"
         MODULE_DEPS: "${PERCEPTION_IMAGE:?}:deps_${TAG}"
-      cache_from:
-        - "${PERCEPTION_IMAGE:?}:${TAG}"
-        - "${PERCEPTION_IMAGE:?}:main"
       target: deploy
     image: "${PERCEPTION_IMAGE:?}:${TAG}"
     command: /bin/bash -c "ros2 launch perception_bringup perception.launch.yaml"
@@ -166,8 +151,6 @@ services:
     build:
       context: ..
       dockerfile: docker/world_modeling.Dockerfile
-      cache_from:
-        - "${WORLD_MODELING_IMAGE:?}:source_${TAG}"
       target: source
       args:
         GPU: "${GPU:-nvidia}"
@@ -178,8 +161,6 @@ services:
     build:
       context: ..
       dockerfile: docker/world_modeling.Dockerfile
-      cache_from:
-        - "${WORLD_MODELING_IMAGE:?}:deps_${TAG}"
       target: dependencies
       args:
         GPU: "${GPU:-nvidia}"
@@ -197,9 +178,6 @@ services:
       args:
         MODULE_SOURCE: "${WORLD_MODELING_IMAGE}:source_${TAG}"
         MODULE_DEPS: "${WORLD_MODELING_IMAGE}:deps_${TAG}"
-      cache_from:
-        - "${WORLD_MODELING_IMAGE}:${TAG}"
-        - "${WORLD_MODELING_IMAGE}:main"
       target: deploy
     image: "${WORLD_MODELING_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch world_modeling_bringup world_modeling.launch.yaml"
@@ -226,8 +204,6 @@ services:
     build:
       context: ..
       dockerfile: docker/action.Dockerfile
-      cache_from:
-        - "${ACTION_IMAGE:?}:source_${TAG}"
       target: source
       args:
         GPU: "${GPU:-nvidia}"
@@ -238,8 +214,6 @@ services:
     build:
       context: ..
       dockerfile: docker/action.Dockerfile
-      cache_from:
-        - "${ACTION_IMAGE:?}:deps_${TAG}"
       target: dependencies
       args:
         GPU: "${GPU:-nvidia}"
@@ -257,9 +231,6 @@ services:
       args:
         MODULE_SOURCE: "${ACTION_IMAGE}:source_${TAG}"
         MODULE_DEPS: "${ACTION_IMAGE}:deps_${TAG}"
-      cache_from:
-        - "${ACTION_IMAGE}:${TAG}"
-        - "${ACTION_IMAGE}:main"
       target: deploy
     image: "${ACTION_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch action_bringup action.launch.yaml"
@@ -284,8 +255,6 @@ services:
     build:
       context: ..
       dockerfile: docker/sim.Dockerfile
-      cache_from:
-        - "${SIM_IMAGE:?}:source_${TAG}"
       target: source
     image: "${SIM_IMAGE}:source_${TAG}"
 
@@ -294,8 +263,6 @@ services:
     build:
       context: ..
       dockerfile: docker/sim.Dockerfile
-      cache_from:
-        - "${SIM_IMAGE:?}:deps_${TAG}"
       target: dependencies
     image: "${SIM_IMAGE}:deps_${TAG}"
 
@@ -311,9 +278,6 @@ services:
       args:
         MODULE_SOURCE: "${SIM_IMAGE}:source_${TAG}"
         MODULE_DEPS: "${SIM_IMAGE}:deps_${TAG}"
-      cache_from:
-        - "${SIM_IMAGE}:${TAG}"
-        - "${SIM_IMAGE}:main"
       target: deploy
     image: "${SIM_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch sim_bringup sim.launch.yaml"

@@ -14,6 +14,8 @@ WORKDIR ${AMENT_WS}/src
 
 # Copy in source code
 COPY src/interfacing interfacing
+# ControlStatus for drive_status
+COPY src/infrastructure/f1tenth_msgs f1tenth_msgs
 COPY src/infrastructure/wato_lifecycle_manager wato_lifecycle_manager
 COPY src/wato_test wato_test
 

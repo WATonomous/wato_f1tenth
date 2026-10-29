@@ -103,6 +103,7 @@ Check: `./watod contract` passes with `/hal/localization/odom` at 40 Hz or more 
   memory (the build is killed, or the Jetson freezes and needs a power cycle). When more than
   one module needs rebuilding, build them one at a time:
   `for m in infrastructure interfacing world_modeling action; do ./watod -m $m build || break; done`.
+  Keep the car plugged in while building (`build.md`, "On the car").
 
 ## On `big_infra_update`
 
@@ -154,4 +155,5 @@ an estimated charge (resting-LiPo curve with the load sag added back), and healt
 critical). It logs a warning below 3.7 V per cell and an error below 3.6 V per cell; the Jetson runs
 off the same pack, so treat critical as "stop now". The VESC only measures its own current, so the
 estimate is voltage based. To watch it, import `infrastructure_bringup/config/foxglove/battery.json`
-in Foxglove (Layouts > Import from file).
+in Foxglove (Layouts > Import from file). Whole-car power draw, the black box and what to do after a
+power cut: `power.md`.

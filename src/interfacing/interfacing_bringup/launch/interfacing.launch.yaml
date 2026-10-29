@@ -83,6 +83,21 @@ launch:
         - from: ackermann_cmd
           to: /hal/ackermann_cmd
 
+  # Who has control (/control/status): the mux input in control (/control/active_input), the
+  # gamepad mode (/control/mode), the dead man and the command reaching the motor
+  - node:
+      pkg: drive_status
+      exec: drive_status_node
+      name: drive_status
+      output: screen
+      param:
+        - name: controller
+          value: "$(env CONTROLLER none)"
+        - name: local_planner
+          value: "$(env LOCAL_PLANNER none)"
+        - name: track
+          value: "$(env TRACK unknown)"
+
   # Car drivers
   - group:
       if: "$(eval '\"$(var platform)\" == \"car\"')"

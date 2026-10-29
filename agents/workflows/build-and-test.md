@@ -29,7 +29,8 @@ Add `:dev` to a module (`"action:dev"`) to get a dev container with `src/action`
 
 `build-base` builds the CPU base plus the GPU base for this machine: CUDA 12.9 + TensorRT on
 x86, CUDA 12.8 + TensorRT on the Jetson (run it there). Module images pick their base from
-`docker/<module>.Dockerfile`.
+`docker/<module>.Dockerfile`. Which machine, which command for which change, the car's limits and
+what keeps rebuilds fast: `build.md`.
 
 ## Run
 

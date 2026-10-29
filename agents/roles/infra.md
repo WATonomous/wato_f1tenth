@@ -27,6 +27,11 @@ Other rules:
 - f1tenth departs from the template in: `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`,
   `ROS_DOMAIN_ID=0`, no Zenoh router, log viewer or topic healthchecker, root-anchored
   `/maps/` etc. in `.gitignore`, and pre-commit excludes for vendored packages.
+- Build speed departs from the template too (`workflows/build.md`): `watod` turns off provenance
+  attestations (they broke the cache between builds), `template.Dockerfile` copies the source last,
+  runs the rosdep scan without `apt-get update` and builds with ccache in a cache mount, compose has
+  no GHCR `cache_from` until step 5, and `.dockerignore` keeps bags and build output out of the
+  context. Keep these when merging template updates.
 
 ## Template updates
 

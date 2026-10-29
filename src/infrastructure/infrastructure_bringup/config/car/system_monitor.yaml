@@ -1,0 +1,19 @@
+# system_monitor on the car: computer health, pack power and the black box.
+#
+# The pack feeds the VESC (measured: /sensors/core) and the F1TENTH power board, whose 19 V output
+# powers the Jetson (measured: INA3221 VDD_IN, the module's input) and whose 12 V / 5 V outputs
+# power the lidar and anything else. other_loads_w and converter_efficiency cover what isn't
+# measured; they are estimates until checked with an inline power meter.
+/**:
+  ros__parameters:
+    status_hz: 1.0
+    power_hz: 10.0
+    temperature_alarm_c: 85.0
+    # Hokuyo UST-10LX (about 3.6 W) + the carrier board, fan and USB devices (RealSense, gamepad)
+    # that VDD_IN doesn't include (about 5 W)
+    other_loads_w: 8.6
+    # the power board's converters plus the Jetson's own regulators
+    converter_efficiency: 0.9
+    # logs/blackbox/ in the repo on the host (mounted by modules/docker-compose.car.yaml)
+    blackbox_dir: "/blackbox"
+    blackbox_keep_files: 30

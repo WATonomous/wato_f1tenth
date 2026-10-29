@@ -1,0 +1,481 @@
+{
+  "configById": {
+    "Indicator!state": {
+      "path": "/control/status.state",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "NO STATUS (drive_status not running)",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "AUTONOMY",
+          "color": "#2e9d47",
+          "label": "AUTONOMY: controller driving"
+        },
+        {
+          "operator": "=",
+          "rawValue": "STOPPED",
+          "color": "#e07a00",
+          "label": "STOPPED: autonomy, dead man off"
+        },
+        {
+          "operator": "=",
+          "rawValue": "MANUAL",
+          "color": "#1f6feb",
+          "label": "MANUAL: gamepad driving"
+        },
+        {
+          "operator": "=",
+          "rawValue": "KEYBOARD",
+          "color": "#1f6feb",
+          "label": "KEYBOARD driving"
+        },
+        {
+          "operator": "=",
+          "rawValue": "EBRAKE",
+          "color": "#d62828",
+          "label": "EMERGENCY BRAKE"
+        },
+        {
+          "operator": "=",
+          "rawValue": "NO_COMMAND",
+          "color": "#6e7681",
+          "label": "NO COMMAND: nothing reaches the motor"
+        }
+      ],
+      "foxglovePanelTitle": "Who has control"
+    },
+    "Indicator!mode": {
+      "path": "/control/status.mode",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "UNKNOWN",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "AUTONOMY",
+          "color": "#2e9d47",
+          "label": "R1: AUTONOMY"
+        },
+        {
+          "operator": "=",
+          "rawValue": "MANUAL",
+          "color": "#1f6feb",
+          "label": "X: MANUAL"
+        },
+        {
+          "operator": "=",
+          "rawValue": "BLOCKED",
+          "color": "#e07a00",
+          "label": "BLOCKED: toggle R1 off and on"
+        },
+        {
+          "operator": "=",
+          "rawValue": "IDLE",
+          "color": "#6e7681",
+          "label": "IDLE"
+        },
+        {
+          "operator": "=",
+          "rawValue": "NO_GAMEPAD",
+          "color": "#d62828",
+          "label": "NO GAMEPAD"
+        }
+      ],
+      "foxglovePanelTitle": "Gamepad mode"
+    },
+    "Indicator!dead_man": {
+      "path": "/control/status.dead_man",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "DEAD MAN OFF",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#2e9d47",
+          "label": "DEAD MAN ON"
+        }
+      ],
+      "foxglovePanelTitle": "Dead man"
+    },
+    "RawMessages!status": {
+      "topicPath": "/control/status",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Status: controller, planner, track, commands"
+    },
+    "StateTransitions!control": {
+      "paths": [
+        {
+          "value": "/control/status.state",
+          "timestampMethod": "receiveTime",
+          "label": "state"
+        },
+        {
+          "value": "/control/status.active_input",
+          "timestampMethod": "receiveTime",
+          "label": "in control"
+        },
+        {
+          "value": "/control/status.mode",
+          "timestampMethod": "receiveTime",
+          "label": "gamepad"
+        }
+      ],
+      "isSynced": true,
+      "foxglovePanelTitle": "Control over time"
+    },
+    "3D!track": {
+      "cameraState": {
+        "perspective": false,
+        "distance": 25,
+        "phi": 0.0001,
+        "thetaOffset": 90,
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-position",
+      "followTf": "base_link",
+      "fixedFrame": "map",
+      "scene": {
+        "transforms": {
+          "visible": false
+        }
+      },
+      "transforms": {
+        "frame:base_link": {
+          "visible": true
+        }
+      },
+      "topics": {
+        "/map": {
+          "visible": true,
+          "drawBehind": true,
+          "minColor": "#000000ff",
+          "maxColor": "#ffffffff"
+        },
+        "/hal/scan": {
+          "visible": true,
+          "colorMode": "flat",
+          "flatColor": "#ff3b30ff",
+          "pointSize": 3
+        },
+        "/global_planner/path": {
+          "visible": true,
+          "lineWidth": 0.05,
+          "gradient": [
+            "#2f81f7ff",
+            "#2f81f7ff"
+          ]
+        },
+        "/global_planner/edges": {
+          "visible": true
+        },
+        "/local_planner/path": {
+          "visible": true
+        },
+        "/debug/lookahead_point": {
+          "visible": true
+        },
+        "/hal/localization/odom": {
+          "visible": true
+        }
+      },
+      "layers": {},
+      "publish": {
+        "type": "pose_estimate",
+        "poseTopic": "/goal_pose",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "foxglovePanelTitle": "Track (pose estimate: /initialpose)"
+    },
+    "Plot!speed": {
+      "paths": [
+        {
+          "value": "/control/status.commanded_speed",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "commanded"
+        },
+        {
+          "value": "/control/status.measured_speed",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "measured"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 30,
+      "foxglovePanelTitle": "Speed (m/s): commanded vs measured"
+    },
+    "Plot!steering": {
+      "paths": [
+        {
+          "value": "/control/status.commanded_steering",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "steering"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 30,
+      "foxglovePanelTitle": "Steering (rad), commanded"
+    },
+    "Plot!pose": {
+      "paths": [
+        {
+          "value": "/hal/localization/odom.pose.pose.position.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "x"
+        },
+        {
+          "value": "/hal/localization/odom.pose.pose.position.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "y"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 30,
+      "foxglovePanelTitle": "Localization"
+    },
+    "Plot!cpu": {
+      "paths": [
+        {
+          "value": "/system/status.cpu_percent",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "CPU"
+        },
+        {
+          "value": "/system/status.gpu_percent",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "GPU"
+        },
+        {
+          "value": "/system/status.ram_used_percent",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "RAM"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 120,
+      "foxglovePanelTitle": "CPU / GPU / RAM (%)"
+    },
+    "Plot!temp": {
+      "paths": [
+        {
+          "value": "/system/status.max_temperature_c",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "max C"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 120,
+      "foxglovePanelTitle": "Hottest sensor (C)"
+    },
+    "RawMessages!alarms": {
+      "topicPath": "/system/status.alarms",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Alarms"
+    },
+    "SourceInfo!rates": {
+      "foxglovePanelTitle": "Topics and rates"
+    },
+    "RosOut!log": {
+      "searchTerms": [],
+      "minLogLevel": 3,
+      "foxglovePanelTitle": "Warnings and errors"
+    },
+    "3D!tf": {
+      "cameraState": {
+        "perspective": true,
+        "distance": 3,
+        "phi": 50,
+        "thetaOffset": 90,
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-position",
+      "followTf": "base_link",
+      "fixedFrame": "map",
+      "scene": {
+        "transforms": {
+          "visible": true,
+          "showLabel": true,
+          "axisScale": 0.3
+        }
+      },
+      "transforms": {
+        "frame:base_link": {
+          "visible": true
+        }
+      },
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "pose_estimate",
+        "poseTopic": "/goal_pose",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "foxglovePanelTitle": "TF frames (labels on)"
+    },
+    "Tab!main": {
+      "activeTabIdx": 0,
+      "tabs": [
+        {
+          "title": "Drive",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Indicator!state",
+              "second": {
+                "direction": "column",
+                "first": {
+                  "direction": "row",
+                  "first": "Indicator!mode",
+                  "second": "Indicator!dead_man",
+                  "splitPercentage": 50
+                },
+                "second": {
+                  "direction": "column",
+                  "first": "StateTransitions!control",
+                  "second": "RawMessages!status",
+                  "splitPercentage": 45
+                },
+                "splitPercentage": 18
+              },
+              "splitPercentage": 22
+            },
+            "second": "3D!track",
+            "splitPercentage": 30
+          }
+        },
+        {
+          "title": "Tuning",
+          "layout": {
+            "direction": "column",
+            "first": "Plot!speed",
+            "second": {
+              "direction": "column",
+              "first": "Plot!steering",
+              "second": "Plot!pose",
+              "splitPercentage": 50
+            },
+            "splitPercentage": 40
+          }
+        },
+        {
+          "title": "System",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Plot!cpu",
+              "second": "Plot!temp",
+              "splitPercentage": 50
+            },
+            "second": {
+              "direction": "column",
+              "first": "RawMessages!alarms",
+              "second": {
+                "direction": "column",
+                "first": "SourceInfo!rates",
+                "second": "RosOut!log",
+                "splitPercentage": 50
+              },
+              "splitPercentage": 20
+            },
+            "splitPercentage": 55
+          }
+        },
+        {
+          "title": "TF",
+          "layout": "3D!tf"
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "Tab!main"
+}

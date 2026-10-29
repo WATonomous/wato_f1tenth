@@ -10,6 +10,20 @@ launch:
       default: "0.0.0.0"
       description: "Address for Foxglove WebSocket server"
 
+  - arg:
+      name: platform
+      default: "$(env PLATFORM sim)"
+      description: "car or sim: picks config/<platform>/system_monitor.yaml"
+
+  # Computer health (/system/status), pack power (/system/power) and, on the car, the black box
+  - node:
+      pkg: system_monitor
+      exec: system_monitor_node
+      name: system_monitor
+      output: screen
+      param:
+        - from: "$(find-pkg-share infrastructure_bringup)/config/$(var platform)/system_monitor.yaml"
+
   # TF Relay (workaround for Foxglove tf issues)
   - node:
       pkg: topic_tools

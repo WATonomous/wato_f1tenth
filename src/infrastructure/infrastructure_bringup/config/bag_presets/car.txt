@@ -27,6 +27,7 @@
 /map
 /global_planner/path
 /global_planner/reference_track
+/global_planner/edges
 /local_planner/path
 /local_planner/active
 
@@ -42,3 +43,12 @@
 /camera/camera/color/camera_info
 /camera/camera/depth/image_rect_raw/zstd
 /camera/camera/depth/camera_info
+
+# Computer health and pack power (system_monitor)
+/system/status
+/system/power
+
+# Who has control (drive_status, ackermann_mux, gamepad)
+/control/status
+/control/active_input
+/control/mode

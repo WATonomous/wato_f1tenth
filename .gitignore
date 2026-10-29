@@ -22,6 +22,8 @@ src/bags/
 build/
 install/
 log/
+# system_monitor black box on the car (watod blackbox)
+/logs/
 /external/
 /weights/
 /models/
