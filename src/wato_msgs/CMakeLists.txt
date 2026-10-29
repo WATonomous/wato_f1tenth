@@ -21,9 +21,11 @@ find_package(rosidl_default_generators REQUIRED)
 
 # Messages shared across modules. Every image that uses them copies src/wato_msgs in.
 # ReferenceTrack: the raceline with its track edges, for planners that need the widths (frenet, MPC)
+# PlannerDecision: frenet_planner's per-cycle decision, so Foxglove and ros2 bag can decode it
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TrackWidth.msg"
   "msg/ReferenceTrack.msg"
+  "msg/PlannerDecision.msg"
   DEPENDENCIES std_msgs nav_msgs)
 
 ament_export_dependencies(rosidl_default_runtime)

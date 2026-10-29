@@ -40,12 +40,7 @@ find_package(wato_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(Threads REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME} "msg/PlannerDecision.msg"
-  DEPENDENCIES builtin_interfaces std_msgs)
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
 
 # ---------------------------------------------------------------------------
 # frenet_planner_core
@@ -96,7 +91,6 @@ add_library(frenet_planner_ros
 )
 target_link_libraries(frenet_planner_ros PUBLIC
   frenet_planner_core
-  ${cpp_typesupport_target}
 )
 ament_target_dependencies(frenet_planner_ros PUBLIC
   rclcpp
@@ -104,6 +98,7 @@ ament_target_dependencies(frenet_planner_ros PUBLIC
   std_msgs
   geometry_msgs
   visualization_msgs
+  wato_msgs
   tf2
   tf2_geometry_msgs
 )
@@ -116,7 +111,6 @@ add_executable(planner_node src/ros/planner_node.cpp)
 target_link_libraries(planner_node
   frenet_planner_ros
   frenet_planner_core
-  ${cpp_typesupport_target}
 )
 ament_target_dependencies(planner_node
   rclcpp ackermann_msgs nav_msgs std_msgs geometry_msgs visualization_msgs wato_msgs
@@ -138,10 +132,6 @@ install(TARGETS
   occupancy_grid_frame_adapter_node
   planner_node
   DESTINATION lib/${PROJECT_NAME}
-)
-
-install(DIRECTORY config launch
-  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
@@ -199,5 +189,4 @@ endif()
 
 ament_export_include_directories(include)
 ament_export_targets(export_${PROJECT_NAME})
-ament_export_dependencies(rosidl_default_runtime)
 ament_package()

@@ -23,8 +23,8 @@
 #include <rclcpp/time.hpp>
 
 #include "frenet_planner/core/types.hpp"
-#include "frenet_planner/msg/planner_decision.hpp"
 #include "frenet_planner/planning/local_planner.hpp"
+#include "wato_msgs/msg/planner_decision.hpp"
 
 namespace frenet_planner
 {
@@ -33,7 +33,7 @@ namespace frenet_planner
 Odometry rosToOdometry(const nav_msgs::msg::Odometry & msg);
 OccupancyGrid rosToOccupancyGrid(const nav_msgs::msg::OccupancyGrid & msg);
 nav_msgs::msg::Path pathToRos(const Path & path, const rclcpp::Time & stamp, const std::string & frame_id);
-msg::PlannerDecision plannerDecisionToRos(
+wato_msgs::msg::PlannerDecision plannerDecisionToRos(
   const PlannerDecisionData & data, const rclcpp::Time & stamp, const std::string & frame_id);
 
 }  // namespace frenet_planner

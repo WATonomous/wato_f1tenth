@@ -34,7 +34,7 @@ public:
   : Node("occupancy_grid_frame_adapter_node")
   {
     this->declare_parameter<std::string>("raw_grid_topic", "/costmap");
-    this->declare_parameter<std::string>("grid_topic", "/occupancy_grid");
+    this->declare_parameter<std::string>("grid_topic", "/local_planner/occupancy_grid");
     this->declare_parameter<std::string>("frame_id", "map");
 
     raw_grid_topic_ = this->get_parameter("raw_grid_topic").as_string();

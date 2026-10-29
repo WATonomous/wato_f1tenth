@@ -34,12 +34,12 @@
 
 #include "frenet_planner/curves/frenet_connection_generator.hpp"
 #include "frenet_planner/maneuvers/maneuver_builder.hpp"
-#include "frenet_planner/msg/planner_decision.hpp"
 #include "frenet_planner/planning/local_planner.hpp"
 #include "frenet_planner/reference/raceline_reference.hpp"
 #include "frenet_planner/ros/planner_diagnostics.hpp"
 #include "frenet_planner/ros/planner_visualization.hpp"
 #include "frenet_planner/state/racing_state_machine.hpp"
+#include "wato_msgs/msg/planner_decision.hpp"
 
 namespace frenet_planner
 {
@@ -89,6 +89,7 @@ private:
     bool publish_projection_markers = true;
     bool publish_all_candidates = false;  // repeats generation pass; costly
     std::string all_candidates_visualization_topic;
+    double visualization_rate_hz = 10.0;  // markers and the map-frame path copy
   };
 
   NodeConfig loadConfig();
@@ -100,6 +101,7 @@ private:
   void publishDecision(const PlannerDecisionData & data);
   void publishOvertakeReady(bool ready);
   void publishEmptyLocalPath(const rclcpp::Time & stamp);
+  bool visualizationDue(const rclcpp::Time & stamp);
 
   NodeConfig config_;
   RacelineReference reference_;
@@ -125,6 +127,7 @@ private:
   double held_path_stamp_s_ = 0.0;
   PlannerIntent held_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
   PlannerIntent held_executed_intent_ = PlannerIntent::FOLLOW_RACING_LINE;
+  std::optional<rclcpp::Time> last_visualization_stamp_;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;
@@ -133,7 +136,7 @@ private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_path_map_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr overtake_ready_pub_;
-  rclcpp::Publisher<msg::PlannerDecision>::SharedPtr decision_pub_;
+  rclcpp::Publisher<wato_msgs::msg::PlannerDecision>::SharedPtr decision_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr visualization_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr track_bounds_visualization_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr projection_visualization_pub_;
