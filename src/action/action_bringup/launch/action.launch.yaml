@@ -4,7 +4,7 @@
 #
 # Algorithms are picked by file name, so adding one never edits this file:
 #   CONTROLLER=<name>     starts launch/controllers/<name>.launch.yaml     (pure_pursuit, mppi, none)
-#   LOCAL_PLANNER=<name>  starts launch/local_planners/<name>.launch.yaml  (none)
+#   LOCAL_PLANNER=<name>  starts launch/local_planners/<name>.launch.yaml  (none, frenet)
 # Each one gets platform, config_dir (config/<platform>) and local_planner. Interfaces and the
 # add-controller / add-local-planner workflows: agents/workflows/add-controller.md.
 

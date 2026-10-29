@@ -4,7 +4,7 @@
 #
 #   car: particle filter + map server (was the localization half of jetson_pf.launch.py)
 #   sim: ground truth from the sim adapter (localization:=truth), so only the planner runs
-#   both: global planner; optional costmap, EKF, slam_toolbox mapping and RViz
+#   both: global planner; costmap when LOCAL_PLANNER is set; optional EKF, slam_toolbox mapping and RViz
 #
 # Whatever localizes publishes /hal/localization/odom (agents/workflows/sim-to-car.md).
 
@@ -43,8 +43,8 @@ launch:
 
   - arg:
       name: costmap
-      default: "false"
-      description: "Run the occupancy grid generator"
+      default: "$(eval '\"$(env LOCAL_PLANNER none)\" != \"none\"')"
+      description: "Run the occupancy grid generator (on by default when LOCAL_PLANNER is set; local planners read /costmap)"
 
   - arg:
       name: ekf

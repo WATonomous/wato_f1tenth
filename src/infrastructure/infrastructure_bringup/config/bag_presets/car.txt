@@ -29,6 +29,7 @@
 /global_planner/reference_track
 /local_planner/path
 /local_planner/active
+/local_planner/debug/decision
 
 # VESC and gamepad
 /sensors/core

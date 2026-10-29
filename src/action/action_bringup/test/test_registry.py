@@ -30,6 +30,13 @@ INTERFACE_ARGS = {"platform", "config_dir", "local_planner"}
 PLATFORMS = ("car", "sim")
 # Topic parameters may only name contract topics, debug topics or the algorithm's own namespace
 TOPIC_PREFIXES = ("/hal/", "/global_planner/", "/local_planner/", "/debug/")
+# Inputs outside those rules, allowed by name for the one parameter that reads them. frenet's planner
+# subscribes to the controller's command (it never publishes there) to seed its start curvature,
+# and its grid adapter reads world_modeling's costmap.
+SUBSCRIBE_ONLY = {
+    ("steering_command_topic", "/hal/drive/autonomy"),
+    ("raw_grid_topic", "/costmap"),
+}
 
 
 def registered():
@@ -116,6 +123,8 @@ def test_topics_stay_in_their_namespaces(kind, name):
                     if not key.endswith("_topic"):
                         continue
                     where = f"config/{platform}/{f}: {key}={value}"
+                    if (key, value) in SUBSCRIBE_ONLY:
+                        continue
                     assert value.startswith(TOPIC_PREFIXES + (f"/{name}/",)), where
                     if kind == "local_planners":
                         # only the controller drives; a planner publishes under /local_planner/

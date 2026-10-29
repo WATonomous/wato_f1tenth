@@ -13,6 +13,7 @@
   <exec_depend>rmw_cyclonedds_cpp</exec_depend>
   <exec_depend>pure_pursuit</exec_depend>
   <exec_depend>mppi_cpp</exec_depend>
+  <exec_depend>frenet_planner</exec_depend>
   <exec_depend>race_tracks</exec_depend>
 
   <test_depend>ament_cmake_pytest</test_depend>
