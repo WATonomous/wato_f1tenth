@@ -1,8 +1,22 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "frenet_planner/curves/frenet_polynomial.hpp"
 
-#include "frenet_planner/core/geometry.hpp"
-
 #include <cmath>
+
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -13,14 +27,12 @@ constexpr double kEpsilon = kGridEps;
 
 double FrenetPolynomial::evaluate(double t) const
 {
-  return coeffs[0] + t *
-         (coeffs[1] + t * (coeffs[2] + t * (coeffs[3] + t * (coeffs[4] + t * coeffs[5]))));
+  return coeffs[0] + t * (coeffs[1] + t * (coeffs[2] + t * (coeffs[3] + t * (coeffs[4] + t * coeffs[5]))));
 }
 
 double FrenetPolynomial::evaluateDerivative(double t) const
 {
-  return coeffs[1] + t *
-         (2.0 * coeffs[2] + t * (3.0 * coeffs[3] + t * (4.0 * coeffs[4] + t * 5.0 * coeffs[5])));
+  return coeffs[1] + t * (2.0 * coeffs[2] + t * (3.0 * coeffs[3] + t * (4.0 * coeffs[4] + t * 5.0 * coeffs[5])));
 }
 
 double FrenetPolynomial::evaluateSecondDerivative(double t) const
@@ -45,15 +57,11 @@ FrenetPolynomial computeQuintic(
 
   const double position_residual = d_end - a0 - a1 - a2;
   const double slope_residual = slope_end * delta_s - a1 - 2.0 * a2;
-  const double curvature_residual =
-    second_derivative_end * delta_s * delta_s - 2.0 * a2;
+  const double curvature_residual = second_derivative_end * delta_s * delta_s - 2.0 * a2;
 
-  const double a3 =
-    10.0 * position_residual - 4.0 * slope_residual + 0.5 * curvature_residual;
-  const double a4 =
-    -15.0 * position_residual + 7.0 * slope_residual - curvature_residual;
-  const double a5 =
-    6.0 * position_residual - 3.0 * slope_residual + 0.5 * curvature_residual;
+  const double a3 = 10.0 * position_residual - 4.0 * slope_residual + 0.5 * curvature_residual;
+  const double a4 = -15.0 * position_residual + 7.0 * slope_residual - curvature_residual;
+  const double a5 = 6.0 * position_residual - 3.0 * slope_residual + 0.5 * curvature_residual;
   return {{a0, a1, a2, a3, a4, a5}, delta_s};
 }
 
@@ -74,16 +82,12 @@ double frenetSecondDerivativeForVehicleCurvature(
     return vehicle_curvature - reference_curvature;
   }
 
-  const double tangent_norm_squared =
-    tangent_scale * tangent_scale + lateral_slope * lateral_slope;
-  const double tangent_norm_cubed =
-    tangent_norm_squared * std::sqrt(tangent_norm_squared);
-  return (
-    vehicle_curvature * tangent_norm_cubed -
-    reference_curvature * tangent_scale * tangent_scale -
-    reference_curvature_derivative * lateral_offset * lateral_slope -
-    2.0 * reference_curvature * lateral_slope * lateral_slope) /
+  const double tangent_norm_squared = tangent_scale * tangent_scale + lateral_slope * lateral_slope;
+  const double tangent_norm_cubed = tangent_norm_squared * std::sqrt(tangent_norm_squared);
+  return (vehicle_curvature * tangent_norm_cubed - reference_curvature * tangent_scale * tangent_scale -
+          reference_curvature_derivative * lateral_offset * lateral_slope -
+          2.0 * reference_curvature * lateral_slope * lateral_slope) /
          tangent_scale;
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

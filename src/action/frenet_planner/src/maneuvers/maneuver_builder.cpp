@@ -1,13 +1,29 @@
-#include "frenet_planner/maneuvers/maneuver_builder.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/geometry.hpp"
-#include "frenet_planner/curves/frenet_polynomial.hpp"
-#include "worker_pool.hpp"
+#include "frenet_planner/maneuvers/maneuver_builder.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 #include <utility>
+#include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/curves/frenet_polynomial.hpp"
+#include "worker_pool.hpp"  // NOLINT(build/include_subdir)
 
 namespace frenet_planner
 {
@@ -22,8 +38,7 @@ void removeDuplicates(std::vector<double> & values)
   std::vector<double> unique;
   for (double value : values) {
     const bool already_present = std::any_of(
-      unique.begin(), unique.end(),
-      [value](double existing) {return std::abs(existing - value) <= kTolerance;});
+      unique.begin(), unique.end(), [value](double existing) { return std::abs(existing - value) <= kTolerance; });
     if (!already_present) {
       unique.push_back(value);
     }
@@ -31,30 +46,31 @@ void removeDuplicates(std::vector<double> & values)
   values = std::move(unique);
 }
 
-} // namespace
+}  // namespace
 
 ManeuverBuilder::ManeuverBuilder(
   const RacelineReference & reference,
   const FrenetConnectionGenerator & curve_generator,
   ManeuverConfig config,
   VehicleGeometry vehicle_geometry)
-: reference_(reference), curve_generator_(curve_generator), config_(std::move(config)),
-  vehicle_geometry_(vehicle_geometry)
+: reference_(reference)
+, curve_generator_(curve_generator)
+, config_(std::move(config))
+, vehicle_geometry_(vehicle_geometry)
 {
   removeDuplicates(config_.overtake_s_offsets_from_opponent_rear_m);
   removeDuplicates(config_.passing_d_magnitudes_m);
   removeDuplicates(config_.overtake_heading_offsets_rad);
   removeDuplicates(config_.pass_transition_distances_m);
   std::sort(
-    config_.pass_transition_distances_m.begin(), config_.pass_transition_distances_m.end(),
-    std::greater<double>());
+    config_.pass_transition_distances_m.begin(), config_.pass_transition_distances_m.end(), std::greater<double>());
   removeDuplicates(config_.merge_completion_distances_m);
 
-  //we need 0 for a branch in my code
+  // we need 0 for a branch in my code
   const bool has_zero_heading = std::any_of(
-    config_.overtake_heading_offsets_rad.begin(),
-    config_.overtake_heading_offsets_rad.end(),
-    [](double heading) {return std::abs(heading) <= kTolerance;});
+    config_.overtake_heading_offsets_rad.begin(), config_.overtake_heading_offsets_rad.end(), [](double heading) {
+      return std::abs(heading) <= kTolerance;
+    });
   if (!has_zero_heading) {
     throw std::invalid_argument("overtake_heading_offsets_rad must have 0.0");
   }
@@ -63,21 +79,16 @@ ManeuverBuilder::ManeuverBuilder(
 bool ManeuverBuilder::prepareWindow(const BoundaryState & ego, double ego_s) const
 {
   plan_speed_mps_ = ego.speed;
-  return window_.build(
-    reference_, ego_s, config_.horizon_m, curve_generator_.config().sample_spacing_m);
+  return window_.build(reference_, ego_s, config_.horizon_m, curve_generator_.config().sample_spacing_m);
 }
-
 
 /*
 convert vehicle state into frenet conditions
 */
 bool ManeuverBuilder::startBoundary(
-  const BoundaryState & ego,
-  double ego_s,
-  double ego_d,
-  FrenetBoundary & result) const
+  const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & result) const
 {
-  (void)ego_s;   // index 0 of the window is exactly ego_s by construction
+  (void)ego_s;  // index 0 of the window is exactly ego_s by construction
   if (!window_.valid()) {
     return false;
   }
@@ -96,17 +107,12 @@ bool ManeuverBuilder::startBoundary(
   // heading = ref.heading + atan2(d', A), inverted.
   result.d_prime = tangent_scale * std::tan(heading_error);
   result.d_double_prime = frenetSecondDerivativeForVehicleCurvature(
-    ego.curvature, ego_d, result.d_prime, reference.curvature,
-    reference.curvature_derivative);
+    ego.curvature, ego_d, result.d_prime, reference.curvature, reference.curvature_derivative);
   return std::isfinite(result.d_prime) && std::isfinite(result.d_double_prime);
 }
 
-//generalized case of above except this is desired the above is measured 
-bool ManeuverBuilder::boundary(
-  double s,
-  double d,
-  double heading_offset,
-  FrenetBoundary & result) const
+// generalized case of above except this is desired the above is measured
+bool ManeuverBuilder::boundary(double s, double d, double heading_offset, FrenetBoundary & result) const
 {
   if (!window_.valid()) {
     return false;
@@ -124,23 +130,18 @@ bool ManeuverBuilder::boundary(
   return std::isfinite(result.d_prime);
 }
 
-//builds the frenet curve connecting the stuff
+// builds the frenet curve connecting the stuff
 bool ManeuverBuilder::connect(
-  Path & path,
-  const FrenetBoundary & start,
-  const FrenetBoundary & end,
-  double & max_abs_d) const
+  Path & path, const FrenetBoundary & start, const FrenetBoundary & end, double & max_abs_d) const
 {
   const std::size_t i_start = window_.indexForS(start.s);
   const std::size_t i_end = window_.indexForS(end.s);
   if (i_end <= i_start) {
     return false;
   }
-  const double delta_s =
-    window_.spacingM() * static_cast<double>(i_end - i_start);
-  const FrenetPolynomial polynomial = computeQuintic(
-    start.d, start.d_prime, start.d_double_prime,
-    end.d, end.d_prime, end.d_double_prime, delta_s);
+  const double delta_s = window_.spacingM() * static_cast<double>(i_end - i_start);
+  const FrenetPolynomial polynomial =
+    computeQuintic(start.d, start.d_prime, start.d_double_prime, end.d, end.d_prime, end.d_double_prime, delta_s);
   const FrenetConnectionResult result =
     curve_generator_.generate(window_, i_start, i_end, polynomial, path, plan_speed_mps_);
   if (!result.valid) {
@@ -149,13 +150,10 @@ bool ManeuverBuilder::connect(
   max_abs_d = std::max(max_abs_d, result.max_abs_d);
   return true;
 }
-  //add the offset raceline tail at coordinates s,d for a particular distance
+
+// add the offset raceline tail at coordinates s,d for a particular distance
 bool ManeuverBuilder::appendOffsetTail(
-  Path & path,
-  double start_s,
-  double reference_distance_m,
-  double d,
-  double & max_abs_d) const
+  Path & path, double start_s, double reference_distance_m, double d, double & max_abs_d) const
 {
   if (path.empty()) {
     return false;
@@ -170,12 +168,11 @@ bool ManeuverBuilder::appendOffsetTail(
   return connect(path, start, end, max_abs_d);
 }
 
-//come back to this idk if I like how im treating this
+// come back to this idk if I like how im treating this
 bool ManeuverBuilder::staysOnSide(const Path & path, int side) const
 {
   const double deadband = vehicle_geometry_.fullWidthM();
   for (const CurveSample & sample : path) {
-
     // Inside deadband is still "on the line";
     if (side * sample.d <= -deadband) {
       return false;
@@ -191,7 +188,7 @@ std::vector<double> ManeuverBuilder::offsets(int side) const
     if (side != 0 && sign != side) {
       continue;
     }
-    //only add the things that are actually on my side 
+    // only add the things that are actually on my side
     for (double magnitude : config_.passing_d_magnitudes_m) {
       result.push_back(sign * magnitude);
     }
@@ -207,12 +204,11 @@ int ManeuverBuilder::sideOf(double d) const
   return d > 0.0 ? 1 : -1;
 }
 
-//determines if we have a valid start 
+// determines if we have a valid start
 bool ManeuverBuilder::beginGeneration(
   const BoundaryState & ego, double ego_s, double ego_d, FrenetBoundary & start) const
 {
-  return reference_.valid() && prepareWindow(ego, ego_s) &&
-         startBoundary(ego, ego_s, ego_d, start);
+  return reference_.valid() && prepareWindow(ego, ego_s) && startBoundary(ego, ego_s, ego_d, start);
 }
 
 /*
@@ -225,24 +221,22 @@ std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
   std::vector<std::size_t> chain_prefix(chains.size(), 0);
   prefixes.reserve(chains.size());
   const auto sameWaypoint = [](const Waypoint & a, const Waypoint & b) {
-      return std::abs(a.s - b.s) <= kTolerance &&
-             std::abs(a.d - b.d) <= kTolerance &&
-             std::abs(a.heading_offset - b.heading_offset) <= kTolerance;
-    };
+    return std::abs(a.s - b.s) <= kTolerance && std::abs(a.d - b.d) <= kTolerance &&
+           std::abs(a.heading_offset - b.heading_offset) <= kTolerance;
+  };
 
-
-  //get all the unique waypoints 
+  // get all the unique waypoints
   for (std::size_t i = 0; i < chains.size(); ++i) {
     const std::size_t found = [&]() {
-        const Waypoint & first = chains[i].waypoints.front();
-        for (std::size_t p = 0; p < prefixes.size(); ++p) {
-          if (sameWaypoint(prefixes[p], first)) {
-            return p;
-          }
+      const Waypoint & first = chains[i].waypoints.front();
+      for (std::size_t p = 0; p < prefixes.size(); ++p) {
+        if (sameWaypoint(prefixes[p], first)) {
+          return p;
         }
-        prefixes.push_back(first);
-        return prefixes.size() - 1;
-      }();
+      }
+      prefixes.push_back(first);
+      return prefixes.size() - 1;
+    }();
     chain_prefix[i] = found;
   }
 
@@ -254,56 +248,52 @@ std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
     bool valid = false;
   };
 
-  //one result per unique prefix
+  // one result per unique prefix
   std::vector<Prefix> sampled(prefixes.size());
 
-  //generate all unique first legs in parallel
+  // generate all unique first legs in parallel
   parallelFor(prefixes.size(), [&](std::size_t i) {
-      FrenetBoundary end;
-      if (!boundary(prefixes[i].s, prefixes[i].d, prefixes[i].heading_offset, end)) {
-        return;
-      }
-      //convert prefix waypoints ito frenet boundary
-      sampled[i].join = end;
-      sampled[i].valid = connect(sampled[i].path, start, end, sampled[i].max_abs_d);
-    });
-    //atp all shared first legs have been computed
-    //now we generate all second leg chains
+    FrenetBoundary end;
+    if (!boundary(prefixes[i].s, prefixes[i].d, prefixes[i].heading_offset, end)) {
+      return;
+    }
+    // convert prefix waypoints ito frenet boundary
+    sampled[i].join = end;
+    sampled[i].valid = connect(sampled[i].path, start, end, sampled[i].max_abs_d);
+  });
+  // atp all shared first legs have been computed
+  // now we generate all second leg chains
   std::vector<ManeuverCandidate> slots(chains.size());
   std::vector<char> slot_ok(chains.size(), 0);
   parallelFor(chains.size(), [&](std::size_t i) {
-      const ChainSpec & chain = chains[i];
-      const Prefix & prefix = sampled[chain_prefix[i]];
-      if (!prefix.valid) {
+    const ChainSpec & chain = chains[i];
+    const Prefix & prefix = sampled[chain_prefix[i]];
+    if (!prefix.valid) {
+      return;
+    }
+    Path path = prefix.path;
+    double max_abs_d = prefix.max_abs_d;
+    FrenetBoundary join = prefix.join;
+    for (std::size_t w = 1; w < chain.waypoints.size(); ++w) {
+      const Waypoint & waypoint = chain.waypoints[w];
+      FrenetBoundary end;
+      if (!boundary(waypoint.s, waypoint.d, waypoint.heading_offset, end) || !connect(path, join, end, max_abs_d)) {
         return;
       }
-      Path path = prefix.path;
-      double max_abs_d = prefix.max_abs_d;
-      FrenetBoundary join = prefix.join;
-      for (std::size_t w = 1; w < chain.waypoints.size(); ++w) {
-        const Waypoint & waypoint = chain.waypoints[w];
-        FrenetBoundary end;
-        if (!boundary(waypoint.s, waypoint.d, waypoint.heading_offset, end) ||
-          !connect(path, join, end, max_abs_d))
-        {
-          return;
-        }
-        join = end;
-      }
-      if (chain.append_tail &&
-        !appendOffsetTail(
-          path, chain.tail_start_s, chain.tail_distance_m, chain.tail_d, max_abs_d))
-      {
-        return;
-      }
-      if (chain.side != 0 && !staysOnSide(path, chain.side)) {
-        return;
-      }
-      slots[i] = {
-        std::move(path), chain.passing_d, chain.terminal_d, chain.maneuver_distance_m,
-        max_abs_d, chain.uses_offset_tail};
-      slot_ok[i] = 1;
-    });
+      join = end;
+    }
+    if (
+      chain.append_tail && !appendOffsetTail(path, chain.tail_start_s, chain.tail_distance_m, chain.tail_d, max_abs_d))
+    {
+      return;
+    }
+    if (chain.side != 0 && !staysOnSide(path, chain.side)) {
+      return;
+    }
+    slots[i] = {
+      std::move(path), chain.passing_d, chain.terminal_d, chain.maneuver_distance_m, max_abs_d, chain.uses_offset_tail};
+    slot_ok[i] = 1;
+  });
 
   std::vector<ManeuverCandidate> candidates;
   candidates.reserve(slots.size());
@@ -318,15 +308,12 @@ std::vector<ManeuverCandidate> ManeuverBuilder::sampleChains(
 /*
 all the difficult logic was before now all we do is basically get
 stuff in the chainspec format for each mode and then use that
-all the bottom functions are just how do we represent our data 
+all the bottom functions are just how do we represent our data
 so the generic function above can just iterate through and build stuff
 */
 
 std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
-  const BoundaryState & ego,
-  double ego_s,
-  double ego_d,
-  double opponent_rear_s) const
+  const BoundaryState & ego, double ego_s, double ego_d, double opponent_rear_s) const
 {
   FrenetBoundary start;
   if (!beginGeneration(ego, ego_s, ego_d, start)) {
@@ -347,22 +334,31 @@ std::vector<ManeuverCandidate> ManeuverBuilder::overtake(
           continue;
         }
         for (double heading : config_.overtake_heading_offsets_rad) {
-          chains.push_back({
-              {{intermediate_s, passing_d, heading}, {horizon_s, terminal_d, 0.0}},
-              passing_d, terminal_d, config_.horizon_m, false});
+          chains.push_back(
+            {{{intermediate_s, passing_d, heading}, {horizon_s, terminal_d, 0.0}},
+             passing_d,
+             terminal_d,
+             config_.horizon_m,
+             false});
         }
       }
-      chains.push_back({
-          {{intermediate_s, passing_d, 0.0}},
-          passing_d, passing_d, config_.horizon_m, true, 0, true,
-          intermediate_s, config_.horizon_m - progress, passing_d});
+      chains.push_back(
+        {{{intermediate_s, passing_d, 0.0}},
+         passing_d,
+         passing_d,
+         config_.horizon_m,
+         true,
+         0,
+         true,
+         intermediate_s,
+         config_.horizon_m - progress,
+         passing_d});
     }
   }
   return sampleChains(start, chains);
 }
 
-std::vector<ManeuverCandidate> ManeuverBuilder::pass(
-  const BoundaryState & ego, double ego_s, double ego_d) const
+std::vector<ManeuverCandidate> ManeuverBuilder::pass(const BoundaryState & ego, double ego_s, double ego_d) const
 {
   const int side = sideOf(ego_d);
   if (side == 0) {
@@ -375,15 +371,12 @@ std::vector<ManeuverCandidate> ManeuverBuilder::pass(
   const double target_s = reference_.wrapS(ego_s + config_.horizon_m);
   std::vector<ChainSpec> chains;
   for (double target_d : offsets(side)) {
-    chains.push_back({
-        {{target_s, target_d, 0.0}},
-        target_d, target_d, config_.horizon_m, false, side});
+    chains.push_back({{{target_s, target_d, 0.0}}, target_d, target_d, config_.horizon_m, false, side});
   }
   return sampleChains(start, chains);
 }
 
-std::vector<ManeuverCandidate> ManeuverBuilder::recover(
-  const BoundaryState & ego, double ego_s, double ego_d) const
+std::vector<ManeuverCandidate> ManeuverBuilder::recover(const BoundaryState & ego, double ego_s, double ego_d) const
 {
   const int side = sideOf(ego_d);
   if (side == 0) {
@@ -400,17 +393,23 @@ std::vector<ManeuverCandidate> ManeuverBuilder::recover(
     }
     for (double d : offsets(side)) {
       const double target_s = reference_.wrapS(ego_s + transition);
-      chains.push_back({
-          {{target_s, d, 0.0}},
-          d, d, transition, transition < config_.horizon_m - kTolerance, side, true,
-          target_s, config_.horizon_m - transition, d});
+      chains.push_back(
+        {{{target_s, d, 0.0}},
+         d,
+         d,
+         transition,
+         transition < config_.horizon_m - kTolerance,
+         side,
+         true,
+         target_s,
+         config_.horizon_m - transition,
+         d});
     }
   }
   return sampleChains(start, chains);
 }
 
-std::vector<ManeuverCandidate> ManeuverBuilder::merge(
-  const BoundaryState & ego, double ego_s, double ego_d) const
+std::vector<ManeuverCandidate> ManeuverBuilder::merge(const BoundaryState & ego, double ego_s, double ego_d) const
 {
   FrenetBoundary start;
   if (!beginGeneration(ego, ego_s, ego_d, start)) {
@@ -419,12 +418,10 @@ std::vector<ManeuverCandidate> ManeuverBuilder::merge(
   std::vector<ChainSpec> chains;
   for (double completion : config_.merge_completion_distances_m) {
     const double target_s = reference_.wrapS(ego_s + completion);
-    chains.push_back({
-        {{target_s, 0.0, 0.0}},
-        0.0, 0.0, completion, false, 0, true,
-        target_s, config_.horizon_m - completion, 0.0});
+    chains.push_back(
+      {{{target_s, 0.0, 0.0}}, 0.0, 0.0, completion, false, 0, true, target_s, config_.horizon_m - completion, 0.0});
   }
   return sampleChains(start, chains);
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

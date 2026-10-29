@@ -1,11 +1,25 @@
-#include "frenet_planner/planning/braking_path_generator.hpp"
-#include "frenet_planner/core/geometry.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <cstddef>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/planning/braking_path_generator.hpp"
 
 namespace frenet_planner
 {
@@ -61,8 +75,7 @@ BrakingConfig defaultConfig()
 // A car displaced outward from the line and yawed away from it -- the state a
 // pure pursuit that ran wide through a corner actually leaves behind, and the
 // one every Frenet connection back to d = 0 fails on.
-BoundaryState wideAndYawed(
-  const RacelineReference & reference, double s, double d, double heading_error, double speed)
+BoundaryState wideAndYawed(const RacelineReference & reference, double s, double d, double heading_error, double speed)
 {
   const auto geometry = reference.sampleAtS(s);
   BoundaryState ego;
@@ -81,8 +94,7 @@ TEST(BrakingPathGenerator, GeneratesOneArcPerEffortLevelOnTheLine)
 
   // ego_d = 0 is exactly where pass() and recover() bail on sideOf() and leave
   // the pool empty; braking must still produce something here.
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.0, 0.0, 4.0), 5.0, 0.0);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.0, 0.0, 4.0), 5.0, 0.0);
   ASSERT_EQ(candidates.size(), config.effort_levels.size());
   for (const auto & candidate : candidates) {
     ASSERT_FALSE(candidate.path.empty());
@@ -99,8 +111,7 @@ TEST(BrakingPathGenerator, ArcRunsTheFullHorizonAfterSpeedReachesTheFloor)
 
   // 1.2 m/s at 5 m/s^2 hits the floor within centimetres; the path must not
   // stop there, or find_lookahead() runs off its end and the car dead-stops.
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.3, 0.2, 1.2), 5.0, 0.3);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.3, 0.2, 1.2), 5.0, 0.3);
   ASSERT_EQ(candidates.size(), 1u);
   EXPECT_GE(candidates.front().path.back().s, config.horizon_m - 1e-9);
 }
@@ -111,8 +122,7 @@ TEST(BrakingPathGenerator, SpeedsDecayMonotonicallyToTheFloor)
   const auto config = defaultConfig();
   const BrakingPathGenerator generator(reference, config);
 
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.4, 0.3, 6.0), 5.0, 0.4);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.4, 0.3, 6.0), 5.0, 0.4);
   ASSERT_FALSE(candidates.empty());
   const auto & path = candidates.front().path;
   EXPECT_NEAR(path.front().speed, 6.0, 1e-9);
@@ -129,15 +139,12 @@ TEST(BrakingPathGenerator, CurvatureNeverExceedsTheBudgetAtThatSampleSpeed)
   const auto config = defaultConfig();
   const BrakingPathGenerator generator(reference, config);
 
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.6, 0.4, 7.0), 5.0, 0.6);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.6, 0.4, 7.0), 5.0, 0.6);
   ASSERT_FALSE(candidates.empty());
   for (std::size_t i = 0; i < candidates.size(); ++i) {
     const double effort = config.effort_levels[i];
     for (const auto & sample : candidates[i].path) {
-      EXPECT_LE(
-        std::abs(sample.curvature),
-        effort * config.allowedCurvature(sample.speed) + 1e-9);
+      EXPECT_LE(std::abs(sample.curvature), effort * config.allowedCurvature(sample.speed) + 1e-9);
     }
   }
 }
@@ -158,8 +165,7 @@ TEST(BrakingPathGenerator, EffortOrdersHowFastTheLineIsClosed)
   const auto config = defaultConfig();
   const BrakingPathGenerator generator(reference, config);
 
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.7, 0.25, 4.0), 5.0, 0.7);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.7, 0.25, 4.0), 5.0, 0.7);
   ASSERT_EQ(candidates.size(), 3u);
   const double start_d = candidates.front().path.front().d;
   EXPECT_NEAR(start_d, 0.7, 0.05);
@@ -169,12 +175,8 @@ TEST(BrakingPathGenerator, EffortOrdersHowFastTheLineIsClosed)
   constexpr std::size_t comparison_index = 10;
   ASSERT_GT(candidates[0].path.size(), comparison_index);
   EXPECT_LT(std::abs(candidates[0].path[comparison_index].d), std::abs(start_d));
-  EXPECT_LT(
-    std::abs(candidates[0].path[comparison_index].d),
-    std::abs(candidates[1].path[comparison_index].d));
-  EXPECT_LT(
-    std::abs(candidates[1].path[comparison_index].d),
-    std::abs(candidates[2].path[comparison_index].d));
+  EXPECT_LT(std::abs(candidates[0].path[comparison_index].d), std::abs(candidates[1].path[comparison_index].d));
+  EXPECT_LT(std::abs(candidates[1].path[comparison_index].d), std::abs(candidates[2].path[comparison_index].d));
 }
 
 TEST(BrakingPathGenerator, ShorterLookaheadClosesTheLineSooner)
@@ -184,14 +186,11 @@ TEST(BrakingPathGenerator, ShorterLookaheadClosesTheLineSooner)
   config.effort_levels = {1.0};
   config.pursuit_lookaheads_m = {1.0, 3.0};
   const BrakingPathGenerator generator(reference, config);
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.7, 0.25, 4.0), 5.0, 0.7);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.7, 0.25, 4.0), 5.0, 0.7);
   ASSERT_EQ(candidates.size(), 2u);
   constexpr std::size_t comparison_index = 10;
   ASSERT_GT(candidates[0].path.size(), comparison_index);
-  EXPECT_LT(
-    std::abs(candidates[0].path[comparison_index].d),
-    std::abs(candidates[1].path[comparison_index].d));
+  EXPECT_LT(std::abs(candidates[0].path[comparison_index].d), std::abs(candidates[1].path[comparison_index].d));
 }
 
 TEST(BrakingPathGenerator, ZeroEffortHoldsTheCurrentHeading)
@@ -226,8 +225,7 @@ TEST(BrakingPathGenerator, FansEffortMajorAcrossLookaheads)
   const BrakingPathGenerator generator(reference, config);
 
   const auto params = generator.arcParams();
-  const auto candidates = generator.generate(
-    wideAndYawed(reference, 5.0, 0.5, 0.2, 4.0), 5.0, 0.5);
+  const auto candidates = generator.generate(wideAndYawed(reference, 5.0, 0.5, 0.2, 4.0), 5.0, 0.5);
   ASSERT_EQ(params.size(), 6u);
   ASSERT_EQ(candidates.size(), params.size());
   EXPECT_DOUBLE_EQ(params[0].effort, 1.0);
@@ -329,8 +327,8 @@ TEST(BrakingPathGenerator, IntegratesEachStepAsAnExactCircularArc)
   const auto & first = candidates.front().path[0];
   const auto & second = candidates.front().path[1];
   const double half_turn = 0.5 * first.curvature * config.sample_spacing_m;
-  const double chord = std::abs(half_turn) < 1e-12 ? config.sample_spacing_m :
-    config.sample_spacing_m * std::sin(half_turn) / half_turn;
+  const double chord =
+    std::abs(half_turn) < 1e-12 ? config.sample_spacing_m : config.sample_spacing_m * std::sin(half_turn) / half_turn;
   EXPECT_NEAR(second.x, first.x + chord * std::cos(first.heading + half_turn), 1e-12);
   EXPECT_NEAR(second.y, first.y + chord * std::sin(first.heading + half_turn), 1e-12);
   EXPECT_NEAR(second.heading, first.heading + first.curvature * config.sample_spacing_m, 1e-12);

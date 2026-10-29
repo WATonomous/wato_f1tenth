@@ -1,11 +1,26 @@
-#include "frenet_planner/speed/velocity_profile.hpp"
-#include "frenet_planner/core/geometry.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/speed/velocity_profile.hpp"
 
 namespace frenet_planner
 {
@@ -30,12 +45,7 @@ std::vector<Point> straightLoop(double length, double speed, double spacing = 0.
   return points;
 }
 
-CurveSample sampleAt(
-  double s,
-  double x,
-  double y,
-  double heading = 0.0,
-  double curvature = 0.0)
+CurveSample sampleAt(double s, double x, double y, double heading = 0.0, double curvature = 0.0)
 {
   CurveSample sample;
   sample.s = s;
@@ -71,7 +81,7 @@ VelocityProfileConfig defaultConfig()
   return config;
 }
 
-} // namespace
+}  // namespace
 
 TEST(VelocityProfile, StraightRacelineAndVehicleCaps)
 {
@@ -81,8 +91,8 @@ TEST(VelocityProfile, StraightRacelineAndVehicleCaps)
   config.max_velocity_mps = 3.0;
 
   std::vector<CurveSample> path = straightPath(5.0, 0.5);
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 3.0, 0.0, 5.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 3.0, 0.0, 5.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   for (std::size_t i = 1; i < path.size(); ++i) {
@@ -103,8 +113,8 @@ TEST(VelocityProfile, CurvatureFrictionCap)
   const double friction_limit = std::sqrt(config.friction_coeff * kGravity / curvature);
   std::vector<CurveSample> path = straightPath(4.0, 0.5, curvature);
 
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 0.0, 0.0, 4.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 0.0, 0.0, 4.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   for (const CurveSample & sample : path) {
@@ -122,12 +132,11 @@ TEST(VelocityProfile, InteriorScalingByIntent)
   config.max_decel_mps2 = 100.0;
 
   auto profile_mid = [&](PlannerIntent intent) {
-      std::vector<CurveSample> path = straightPath(6.0, 0.5);
-      const VelocityProfileResult result = assignVelocityProfile(
-        path, 5.0, 0.0, 6.0, intent, reference, config);
-      EXPECT_TRUE(result.feasible);
-      return path[path.size() / 2].speed;
-    };
+    std::vector<CurveSample> path = straightPath(6.0, 0.5);
+    const VelocityProfileResult result = assignVelocityProfile(path, 5.0, 0.0, 6.0, intent, reference, config);
+    EXPECT_TRUE(result.feasible);
+    return path[path.size() / 2].speed;
+  };
 
   EXPECT_NEAR(profile_mid(PlannerIntent::FOLLOW_RACING_LINE), 5.0, 0.15);
   EXPECT_NEAR(profile_mid(PlannerIntent::OVERTAKE), 5.5, 0.15);
@@ -145,12 +154,11 @@ TEST(VelocityProfile, ExplicitTerminalCapAllModes)
   config.max_decel_mps2 = 100.0;
 
   auto terminal_speed = [&](PlannerIntent intent) {
-      std::vector<CurveSample> path = straightPath(6.0, 0.5);
-      const VelocityProfileResult result = assignVelocityProfile(
-        path, 5.0, 0.0, 6.0, intent, reference, config);
-      EXPECT_TRUE(result.feasible);
-      return path.back().speed;
-    };
+    std::vector<CurveSample> path = straightPath(6.0, 0.5);
+    const VelocityProfileResult result = assignVelocityProfile(path, 5.0, 0.0, 6.0, intent, reference, config);
+    EXPECT_TRUE(result.feasible);
+    return path.back().speed;
+  };
 
   EXPECT_NEAR(terminal_speed(PlannerIntent::FOLLOW_RACING_LINE), 5.0, 0.05);
   EXPECT_NEAR(terminal_speed(PlannerIntent::OVERTAKE), 5.5, 0.05);
@@ -178,8 +186,8 @@ TEST(VelocityProfile, TerminalCapPropagatesBackward)
   config.max_decel_mps2 = 2.0;
 
   std::vector<CurveSample> path = straightPath(6.0, 0.25);
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 2.0, 0.0, 6.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 2.0, 0.0, 6.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   EXPECT_NEAR(path.back().speed, 2.0, 0.2);
@@ -202,16 +210,15 @@ TEST(VelocityProfile, StartIsNotAnEchoOfTheMeasuredSpeed)
   config.max_decel_mps2 = 100.0;
 
   std::vector<CurveSample> path = straightPath(4.0, 0.5);
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 0.0, 0.0, 4.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 0.0, 0.0, 4.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   // Measured start was 0.0.  A command of 0.0 here would stall the car forever.
   EXPECT_GT(path.front().speed, 0.0);
   for (std::size_t i = 1; i < path.size(); ++i) {
     const double ds = std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
-    const double max_from_accel = std::sqrt(
-      path[i - 1].speed * path[i - 1].speed + 2.0 * config.max_accel_mps2 * ds);
+    const double max_from_accel = std::sqrt(path[i - 1].speed * path[i - 1].speed + 2.0 * config.max_accel_mps2 * ds);
     EXPECT_LE(path[i].speed, max_from_accel + 1e-6);
   }
 }
@@ -237,8 +244,8 @@ TEST(VelocityProfile, MeasuredStartAboveTheCeilingCommandsASlowdownInsteadOfReje
   // 10 m/s measured against a 2 m/s raceline with 2 m of path and 1 m/s^2 of
   // decel: the car cannot reach the ceiling within the horizon.  It is still a
   // usable path -- it is the only thing that tells the car to slow down.
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 10.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 10.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   for (const CurveSample & sample : path) {
@@ -268,8 +275,7 @@ TEST(VelocityProfile, RacelineWrapAroundSequentialProjection)
   for (int i = 0; i <= 20; ++i) {
     const double s = start_s + 0.1 * static_cast<double>(i);
     const ReferenceGeometrySample geo = reference.sampleAtS(s);
-    CurveSample sample = sampleAt(
-      0.1 * static_cast<double>(i), geo.x, geo.y, geo.heading, geo.curvature);
+    CurveSample sample = sampleAt(0.1 * static_cast<double>(i), geo.x, geo.y, geo.heading, geo.curvature);
     sample.raceline_s = s;
     path.push_back(sample);
   }
@@ -278,8 +284,8 @@ TEST(VelocityProfile, RacelineWrapAroundSequentialProjection)
   config.max_accel_mps2 = 100.0;
   config.max_decel_mps2 = 100.0;
 
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 3.0, start_s, start_s + 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 3.0, start_s, start_s + 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   for (const CurveSample & sample : path) {
@@ -298,8 +304,8 @@ TEST(VelocityProfile, TraversalTimeConstantSpeed)
 
   const double length = 4.0;
   std::vector<CurveSample> path = straightPath(length, 0.5);
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 4.0, 0.0, length, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 4.0, 0.0, length, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   EXPECT_NEAR(result.traversal_time_s, length / 4.0, 1e-6);
@@ -316,8 +322,8 @@ TEST(VelocityProfile, UsesCurveArcLengthRatherThanCartesianChord)
     sampleAt(0.0, 0.0, 0.0),
     sampleAt(2.0, 1.0, 0.0),
   };
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 4.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 4.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   ASSERT_TRUE(result.feasible);
   EXPECT_NEAR(result.traversal_time_s, 0.5, 1e-9);
@@ -333,28 +339,22 @@ TEST(VelocityProfile, RejectsInvalidInputs)
   VelocityProfileConfig bad = config;
   bad.max_accel_mps2 = 0.0;
   std::vector<CurveSample> path = straightPath(3.0, 0.5);
-  EXPECT_FALSE(
-    assignVelocityProfile(
-      path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, bad).feasible);
+  EXPECT_FALSE(assignVelocityProfile(path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, bad).feasible);
 
   bad = config;
   bad.min_velocity_mps = -0.1;
-  EXPECT_FALSE(
-    assignVelocityProfile(
-      path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, bad).feasible);
+  EXPECT_FALSE(assignVelocityProfile(path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, bad).feasible);
 
   bad = config;
   bad.min_velocity_mps = bad.max_velocity_mps + 1.0;
-  EXPECT_FALSE(
-    assignVelocityProfile(
-      path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, bad).feasible);
+  EXPECT_FALSE(assignVelocityProfile(path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, bad).feasible);
 
   // Non-finite start.
   path = straightPath(3.0, 0.5);
   EXPECT_FALSE(
     assignVelocityProfile(
-      path, std::numeric_limits<double>::quiet_NaN(), 0.0, 3.0,
-      PlannerIntent::FOLLOW_RACING_LINE, reference, config).feasible);
+      path, std::numeric_limits<double>::quiet_NaN(), 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config)
+      .feasible);
 
   // Degenerate zero-length path.
   path = {
@@ -362,8 +362,7 @@ TEST(VelocityProfile, RejectsInvalidInputs)
     sampleAt(0.0, 0.0, 0.0),
   };
   EXPECT_FALSE(
-    assignVelocityProfile(
-      path, 1.0, 0.0, 0.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config).feasible);
+    assignVelocityProfile(path, 1.0, 0.0, 0.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config).feasible);
 
   // Non-monotonic authoritative arc length.
   path = {
@@ -372,15 +371,12 @@ TEST(VelocityProfile, RejectsInvalidInputs)
     sampleAt(0.5, 2.0, 0.0),
   };
   EXPECT_FALSE(
-    assignVelocityProfile(
-      path, 1.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config).feasible);
+    assignVelocityProfile(path, 1.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config).feasible);
 
   // Invalid reference.
   RacelineReference empty;
   path = straightPath(3.0, 0.5);
-  EXPECT_FALSE(
-    assignVelocityProfile(
-      path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, empty, config).feasible);
+  EXPECT_FALSE(assignVelocityProfile(path, 1.0, 0.0, 3.0, PlannerIntent::FOLLOW_RACING_LINE, empty, config).feasible);
 }
 
 TEST(VelocityProfile, ZeroAverageSpeedRejected)
@@ -398,8 +394,8 @@ TEST(VelocityProfile, ZeroAverageSpeedRejected)
     sample.speed = 42.0;
   }
 
-  const VelocityProfileResult result = assignVelocityProfile(
-    path, 0.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
+  const VelocityProfileResult result =
+    assignVelocityProfile(path, 0.0, 0.0, 2.0, PlannerIntent::FOLLOW_RACING_LINE, reference, config);
 
   EXPECT_FALSE(result.feasible);
   for (const CurveSample & sample : path) {
@@ -407,4 +403,4 @@ TEST(VelocityProfile, ZeroAverageSpeedRejected)
   }
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

@@ -1,12 +1,26 @@
-#include "frenet_planner/collision/collision_checker.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/collision/collision_checker.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -38,25 +52,23 @@ bool euclideanTransformValid(const OccupancyGrid & grid)
 CollisionStatus worseStatus(CollisionStatus a, CollisionStatus b)
 {
   const auto rank = [](CollisionStatus status) {
-      switch (status) {
-        case CollisionStatus::COLLISION:
-          return 3;
-        case CollisionStatus::OUT_OF_GRID:
-          return 2;
-        case CollisionStatus::SOFT_INFLATION:
-          return 1;
-        case CollisionStatus::FREE:
-          return 0;
-      }
-      return 0;
-    };
+    switch (status) {
+      case CollisionStatus::COLLISION:
+        return 3;
+      case CollisionStatus::OUT_OF_GRID:
+        return 2;
+      case CollisionStatus::SOFT_INFLATION:
+        return 1;
+      case CollisionStatus::FREE:
+        return 0;
+    }
+    return 0;
+  };
   return rank(a) >= rank(b) ? a : b;
 }
 
 // https://hellorob.org/files/lectures/fast_euclidean_dt.pdf
-void distanceTransform1d(
-  const std::vector<double> & source_distance_sq,
-  std::vector<double> & transformed_distance_sq)
+void distanceTransform1d(const std::vector<double> & source_distance_sq, std::vector<double> & transformed_distance_sq)
 {
   const int sample_count = static_cast<int>(source_distance_sq.size());
   transformed_distance_sq.assign(source_distance_sq.size(), kInfDistanceSqCells);
@@ -66,25 +78,20 @@ void distanceTransform1d(
   int envelope_back = -1;
 
   for (int source_index = 0; source_index < sample_count; ++source_index) {
-    const bool has_source =
-      source_distance_sq[static_cast<size_t>(source_index)] < kInfDistanceSqCells;
+    const bool has_source = source_distance_sq[static_cast<size_t>(source_index)] < kInfDistanceSqCells;
 
     if (has_source) {
       double new_start_position = -std::numeric_limits<double>::infinity();
       bool source_fits_envelope = false;
       while (envelope_back >= 0 && !source_fits_envelope) {
         const int previous_source = envelope_sources[static_cast<size_t>(envelope_back)];
-        const double source_sq =
-          static_cast<double>(source_index) * static_cast<double>(source_index);
-        const double previous_source_sq =
-          static_cast<double>(previous_source) * static_cast<double>(previous_source);
-        new_start_position =
-          ((source_distance_sq[static_cast<size_t>(source_index)] + source_sq) -
-          (source_distance_sq[static_cast<size_t>(previous_source)] + previous_source_sq)) /
-          (2.0 * static_cast<double>(source_index - previous_source));
+        const double source_sq = static_cast<double>(source_index) * static_cast<double>(source_index);
+        const double previous_source_sq = static_cast<double>(previous_source) * static_cast<double>(previous_source);
+        new_start_position = ((source_distance_sq[static_cast<size_t>(source_index)] + source_sq) -
+                              (source_distance_sq[static_cast<size_t>(previous_source)] + previous_source_sq)) /
+                             (2.0 * static_cast<double>(source_index - previous_source));
 
-        source_fits_envelope =
-          new_start_position > envelope_start_positions[static_cast<size_t>(envelope_back)];
+        source_fits_envelope = new_start_position > envelope_start_positions[static_cast<size_t>(envelope_back)];
         if (!source_fits_envelope) {
           --envelope_back;
         }
@@ -93,8 +100,7 @@ void distanceTransform1d(
       ++envelope_back;
       envelope_sources[static_cast<size_t>(envelope_back)] = source_index;
       envelope_start_positions[static_cast<size_t>(envelope_back)] = new_start_position;
-      envelope_start_positions[static_cast<size_t>(envelope_back + 1)] =
-        std::numeric_limits<double>::infinity();
+      envelope_start_positions[static_cast<size_t>(envelope_back + 1)] = std::numeric_limits<double>::infinity();
     }
   }
 
@@ -104,9 +110,7 @@ void distanceTransform1d(
 
   int envelope_index = 0;
   for (int query_index = 0; query_index < sample_count; ++query_index) {
-    while (envelope_start_positions[static_cast<size_t>(envelope_index + 1)] <
-      static_cast<double>(query_index))
-    {
+    while (envelope_start_positions[static_cast<size_t>(envelope_index + 1)] < static_cast<double>(query_index)) {
       ++envelope_index;
     }
     const int source_index = envelope_sources[static_cast<size_t>(envelope_index)];
@@ -117,15 +121,13 @@ void distanceTransform1d(
   }
 }
 
-} // namespace
+}  // namespace
 
-CollisionChecker::CollisionChecker(
-  VehicleGeometry vehicle_geometry,
-  GridPolicy grid_policy,
-  CollisionConfig config)
-: vehicle_geometry_(vehicle_geometry), grid_policy_(grid_policy), config_(config)
-{
-}
+CollisionChecker::CollisionChecker(VehicleGeometry vehicle_geometry, GridPolicy grid_policy, CollisionConfig config)
+: vehicle_geometry_(vehicle_geometry)
+, grid_policy_(grid_policy)
+, config_(config)
+{}
 
 void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
 {
@@ -150,15 +152,14 @@ void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
   for (int row = 0; row < grid.height; ++row) {
     for (int col = 0; col < grid.width; ++col) {
       const int index = gridIndex(row, col, grid.width);
-      f[static_cast<size_t>(col)] = grid_policy_.isOccupied(
-        grid.data[static_cast<size_t>(index)]) ? 0.0 : kInfDistanceSqCells;
+      f[static_cast<size_t>(col)] =
+        grid_policy_.isOccupied(grid.data[static_cast<size_t>(index)]) ? 0.0 : kInfDistanceSqCells;
     }
 
     f.resize(static_cast<size_t>(grid.width));
     distanceTransform1d(f, d);
     for (int col = 0; col < grid.width; ++col) {
-      row_distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))] =
-        d[static_cast<size_t>(col)];
+      row_distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))] = d[static_cast<size_t>(col)];
     }
     f.resize(static_cast<size_t>(std::max(grid.width, grid.height)));
   }
@@ -166,14 +167,12 @@ void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
   f.resize(static_cast<size_t>(grid.height));
   for (int col = 0; col < grid.width; ++col) {
     for (int row = 0; row < grid.height; ++row) {
-      f[static_cast<size_t>(row)] =
-        row_distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))];
+      f[static_cast<size_t>(row)] = row_distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))];
     }
 
     distanceTransform1d(f, d);
     for (int row = 0; row < grid.height; ++row) {
-      distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))] =
-        d[static_cast<size_t>(row)];
+      distance_sq[static_cast<size_t>(gridIndex(row, col, grid.width))] = d[static_cast<size_t>(row)];
     }
   }
 
@@ -182,31 +181,25 @@ void CollisionChecker::buildEuclideanTransform(OccupancyGrid & grid) const
     if (distance_sq[i] >= kInfDistanceSqCells) {
       grid.obstacle_distance_m[i] = std::numeric_limits<float>::infinity();
     } else {
-      grid.obstacle_distance_m[i] =
-        static_cast<float>(std::sqrt(distance_sq[i]) * grid.resolution);
+      grid.obstacle_distance_m[i] = static_cast<float>(std::sqrt(distance_sq[i]) * grid.resolution);
     }
   }
   grid.has_euclidean_transform = true;
 }
 
-CollisionCheckResult CollisionChecker::applyOutOfGridPolicy(
-  CollisionCheckResult result) const
+CollisionCheckResult CollisionChecker::applyOutOfGridPolicy(CollisionCheckResult result) const
 {
-  if (result.status == CollisionStatus::OUT_OF_GRID &&
-    grid_policy_.treat_out_of_grid_as_free)
-  {
+  if (result.status == CollisionStatus::OUT_OF_GRID && grid_policy_.treat_out_of_grid_as_free) {
     result.status = CollisionStatus::FREE;
   }
   return result;
 }
 
 CollisionCheckResult CollisionChecker::collisionCheck(
-  const std::vector<CurveSample> & path,
-  const OccupancyGrid & grid) const
+  const std::vector<CurveSample> & path, const OccupancyGrid & grid) const
 {
   if (!euclideanTransformValid(grid) || path.empty()) {
-    return applyOutOfGridPolicy(
-      {CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0});
+    return applyOutOfGridPolicy({CollisionStatus::OUT_OF_GRID, -std::numeric_limits<double>::infinity(), 0});
   }
 
   const float * const edt = grid.obstacle_distance_m.data();
@@ -227,55 +220,54 @@ CollisionCheckResult CollisionChecker::collisionCheck(
   uint32_t checked_poses = 0;
 
   auto checkCircle = [&](double x, double y) -> CollisionStatus {
-      const int col = static_cast<int>(std::floor((x - origin_x) / resolution));
-      const int row = static_cast<int>(std::floor((y - origin_y) / resolution));
-      if (col < 0 || col >= width || row < 0 || row >= height) {
-        return CollisionStatus::OUT_OF_GRID;
-      }
+    const int col = static_cast<int>(std::floor((x - origin_x) / resolution));
+    const int row = static_cast<int>(std::floor((y - origin_y) / resolution));
+    if (col < 0 || col >= width || row < 0 || row >= height) {
+      return CollisionStatus::OUT_OF_GRID;
+    }
 
-      const double clearance_m =
-        static_cast<double>(edt[static_cast<size_t>(gridIndex(row, col, width))]) -
-        cell_half_diagonal - collision_radius_m;
-      minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
-      if (clearance_m <= 0.0) {
-        return CollisionStatus::COLLISION;
-      }
-      if (clearance_m <= soft_inflation_distance_m) {
-        return CollisionStatus::SOFT_INFLATION;
-      }
-      return CollisionStatus::FREE;
-    };
+    const double clearance_m = static_cast<double>(edt[static_cast<size_t>(gridIndex(row, col, width))]) -
+                               cell_half_diagonal - collision_radius_m;
+    minimum_clearance_m = std::min(minimum_clearance_m, clearance_m);
+    if (clearance_m <= 0.0) {
+      return CollisionStatus::COLLISION;
+    }
+    if (clearance_m <= soft_inflation_distance_m) {
+      return CollisionStatus::SOFT_INFLATION;
+    }
+    return CollisionStatus::FREE;
+  };
 
   // Rear circle at (x, y), front circle at (x, y) + (front_dx, front_dy).
 
   auto checkPose = [&](double x, double y, double front_dx, double front_dy) -> bool {
-      ++checked_poses;
-      const CollisionStatus rear_status = checkCircle(x, y);
-      if (rear_status == CollisionStatus::OUT_OF_GRID) {
-        aggregated_status = CollisionStatus::OUT_OF_GRID;
-        minimum_clearance_m = -std::numeric_limits<double>::infinity();
-        return false;
-      }
-      if (rear_status == CollisionStatus::COLLISION) {
-        aggregated_status = CollisionStatus::COLLISION;
-        return true;
-      }
-      aggregated_status = worseStatus(aggregated_status, rear_status);
-
-      const CollisionStatus front_status = checkCircle(x + front_dx, y + front_dy);
-      if (front_status == CollisionStatus::OUT_OF_GRID) {
-        aggregated_status = CollisionStatus::OUT_OF_GRID;
-        minimum_clearance_m = -std::numeric_limits<double>::infinity();
-        return false;
-      }
-      aggregated_status = worseStatus(aggregated_status, front_status);
+    ++checked_poses;
+    const CollisionStatus rear_status = checkCircle(x, y);
+    if (rear_status == CollisionStatus::OUT_OF_GRID) {
+      aggregated_status = CollisionStatus::OUT_OF_GRID;
+      minimum_clearance_m = -std::numeric_limits<double>::infinity();
+      return false;
+    }
+    if (rear_status == CollisionStatus::COLLISION) {
+      aggregated_status = CollisionStatus::COLLISION;
       return true;
-    };
+    }
+    aggregated_status = worseStatus(aggregated_status, rear_status);
+
+    const CollisionStatus front_status = checkCircle(x + front_dx, y + front_dy);
+    if (front_status == CollisionStatus::OUT_OF_GRID) {
+      aggregated_status = CollisionStatus::OUT_OF_GRID;
+      minimum_clearance_m = -std::numeric_limits<double>::infinity();
+      return false;
+    }
+    aggregated_status = worseStatus(aggregated_status, front_status);
+    return true;
+  };
 
   auto seedFrontOffset = [front_offset_m](double heading, double & front_dx, double & front_dy) {
-      front_dx = front_offset_m * std::cos(heading);
-      front_dy = front_offset_m * std::sin(heading);
-    };
+    front_dx = front_offset_m * std::cos(heading);
+    front_dy = front_offset_m * std::sin(heading);
+  };
 
   if (path.size() == 1) {
     double front_dx = 0.0;
@@ -292,9 +284,7 @@ CollisionCheckResult CollisionChecker::collisionCheck(
     const double dy = b.y - a.y;
     const double segment_length = std::sqrt(dx * dx + dy * dy);
     const double heading_delta = shortestAngleDiff(b.heading, a.heading);
-    const int step_count = std::max(
-      1,
-      static_cast<int>(std::ceil(segment_length / std::max(max_step_m, kEpsilon))));
+    const int step_count = std::max(1, static_cast<int>(std::ceil(segment_length / std::max(max_step_m, kEpsilon))));
     const double step_dheading = heading_delta / static_cast<double>(step_count);
     const double cos_d = std::cos(step_dheading);
     const double sin_d = std::sin(step_dheading);
@@ -312,8 +302,7 @@ CollisionCheckResult CollisionChecker::collisionCheck(
         const double x = a.x + t * dx;
         const double y = a.y + t * dy;
         if (!checkPose(x, y, front_dx, front_dy)) {
-          return applyOutOfGridPolicy(
-            {aggregated_status, minimum_clearance_m, checked_poses});
+          return applyOutOfGridPolicy({aggregated_status, minimum_clearance_m, checked_poses});
         }
       }
       if (step == step_count) {
@@ -328,4 +317,4 @@ CollisionCheckResult CollisionChecker::collisionCheck(
   return applyOutOfGridPolicy({aggregated_status, minimum_clearance_m, checked_poses});
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

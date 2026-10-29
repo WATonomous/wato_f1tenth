@@ -1,11 +1,25 @@
-#include "frenet_planner/collision/collision_checker.hpp"
-#include "frenet_planner/core/geometry.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <limits>
 #include <vector>
+
+#include "frenet_planner/collision/collision_checker.hpp"
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -64,7 +78,7 @@ OccupancyGrid freeField()
   return makeGrid(100, 100, 0.10, -5.0, -5.0);
 }
 
-} // namespace
+}  // namespace
 
 TEST(OccupancyGrid, CellAtMapsWorldPointAndRejectsOutOfBounds)
 {
@@ -189,9 +203,7 @@ TEST(CollisionChecker, FrontCircleFollowsTurningHeading)
   ASSERT_GT(
     std::hypot(obstacle.x - rear.x, obstacle.y - rear.y),
     policies.vehicle.collision_radius_m + policies.collision.soft_inflation_distance_m);
-  ASSERT_LE(
-    std::hypot(obstacle.x - front_at_end.x, obstacle.y - front_at_end.y),
-    policies.vehicle.collision_radius_m);
+  ASSERT_LE(std::hypot(obstacle.x - front_at_end.x, obstacle.y - front_at_end.y), policies.vehicle.collision_radius_m);
 
   const std::vector<CurveSample> path = {
     sample(0.0, 0.0, 0.0, 0.0),
@@ -213,11 +225,8 @@ TEST(CollisionChecker, FrontCircleOnlyCollision)
   const Point obstacle = cellCenter(grid, 50, 52);
   const Point rear(0.0, 0.0);
   const Point front(policies.vehicle.front_circle_offset_m, 0.0);
-  ASSERT_GT(
-    std::hypot(obstacle.x - rear.x, obstacle.y - rear.y),
-    policies.vehicle.collision_radius_m);
-  ASSERT_LE(std::hypot(obstacle.x - front.x, obstacle.y - front.y),
-      policies.vehicle.collision_radius_m);
+  ASSERT_GT(std::hypot(obstacle.x - rear.x, obstacle.y - rear.y), policies.vehicle.collision_radius_m);
+  ASSERT_LE(std::hypot(obstacle.x - front.x, obstacle.y - front.y), policies.vehicle.collision_radius_m);
 
   const std::vector<CurveSample> path = {
     sample(0.0, 0.0, 0.0, 0.0),
@@ -285,9 +294,7 @@ TEST(CollisionChecker, MissingEuclideanTransformOrInvalidGridIsOutOfGrid)
 
   grid.data.push_back(0);
   checker.buildEuclideanTransform(grid);
-  EXPECT_EQ(
-    checker.collisionCheck(std::vector<CurveSample>{}, grid).status,
-    CollisionStatus::OUT_OF_GRID);
+  EXPECT_EQ(checker.collisionCheck(std::vector<CurveSample>{}, grid).status, CollisionStatus::OUT_OF_GRID);
 }
 
 TEST(CollisionChecker, CollisionNearOccupiedCellCorner)
@@ -314,17 +321,14 @@ TEST(CollisionChecker, OccupiedThresholdComesFromGridPolicy)
   strict_policies.grid.occupied_threshold = 75;
   CollisionChecker strict_checker = makeChecker(strict_policies);
   strict_checker.buildEuclideanTransform(strict_grid);
-  EXPECT_EQ(
-    strict_checker.collisionCheck({sample(0.0, 0.05, 0.05)}, strict_grid).status,
-    CollisionStatus::FREE);
+  EXPECT_EQ(strict_checker.collisionCheck({sample(0.0, 0.05, 0.05)}, strict_grid).status, CollisionStatus::FREE);
 
   TestPolicies permissive_policies;
   permissive_policies.grid.occupied_threshold = 50;
   CollisionChecker permissive_checker = makeChecker(permissive_policies);
   permissive_checker.buildEuclideanTransform(permissive_grid);
   EXPECT_EQ(
-    permissive_checker.collisionCheck({sample(0.0, 0.05, 0.05)}, permissive_grid).status,
-    CollisionStatus::COLLISION);
+    permissive_checker.collisionCheck({sample(0.0, 0.05, 0.05)}, permissive_grid).status, CollisionStatus::COLLISION);
 }
 
 TEST(CollisionChecker, UnknownCellsRemainFreeByDefault)
@@ -334,9 +338,7 @@ TEST(CollisionChecker, UnknownCellsRemainFreeByDefault)
   CollisionChecker checker = makeChecker();
   checker.buildEuclideanTransform(grid);
 
-  EXPECT_EQ(
-    checker.collisionCheck({sample(0.0, 0.05, 0.05)}, grid).status,
-    CollisionStatus::FREE);
+  EXPECT_EQ(checker.collisionCheck({sample(0.0, 0.05, 0.05)}, grid).status, CollisionStatus::FREE);
 }
 
 TEST(CollisionChecker, OutOfGridCanRemainFree)
@@ -347,11 +349,10 @@ TEST(CollisionChecker, OutOfGridCanRemainFree)
   CollisionChecker checker = makeChecker(policies);
   checker.buildEuclideanTransform(grid);
 
-  const CollisionCheckResult result = checker.collisionCheck(
-    {sample(0.0, 1.70, 1.0), sample(0.2, 1.90, 1.0)}, grid);
+  const CollisionCheckResult result = checker.collisionCheck({sample(0.0, 1.70, 1.0), sample(0.2, 1.90, 1.0)}, grid);
   EXPECT_EQ(result.status, CollisionStatus::FREE);
   EXPECT_TRUE(std::isinf(result.minimum_clearance_m));
   EXPECT_LT(result.minimum_clearance_m, 0.0);
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner
