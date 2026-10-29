@@ -23,7 +23,7 @@ find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(global_planner REQUIRED)
+find_package(wato_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -69,8 +69,8 @@ target_include_directories(frenet_planner_core PRIVATE
 # PRIVATE, not PUBLIC: the worker pool is an implementation detail behind a
 # private header (src/core/worker_pool.hpp), so Threads has no business in the
 # exported link interface.  As PUBLIC it landed in export_frenet_plannerExport
-# without a matching find_package, and every downstream consumer -- costmap_test_tools
-# links this for RacelineReference -- failed to configure.
+# without a matching find_package, and every downstream consumer that linked this
+# for RacelineReference failed to configure.
 target_link_libraries(frenet_planner_core PRIVATE Threads::Threads)
 
 # ---------------------------------------------------------------------------
@@ -106,10 +106,10 @@ target_link_libraries(planner_node
   ${cpp_typesupport_target}
 )
 ament_target_dependencies(planner_node
-  rclcpp ackermann_msgs nav_msgs std_msgs geometry_msgs visualization_msgs global_planner
+  rclcpp ackermann_msgs nav_msgs std_msgs geometry_msgs visualization_msgs wato_msgs
   tf2 tf2_ros tf2_geometry_msgs)
 
-# Only the core is exported; costmap_test_tools links it for RacelineReference.
+# Only the core is exported, for packages that link it for RacelineReference.
 install(DIRECTORY include/ DESTINATION include)
 
 install(TARGETS frenet_planner_core
