@@ -31,6 +31,19 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         global_path_topic, latched_qos,
         [this](const nav_msgs::msg::Path::SharedPtr msg) {
             current_global_path = *msg;
+            //drop repeated points (closed paths repeat the first pose at the end):
+            //a zero-length segment gives atan2(0,0) = 0 as the path heading and
+            //slams the steering to full lock once per lap
+            auto& poses = current_global_path.poses;
+            auto same_xy = [](const geometry_msgs::msg::PoseStamped& a,
+                              const geometry_msgs::msg::PoseStamped& b) {
+                return std::hypot(a.pose.position.x - b.pose.position.x,
+                                  a.pose.position.y - b.pose.position.y) < 1e-3;
+            };
+            poses.erase(std::unique(poses.begin(), poses.end(), same_xy), poses.end());
+            while (poses.size() > 1 && same_xy(poses.front(), poses.back())) {
+                poses.pop_back();
+            }
             //new path invalidates the cached search index
             closest_idx_initialized_ = false;
         }
