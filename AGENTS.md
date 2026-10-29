@@ -88,6 +88,7 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/workflows/sim-to-car.md` | Code must behave the same in sim and on the car |
 | `agents/workflows/deploy-to-car.md` | You are preparing something to run on the Jetson |
 | `agents/workflows/remote-car.md` | You run commands on the car over SSH (build, start, check topics, logs) |
+| `agents/workflows/power.md` | The car lost power, or you work on battery, power draw or the black box |
 | `agents/workflows/port-to-jazzy.md` | You are porting a package from Humble to Jazzy |
 | `agents/workflows/update-legacy-branch.md` | You are bringing an old-layout branch onto the new layout |
 | `agents/workflows/debug-mppi.md` | You are working on MPPI or the opponent predictor |

@@ -25,7 +25,7 @@ mounted at `/ws/src/<module>`.
 
 | Module | Packages | Runs |
 | --- | --- | --- |
-| `infrastructure` | `infrastructure_bringup`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays; builds `vesc_msgs` so Foxglove can decode it |
+| `infrastructure` | `infrastructure_bringup`, `f1tenth_msgs`, `system_monitor`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays, `system_monitor` (`/system/status`, and on the car `/system/power` plus the black box: `workflows/power.md`); builds `vesc_msgs` so Foxglove can decode it |
 | `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap`, `race_tracks` (data, also copied into `action`) | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
 | `action` | `action_bringup`, `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |

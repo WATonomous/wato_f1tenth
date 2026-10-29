@@ -42,3 +42,7 @@
 /camera/camera/color/camera_info
 /camera/camera/depth/image_rect_raw/zstd
 /camera/camera/depth/camera_info
+
+# Computer health and pack power (system_monitor)
+/system/status
+/system/power

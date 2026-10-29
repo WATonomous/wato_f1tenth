@@ -62,6 +62,7 @@ Commands
   build-base [cpu|gpu|jetson] Build the f1tenth base images locally (run before build)
   controller [pair|connect|status|forget]
                               Pair / reconnect a Bluetooth PS4 or PS5 pad (runs on the host)
+  blackbox [list|<file>]      Read the car's black box: the last seconds before a power cut
   down                        Stop ACTIVE_MODULES containers + infrastructure
   down <service>              Stop only the specified service(s)
   down all                    Stop all watod containers (all modules/profiles)
@@ -250,6 +251,11 @@ while [[ $# -gt 0 ]]; do
     controller)
       shift
       "$MONO_DIR/watod_scripts/watod-controller.sh" "$@"
+      exit $?
+      ;;
+    blackbox)
+      shift
+      "$MONO_DIR/watod_scripts/watod-blackbox.sh" "$@"
       exit $?
       ;;
     -s|--setup-dev-env)

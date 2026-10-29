@@ -33,3 +33,6 @@
 /autodrive/roboracer_1/left_encoder
 /autodrive/roboracer_1/right_encoder
 /autodrive/roboracer_1/front_camera
+
+# Computer health (system_monitor)
+/system/status
