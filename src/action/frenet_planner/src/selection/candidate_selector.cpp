@@ -1,11 +1,26 @@
-#include "frenet_planner/selection/candidate_selector.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/selection/candidate_selector.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -18,26 +33,23 @@ bool valid(const EvaluatedCandidate & candidate)
 {
   return candidate.candidate_index >= 0 && candidate.velocity_feasible &&
          (candidate.collision.status == CollisionStatus::FREE ||
-         candidate.collision.status == CollisionStatus::SOFT_INFLATION);
+          candidate.collision.status == CollisionStatus::SOFT_INFLATION);
 }
 
-// How far into the soft inflation a candidate goes, in metres. 
+// How far into the soft inflation a candidate goes, in metres.
 double inflationDepth(const EvaluatedCandidate & candidate, double soft_inflation_distance_m)
 {
   if (candidate.collision.status == CollisionStatus::FREE) {
     return 0.0;
   }
-  return std::max(
-    kTolerance, soft_inflation_distance_m - candidate.collision.minimum_clearance_m);
+  return std::max(kTolerance, soft_inflation_distance_m - candidate.collision.minimum_clearance_m);
 }
 
-// Lower is better in every slot. 
+// Lower is better in every slot.
 using SelectionKey = std::array<double, kKeyCount>;
 
 SelectionKey keyFor(
-  const ManeuverCandidate & geometry,
-  const EvaluatedCandidate & evaluated,
-  double soft_inflation_distance_m)
+  const ManeuverCandidate & geometry, const EvaluatedCandidate & evaluated, double soft_inflation_distance_m)
 {
   return {
     inflationDepth(evaluated, soft_inflation_distance_m),
@@ -66,17 +78,17 @@ bool better(const SelectionKey & candidate, const SelectionKey & best)
 
 CandidateSelector::CandidateSelector(double soft_inflation_distance_m)
 : soft_inflation_distance_m_(soft_inflation_distance_m)
-{
-}
+{}
 
 int CandidateSelector::select(
-  const std::vector<ManeuverCandidate> & pool,
-  const std::vector<EvaluatedCandidate> & evaluated) const
+  const std::vector<ManeuverCandidate> & pool, const std::vector<EvaluatedCandidate> & evaluated) const
 {
   int best_index = -1;
   SelectionKey best_key{};
   for (const auto & candidate : evaluated) {
-    if (!valid(candidate)) {continue;}
+    if (!valid(candidate)) {
+      continue;
+    }
     const auto & geometry = pool.at(static_cast<std::size_t>(candidate.candidate_index));
     const SelectionKey key = keyFor(geometry, candidate, soft_inflation_distance_m_);
     if (best_index < 0 || better(key, best_key)) {

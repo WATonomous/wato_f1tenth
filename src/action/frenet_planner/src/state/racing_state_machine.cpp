@@ -1,3 +1,17 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /*
  * RacingStateMachine coordinates the planner's tactical intent from the ego
  * vehicle's position, raceline compatibility, and the nearest occupied
@@ -30,12 +44,12 @@
 
 #include "frenet_planner/state/racing_state_machine.hpp"
 
-#include "frenet_planner/core/geometry.hpp"
-
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <algorithm>
 #include <utility>
+
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -45,26 +59,24 @@ namespace
 bool gridUsable(const OccupancyGrid & grid)
 {
   return grid.resolution > 0.0 && grid.width > 0 && grid.height > 0 &&
-         grid.data.size() >= static_cast<std::size_t>(grid.width) *
-         static_cast<std::size_t>(grid.height);
+         grid.data.size() >= static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height);
 }
 
-} // namespace
+}  // namespace
 
 RacingStateMachine::RacingStateMachine(
   const RacelineReference & reference,
   StateMachineConfig config,
   VehicleGeometry vehicle_geometry,
   GridPolicy grid_policy)
-: reference_(reference), config_(std::move(config)),
-  vehicle_geometry_(vehicle_geometry), grid_policy_(grid_policy)
-{
-}
+: reference_(reference)
+, config_(std::move(config))
+, vehicle_geometry_(vehicle_geometry)
+, grid_policy_(grid_policy)
+{}
 
 void RacingStateMachine::update(
-  const Odometry & ego_odom,
-  const OccupancyGrid & occupancy_grid,
-  StateUpdateContext context)
+  const Odometry & ego_odom, const OccupancyGrid & occupancy_grid, StateUpdateContext context)
 {
   if (!reference_.valid()) {
     state_ = TacticalState{};
@@ -79,8 +91,7 @@ void RacingStateMachine::update(
   last_update_s_ = context.now_s;
 
   // Ego first: its s seeds the next cycle and bounds the opponent scan.
-  const Projection ego = reference_.project(
-    ego_odom.position, ego_odom.heading, ego_seed_s_);
+  const Projection ego = reference_.project(ego_odom.position, ego_odom.heading, ego_seed_s_);
   ego_seed_s_ = ego.s;
   state_.ego_s = ego.s;
   state_.ego_d = ego.d;
@@ -141,15 +152,12 @@ void RacingStateMachine::update(
   }
 }
 
-void RacingStateMachine::update(
-  const Odometry & ego_odom,
-  const OccupancyGrid & occupancy_grid)
+void RacingStateMachine::update(const Odometry & ego_odom, const OccupancyGrid & occupancy_grid)
 {
   ++automatic_sequence_;
   const double step = std::max(config_.fast_confirmation_s, 1e-3);
   const double automatic_time = automatic_sequence_ * step;
-  update(ego_odom, occupancy_grid, StateUpdateContext{automatic_time,
-      automatic_sequence_, automatic_time});
+  update(ego_odom, occupancy_grid, StateUpdateContext{automatic_time, automatic_sequence_, automatic_time});
 }
 
 void RacingStateMachine::reportMergeProbe(bool available)
@@ -175,11 +183,8 @@ void RacingStateMachine::resetEvidence()
   pending_last_grid_sequence_ = 0;
 }
 
-
 bool RacingStateMachine::detectOpponent(
-  const OccupancyGrid & occupancy_grid,
-  double ego_s,
-  OpponentObservation & out) const
+  const OccupancyGrid & occupancy_grid, double ego_s, OpponentObservation & out) const
 {
   out = OpponentObservation{};
   if (!gridUsable(occupancy_grid)) {
@@ -191,7 +196,7 @@ bool RacingStateMachine::detectOpponent(
 
   bool found = false;
   double nearest_offset_m = 0.0;
-  //might need to change below to go all the way forward then all the way back idk
+  // might need to change below to go all the way forward then all the way back idk
   // Forward first, so an equidistant tie resolves to the opponent ahead.
   for (const int direction : {1, -1}) {
     for (double offset = step; offset <= limit; offset += step) {
@@ -224,14 +229,12 @@ bool RacingStateMachine::detectOpponent(
   return true;
 }
 
-bool RacingStateMachine::corridorOccupied(
-  const OccupancyGrid & occupancy_grid,
-  double s) const
+bool RacingStateMachine::corridorOccupied(const OccupancyGrid & occupancy_grid, double s) const
 {
   const double half_width = config_.corridor_half_width_m;
   for (double d = -half_width; d <= half_width + kSpacingEps; d += occupancy_grid.resolution) {
     if (const auto index = occupancy_grid.cellAt(reference_.toCartesian(s, d));
-      index && grid_policy_.isOccupied(occupancy_grid.data[*index]))
+        index && grid_policy_.isOccupied(occupancy_grid.data[*index]))
     {
       return true;
     }
@@ -253,20 +256,15 @@ RelativePosition RacingStateMachine::classify(double gap_m) const
   return RelativePosition::AHEAD_AND_CLEAR;
 }
 
-bool RacingStateMachine::isRacelineCompatible(
-  const Odometry & ego_odom,
-  double ego_s,
-  double ego_d)
+bool RacingStateMachine::isRacelineCompatible(const Odometry & ego_odom, double ego_s, double ego_d)
 {
-
   const ReferenceGeometrySample sample = reference_.sampleAtS(ego_s);
   state_.heading_error_rad = shortestAngleDiff(ego_odom.heading, sample.heading);
 
-  const double lateral_limit = state_.intent == PlannerIntent::FOLLOW_RACING_LINE ?
-    config_.follow_exit_abs_d_m : config_.follow_enter_abs_d_m;
+  const double lateral_limit =
+    state_.intent == PlannerIntent::FOLLOW_RACING_LINE ? config_.follow_exit_abs_d_m : config_.follow_enter_abs_d_m;
   state_.raceline_compatible =
-    std::abs(ego_d) <= lateral_limit &&
-    std::abs(state_.heading_error_rad) <= config_.compat_heading_rad;
+    std::abs(ego_d) <= lateral_limit && std::abs(state_.heading_error_rad) <= config_.compat_heading_rad;
   return state_.raceline_compatible;
 }
 
@@ -280,20 +278,17 @@ PlannerIntent RacingStateMachine::proposedIntent(const Odometry & ego_odom) cons
   }
 
   const double gap = state_.opponent.gap_m;
-  const double engagement_limit = opponent_engaged_ ?
-    config_.engagement_exit_gap_m : config_.engagement_enter_gap_m;
+  const double engagement_limit = opponent_engaged_ ? config_.engagement_exit_gap_m : config_.engagement_enter_gap_m;
   if (gap > engagement_limit) {
     return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
   }
 
   /* OVERTAKE creates the lateral offset; PASS only maintains it.  Do not enter
    * PASS while centred, because no valid maneuver geometry can be generated. */
-  const bool displaced_for_pass =
-    std::abs(state_.ego_d) > vehicle_geometry_.fullWidthM();
+  const bool displaced_for_pass = std::abs(state_.ego_d) > vehicle_geometry_.fullWidthM();
   const auto passUnlessCentred = [&](PlannerIntent centred_alternative) {
-      return (displaced_for_pass || gap <= 0.0) ?
-             PlannerIntent::PASS : centred_alternative;
-    };
+    return (displaced_for_pass || gap <= 0.0) ? PlannerIntent::PASS : centred_alternative;
+  };
 
   switch (state_.intent) {
     case PlannerIntent::FOLLOW_RACING_LINE:
@@ -303,23 +298,32 @@ PlannerIntent RacingStateMachine::proposedIntent(const Odometry & ego_odom) cons
       if (gap <= config_.pass_enter_gap_m) {
         return passUnlessCentred(PlannerIntent::OVERTAKE);
       }
-      if (!compatible) {return PlannerIntent::MERGE;}
+      if (!compatible) {
+        return PlannerIntent::MERGE;
+      }
       return PlannerIntent::OVERTAKE;
     case PlannerIntent::OVERTAKE:
       if (gap <= config_.merge_enter_gap_m) {
         return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
       }
-      return gap <= config_.pass_enter_gap_m ?
-             passUnlessCentred(PlannerIntent::OVERTAKE) : PlannerIntent::OVERTAKE;
+      return gap <= config_.pass_enter_gap_m ? passUnlessCentred(PlannerIntent::OVERTAKE) : PlannerIntent::OVERTAKE;
     case PlannerIntent::PASS:
-      if (gap >= config_.pass_exit_gap_m) {return PlannerIntent::OVERTAKE;}
-      if (gap <= config_.merge_enter_gap_m) {return PlannerIntent::MERGE;}
+      if (gap >= config_.pass_exit_gap_m) {
+        return PlannerIntent::OVERTAKE;
+      }
+      if (gap <= config_.merge_enter_gap_m) {
+        return PlannerIntent::MERGE;
+      }
       // Drifting back onto the line mid-pass lands in the same empty pool as
       // entering centred, so the hold is gated on the same condition.
       return passUnlessCentred(PlannerIntent::OVERTAKE);
     case PlannerIntent::MERGE:
-      if (gap >= config_.pass_exit_gap_m) {return PlannerIntent::OVERTAKE;}
-      if (gap >= config_.merge_exit_gap_m) {return PlannerIntent::PASS;}
+      if (gap >= config_.pass_exit_gap_m) {
+        return PlannerIntent::OVERTAKE;
+      }
+      if (gap >= config_.merge_exit_gap_m) {
+        return PlannerIntent::PASS;
+      }
       return compatible ? PlannerIntent::FOLLOW_RACING_LINE : PlannerIntent::MERGE;
   }
 
@@ -335,12 +339,10 @@ TransitionClass RacingStateMachine::transitionClass(PlannerIntent proposed) cons
     return TransitionClass::FAST;
   }
   const bool normal_fast =
-    (state_.intent == PlannerIntent::FOLLOW_RACING_LINE &&
-    proposed == PlannerIntent::OVERTAKE) ||
+    (state_.intent == PlannerIntent::FOLLOW_RACING_LINE && proposed == PlannerIntent::OVERTAKE) ||
     (state_.intent == PlannerIntent::OVERTAKE && proposed == PlannerIntent::PASS) ||
     (state_.intent == PlannerIntent::PASS && proposed == PlannerIntent::OVERTAKE) ||
-    (state_.intent == PlannerIntent::OVERTAKE &&
-    proposed == PlannerIntent::FOLLOW_RACING_LINE) ||
+    (state_.intent == PlannerIntent::OVERTAKE && proposed == PlannerIntent::FOLLOW_RACING_LINE) ||
     (state_.intent == PlannerIntent::MERGE && proposed == PlannerIntent::FOLLOW_RACING_LINE) ||
     (state_.intent == PlannerIntent::FOLLOW_RACING_LINE && proposed == PlannerIntent::MERGE);
   return normal_fast ? TransitionClass::FAST : TransitionClass::SLOW;
@@ -348,9 +350,7 @@ TransitionClass RacingStateMachine::transitionClass(PlannerIntent proposed) cons
 
 TransitionReason RacingStateMachine::transitionReason(PlannerIntent proposed) const
 {
-  if (!state_.opponent.detected &&
-    (state_.intent == PlannerIntent::OVERTAKE || state_.intent == PlannerIntent::PASS))
-  {
+  if (!state_.opponent.detected && (state_.intent == PlannerIntent::OVERTAKE || state_.intent == PlannerIntent::PASS)) {
     return TransitionReason::OPPONENT_LOST;
   }
   if (proposed == PlannerIntent::FOLLOW_RACING_LINE) {
@@ -359,12 +359,18 @@ TransitionReason RacingStateMachine::transitionReason(PlannerIntent proposed) co
   if (state_.intent == PlannerIntent::FOLLOW_RACING_LINE && proposed == PlannerIntent::MERGE) {
     return TransitionReason::RACELINE_DEPARTED;
   }
-  if (proposed == PlannerIntent::OVERTAKE) {return TransitionReason::OPPONENT_ENGAGED;}
+  if (proposed == PlannerIntent::OVERTAKE) {
+    return TransitionReason::OPPONENT_ENGAGED;
+  }
   if (state_.intent == PlannerIntent::MERGE && proposed == PlannerIntent::PASS) {
     return TransitionReason::OPPONENT_CLEARANCE_LOST;
   }
-  if (proposed == PlannerIntent::PASS) {return TransitionReason::PASS_BAND_ENTERED;}
-  if (proposed == PlannerIntent::MERGE) {return TransitionReason::OPPONENT_CLEARED;}
+  if (proposed == PlannerIntent::PASS) {
+    return TransitionReason::PASS_BAND_ENTERED;
+  }
+  if (proposed == PlannerIntent::MERGE) {
+    return TransitionReason::OPPONENT_CLEARED;
+  }
   return TransitionReason::STATE_CORRECTION;
 }
 
@@ -373,20 +379,25 @@ bool RacingStateMachine::proposalUsesOpponent(PlannerIntent proposed) const
   // FOLLOW is justified by the live raceline-compatible ego pose. Stale or
   // disappearing opponent observations must not require extra costmap frames
   // before handing control back to the global raceline follower.
-  if (proposed == PlannerIntent::FOLLOW_RACING_LINE) {return false;}
-  if (state_.transition_reason == TransitionReason::OPPONENT_LOST) {return true;}
-  return state_.opponent.detected && !(state_.intent == PlannerIntent::MERGE &&
-         proposed == PlannerIntent::FOLLOW_RACING_LINE);
+  if (proposed == PlannerIntent::FOLLOW_RACING_LINE) {
+    return false;
+  }
+  if (state_.transition_reason == TransitionReason::OPPONENT_LOST) {
+    return true;
+  }
+  return state_.opponent.detected &&
+         !(state_.intent == PlannerIntent::MERGE && proposed == PlannerIntent::FOLLOW_RACING_LINE);
 }
 
 bool RacingStateMachine::confirmationSatisfied(PlannerIntent proposed) const
 {
   const bool slow = state_.transition_class == TransitionClass::SLOW;
   const double required_s = slow ? config_.slow_confirmation_s : config_.fast_confirmation_s;
-  if (state_.pending_duration_s + 1e-9 < required_s) {return false;}
+  if (state_.pending_duration_s + 1e-9 < required_s) {
+    return false;
+  }
 
-  uint32_t required_grids = proposalUsesOpponent(proposed) ?
-    config_.opponent_confirmation_grids : 0U;
+  uint32_t required_grids = proposalUsesOpponent(proposed) ? config_.opponent_confirmation_grids : 0U;
   if (state_.intent == PlannerIntent::PASS && proposed == PlannerIntent::MERGE) {
     required_grids = config_.pass_merge_confirmation_grids;
     if (state_.merge_probe_valid_cycles < config_.merge_probe_confirmation_cycles) {
@@ -399,4 +410,4 @@ bool RacingStateMachine::confirmationSatisfied(PlannerIntent proposed) const
   return state_.pending_grid_count >= required_grids;
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

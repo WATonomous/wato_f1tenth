@@ -1,10 +1,24 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_STATE_RACING_STATE_MACHINE_HPP
 #define FRENET_PLANNER_STATE_RACING_STATE_MACHINE_HPP
 
+#include <cstdint>
+
 #include "frenet_planner/core/types.hpp"
 #include "frenet_planner/reference/raceline_reference.hpp"
-
-#include <cstdint>
 
 namespace frenet_planner
 {
@@ -61,8 +75,8 @@ struct StateUpdateContext
 struct OpponentObservation
 {
   bool detected = false;
-  double s = 0.0;       // opponent near face; overtake anchor
-  double gap_m = 0.0;   // deltaS(ego_s, s); positive = ahead
+  double s = 0.0;  // opponent near face; overtake anchor
+  double gap_m = 0.0;  // deltaS(ego_s, s); positive = ahead
 };
 
 struct TacticalState
@@ -88,8 +102,8 @@ struct TacticalState
   double heading_error_rad = 0.0;
   bool raceline_compatible = false;
 
-  bool ego_seed_was_stale = false;          // full-loop search; ego_s untrusted
-  bool ego_heading_check_relaxed = false;   // tangent tolerance widened; ego_s still ok
+  bool ego_seed_was_stale = false;  // full-loop search; ego_s untrusted
+  bool ego_heading_check_relaxed = false;  // tangent tolerance widened; ego_s still ok
 };
 
 // Debounces tactical intent; collision safety stays in LocalPlanner.
@@ -116,14 +130,18 @@ public:
   void reportMergeProbe(bool available);
   void resetEvidence();
 
-  const TacticalState & state() const {return state_;}
-  const StateMachineConfig & config() const {return config_;}
+  const TacticalState & state() const
+  {
+    return state_;
+  }
+
+  const StateMachineConfig & config() const
+  {
+    return config_;
+  }
 
 private:
-  bool detectOpponent(
-    const OccupancyGrid & occupancy_grid,
-    double ego_s,
-    OpponentObservation & out) const;
+  bool detectOpponent(const OccupancyGrid & occupancy_grid, double ego_s, OpponentObservation & out) const;
 
   bool corridorOccupied(const OccupancyGrid & occupancy_grid, double s) const;
 
@@ -154,6 +172,6 @@ private:
   double ego_seed_s_ = 0.0;  // projection seed; carried between cycles
 };
 
-} // namespace frenet_planner
+}  // namespace frenet_planner
 
-#endif // FRENET_PLANNER_STATE_RACING_STATE_MACHINE_HPP
+#endif  // FRENET_PLANNER_STATE_RACING_STATE_MACHINE_HPP

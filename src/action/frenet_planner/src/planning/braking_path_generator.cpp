@@ -1,13 +1,27 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "frenet_planner/planning/braking_path_generator.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-
+#include <vector>
 
 /*
 all this does is brake and drive towards the raceline in the safest possible path and we brute force
-some possible paths 
+some possible paths
 
 */
 namespace frenet_planner
@@ -32,19 +46,17 @@ double sinc(double value)
 
 double BrakingConfig::allowedCurvature(double v) const
 {
-  const double steering_limit = wheelbase_m > 0.0 ?
-    std::tan(std::abs(max_steering_angle_rad)) / wheelbase_m :
-    0.0;
-  if (v <= 0.0) {return steering_limit;}
+  const double steering_limit = wheelbase_m > 0.0 ? std::tan(std::abs(max_steering_angle_rad)) / wheelbase_m : 0.0;
+  if (v <= 0.0) {
+    return steering_limit;
+  }
   return std::min(steering_limit, friction_coeff * kGravity / (v * v));
 }
 
-BrakingPathGenerator::BrakingPathGenerator(
-  const RacelineReference & reference,
-  BrakingConfig config)
-: reference_(reference), config_(config)
-{
-}
+BrakingPathGenerator::BrakingPathGenerator(const RacelineReference & reference, BrakingConfig config)
+: reference_(reference)
+, config_(config)
+{}
 
 std::vector<ManeuverCandidate> BrakingPathGenerator::generate(
   const BoundaryState & ego, double ego_s, double ego_d) const
@@ -74,8 +86,7 @@ std::vector<BrakingArcParams> BrakingPathGenerator::arcParams() const
 }
 
 ManeuverCandidate BrakingPathGenerator::integrate(
-  const BoundaryState & ego, double ego_s, double ego_d,
-  const BrakingArcParams & params) const
+  const BoundaryState & ego, double ego_s, double ego_d, const BrakingArcParams & params) const
 {
   const double ds = config_.sample_spacing_m;
   // Inclusive of the horizon: the published path must stay longer than the
@@ -97,8 +108,7 @@ ManeuverCandidate BrakingPathGenerator::integrate(
   for (std::size_t i = 0; i < count; ++i) {
     const double sigma = static_cast<double>(i) * ds;
     const double v = std::max(
-      config_.min_velocity_mps,
-      std::sqrt(std::max(0.0, ego.speed * ego.speed - 2.0 * config_.decel_mps2 * sigma)));
+      config_.min_velocity_mps, std::sqrt(std::max(0.0, ego.speed * ego.speed - 2.0 * config_.decel_mps2 * sigma)));
 
     if (i > 0) {
       station = reference_.wrapS(station + ds);
@@ -110,14 +120,18 @@ ManeuverCandidate BrakingPathGenerator::integrate(
         const double py = y - ref.y;
         tangential = px * ref.tangent_x + py * ref.tangent_y;
         lateral_offset = px * ref.normal_x + py * ref.normal_y;
-        if (std::abs(tangential) <= kStationToleranceM) {break;}
+        if (std::abs(tangential) <= kStationToleranceM) {
+          break;
+        }
 
         double jacobian = 1.0 - ref.curvature * lateral_offset;
         if (std::abs(jacobian) < kMinFrenetJacobianMagnitude) {
           jacobian = std::copysign(kMinFrenetJacobianMagnitude, jacobian);
         }
         const double denominator = ref.parameter_speed * jacobian;
-        if (!std::isfinite(denominator) || std::abs(denominator) < 1e-12) {break;}
+        if (!std::isfinite(denominator) || std::abs(denominator) < 1e-12) {
+          break;
+        }
         const double correction_m = std::clamp(tangential / denominator, -ds, ds);
         station = reference_.wrapS(station + correction_m);
       }
@@ -138,8 +152,7 @@ ManeuverCandidate BrakingPathGenerator::integrate(
     // station every step, so it keeps retreating ahead and the arc curls onto
     // the line and straightens rather than spearing a fixed point and
     // overshooting past it.
-    const Point target = reference_.toCartesian(
-      reference_.wrapS(station + params.lookahead_m), 0.0);
+    const Point target = reference_.toCartesian(reference_.wrapS(station + params.lookahead_m), 0.0);
     const double dx = target.x - x;
     const double dy = target.y - y;
     const double distance_sq = dx * dx + dy * dy;

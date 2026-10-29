@@ -1,5 +1,23 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_PLANNING_LOCAL_PLANNER_HPP
 #define FRENET_PLANNER_PLANNING_LOCAL_PLANNER_HPP
+
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
 #include "frenet_planner/collision/collision_checker.hpp"
 #include "frenet_planner/collision/track_bounds_checker.hpp"
@@ -8,10 +26,6 @@
 #include "frenet_planner/selection/candidate_selector.hpp"
 #include "frenet_planner/speed/velocity_profile.hpp"
 #include "frenet_planner/state/racing_state_machine.hpp"
-
-#include <cstdint>
-#include <cstddef>
-#include <vector>
 
 namespace frenet_planner
 {
@@ -97,7 +111,7 @@ struct PlannerDecisionData
   double sustainable_right_m = 0.0;
   uint32_t track_bounds_rejected = 0;
   uint32_t valid_candidate_count = 0;
-  double braking_effort = 0.0;       // braking modes only; 1.0 = max turn
+  double braking_effort = 0.0;  // braking modes only; 1.0 = max turn
   double braking_lookahead_m = 0.0;
   double cycle_time_ms = 0.0;
 };
@@ -156,11 +170,7 @@ private:
     double ego_d,
     const OccupancyGrid & grid) const;
   void selectBraking(
-    LocalPlanResult & result,
-    const BoundaryState & ego,
-    double ego_s,
-    double ego_d,
-    const OccupancyGrid & grid) const;
+    LocalPlanResult & result, const BoundaryState & ego, double ego_s, double ego_d, const OccupancyGrid & grid) const;
 
   const RacelineReference & reference_;
   const ManeuverBuilder & builder_;

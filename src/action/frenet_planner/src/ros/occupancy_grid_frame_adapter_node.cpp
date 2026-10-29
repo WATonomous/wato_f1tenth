@@ -1,3 +1,17 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -7,8 +21,8 @@
 
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "tf2/LinearMath/Transform.h"
 #include "tf2/exceptions.h"
+#include "tf2/LinearMath/Transform.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
@@ -32,19 +46,13 @@ public:
 
     grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(grid_topic_, 1);
     raw_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-      raw_grid_topic_, 1,
-      [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-        publishGrid(*msg);
-      });
-
+      raw_grid_topic_, 1, [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) { publishGrid(*msg); });
   }
 
 private:
   static bool isValidOccupancyGrid(const nav_msgs::msg::OccupancyGrid & grid)
   {
-    if (grid.header.frame_id.empty() || grid.info.resolution <= 0.0 ||
-      grid.info.width == 0 || grid.info.height == 0)
-    {
+    if (grid.header.frame_id.empty() || grid.info.resolution <= 0.0 || grid.info.width == 0 || grid.info.height == 0) {
       return false;
     }
 
@@ -74,8 +82,7 @@ private:
     const double resolution = source_grid.info.resolution;
     const double width_m = static_cast<double>(source_grid.info.width) * resolution;
     const double height_m = static_cast<double>(source_grid.info.height) * resolution;
-    const tf2::Vector3 center_in_target =
-      grid_to_target * tf2::Vector3(width_m * 0.5, height_m * 0.5, 0.0);
+    const tf2::Vector3 center_in_target = grid_to_target * tf2::Vector3(width_m * 0.5, height_m * 0.5, 0.0);
 
     target_grid = source_grid;
     target_grid.header.frame_id = target_frame_id;
@@ -98,8 +105,9 @@ private:
         const int source_col = static_cast<int>(std::floor(point_in_grid.x() / resolution));
         const int source_row = static_cast<int>(std::floor(point_in_grid.y() / resolution));
 
-        if (source_col >= 0 && source_col < static_cast<int>(source_grid.info.width) &&
-          source_row >= 0 && source_row < static_cast<int>(source_grid.info.height))
+        if (
+          source_col >= 0 && source_col < static_cast<int>(source_grid.info.width) && source_row >= 0 &&
+          source_row < static_cast<int>(source_grid.info.height))
         {
           target_grid.data[static_cast<size_t>(row) * target_grid.info.width + col] =
             source_grid.data[static_cast<size_t>(source_row) * source_grid.info.width + source_col];
@@ -114,8 +122,11 @@ private:
   {
     if (!isValidOccupancyGrid(raw_grid)) {
       RCLCPP_WARN_THROTTLE(
-        this->get_logger(), *this->get_clock(), 2000,
-        "Ignoring malformed occupancy grid from %s", raw_grid_topic_.c_str());
+        this->get_logger(),
+        *this->get_clock(),
+        2000,
+        "Ignoring malformed occupancy grid from %s",
+        raw_grid_topic_.c_str());
       return;
     }
 
@@ -125,19 +136,20 @@ private:
       geometry_msgs::msg::TransformStamped transform;
       try {
         transform = tf_buffer_->lookupTransform(
-          frame_id_, raw_grid.header.frame_id, rclcpp::Time(raw_grid.header.stamp),
-          tf2::durationFromSec(0.1));
+          frame_id_, raw_grid.header.frame_id, rclcpp::Time(raw_grid.header.stamp), tf2::durationFromSec(0.1));
       } catch (const tf2::TransformException & stamped_ex) {
         try {
           transform = tf_buffer_->lookupTransform(
-            frame_id_, raw_grid.header.frame_id, tf2::TimePointZero,
-            tf2::durationFromSec(0.1));
+            frame_id_, raw_grid.header.frame_id, tf2::TimePointZero, tf2::durationFromSec(0.1));
         } catch (const tf2::TransformException & latest_ex) {
           RCLCPP_WARN_THROTTLE(
             this->get_logger(),
-            *this->get_clock(), 2000,
+            *this->get_clock(),
+            2000,
             "Cannot transform occupancy grid from '%s' to '%s': %s; latest TF fallback also failed: %s",
-            raw_grid.header.frame_id.c_str(), frame_id_.c_str(), stamped_ex.what(),
+            raw_grid.header.frame_id.c_str(),
+            frame_id_.c_str(),
+            stamped_ex.what(),
             latest_ex.what());
           return;
         }
@@ -146,13 +158,14 @@ private:
     }
 
     nav_msgs::msg::OccupancyGrid target_grid;
-    if (!projectOccupancyGrid(
-        raw_grid, raw_frame_to_target, frame_id_, target_grid))
-    {
+    if (!projectOccupancyGrid(raw_grid, raw_frame_to_target, frame_id_, target_grid)) {
       RCLCPP_WARN_THROTTLE(
-        this->get_logger(), *this->get_clock(), 2000,
+        this->get_logger(),
+        *this->get_clock(),
+        2000,
         "Ignoring occupancy grid from %s because it cannot be projected to frame '%s'",
-        raw_grid_topic_.c_str(), frame_id_.c_str());
+        raw_grid_topic_.c_str(),
+        frame_id_.c_str());
       return;
     }
 

@@ -1,13 +1,29 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "frenet_planner/ros/planner_visualization.hpp"
 
-#include <geometry_msgs/msg/point.hpp>
 #include <tf2/LinearMath/Quaternion.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <utility>
+#include <vector>
+
+#include <geometry_msgs/msg/point.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace frenet_planner
 {
@@ -67,17 +83,13 @@ std::array<float, 3> statusColour(CollisionStatus status)
 }
 }  // namespace
 
-PlannerVisualization::PlannerVisualization(
-  const RacelineReference & reference,
-  PlannerVisualizationConfig config)
-: reference_(reference), config_(std::move(config))
-{
-}
+PlannerVisualization::PlannerVisualization(const RacelineReference & reference, PlannerVisualizationConfig config)
+: reference_(reference)
+, config_(std::move(config))
+{}
 
 void PlannerVisualization::publishCandidates(
-  const LocalPlanResult & result,
-  const rclcpp::Time & stamp,
-  MarkerPublisher & publisher) const
+  const LocalPlanResult & result, const rclcpp::Time & stamp, MarkerPublisher & publisher) const
 {
   MarkerArray markers;
   visualization_msgs::msg::Marker clear;
@@ -88,16 +100,13 @@ void PlannerVisualization::publishCandidates(
   for (std::size_t i = 0; i < result.pool.size(); ++i) {
     visualization_msgs::msg::Marker line;
     line.header = clear.header;
-    const auto evaluation = std::find_if(
-      result.evaluated.begin(), result.evaluated.end(), [i](const EvaluatedCandidate & item) {
+    const auto evaluation =
+      std::find_if(result.evaluated.begin(), result.evaluated.end(), [i](const EvaluatedCandidate & item) {
         return item.candidate_index == static_cast<int>(i);
       });
-    const bool merge_probe = evaluation != result.evaluated.end() &&
-      evaluation->source == CandidateSource::MERGE_PROBE;
-    const bool braking = evaluation != result.evaluated.end() &&
-      evaluation->source == CandidateSource::BRAKING;
-    line.ns = braking ? "braking_paths" :
-      (merge_probe ? "merge_probe_paths" : "candidate_paths");
+    const bool merge_probe = evaluation != result.evaluated.end() && evaluation->source == CandidateSource::MERGE_PROBE;
+    const bool braking = evaluation != result.evaluated.end() && evaluation->source == CandidateSource::BRAKING;
+    line.ns = braking ? "braking_paths" : (merge_probe ? "merge_probe_paths" : "candidate_paths");
     line.id = static_cast<int>(i);
     line.type = visualization_msgs::msg::Marker::LINE_STRIP;
     line.action = visualization_msgs::msg::Marker::ADD;
@@ -153,12 +162,10 @@ void PlannerVisualization::publishCandidates(
 }
 
 void PlannerVisualization::appendBrakingDetail(
-  const LocalPlanResult & result,
-  const std_msgs::msg::Header & header,
-  MarkerArray & markers) const
+  const LocalPlanResult & result, const std_msgs::msg::Header & header, MarkerArray & markers) const
 {
   const bool braking = result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK ||
-    result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE;
+                       result.decision.executed_mode == ExecutedMode::BRAKING_UNAVAILABLE;
   if (!braking || result.selected_index < 0) {
     return;
   }
@@ -195,8 +202,7 @@ void PlannerVisualization::appendBrakingDetail(
     point.y = sample.y;
     point.z = 0.05;
     ramp.points.push_back(point);
-    const auto fraction = static_cast<float>(
-      span > 1e-6 ? (sample.speed - slowest) / span : 1.0);
+    const auto fraction = static_cast<float>(span > 1e-6 ? (sample.speed - slowest) / span : 1.0);
     std_msgs::msg::ColorRGBA colour;
     colour.a = 1.0F;
     colour.r = 1.0F - fraction;
@@ -223,23 +229,23 @@ void PlannerVisualization::appendBrakingDetail(
   text.color.b = 0.15F;
   std::array<char, 256> label{};
   std::snprintf(
-    label.data(), label.size(),
+    label.data(),
+    label.size(),
     "%s\neffort=%.2f lookahead=%.2f\nv %.2f->%.2f  d %+.2f->%+.2f  clr=%.2f",
-    result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK ?
-    "BRAKING" : "BRAKING UNAVAILABLE",
+    result.decision.executed_mode == ExecutedMode::BRAKING_FALLBACK ? "BRAKING" : "BRAKING UNAVAILABLE",
     result.decision.braking_effort,
     result.decision.braking_lookahead_m,
-    candidate.path.front().speed, candidate.path.back().speed,
-    candidate.path.front().d, candidate.path.back().d,
+    candidate.path.front().speed,
+    candidate.path.back().speed,
+    candidate.path.front().d,
+    candidate.path.back().d,
     result.decision.minimum_clearance_m);
   text.text = label.data();
   markers.markers.push_back(std::move(text));
 }
 
 void PlannerVisualization::publishAllCandidates(
-  const std::vector<CandidateFamily> & families,
-  const rclcpp::Time & stamp,
-  MarkerPublisher & publisher) const
+  const std::vector<CandidateFamily> & families, const rclcpp::Time & stamp, MarkerPublisher & publisher) const
 {
   MarkerArray markers;
   visualization_msgs::msg::Marker clear;
@@ -282,10 +288,7 @@ void PlannerVisualization::publishAllCandidates(
 }
 
 void PlannerVisualization::publishProjection(
-  const Odometry & odom,
-  const TacticalState & state,
-  const rclcpp::Time & stamp,
-  MarkerPublisher & publisher) const
+  const Odometry & odom, const TacticalState & state, const rclcpp::Time & stamp, MarkerPublisher & publisher) const
 {
   if (!config_.publish_projection_markers || !reference_.valid()) {
     return;
@@ -328,27 +331,25 @@ void PlannerVisualization::publishProjection(
   offset.points.push_back(foot_point);
   markers.markers.push_back(std::move(offset));
 
-  const auto arrow = [&prototype](
-    int id, double x, double y, double heading, float red, float green, float blue) {
-      auto marker = prototype;
-      marker.id = id;
-      marker.type = visualization_msgs::msg::Marker::ARROW;
-      marker.pose.position.x = x;
-      marker.pose.position.y = y;
-      tf2::Quaternion rotation;
-      rotation.setRPY(0.0, 0.0, heading);
-      marker.pose.orientation = tf2::toMsg(rotation);
-      marker.scale.x = 1.0;
-      marker.scale.y = 0.06;
-      marker.scale.z = 0.06;
-      marker.color.r = red;
-      marker.color.g = green;
-      marker.color.b = blue;
-      return marker;
-    };
+  const auto arrow = [&prototype](int id, double x, double y, double heading, float red, float green, float blue) {
+    auto marker = prototype;
+    marker.id = id;
+    marker.type = visualization_msgs::msg::Marker::ARROW;
+    marker.pose.position.x = x;
+    marker.pose.position.y = y;
+    tf2::Quaternion rotation;
+    rotation.setRPY(0.0, 0.0, heading);
+    marker.pose.orientation = tf2::toMsg(rotation);
+    marker.scale.x = 1.0;
+    marker.scale.y = 0.06;
+    marker.scale.z = 0.06;
+    marker.color.r = red;
+    marker.color.g = green;
+    marker.color.b = blue;
+    return marker;
+  };
   markers.markers.push_back(arrow(2, foot.x, foot.y, foot.heading, 0.3F, 0.6F, 1.0F));
-  markers.markers.push_back(
-    arrow(3, odom.position.x, odom.position.y, odom.heading, 1.0F, 0.6F, 0.1F));
+  markers.markers.push_back(arrow(3, odom.position.x, odom.position.y, odom.heading, 1.0F, 0.6F, 0.1F));
 
   auto text = prototype;
   text.id = 4;
@@ -360,44 +361,45 @@ void PlannerVisualization::publishProjection(
   text.scale.z = 0.22;
   std::array<char, 256> label{};
   std::snprintf(
-    label.data(), label.size(),
+    label.data(),
+    label.size(),
     "%s%s%s\ns=%.2f/%.1f d=%+.2f/%.2f\nhead_err=%+.3f/%.3f",
-    intentToString(state.intent).c_str(), state.ego_seed_was_stale ? " SEED-STALE" : "",
+    intentToString(state.intent).c_str(),
+    state.ego_seed_was_stale ? " SEED-STALE" : "",
     state.ego_heading_check_relaxed ? " TANGENT-RELAXED" : "",
-    state.ego_s, reference_.totalLength(),
-    state.ego_d, config_.vehicle_full_width_m,
-    state.heading_error_rad, config_.compat_heading_rad);
+    state.ego_s,
+    reference_.totalLength(),
+    state.ego_d,
+    config_.vehicle_full_width_m,
+    state.heading_error_rad,
+    config_.compat_heading_rad);
   text.text = label.data();
   markers.markers.push_back(std::move(text));
 
   publisher.publish(markers);
 }
 
-void PlannerVisualization::publishTrackBounds(
-  const rclcpp::Time & stamp,
-  MarkerPublisher & publisher) const
+void PlannerVisualization::publishTrackBounds(const rclcpp::Time & stamp, MarkerPublisher & publisher) const
 {
   if (!reference_.trackWidthsValid()) {
     return;
   }
   MarkerArray markers;
-  const auto make_line = [&stamp, this](
-    const char * name, int id, float red, float green, float blue)
-    {
-      visualization_msgs::msg::Marker line;
-      line.header.stamp = stamp;
-      line.header.frame_id = config_.map_frame;
-      line.ns = name;
-      line.id = id;
-      line.type = visualization_msgs::msg::Marker::LINE_STRIP;
-      line.action = visualization_msgs::msg::Marker::ADD;
-      line.scale.x = 0.025;
-      line.color.a = 0.8F;
-      line.color.r = red;
-      line.color.g = green;
-      line.color.b = blue;
-      return line;
-    };
+  const auto make_line = [&stamp, this](const char * name, int id, float red, float green, float blue) {
+    visualization_msgs::msg::Marker line;
+    line.header.stamp = stamp;
+    line.header.frame_id = config_.map_frame;
+    line.ns = name;
+    line.id = id;
+    line.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    line.action = visualization_msgs::msg::Marker::ADD;
+    line.scale.x = 0.025;
+    line.color.a = 0.8F;
+    line.color.r = red;
+    line.color.g = green;
+    line.color.b = blue;
+    return line;
+  };
   auto raw_left = make_line("track_bounds_raw", 0, 0.2F, 0.55F, 1.0F);
   auto raw_right = make_line("track_bounds_raw", 1, 0.2F, 0.55F, 1.0F);
   for (std::size_t i = 0; i <= reference_.widthSampleCount(); ++i) {
@@ -405,11 +407,11 @@ void PlannerVisualization::publishTrackBounds(
     const auto widths = reference_.widthSample(index);
     const auto reference = reference_.sampleAtS(widths.s);
     const auto append = [&reference](visualization_msgs::msg::Marker & marker, double d) {
-        geometry_msgs::msg::Point point;
-        point.x = reference.x + d * reference.normal_x;
-        point.y = reference.y + d * reference.normal_y;
-        marker.points.push_back(point);
-      };
+      geometry_msgs::msg::Point point;
+      point.x = reference.x + d * reference.normal_x;
+      point.y = reference.y + d * reference.normal_y;
+      marker.points.push_back(point);
+    };
     append(raw_left, widths.raw.left_magnitude);
     append(raw_right, -widths.raw.right_magnitude);
   }

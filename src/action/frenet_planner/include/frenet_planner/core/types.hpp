@@ -1,3 +1,17 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef FRENET_PLANNER_CORE_TYPES_HPP
 #define FRENET_PLANNER_CORE_TYPES_HPP
 
@@ -18,8 +32,11 @@ struct Point
   double y;
   double velocity;
 
-  Point(double x = 0.0, double y = 0.0, double velocity = 0.0)
-  : x(x), y(y), velocity(velocity) {}
+  Point(double x = 0.0, double y = 0.0, double velocity = 0.0)  // NOLINT(runtime/explicit)
+  : x(x)
+  , y(y)
+  , velocity(velocity)
+  {}
 };
 
 struct FrenetPoint
@@ -57,7 +74,7 @@ struct Odometry
 
 struct OccupancyGrid
 {
-  std::vector<int8_t> data;   //  -1 (unknown), otherwise 0 to 100 for p(occupied)
+  std::vector<int8_t> data;  //  -1 (unknown), otherwise 0 to 100 for p(occupied)
   int width = 0;
   int height = 0;
   double resolution = 0.0;
@@ -77,8 +94,7 @@ struct OccupancyGrid
       return std::nullopt;
     }
     const std::size_t index =
-      static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
-      static_cast<std::size_t>(col);
+      static_cast<std::size_t>(row) * static_cast<std::size_t>(width) + static_cast<std::size_t>(col);
     if (index >= data.size()) {
       return std::nullopt;
     }
@@ -91,7 +107,10 @@ struct VehicleGeometry
   double collision_radius_m = 0.20;
   double front_circle_offset_m = 0.26;
 
-  double fullWidthM() const {return 2.0 * collision_radius_m;}
+  double fullWidthM() const
+  {
+    return 2.0 * collision_radius_m;
+  }
 };
 
 struct GridPolicy
@@ -132,9 +151,9 @@ struct BoundaryState  // G2 anchor: pose + curvature + speed
 {
   double x = 0.0;
   double y = 0.0;
-  double heading = 0.0;    // rad, world frame
+  double heading = 0.0;  // rad, world frame
   double curvature = 0.0;  // 1/m, positive left
-  double speed = 0.0;      // m/s
+  double speed = 0.0;  // m/s
 };
 
 enum class RejectReason : uint8_t  // invalid connections are omitted from the pool
@@ -147,16 +166,16 @@ enum class RejectReason : uint8_t  // invalid connections are omitted from the p
 
 struct CurveSample
 {
-  double s = 0.0;          // arc length from candidate start, m
+  double s = 0.0;  // arc length from candidate start, m
   double x = 0.0;
   double y = 0.0;
-  double heading = 0.0;    // rad
+  double heading = 0.0;  // rad
   double curvature = 0.0;  // 1/m
-  double speed = 0.0;      // m/s; filled by velocity profile
+  double speed = 0.0;  // m/s; filled by velocity profile
   double raceline_s = std::numeric_limits<double>::quiet_NaN();  // exact station; no re-projection
-  double d = 0.0;          // signed lateral offset, positive left
+  double d = 0.0;  // signed lateral offset, positive left
 };
 
-} // namespace frenet_planner
+}  // namespace frenet_planner
 
-#endif // FRENET_PLANNER_CORE_TYPES_HPP
+#endif  // FRENET_PLANNER_CORE_TYPES_HPP

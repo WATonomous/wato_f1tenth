@@ -1,12 +1,26 @@
-#include "frenet_planner/speed/velocity_profile.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/speed/velocity_profile.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -40,28 +54,17 @@ double terminalSpeedScale(PlannerIntent intent, const VelocityProfileConfig & co
 
 bool configValid(const VelocityProfileConfig & config)
 {
-  return std::isfinite(config.friction_coeff) &&
-         config.friction_coeff > 0.0 &&
-         std::isfinite(config.min_velocity_mps) &&
-         config.min_velocity_mps >= 0.0 &&
-         std::isfinite(config.max_velocity_mps) &&
-         config.max_velocity_mps >= config.min_velocity_mps &&
-         std::isfinite(config.max_accel_mps2) &&
-         config.max_accel_mps2 > 0.0 &&
-         std::isfinite(config.max_decel_mps2) &&
-         config.max_decel_mps2 > 0.0 &&
-         std::isfinite(config.overtake_speed_scale) &&
-         config.overtake_speed_scale > 0.0;
+  return std::isfinite(config.friction_coeff) && config.friction_coeff > 0.0 &&
+         std::isfinite(config.min_velocity_mps) && config.min_velocity_mps >= 0.0 &&
+         std::isfinite(config.max_velocity_mps) && config.max_velocity_mps >= config.min_velocity_mps &&
+         std::isfinite(config.max_accel_mps2) && config.max_accel_mps2 > 0.0 && std::isfinite(config.max_decel_mps2) &&
+         config.max_decel_mps2 > 0.0 && std::isfinite(config.overtake_speed_scale) && config.overtake_speed_scale > 0.0;
 }
 
 bool finiteSample(const CurveSample & sample)
 {
-  return std::isfinite(sample.s) &&
-         std::isfinite(sample.raceline_s) &&
-         std::isfinite(sample.x) &&
-         std::isfinite(sample.y) &&
-         std::isfinite(sample.heading) &&
-         std::isfinite(sample.curvature);
+  return std::isfinite(sample.s) && std::isfinite(sample.raceline_s) && std::isfinite(sample.x) &&
+         std::isfinite(sample.y) && std::isfinite(sample.heading) && std::isfinite(sample.curvature);
 }
 
 double frictionSpeedLimit(double curvature, const VelocityProfileConfig & config)
@@ -78,7 +81,7 @@ VelocityProfileResult reject()
   return {false, 0.0};
 }
 
-} // namespace
+}  // namespace
 
 VelocityProfileResult assignVelocityProfile(
   std::vector<CurveSample> & path,
@@ -92,10 +95,7 @@ VelocityProfileResult assignVelocityProfile(
   if (!configValid(config) || !reference.valid() || path.size() < 2) {
     return reject();
   }
-  if (!std::isfinite(start_velocity_mps) ||
-    !std::isfinite(start_raceline_s) ||
-    !std::isfinite(terminal_raceline_s))
-  {
+  if (!std::isfinite(start_velocity_mps) || !std::isfinite(start_raceline_s) || !std::isfinite(terminal_raceline_s)) {
     return reject();
   }
 
@@ -126,8 +126,7 @@ VelocityProfileResult assignVelocityProfile(
   std::vector<double> speeds(path.size(), 0.0);
   for (std::size_t i = 0; i < path.size(); ++i) {
     const CurveSample & sample = path[i];
-    const double raceline_speed =
-      std::max(0.0, reference.velocityAtS(sample.raceline_s));
+    const double raceline_speed = std::max(0.0, reference.velocityAtS(sample.raceline_s));
     double speed = scale * raceline_speed;
     speed = std::max(config.min_velocity_mps, speed);
     speed = std::min(speed, config.max_velocity_mps);
@@ -138,13 +137,10 @@ VelocityProfileResult assignVelocityProfile(
     speeds[i] = speed;
   }
 
-  const double terminal_raceline_speed =
-    std::max(0.0, reference.velocityAtS(terminal_raceline_s));
+  const double terminal_raceline_speed = std::max(0.0, reference.velocityAtS(terminal_raceline_s));
   speeds.back() = std::min(speeds.back(), terminal_scale * terminal_raceline_speed);
   speeds.back() = std::min(speeds.back(), config.max_velocity_mps);
-  speeds.back() = std::min(
-    speeds.back(),
-    frictionSpeedLimit(path.back().curvature, config));
+  speeds.back() = std::min(speeds.back(), frictionSpeedLimit(path.back().curvature, config));
 
   const double max_decel = config.max_decel_mps2;
   for (std::size_t i = path.size() - 1; i > 0; --i) {
@@ -156,12 +152,11 @@ VelocityProfileResult assignVelocityProfile(
     }
 
     const double next_velocity = speeds[i];
-    const double allowed_velocity =
-      std::sqrt(next_velocity * next_velocity + 2.0 * max_decel * ds);
+    const double allowed_velocity = std::sqrt(next_velocity * next_velocity + 2.0 * max_decel * ds);
     speeds[prev_index] = std::min(speeds[prev_index], allowed_velocity);
   }
 
-/*
+  /*
 IMPORTANT: Make it like backward pass initial velocity must be 1m/s or smth
 like that above my current velocity like it needs to be within a range to be valid
 i dont like the current behaviour I think its dangerous
@@ -180,8 +175,7 @@ if (start_velocity_mps > speeds[0] + tolerance) {
     }
 
     const double prev_velocity = speeds[i - 1];
-    const double allowed_velocity =
-      std::sqrt(prev_velocity * prev_velocity + 2.0 * max_accel * ds);
+    const double allowed_velocity = std::sqrt(prev_velocity * prev_velocity + 2.0 * max_accel * ds);
     speeds[i] = std::min(speeds[i], allowed_velocity);
   }
 
@@ -210,4 +204,4 @@ if (start_velocity_mps > speeds[0] + tolerance) {
   return {true, traversal_time_s};
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

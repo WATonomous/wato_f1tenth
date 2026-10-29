@@ -1,11 +1,25 @@
-#include "frenet_planner/reference/raceline_reference.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/reference/raceline_reference.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
 
+#include "frenet_planner/core/geometry.hpp"
 
 namespace frenet_planner
 {
@@ -39,22 +53,22 @@ std::vector<double> solveCyclicTridiagonal(
 
   // Thomas algorithm on modified cyclic matrix.
   auto solve_tridiagonal = [&](const std::vector<double> & b) {
-      std::vector<double> c_prime(n, 0.0);
-      std::vector<double> d_prime(n, 0.0);
-      c_prime[0] = super[0] / modified_diag[0];
-      d_prime[0] = b[0] / modified_diag[0];
-      for (std::size_t i = 1; i < n; ++i) {
-        const double denom = modified_diag[i] - sub[i] * c_prime[i - 1];
-        c_prime[i] = super[i] / denom;
-        d_prime[i] = (b[i] - sub[i] * d_prime[i - 1]) / denom;
-      }
-      std::vector<double> x(n, 0.0);
-      x[n - 1] = d_prime[n - 1];
-      for (std::size_t i = n - 1; i-- > 0; ) {
-        x[i] = d_prime[i] - c_prime[i] * x[i + 1];
-      }
-      return x;
-    };
+    std::vector<double> c_prime(n, 0.0);
+    std::vector<double> d_prime(n, 0.0);
+    c_prime[0] = super[0] / modified_diag[0];
+    d_prime[0] = b[0] / modified_diag[0];
+    for (std::size_t i = 1; i < n; ++i) {
+      const double denom = modified_diag[i] - sub[i] * c_prime[i - 1];
+      c_prime[i] = super[i] / denom;
+      d_prime[i] = (b[i] - sub[i] * d_prime[i - 1]) / denom;
+    }
+    std::vector<double> x(n, 0.0);
+    x[n - 1] = d_prime[n - 1];
+    for (std::size_t i = n - 1; i-- > 0;) {
+      x[i] = d_prime[i] - c_prime[i] * x[i + 1];
+    }
+    return x;
+  };
 
   std::vector<double> u(n, 0.0);
   u[0] = gamma;
@@ -74,9 +88,7 @@ std::vector<double> solveCyclicTridiagonal(
   return x;
 }
 
-std::vector<double> secondDerivatives(
-  const std::vector<double> & values,
-  const std::vector<double> & h)
+std::vector<double> secondDerivatives(const std::vector<double> & values, const std::vector<double> & h)
 {
   const std::size_t n = values.size();
   std::vector<double> sub(n, 0.0);
@@ -93,14 +105,13 @@ std::vector<double> secondDerivatives(
 
     sub[i] = h_prev / span;
     super[i] = h_curr / span;
-    rhs[i] = 6.0 / span *
-      ((values[next] - values[i]) / h_curr - (values[i] - values[prev]) / h_prev);
+    rhs[i] = 6.0 / span * ((values[next] - values[i]) / h_curr - (values[i] - values[prev]) / h_prev);
   }
 
   return solveCyclicTridiagonal(sub, diag, super, rhs);
 }
 
-} // namespace
+}  // namespace
 
 bool RacelineReference::setRacingLine(const std::vector<Point> & points)
 {
@@ -115,10 +126,9 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
 
   dropped_closing_waypoint_ = false;
   points_ = points;
-  if (points_.size() >= 2 &&
-    std::hypot(
-      points_.front().x - points_.back().x,
-      points_.front().y - points_.back().y) < kDuplicateWaypointToleranceM)
+  if (
+    points_.size() >= 2 && std::hypot(points_.front().x - points_.back().x, points_.front().y - points_.back().y) <
+                             kDuplicateWaypointToleranceM)
   {
     points_.pop_back();
     dropped_closing_waypoint_ = true;
@@ -133,9 +143,7 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
   cumulative_s_[0] = 0.0;
   for (std::size_t i = 0; i < n; ++i) {
     const std::size_t next = (i + 1) % n;
-    segment_length_[i] = std::hypot(
-      points_[next].x - points_[i].x,
-      points_[next].y - points_[i].y);
+    segment_length_[i] = std::hypot(points_[next].x - points_[i].x, points_[next].y - points_[i].y);
     if (segment_length_[i] < kEpsilon) {
       return false;
     }
@@ -156,17 +164,17 @@ bool RacelineReference::setRacingLine(const std::vector<Point> & points)
   const std::vector<double> my = secondDerivatives(ys, segment_length_);
 
   auto build = [&](const std::vector<double> & values, const std::vector<double> & m) {
-      std::vector<SplineSegment> segments(n);
-      for (std::size_t i = 0; i < n; ++i) {
-        const std::size_t next = (i + 1) % n;
-        const double h = segment_length_[i];
-        segments[i].a = values[i];
-        segments[i].b = (values[next] - values[i]) / h - h * (2.0 * m[i] + m[next]) / 6.0;
-        segments[i].c = m[i] / 2.0;
-        segments[i].d = (m[next] - m[i]) / (6.0 * h);
-      }
-      return segments;
-    };
+    std::vector<SplineSegment> segments(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      const std::size_t next = (i + 1) % n;
+      const double h = segment_length_[i];
+      segments[i].a = values[i];
+      segments[i].b = (values[next] - values[i]) / h - h * (2.0 * m[i] + m[next]) / 6.0;
+      segments[i].c = m[i] / 2.0;
+      segments[i].d = (m[next] - m[i]) / (6.0 * h);
+    }
+    return segments;
+  };
 
   spline_x_ = build(xs, mx);
   spline_y_ = build(ys, my);
@@ -182,23 +190,17 @@ void RacelineReference::clearTrackWidths()
   raw_left_m_.clear();
 }
 
-bool RacelineReference::setTrackWidths(
-  const std::vector<TrackWidth> & widths,
-  double requested_spacing_m)
+bool RacelineReference::setTrackWidths(const std::vector<TrackWidth> & widths, double requested_spacing_m)
 {
   clearTrackWidths();
 
-  const std::size_t expected_count =
-    points_.size() + (dropped_closing_waypoint_ ? 1U : 0U);
-  if (!valid_ ||
-    (widths.size() != points_.size() && widths.size() != expected_count) ||
-    requested_spacing_m <= 0.0)
-  {
+  const std::size_t expected_count = points_.size() + (dropped_closing_waypoint_ ? 1U : 0U);
+  if (!valid_ || (widths.size() != points_.size() && widths.size() != expected_count) || requested_spacing_m <= 0.0) {
     return false;
   }
 
-  const std::size_t count = std::max<std::size_t>(
-    2, static_cast<std::size_t>(std::ceil(total_length_m_ / requested_spacing_m)));
+  const std::size_t count =
+    std::max<std::size_t>(2, static_cast<std::size_t>(std::ceil(total_length_m_ / requested_spacing_m)));
   width_spacing_m_ = total_length_m_ / static_cast<double>(count);
   raw_right_m_.resize(count);
   raw_left_m_.resize(count);
@@ -208,13 +210,8 @@ bool RacelineReference::setTrackWidths(
     const std::size_t segment = segmentAt(static_cast<double>(i) * width_spacing_m_, t);
     const std::size_t next = (segment + 1) % points_.size();
     const double alpha = t / segment_length_[segment];
-    raw_right_m_[i] = std::max(
-      0.0, widths[segment].right_m +
-      alpha * (widths[next].right_m - widths[segment].right_m));
-    raw_left_m_[i] = std::max(
-      0.0,
-      widths[segment].left_m +
-      alpha * (widths[next].left_m - widths[segment].left_m));
+    raw_right_m_[i] = std::max(0.0, widths[segment].right_m + alpha * (widths[next].right_m - widths[segment].right_m));
+    raw_left_m_[i] = std::max(0.0, widths[segment].left_m + alpha * (widths[next].left_m - widths[segment].left_m));
   }
 
   track_widths_valid_ = true;
@@ -226,12 +223,9 @@ SustainableBounds RacelineReference::rawBounds(double s) const
   if (!track_widths_valid_) {
     return {};
   }
-  const std::size_t index = std::min(
-    static_cast<std::size_t>(wrapS(s) / width_spacing_m_), raw_left_m_.size() - 1);
+  const std::size_t index = std::min(static_cast<std::size_t>(wrapS(s) / width_spacing_m_), raw_left_m_.size() - 1);
   const std::size_t next = (index + 1) % raw_left_m_.size();
-  return {
-    std::min(raw_right_m_[index], raw_right_m_[next]),
-    std::min(raw_left_m_[index], raw_left_m_[next])};
+  return {std::min(raw_right_m_[index], raw_right_m_[next]), std::min(raw_left_m_[index], raw_left_m_[next])};
 }
 
 WidthLookupSample RacelineReference::widthSample(std::size_t index) const
@@ -239,9 +233,7 @@ WidthLookupSample RacelineReference::widthSample(std::size_t index) const
   if (!track_widths_valid_ || index >= raw_left_m_.size()) {
     return {};
   }
-  return {
-    static_cast<double>(index) * width_spacing_m_,
-    {raw_right_m_[index], raw_left_m_[index]}};
+  return {static_cast<double>(index) * width_spacing_m_, {raw_right_m_[index], raw_left_m_[index]}};
 }
 
 double RacelineReference::wrapS(double s) const
@@ -287,7 +279,6 @@ double RacelineReference::velocityOnSegment(std::size_t i, double t) const
   return points_[i].velocity + alpha * (points_[next].velocity - points_[i].velocity);
 }
 
-
 ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
 {
   ReferenceGeometrySample sample;
@@ -328,9 +319,7 @@ ReferenceGeometrySample RacelineReference::sampleAtS(double s) const
   const double dddy = 6.0 * sy.d;
   const double cross_derivative = dx * dddy - dy * dddx;
   const double dot = dx * ddx + dy * ddy;
-  sample.curvature_derivative =
-    (cross_derivative * speed_sq - 3.0 * cross * dot) /
-    (speed_sq * speed_sq * speed_sq);
+  sample.curvature_derivative = (cross_derivative * speed_sq - 3.0 * cross * dot) / (speed_sq * speed_sq * speed_sq);
   sample.velocity = velocityOnSegment(i, t);
 
   return sample;
@@ -350,16 +339,10 @@ double RacelineReference::velocityAtS(double s) const
 Point RacelineReference::toCartesian(double s, double d) const
 {
   const ReferenceGeometrySample sample = sampleAtS(s);
-  return Point(
-    sample.x + d * sample.normal_x,
-    sample.y + d * sample.normal_y,
-    sample.velocity);
+  return Point(sample.x + d * sample.normal_x, sample.y + d * sample.normal_y, sample.velocity);
 }
 
-double RacelineReference::refineOnSegment(
-  const Point & p,
-  std::size_t segment,
-  double t_initial) const
+double RacelineReference::refineOnSegment(const Point & p, std::size_t segment, double t_initial) const
 {
   const SplineSegment & sx = spline_x_[segment];
   const SplineSegment & sy = spline_y_[segment];
@@ -385,7 +368,7 @@ double RacelineReference::refineOnSegment(
 
     const double step = f / df;
     const double next_t = std::clamp(t - step, 0.0, h);
-    if (std::abs(next_t - t) < 1e-5) { 
+    if (std::abs(next_t - t) < 1e-5) {
       t = next_t;
       break;
     }
@@ -394,21 +377,15 @@ double RacelineReference::refineOnSegment(
   return t;
 }
 
-
 bool RacelineReference::scanSegment(
-  const Point & p,
-  double heading,
-  double tolerance_rad,
-  std::size_t segment,
-  Projection & best,
-  double & best_dist_sq) const
+  const Point & p, double heading, double tolerance_rad, std::size_t segment, Projection & best, double & best_dist_sq)
+  const
 {
   bool improved = false;
 
   for (int k = 0; k <= kCoarseSamplesPerSegment; ++k) {
     const double t_guess =
-      segment_length_[segment] * static_cast<double>(k) /
-      static_cast<double>(kCoarseSamplesPerSegment);
+      segment_length_[segment] * static_cast<double>(k) / static_cast<double>(kCoarseSamplesPerSegment);
     const double t = refineOnSegment(p, segment, t_guess);
     const double s = cumulative_s_[segment] + t;
     const ReferenceGeometrySample sample = sampleAtS(s);
@@ -465,10 +442,7 @@ Projection RacelineReference::searchArc(
 }
 
 Projection RacelineReference::searchAllSegments(
-  const Point & p,
-  double heading,
-  double tolerance_rad,
-  bool & found) const
+  const Point & p, double heading, double tolerance_rad, bool & found) const
 {
   found = false;
   Projection best;
@@ -481,10 +455,7 @@ Projection RacelineReference::searchAllSegments(
   return best;
 }
 
-Projection RacelineReference::project(
-  const Point & p,
-  double heading,
-  double seed_s) const
+Projection RacelineReference::project(const Point & p, double heading, double seed_s) const
 {
   if (!valid_) {
     return {};
@@ -493,21 +464,15 @@ Projection RacelineReference::project(
   const double window = projection_config_.seed_window_m;
   const double start_s = seed_s - window;
   const double length_m = 2.0 * window;
-  const double gate_sq = projection_config_.max_plausible_offset_m *
-    projection_config_.max_plausible_offset_m;
+  const double gate_sq = projection_config_.max_plausible_offset_m * projection_config_.max_plausible_offset_m;
 
-  const double base_tolerance = std::clamp(
-    projection_config_.tangent_tolerance_rad,
-    kMinTangentToleranceRad,
-    kMaxTangentToleranceRad);
+  const double base_tolerance =
+    std::clamp(projection_config_.tangent_tolerance_rad, kMinTangentToleranceRad, kMaxTangentToleranceRad);
   bool relaxed = false;
-  for (double tolerance = base_tolerance; ;
-    tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad))
-  {
+  for (double tolerance = base_tolerance;; tolerance = std::min(2.0 * tolerance, kMaxTangentToleranceRad)) {
     bool found = false;
     double best_dist_sq = std::numeric_limits<double>::max();
-    Projection result =
-      searchArc(p, heading, tolerance, start_s, length_m, found, best_dist_sq);
+    Projection result = searchArc(p, heading, tolerance, start_s, length_m, found, best_dist_sq);
     if (found && best_dist_sq <= gate_sq) {
       result.heading_check_relaxed = relaxed;
       return result;
@@ -532,8 +497,7 @@ Projection RacelineReference::project(const Point & p, double seed_s) const
   const double window = projection_config_.seed_window_m;
   bool found = false;
   double best_dist_sq = std::numeric_limits<double>::max();
-  Projection result = searchArc(
-    p, 0.0, kTangentCheckDisabled, seed_s - window, 2.0 * window, found, best_dist_sq);
+  Projection result = searchArc(p, 0.0, kTangentCheckDisabled, seed_s - window, 2.0 * window, found, best_dist_sq);
   if (found) {
     return result;
   }
@@ -543,10 +507,7 @@ Projection RacelineReference::project(const Point & p, double seed_s) const
   return result;
 }
 
-Projection RacelineReference::projectGlobal(
-  const Point & p,
-  double heading,
-  double tolerance_rad) const
+Projection RacelineReference::projectGlobal(const Point & p, double heading, double tolerance_rad) const
 {
   if (!valid_) {
     return {};
@@ -561,4 +522,4 @@ Projection RacelineReference::projectGlobal(
   return result;
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

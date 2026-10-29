@@ -1,7 +1,24 @@
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "frenet_planner/ros/ros_adapters.hpp"
 
-#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2/utils.h>
+
+#include <string>
+
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace frenet_planner
@@ -29,10 +46,7 @@ OccupancyGrid rosToOccupancyGrid(const nav_msgs::msg::OccupancyGrid & msg)
   return grid;
 }
 
-nav_msgs::msg::Path pathToRos(
-  const Path & path,
-  const rclcpp::Time & stamp,
-  const std::string & frame_id)
+nav_msgs::msg::Path pathToRos(const Path & path, const rclcpp::Time & stamp, const std::string & frame_id)
 {
   nav_msgs::msg::Path msg;
   msg.header.stamp = stamp;
@@ -51,9 +65,7 @@ nav_msgs::msg::Path pathToRos(
 }
 
 msg::PlannerDecision plannerDecisionToRos(
-  const PlannerDecisionData & data,
-  const rclcpp::Time & stamp,
-  const std::string & frame_id)
+  const PlannerDecisionData & data, const rclcpp::Time & stamp, const std::string & frame_id)
 {
   msg::PlannerDecision out;
   out.header.stamp = stamp;
@@ -109,4 +121,4 @@ msg::PlannerDecision plannerDecisionToRos(
   return out;
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner

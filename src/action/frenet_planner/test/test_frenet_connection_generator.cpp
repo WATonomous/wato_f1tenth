@@ -1,19 +1,32 @@
-#include <gtest/gtest.h>
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "frenet_planner/curves/frenet_connection_generator.hpp"
-#include "frenet_planner/curves/frenet_polynomial.hpp"
-#include "frenet_planner/core/geometry.hpp"
-#include "frenet_planner/reference/raceline_reference.hpp"
-#include "frenet_planner/reference/reference_window.hpp"
+#include <gtest/gtest.h>
 
 #include <cmath>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/curves/frenet_connection_generator.hpp"
+#include "frenet_planner/curves/frenet_polynomial.hpp"
+#include "frenet_planner/reference/raceline_reference.hpp"
+#include "frenet_planner/reference/reference_window.hpp"
 
 namespace frenet_planner
 {
 namespace
 {
-
 
 // A circle is the one reference whose Frenet geometry has a closed form:
 // kappa = 1/R exactly, kappa' = 0 exactly.  Every analytic claim in the port is
@@ -49,13 +62,11 @@ TEST(FrenetPolynomial, MatchedBoundariesGiveTheSmoothstepQuintic)
 {
   const double magnitude = 0.55;
   const double length = 6.0;
-  const FrenetPolynomial polynomial =
-    computeQuintic(0.0, 0.0, 0.0, magnitude, 0.0, 0.0, length);
+  const FrenetPolynomial polynomial = computeQuintic(0.0, 0.0, 0.0, magnitude, 0.0, 0.0, length);
 
   for (int i = 0; i <= 100; ++i) {
     const double t = static_cast<double>(i) / 100.0;
-    const double expected =
-      magnitude * (10.0 * t * t * t - 15.0 * t * t * t * t + 6.0 * t * t * t * t * t);
+    const double expected = magnitude * (10.0 * t * t * t - 15.0 * t * t * t * t + 6.0 * t * t * t * t * t);
     EXPECT_NEAR(polynomial.evaluate(t), expected, 1e-12) << "t=" << t;
   }
 }
@@ -63,8 +74,7 @@ TEST(FrenetPolynomial, MatchedBoundariesGiveTheSmoothstepQuintic)
 TEST(FrenetPolynomial, HonoursEveryBoundaryConditionExactly)
 {
   const double length = 4.0;
-  const FrenetPolynomial polynomial =
-    computeQuintic(0.10, 0.05, -0.02, 0.70, -0.03, 0.01, length);
+  const FrenetPolynomial polynomial = computeQuintic(0.10, 0.05, -0.02, 0.70, -0.03, 0.01, length);
 
   EXPECT_NEAR(polynomial.evaluate(0.0), 0.10, 1e-12);
   EXPECT_NEAR(polynomial.evaluateDerivative(0.0) / length, 0.05, 1e-12);
@@ -79,16 +89,14 @@ TEST(FrenetPolynomial, HonoursEveryBoundaryConditionExactly)
 TEST(FrenetPolynomial, MatchedBoundariesNeverExceedTheTargetOffset)
 {
   for (const double magnitude : {0.30, 0.55, 0.75, -0.55}) {
-    const FrenetPolynomial polynomial =
-      computeQuintic(0.0, 0.0, 0.0, magnitude, 0.0, 0.0, 6.0);
+    const FrenetPolynomial polynomial = computeQuintic(0.0, 0.0, 0.0, magnitude, 0.0, 0.0, 6.0);
     double previous = 0.0;
     for (int i = 0; i <= 200; ++i) {
       const double t = static_cast<double>(i) / 200.0;
       const double value = polynomial.evaluate(t);
       EXPECT_LE(std::abs(value), std::abs(magnitude) + 1e-12) << "t=" << t;
       // Strictly monotone: d'(t) = 30 D t^2 (1-t)^2 never changes sign.
-      EXPECT_GE(value * (magnitude > 0.0 ? 1.0 : -1.0),
-        previous * (magnitude > 0.0 ? 1.0 : -1.0) - 1e-12);
+      EXPECT_GE(value * (magnitude > 0.0 ? 1.0 : -1.0), previous * (magnitude > 0.0 ? 1.0 : -1.0) - 1e-12);
       previous = value;
     }
     EXPECT_NEAR(polynomial.evaluate(1.0), magnitude, 1e-12);
@@ -109,11 +117,9 @@ TEST(FrenetPolynomial, VehicleCurvatureInversionRoundTrips)
   // Feed it back through the forward formula the sampler uses.
   const double tangent_scale = 1.0 - reference_curvature * d;
   const double normal_term = reference_curvature * tangent_scale + d_double_prime;
-  const double tangential_term =
-    -reference_curvature_derivative * d - 2.0 * reference_curvature * d_prime;
+  const double tangential_term = -reference_curvature_derivative * d - 2.0 * reference_curvature * d_prime;
   const double norm_sq = tangent_scale * tangent_scale + d_prime * d_prime;
-  const double recovered =
-    (tangent_scale * normal_term - d_prime * tangential_term) / (norm_sq * std::sqrt(norm_sq));
+  const double recovered = (tangent_scale * normal_term - d_prime * tangential_term) / (norm_sq * std::sqrt(norm_sq));
   EXPECT_NEAR(recovered, vehicle_curvature, 1e-12);
 }
 
@@ -175,8 +181,7 @@ TEST(FrenetConnectionGenerator, ConstantOffsetCurvatureMatchesTheClosedForm)
   const FrenetConnectionGenerator generator;
   for (const double d : {-0.75, -0.30, 0.0, 0.55, 0.75}) {
     std::vector<CurveSample> path;
-    const auto result = generator.generate(
-      window, 0, window.size() - 1, constantOffset(d, window.lengthM()), path);
+    const auto result = generator.generate(window, 0, window.size() - 1, constantOffset(d, window.lengthM()), path);
     ASSERT_TRUE(result.valid) << "d=" << d;
     ASSERT_EQ(path.size(), window.size());
 
@@ -199,8 +204,7 @@ TEST(FrenetConnectionGenerator, SamplesCarryTheirExactStationAndOffset)
 
   const FrenetConnectionGenerator generator;
   std::vector<CurveSample> path;
-  const FrenetPolynomial polynomial =
-    computeQuintic(0.0, 0.0, 0.0, 0.55, 0.0, 0.0, window.lengthM());
+  const FrenetPolynomial polynomial = computeQuintic(0.0, 0.0, 0.0, 0.55, 0.0, 0.0, window.lengthM());
   ASSERT_TRUE(generator.generate(window, 0, window.size() - 1, polynomial, path).valid);
 
   for (std::size_t i = 0; i < path.size(); ++i) {
@@ -221,8 +225,7 @@ TEST(FrenetConnectionGenerator, ArcLengthIsMonotoneAndMatchesTheChordSum)
 
   const FrenetConnectionGenerator generator;
   std::vector<CurveSample> path;
-  const FrenetPolynomial polynomial =
-    computeQuintic(0.0, 0.0, 0.0, 0.55, 0.0, 0.0, window.lengthM());
+  const FrenetPolynomial polynomial = computeQuintic(0.0, 0.0, 0.0, 0.55, 0.0, 0.0, window.lengthM());
   ASSERT_TRUE(generator.generate(window, 0, window.size() - 1, polynomial, path).valid);
 
   EXPECT_DOUBLE_EQ(path.front().s, 0.0);
@@ -248,25 +251,23 @@ TEST(FrenetConnectionGenerator, TailJoinsTheTransitionWithoutADiscontinuity)
   const RacelineReference reference = makeCircle();
   ReferenceWindow window;
   ASSERT_TRUE(window.build(reference, 0.0, 6.0, 0.1));
-  const std::size_t join = 30;   // s = 3.0
+  const std::size_t join = 30;  // s = 3.0
   const double d = 0.55;
 
   const FrenetConnectionGenerator generator;
   const double transition_length = window.spacingM() * static_cast<double>(join);
-  const double tail_length =
-    window.spacingM() * static_cast<double>(window.size() - 1 - join);
+  const double tail_length = window.spacingM() * static_cast<double>(window.size() - 1 - join);
 
   // Sample the two legs independently, so the join station appears in both and
   // the comparison is like for like.  Comparing consecutive samples of a
   // concatenated path would measure the reference turning between stations, not
   // continuity.
   std::vector<CurveSample> transition;
-  ASSERT_TRUE(generator.generate(
-      window, 0, join, computeQuintic(0.0, 0.0, 0.0, d, 0.0, 0.0, transition_length),
-      transition).valid);
+  ASSERT_TRUE(
+    generator.generate(window, 0, join, computeQuintic(0.0, 0.0, 0.0, d, 0.0, 0.0, transition_length), transition)
+      .valid);
   std::vector<CurveSample> tail;
-  ASSERT_TRUE(generator.generate(
-      window, join, window.size() - 1, constantOffset(d, tail_length), tail).valid);
+  ASSERT_TRUE(generator.generate(window, join, window.size() - 1, constantOffset(d, tail_length), tail).valid);
 
   // C2 at the join by construction: the transition ends with d' = d'' = 0 at
   // this same d, which is exactly what the tail's boundaries request.  This is
@@ -277,14 +278,11 @@ TEST(FrenetConnectionGenerator, TailJoinsTheTransitionWithoutADiscontinuity)
   EXPECT_NEAR(transition.back().y, tail.front().y, 1e-12);
   EXPECT_NEAR(transition.back().heading, tail.front().heading, 1e-12);
   EXPECT_NEAR(transition.back().curvature, tail.front().curvature, 1e-12);
-  EXPECT_NEAR(
-    transition.back().curvature,
-    window.at(join).curvature / (1.0 - d * window.at(join).curvature), 1e-12);
+  EXPECT_NEAR(transition.back().curvature, window.at(join).curvature / (1.0 - d * window.at(join).curvature), 1e-12);
 
   // Concatenating drops the duplicated join sample and holds d flat afterwards.
   std::vector<CurveSample> path = transition;
-  ASSERT_TRUE(generator.generate(
-      window, join, window.size() - 1, constantOffset(d, tail_length), path).valid);
+  ASSERT_TRUE(generator.generate(window, join, window.size() - 1, constantOffset(d, tail_length), path).valid);
   ASSERT_EQ(path.size(), window.size());
   for (std::size_t i = join; i < path.size(); ++i) {
     EXPECT_NEAR(path[i].d, d, 1e-12) << "i=" << i;
@@ -314,7 +312,7 @@ TEST(FrenetConnectionGenerator, RejectsCurvatureBeyondTheSteeringLimit)
 // that reliably survived.
 TEST(FrenetConnectionGenerator, ShapesAgainstGripNotJustTheSteeringStop)
 {
-  const RacelineReference reference = makeCircle();   // R = 10 m, kappa = 0.1
+  const RacelineReference reference = makeCircle();  // R = 10 m, kappa = 0.1
   ReferenceWindow window;
   ASSERT_TRUE(window.build(reference, 0.0, 6.0, 0.1));
   const FrenetConnectionGenerator generator;
@@ -361,7 +359,7 @@ TEST(FrenetConnectionGenerator, RejectsAHeadingBeyondTheLimit)
   ASSERT_TRUE(window.build(reference, 0.0, 6.0, 0.1));
 
   FrenetConnectionConfig config;
-  config.max_curvature_inv_m = 1e9;    // isolate the heading test
+  config.max_curvature_inv_m = 1e9;  // isolate the heading test
   config.max_path_angle_deg = 30.0;
   const FrenetConnectionGenerator generator(config);
   std::vector<CurveSample> path;
@@ -384,8 +382,7 @@ TEST(FrenetConnectionGenerator, RejectsAnOffsetAtTheCentreOfCurvature)
   config.max_curvature_inv_m = 1e9;
   const FrenetConnectionGenerator generator(config);
   std::vector<CurveSample> path;
-  const auto result = generator.generate(
-    window, 0, window.size() - 1, constantOffset(1.0, window.lengthM()), path);
+  const auto result = generator.generate(window, 0, window.size() - 1, constantOffset(1.0, window.lengthM()), path);
   EXPECT_FALSE(result.valid);
   EXPECT_EQ(result.reject_reason, RejectReason::CHART_SINGULAR);
   EXPECT_TRUE(path.empty());

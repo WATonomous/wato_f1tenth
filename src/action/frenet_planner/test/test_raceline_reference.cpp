@@ -1,10 +1,24 @@
-#include "frenet_planner/reference/raceline_reference.hpp"
-#include "frenet_planner/core/geometry.hpp"
+// Copyright (c) 2025-present WATonomous. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <vector>
+
+#include "frenet_planner/core/geometry.hpp"
+#include "frenet_planner/reference/raceline_reference.hpp"
 
 namespace frenet_planner
 {
@@ -40,10 +54,7 @@ std::vector<Point> hairpinLine(double straight_length, double half_gap, double s
   // Right-hand turn at the far end, from heading +x to heading -x.
   for (int i = 0; i < arc_steps; ++i) {
     const double theta = kPi * static_cast<double>(i) / static_cast<double>(arc_steps);
-    points.emplace_back(
-      straight_length + half_gap * std::sin(theta),
-      half_gap * std::cos(theta),
-      3.0);
+    points.emplace_back(straight_length + half_gap * std::sin(theta), half_gap * std::cos(theta), 3.0);
   }
   // Return along -x at y = -half_gap.
   for (int i = 0; i < straight_steps; ++i) {
@@ -52,15 +63,12 @@ std::vector<Point> hairpinLine(double straight_length, double half_gap, double s
   // Turn at the near end, back to heading +x.
   for (int i = 0; i < arc_steps; ++i) {
     const double theta = kPi * static_cast<double>(i) / static_cast<double>(arc_steps);
-    points.emplace_back(
-      -half_gap * std::sin(theta),
-      -half_gap * std::cos(theta),
-      3.0);
+    points.emplace_back(-half_gap * std::sin(theta), -half_gap * std::cos(theta), 3.0);
   }
   return points;
 }
 
-} // namespace
+}  // namespace
 
 // Roundtrip: converting (s, d) to Cartesian and projecting back must return
 // what went in, across a dense sweep that crosses the wrap point and reaches
@@ -81,8 +89,7 @@ TEST(RacelineReference, RoundtripAcrossWrapAndMaxOffset)
       const double heading = reference.sampleAtS(s).heading;
       const Projection back = reference.project(p, heading, reference.wrapS(s));
 
-      EXPECT_NEAR(reference.deltaS(reference.wrapS(s), back.s), 0.0, 1e-3)
-        << "s=" << s << " d=" << d;
+      EXPECT_NEAR(reference.deltaS(reference.wrapS(s), back.s), 0.0, 1e-3) << "s=" << s << " d=" << d;
       EXPECT_NEAR(back.d, d, 1e-3) << "s=" << s << " d=" << d;
       EXPECT_FALSE(back.seed_was_stale) << "s=" << s << " d=" << d;
     }
@@ -123,8 +130,7 @@ TEST(RacelineReference, VelocityAtSMatchesSampleAtSOnVaryingSpeeds)
     EXPECT_NEAR(reference.velocityAtS(s), reference.sampleAtS(s).velocity, 1e-12) << "s=" << s;
   }
   EXPECT_NEAR(reference.velocityAtS(-0.3), reference.sampleAtS(-0.3).velocity, 1e-12);
-  EXPECT_NEAR(reference.velocityAtS(length + 1.7), reference.sampleAtS(length + 1.7).velocity,
-      1e-12);
+  EXPECT_NEAR(reference.velocityAtS(length + 1.7), reference.sampleAtS(length + 1.7).velocity, 1e-12);
 }
 
 // The reason the tangent check exists, and the whole reason global-nearest is
@@ -142,8 +148,8 @@ TEST(RacelineReference, TangentCheckKeepsProjectionOnEgoBranch)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(hairpinLine(10.0, 0.6, 0.1)));
 
-  const double ego_heading = 0.0;          // travelling +x, the outbound branch
-  const Point ego(5.0, -0.10, 0.0);        // nearer the return branch at y = -0.6
+  const double ego_heading = 0.0;  // travelling +x, the outbound branch
+  const Point ego(5.0, -0.10, 0.0);  // nearer the return branch at y = -0.6
 
   // Nearest by distance, orientation ignored: lands on the return branch.  A
   // wrapped angle difference never exceeds pi, so that tolerance is the check
@@ -180,7 +186,7 @@ TEST(RacelineReference, SlipAngleRelaxesToleranceRatherThanLosingSeed)
   // cap the ladder tops out at.  Deliberately close to that cap -- it is the
   // widest slide the in-window escalation is allowed to rescue.
   const double ego_heading = 1.5;
-  const Point ego(5.0, 0.55, 0.0);   // on the outbound branch, y = +0.6
+  const Point ego(5.0, 0.55, 0.0);  // on the outbound branch, y = +0.6
 
   // What the discarded window would have cost: nothing on this loop lies within
   // the strict tolerance of a 1.5 rad heading except the far turn, most of a
@@ -208,8 +214,8 @@ TEST(RacelineReference, StaleSeedStillEscalatesToGlobalSearch)
   RacelineReference reference;
   ASSERT_TRUE(reference.setRacingLine(hairpinLine(10.0, 0.6, 0.1)));
 
-  const double ego_heading = 0.0;    // travelling +x, the outbound branch
-  const Point ego(5.0, 0.55, 0.0);   // and genuinely on it, at s ~ 5
+  const double ego_heading = 0.0;  // travelling +x, the outbound branch
+  const Point ego(5.0, 0.55, 0.0);  // and genuinely on it, at s ~ 5
 
   // Seed sitting on the return branch, which is only 1.2 m away -- too close
   // for the distance gate to catch, so the angle ladder has to be what refuses
@@ -229,13 +235,12 @@ TEST(RacelineReference, DistantWindowIsRejectedEvenWhenHeadingAgrees)
   ASSERT_TRUE(reference.setRacingLine(hairpinLine(10.0, 0.6, 0.1)));
 
   const double ego_heading = 0.0;
-  const Point ego(2.0, 0.6, 0.0);    // outbound branch, s ~ 2
+  const Point ego(2.0, 0.6, 0.0);  // outbound branch, s ~ 2
 
   // Seed nine metres down the same straight: same heading, same branch, so the
   // tangent check passes at the strict tier and cannot object.
   const Projection recovered = reference.project(ego, ego_heading, 9.0);
-  EXPECT_TRUE(recovered.seed_was_stale)
-    << "a foot seven metres from ego was accepted because its heading agreed";
+  EXPECT_TRUE(recovered.seed_was_stale) << "a foot seven metres from ego was accepted because its heading agreed";
   EXPECT_NEAR(recovered.s, 2.0, 0.5);
 }
 
@@ -331,4 +336,4 @@ TEST(RacelineReference, TrackWidthsAcceptClosedLoopExport)
   EXPECT_FALSE(open_reference.trackWidthsValid());
 }
 
-} // namespace frenet_planner
+}  // namespace frenet_planner
