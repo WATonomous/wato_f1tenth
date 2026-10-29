@@ -19,7 +19,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(local_planning REQUIRED)
+find_package(frenet_planner REQUIRED)
 
 add_executable(costmap_obstacle_injector_node src/costmap_obstacle_injector_node.cpp)
 ament_target_dependencies(costmap_obstacle_injector_node
@@ -31,7 +31,7 @@ ament_target_dependencies(costmap_obstacle_injector_node
   tf2
   tf2_ros
   tf2_geometry_msgs
-  local_planning
+  frenet_planner
 )
 
 install(TARGETS costmap_obstacle_injector_node

@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "geometry_msgs/msg/point_stamped.hpp"
-#include "local_planning/core/types.hpp"
-#include "local_planning/reference/raceline_reference.hpp"
+#include "frenet_planner/core/types.hpp"
+#include "frenet_planner/reference/raceline_reference.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -152,7 +152,7 @@ public:
 private:
   void onRaceline(const nav_msgs::msg::Path & msg)
   {
-    std::vector<local_planning::Point> points;
+    std::vector<frenet_planner::Point> points;
     points.reserve(msg.poses.size());
     for (const auto & pose : msg.poses) {
       points.emplace_back(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
@@ -454,7 +454,7 @@ private:
   double respawn_lateral_range_m_ = 0.0;
 
   std::vector<Obstacle> obstacles_;
-  local_planning::RacelineReference reference_;
+  frenet_planner::RacelineReference reference_;
   std::optional<rclcpp::Time> last_stamp_;
   std::mt19937 rng_{std::random_device{}()};
 
