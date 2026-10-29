@@ -28,7 +28,7 @@ MONO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BLACKBOX_DIR="${BLACKBOX_DIR:-$MONO_DIR/logs/blackbox}"
 
 python3 - "$BLACKBOX_DIR" "$@" <<'PY'
-import csv, glob, math, os, sys
+import csv, glob, math, os, sys, time
 
 directory, args = sys.argv[1], sys.argv[2:]
 CLEAN = "clean shutdown"
@@ -61,7 +61,10 @@ if args[:1] == ["list"]:
 if args:
     path = args[0] if os.path.exists(args[0]) else os.path.join(directory, args[0])
 else:
-    abrupt = [p for p in files[:-1] if load(p) and load(p)[-1].get("alarms") != CLEAN]
+    # Skip only a run still being written (the current one); after a reboot the newest file is the
+    # interesting one
+    finished = [p for p in files if time.time() - os.path.getmtime(p) > 5]
+    abrupt = [p for p in finished if load(p) and load(p)[-1].get("alarms") != CLEAN]
     if not abrupt:
         sys.exit("No run ended abruptly; `watod blackbox list` shows all runs.")
     path = abrupt[-1]

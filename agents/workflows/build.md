@@ -74,6 +74,16 @@ Measured on the laptop (RTX 5070, 24 threads, fast internet), 2026-10-29:
 
 `build-base` (CPU + GPU bases) took 365 s with the upstream CUDA layers already pulled.
 
+On the car (Jetson Orin, 8 GB, one module at a time, plugged in), 2026-10-29:
+
+| | infrastructure | interfacing | world_modeling | action |
+| --- | --- | --- | --- | --- |
+| First build after the change (fills ccache) | 212 s | 181 s | 185 s | 114 s |
+| Rebuild with no change | 1 s | 2 s | 3 s | 2 s |
+| One-line C++ change | | | | 23 s |
+
+Before, every rebuild on the car re-ran everything (2-4 min per module).
+
 ## Clearing space and caches
 
 - `docker builder prune` clears **every project's** build cache on the machine, including ccache, so
