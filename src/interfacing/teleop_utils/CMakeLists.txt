@@ -39,11 +39,26 @@ add_executable(keyboard_converter src/keyboard_converter.cpp)
 target_include_directories(keyboard_converter PUBLIC include)
 ament_target_dependencies(keyboard_converter rclcpp ackermann_msgs geometry_msgs)
 
+# sim-only keyboard teleop, run by hand in a terminal (see src/keyboard_teleop.cpp)
+add_executable(keyboard_teleop_node src/keyboard_teleop.cpp)
+target_include_directories(keyboard_teleop_node PUBLIC include)
+target_link_libraries(keyboard_teleop_node rclcpp::rclcpp ${std_msgs_TARGETS} ${ackermann_msgs_TARGETS})
+
 install(TARGETS
   joypad_node
   keyboard_converter
+  keyboard_teleop_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  find_package(wato_test REQUIRED)
+
+  add_wato_test(test_keyboard_teleop_state
+    test/test_keyboard_teleop_state.cpp
+  )
+  target_include_directories(test_keyboard_teleop_state PRIVATE include)
+endif()
 
 install(DIRECTORY
   launch

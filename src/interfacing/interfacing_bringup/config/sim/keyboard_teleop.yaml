@@ -1,0 +1,21 @@
+# keyboard_teleop_node (teleop_utils): sim-only keyboard teleop, run by hand in a terminal.
+# There is deliberately no config/car/keyboard_teleop.yaml: without `enabled: true` the node
+# refuses to start, and the car's mux.yaml has no keyboard_teleop input.
+/**:
+  ros__parameters:
+    enabled: true
+
+    # Topic names
+    drive_topic: "/hal/drive/keyboard_teleop"  # keyboard_teleop input in config/sim/mux.yaml
+    dead_man_topic: "/hal/dead_man_switch"
+    my_frame_id: "base_link"
+
+    # Above 1 / the mux timeout (0.2 s), so manual control never drops out between ticks
+    publish_rate_hz: 20.0
+
+    # Speed (m/s) and steering (rad) setpoints: each w/s or a/d press moves them one step
+    max_speed: 5.0
+    max_reverse_speed: 1.5
+    speed_step: 0.5
+    max_steering: 0.5236  # same limit as the gamepad and keyboard_converter
+    steering_step: 0.05

@@ -18,6 +18,8 @@
   <depend>joy</depend>
   <depend>ackermann_msgs</depend>
 
+  <test_depend>wato_test</test_depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>
