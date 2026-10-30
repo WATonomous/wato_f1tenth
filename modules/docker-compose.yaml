@@ -22,6 +22,10 @@ services:
 
   infrastructure_bringup:
     init: true
+    # Stop like Ctrl-C: on SIGTERM ros2 launch exits at once and docker SIGKILLs the nodes, so none
+    # shut down cleanly (system_monitor's black box never wrote its clean-shutdown row). On SIGINT
+    # launch stops every node and waits for them; docker still kills anything hung after 10 s.
+    stop_signal: SIGINT
     ulimits:
       memlock: -1
     ipc: host
@@ -61,6 +65,7 @@ services:
 
   interfacing_bringup:
     init: true
+    stop_signal: SIGINT
     ulimits:
       memlock: -1
     ipc: host
@@ -120,6 +125,7 @@ services:
 
   perception_bringup:
     init: true
+    stop_signal: SIGINT
     ulimits:
       memlock: -1
     ipc: host
@@ -168,6 +174,7 @@ services:
 
   world_modeling_bringup:
     init: true
+    stop_signal: SIGINT
     ulimits:
       memlock: -1
     ipc: host
@@ -221,6 +228,7 @@ services:
 
   action_bringup:
     init: true
+    stop_signal: SIGINT
     ulimits:
       memlock: -1
     ipc: host
@@ -268,6 +276,7 @@ services:
 
   sim_bringup:
     init: true
+    stop_signal: SIGINT
     ulimits:
       memlock: -1
     ipc: host
