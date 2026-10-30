@@ -137,7 +137,9 @@ pulls prebuilt arm64 images from GHCR, pinned to a dated `car-YYYY-MM-DD` tag on
 ## Recording on the car
 
 ```bash
-./watod bag record   # car preset by default (BAG_PRESET); Ctrl-C to stop; saved under ./bags
+./watod bag record      # car preset by default (BAG_PRESET); Ctrl-C to stop; saved under ./bags
+./watod bag record -d   # the same in the background (survives an SSH drop); stop with:
+./watod bag stop        # closes the bag cleanly and prints where it was saved
 ```
 
 The `car` preset (`infrastructure_bringup/config/bag_presets/car.txt`) records the `/hal`
