@@ -148,13 +148,14 @@
         "/map": {
           "visible": true,
           "drawBehind": true,
-          "minColor": "#000000ff",
-          "maxColor": "#ffffffff"
+          "minColor": "#ffffffff",
+          "maxColor": "#000000ff"
         },
         "/hal/scan": {
           "visible": true,
+          "colorField": "intensity",
           "colorMode": "flat",
-          "flatColor": "#ff3b30ff",
+          "flatColor": "#ff0000ff",
           "pointSize": 3
         },
         "/global_planner/path": {
