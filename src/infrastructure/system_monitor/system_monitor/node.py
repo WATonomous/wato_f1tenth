@@ -13,8 +13,8 @@
 # limitations under the License.
 """System monitor: computer health on /system/status, pack power on /system/power, black box.
 
-/system/status (1 Hz): CPU, GPU, memory, disk, temperatures and, on the Jetson, its INA3221 power
-rails. /system/power (10 Hz, when there is a VESC or a power monitor): pack voltage and drive current
+/system/status (1 Hz): CPU, GPU, memory, disk, temperatures, whether a bag is recording and, on the
+Jetson, its INA3221 power rails. /system/power (10 Hz, when there is a VESC or a power monitor): pack voltage and drive current
 from the VESC, the Jetson's module power, and an estimate of the total drawn from the pack. With
 blackbox_dir set (the car), the same numbers go to a CSV that survives a sudden power cut.
 """
@@ -148,6 +148,7 @@ class SystemMonitor(Node):
         ]
         msg.module_power_w = float(readers.module_power_w(self.rails))
         msg.alarms = alarms
+        msg.bag_recording = readers.bag_recording(self.get_node_names())
         self.status_pub.publish(msg)
 
     def publish_power(self):

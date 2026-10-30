@@ -105,27 +105,6 @@
       "expansion": "all",
       "foxglovePanelTitle": "Status: controller, planner, track, commands"
     },
-    "StateTransitions!control": {
-      "paths": [
-        {
-          "value": "/control/status.state",
-          "timestampMethod": "receiveTime",
-          "label": "state"
-        },
-        {
-          "value": "/control/status.active_input",
-          "timestampMethod": "receiveTime",
-          "label": "in control"
-        },
-        {
-          "value": "/control/status.mode",
-          "timestampMethod": "receiveTime",
-          "label": "gamepad"
-        }
-      ],
-      "isSynced": true,
-      "foxglovePanelTitle": "Control over time"
-    },
     "3D!track": {
       "cameraState": {
         "perspective": false,
@@ -415,9 +394,9 @@
                 },
                 "second": {
                   "direction": "column",
-                  "first": "StateTransitions!control",
+                  "first": "Indicator!recording",
                   "second": "RawMessages!status",
-                  "splitPercentage": 45
+                  "splitPercentage": 25
                 },
                 "splitPercentage": 18
               },
@@ -470,6 +449,21 @@
           "layout": "3D!tf"
         }
       ]
+    },
+    "Indicator!recording": {
+      "path": "/system/status.bag_recording",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "NOT RECORDING",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#2e9d47",
+          "label": "RECORDING"
+        }
+      ],
+      "foxglovePanelTitle": "Bag recording (watod bag record)"
     }
   },
   "globalVariables": {},
