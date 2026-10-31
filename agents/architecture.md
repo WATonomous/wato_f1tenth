@@ -77,7 +77,7 @@ AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
   /autodrive/roboracer_1/imu            -> imu_remap_node      -> /hal/imu
   /tf + /autodrive/roboracer_1/odom     -> fake_odom_node      -> /hal/odom, /hal/localization/odom (ground truth)
   static map -> odom                                           (stands in for the PF)
-  /hal/drive/{ebrake,joystick,keyboard,autonomy} -> ackermann_mux -> /hal/ackermann_cmd
+  /hal/drive/{ebrake,joystick,keyboard_teleop,keyboard,autonomy} -> ackermann_mux -> /hal/ackermann_cmd
   /hal/ackermann_cmd                    -> ackermann_converter -> /autodrive/roboracer_1/{throttle,steering}_command
   raceline CSV -> global_planner -> /global_planner/path
   /global_planner/path + /hal/localization/odom + /hal/odom + /hal/dead_man_switch -> pure_pursuit -> /hal/drive/autonomy
@@ -103,9 +103,14 @@ Both packages are kept and can be switched on (`ekf:=true`, `ebrake:=true`); the
 e-brake slot at priority 100.
 
 Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeouts), in
-`interfacing_bringup/config/{car,sim}/mux.yaml`. Gamepad buttons toggle: X = manual (wins), R1 =
+`interfacing_bringup/config/{car,sim}/mux.yaml`; sim only, keyboard_teleop 40. Gamepad buttons toggle: X = manual (wins), R1 =
 autonomy dead man; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has control in one word
-(`AUTONOMY`, `STOPPED`, `MANUAL`, `KEYBOARD`, `EBRAKE`, `NO_COMMAND`).
+(`AUTONOMY`, `STOPPED`, `MANUAL`, `KEYBOARD`, `KEYBOARD_TELEOP`, `EBRAKE`, `NO_COMMAND`).
+
+Sim keyboard teleop without a gamepad: `teleop_utils keyboard_teleop_node`, run by hand in a terminal
+(`ros2 run teleop_utils keyboard_teleop_node --ros-args --params-file <interfacing_bringup share>/config/sim/keyboard_teleop.yaml`).
+Space toggles the dead man, m takes over on `/hal/drive/keyboard_teleop` (and releases the dead man
+like the gamepad's X). It refuses to start without `enabled: true`, which only the sim YAML sets.
 
 ## TF tree
 

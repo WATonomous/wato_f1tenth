@@ -10,6 +10,12 @@ ackermann_mux:
         timeout: 0.2
         # strictly above keyboard/autonomy: ackermann_mux breaks ties by list order
         priority: 50
+      keyboard_teleop:
+        # sim only: teleop_utils keyboard_teleop_node, run by hand. Above autonomy so it can
+        # take over, below the joystick so a gamepad still wins
+        topic: /hal/drive/keyboard_teleop
+        timeout: 0.2
+        priority: 40
       keyboard:
         topic: /hal/drive/keyboard
         timeout: 0.2
