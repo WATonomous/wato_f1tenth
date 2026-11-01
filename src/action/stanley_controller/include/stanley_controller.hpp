@@ -109,6 +109,10 @@ private:
     double wheelbase;  // distance between front and rear axles
     double current_velocity;
     bool enable_debug_vis;
+    double control_rate_hz;    // control loop rate
+    double debug_vis_rate_hz;  // debug topics publish at most this often
+    size_t vis_every_n_ = 1;   // control ticks per debug publish
+    size_t tick_ = 0;
 
     //internal state and variables
     stanley_state_ controller_state;

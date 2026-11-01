@@ -45,3 +45,7 @@
 
     # ---- debug ----
     enable_debug_vis: true   # set false on race day to cut publish overhead
+    debug_vis_rate_hz: 20.0  # debug topics publish at most this often
+
+    # ---- loop ----
+    control_rate_hz: 20.0     # control loop (Hz); localization runs at 50

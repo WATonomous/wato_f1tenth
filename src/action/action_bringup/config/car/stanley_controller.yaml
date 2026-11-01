@@ -15,7 +15,7 @@
 
     # ---- speed ----
     speed_limit_active: true
-    speed_limit: 3.0            # m/s hard cap. START LOW on the real car, raise once trusted.
+    speed_limit: 4.5            # m/s hard cap. START LOW on the real car, raise once trusted.
 
     # ---- steering physics ----
     max_steering_angle: 0.52   # rad (~30 deg). Physical limit - don't raise past the car's real max.
@@ -24,10 +24,10 @@
     # ---- Stanley gains (the main tuning knobs) ----
     # k_h : heading gain - how hard it corrects pointing the wrong way.
     #        understeers / turns too late -> raise.   whips wheel too hard -> lower.
-    k_h: 0.75
+    k_h: 1.3
     # k_e : cross-track gain - how hard it pulls back onto the line.
     #        drifts off and stays off -> raise.   weaves on straights -> lower.
-    k_e: 0.2
+    k_e: 0.9
     # k_soft : low-speed softener in the CTE term.
     #        twitchy at crawl / just after arming -> raise (->1.0).
     #        leave at 0.5 unless you see that specific symptom.
@@ -45,3 +45,7 @@
 
     # ---- debug ----
     enable_debug_vis: true   # set false on race day to cut publish overhead
+    debug_vis_rate_hz: 20.0  # debug topics publish at most this often
+
+    # ---- loop ----
+    control_rate_hz: 50.0     # control loop (Hz); localization runs at 50
