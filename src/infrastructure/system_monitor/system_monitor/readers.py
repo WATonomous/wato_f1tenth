@@ -156,6 +156,11 @@ def module_power_w(rails):
     return NAN
 
 
+def bag_recording(node_names):
+    """True when a rosbag2 recorder is on the ROS graph (`watod bag record` starts one)."""
+    return any(name.startswith("rosbag2_recorder") for name in node_names)
+
+
 def total_power(drive_w, compute_w, other_loads_w, converter_efficiency):
     """Estimated power drawn from the pack: drive branch + power-board branch through its converters."""
     board = (0.0 if math.isnan(compute_w) else compute_w) + other_loads_w

@@ -91,6 +91,10 @@ Examples
   watod test world_modeling prediction  # run tests only for prediction package
   watod bag record -a                   # record all topics (auto-saves to ./bags)
   watod bag record                      # record this platform's preset (car or sim topic list)
+  watod bag record -d                   # same, in the background (-d: detach; ros2 bag's own
+                                        #   max-duration flag is then --max-bag-duration)
+  watod bag stop                        # stop a background recording (the bag is saved)
+  watod bag ls                          # list recorded bags
   watod bag record --preset car         # record a named preset (bag_presets/car.txt)
   watod bag play my_bag                 # play bag from ./bags directory
   watod bag info my_bag                 # show bag info

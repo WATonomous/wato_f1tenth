@@ -152,3 +152,11 @@ def test_a_sensor_file_that_fails_oddly_is_skipped(jetson, monkeypatch):
     monkeypatch.setattr("builtins.open", flaky_open)
     assert readers.temperatures(jetson) == []  # zone0 skipped, zone1 is disabled anyway
     assert readers.module_power_w(readers.power_rails(jetson)) == pytest.approx(10.0)
+
+
+def test_bag_recording_from_the_graph():
+    assert readers.bag_recording(
+        ["system_monitor", "rosbag2_recorder", "foxglove_bridge"]
+    )
+    assert not readers.bag_recording(["system_monitor", "foxglove_bridge"])
+    assert not readers.bag_recording([])

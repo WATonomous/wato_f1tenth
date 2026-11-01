@@ -25,6 +25,40 @@ if [[ $# -gt 0 && "$1" == "ls" ]]; then
   exit 0
 fi
 
+recorder="${COMPOSE_PROJECT_NAME}-bag_recorder"
+
+# stop: end a detached recording (record -d). The recorder stops on SIGINT, which closes the bag.
+if [[ $# -gt 0 && "$1" == "stop" ]]; then
+  if ! docker ps --format '{{.Names}}' | grep -qx "$recorder"; then
+    echo "No recording running."
+    exit 0
+  fi
+  bag=$(docker inspect --format '{{range .Args}}{{.}} {{end}}' "$recorder" | sed -n 's/.* -o \([^ ]*\).*/\1/p')
+  echo "Stopping the recording..."
+  docker stop "$recorder" > /dev/null
+  echo "Saved: $BAG_DIRECTORY/${bag:-<see watod bag ls>}"
+  exit 0
+fi
+
+# record -d / --detach: run the recorder in the background (stop it with watod bag stop). Taken out
+# before ros2 bag sees it: its own -d (max bag duration) has to be written --max-bag-duration.
+detach=false
+if [[ $# -gt 0 && "$1" == "record" ]]; then
+  declare -a kept=()
+  for arg in "$@"; do
+    if [[ "$arg" == "-d" || "$arg" == "--detach" ]]; then
+      detach=true
+    else
+      kept+=("$arg")
+    fi
+  done
+  set -- "${kept[@]}"
+  if docker ps --format '{{.Names}}' | grep -qx "$recorder"; then
+    echo "Already recording (container $recorder). Stop it first: watod bag stop"
+    exit 1
+  fi
+fi
+
 # record with no topic selection uses BAG_PRESET (watod-setup-env.sh: the platform's preset,
 # car or sim); -a, --topics, --preset, a regex or topic names keep their usual meaning
 if [[ $# -gt 0 && "$1" == "record" && -n "${BAG_PRESET:-}" ]]; then
@@ -134,7 +168,7 @@ fi
 cleanup_bag() {
   echo ""
   echo "Stopping recording..."
-  docker stop "${COMPOSE_PROJECT_NAME}-bag_recorder" || true
+  docker stop "$recorder" || true
   echo "Recording stopped"
   exit 0
 }
@@ -167,20 +201,29 @@ if [[ "${PLATFORM:-}" == "car" ]]; then
     "-e" "CYCLONEDDS_URI=file:///opt/watonomous/cyclonedds_car.xml")
 fi
 
-docker run --rm \
-  "${cpuset_args[@]}" \
-  "${dds_args[@]}" \
-  --ulimit memlock=-1 \
-  --ipc host \
-  --network host \
-  --name "${COMPOSE_PROJECT_NAME}-bag_recorder" \
-  -v "$BAG_DIRECTORY:/bags" \
-  -w /bags \
-  -e "RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}" \
-  -e "ROS_DOMAIN_ID=${ROS_DOMAIN_ID}" \
-  -e "ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}" \
-  -e "ZENOH_SESSION_CONFIG_URI=${ZENOH_SESSION_CONFIG_URI}" \
-  "$INFRASTRUCTURE_IMAGE:$TAG" \
-  ros2 bag "${ros2_bag_args[@]}" &
+declare -a run_args=(
+  --rm
+  "${cpuset_args[@]}"
+  "${dds_args[@]}"
+  --stop-signal SIGINT  # docker stop: ros2 bag closes the bag as on Ctrl-C
+  --ulimit memlock=-1
+  --ipc host
+  --network host
+  --name "$recorder"
+  -v "$BAG_DIRECTORY:/bags"
+  -w /bags
+  -e "RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}"
+  -e "ROS_DOMAIN_ID=${ROS_DOMAIN_ID}"
+  -e "ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}"
+  -e "ZENOH_SESSION_CONFIG_URI=${ZENOH_SESSION_CONFIG_URI}"
+)
+
+if [[ "$detach" == "true" ]]; then
+  docker run -d "${run_args[@]}" "$INFRASTRUCTURE_IMAGE:$TAG" ros2 bag "${ros2_bag_args[@]}" > /dev/null
+  echo "Recording in the background. Stop it with: watod bag stop"
+  exit 0
+fi
+
+docker run "${run_args[@]}" "$INFRASTRUCTURE_IMAGE:$TAG" ros2 bag "${ros2_bag_args[@]}" &
 
 wait $!

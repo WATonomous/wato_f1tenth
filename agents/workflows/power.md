@@ -39,7 +39,9 @@ before relying on the total for choosing a battery.
 On the car, `system_monitor` writes `logs/blackbox/blackbox_<start>.csv` in the repo: pack voltage,
 drive current, Jetson power, total power, CPU, temperature and alarms, 10 times a second. It flushes
 to disk every second, so a cut-out loses at most the last second. The last 30 runs are kept. A clean
-stop writes a final `clean shutdown` row.
+stop writes a final `clean shutdown` row. `./watod down` stops containers with SIGINT (compose
+`stop_signal`), which gives every node a clean shutdown; a run without that row ended in a power cut,
+a crash, or a `docker kill`.
 
 ```bash
 ./watod blackbox list     # every run: start, length, clean stop or ENDED ABRUPTLY

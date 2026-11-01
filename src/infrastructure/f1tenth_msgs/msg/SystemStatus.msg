@@ -18,3 +18,5 @@ PowerRail[] power_rails        # empty when the machine has no power monitor
 float32 module_power_w         # Jetson module input power (VDD_IN); NaN elsewhere
 
 string[] alarms                # anything worth a look, e.g. "VDD_IN current critical"
+
+bool bag_recording             # a rosbag2 recorder is running (watod bag record)
