@@ -66,7 +66,7 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
 
 
     control_loop_timer = this->create_wall_timer(
-        std::chrono::milliseconds(50),
+        std::chrono::duration<double>(1.0 / control_rate_hz),
         [this]() {
             control_timer_callback();
         }
@@ -100,9 +100,10 @@ void Stanley_Controller_Node::control_timer_callback() {
 
     }
 
-    //publish viz every tick, not just when we're actively driving, so the
-    //markers keep tracking the car during dead-stop and sim-reset periods
-    if (enable_debug_vis && have_path) {
+    //publish viz whether or not we're actively driving, so the markers keep
+    //tracking the car during dead-stop and sim-reset periods; every Nth tick
+    //so debug topics stay at debug_vis_rate_hz
+    if (enable_debug_vis && have_path && tick_++ % vis_every_n_ == 0) {
         publish_debug_vis(current_pose.pose.pose,
                           last_closest_idx_,
                           last_cross_track_error_,
@@ -299,6 +300,8 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<double>("wheelbase", 0.324);
 
     this->declare_parameter<bool>("enable_debug_vis", true);
+    this->declare_parameter<double>("control_rate_hz", 20.0);
+    this->declare_parameter<double>("debug_vis_rate_hz", 20.0);
 
     this->declare_parameter<int>("closest_point_window", 20);
     this->declare_parameter<double>("closest_point_recovery_dist", 2.0);
@@ -322,7 +325,10 @@ void Stanley_Controller_Node::init_parameters() {
     k_soft             = this->get_parameter("k_soft").as_double();
     wheelbase          = this->get_parameter("wheelbase").as_double();
 
-    enable_debug_vis = this->get_parameter("enable_debug_vis").as_bool();
+    enable_debug_vis  = this->get_parameter("enable_debug_vis").as_bool();
+    control_rate_hz   = this->get_parameter("control_rate_hz").as_double();
+    debug_vis_rate_hz = this->get_parameter("debug_vis_rate_hz").as_double();
+    vis_every_n_ = static_cast<size_t>(std::max(1.0, std::round(control_rate_hz / debug_vis_rate_hz)));
 
     closest_point_window_        = static_cast<size_t>(this->get_parameter("closest_point_window").as_int());
     closest_point_recovery_dist_ = this->get_parameter("closest_point_recovery_dist").as_double();
