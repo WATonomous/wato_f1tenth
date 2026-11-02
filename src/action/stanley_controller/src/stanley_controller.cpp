@@ -18,10 +18,14 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
     delta_pub_        = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/delta_cmd", rclcpp::SensorDataQoS());
 
     //subscriptions
+    //volatile + reliable matches both the gamepad's latched publisher and plain
+    //volatile ones (Foxglove, ros2 topic pub); transient_local would ignore those
+    auto dead_man_qos = rclcpp::QoS(1).reliable();
+    //the global planner publishes its path latched, once
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
 
     dead_man_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        dead_man_active_topic, latched_qos,
+        dead_man_active_topic, dead_man_qos,
         [this](const std_msgs::msg::Bool::SharedPtr msg) {
             dead_man_active = *msg;
         }
