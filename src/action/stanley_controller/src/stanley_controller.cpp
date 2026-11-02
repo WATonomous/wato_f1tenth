@@ -332,10 +332,24 @@ void Stanley_Controller_Node::init_parameters() {
     enable_debug_vis  = this->get_parameter("enable_debug_vis").as_bool();
     control_rate_hz   = this->get_parameter("control_rate_hz").as_double();
     debug_vis_rate_hz = this->get_parameter("debug_vis_rate_hz").as_double();
-    vis_every_n_ = static_cast<size_t>(std::max(1.0, std::round(control_rate_hz / debug_vis_rate_hz)));
 
-    closest_point_window_        = static_cast<size_t>(this->get_parameter("closest_point_window").as_int());
+    const int64_t window         = this->get_parameter("closest_point_window").as_int();
     closest_point_recovery_dist_ = this->get_parameter("closest_point_recovery_dist").as_double();
+
+    //validate: these divide, size a timer or bound a loop, so <= 0 would crash or hang the node
+    auto require_positive = [this](const char* name, double value) {
+        if (!(value > 0.0)) {
+            RCLCPP_FATAL(this->get_logger(), "parameter %s must be > 0 (got %g)", name, value);
+            throw std::invalid_argument(std::string("stanley_controller: ") + name + " must be > 0");
+        }
+    };
+    require_positive("control_rate_hz", control_rate_hz);
+    require_positive("debug_vis_rate_hz", debug_vis_rate_hz);   //turn debug off with enable_debug_vis
+    require_positive("closest_point_window", static_cast<double>(window));
+    require_positive("closest_point_recovery_dist", closest_point_recovery_dist_);
+
+    vis_every_n_ = static_cast<size_t>(std::max(1.0, std::round(control_rate_hz / debug_vis_rate_hz)));
+    closest_point_window_ = static_cast<size_t>(window);
 
     //initialize state and internal variables
     dead_man_active.data = false;
