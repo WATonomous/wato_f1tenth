@@ -18,6 +18,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 
 #include "rclcpp/rclcpp.hpp"
 
