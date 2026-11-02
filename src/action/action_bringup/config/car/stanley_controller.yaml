@@ -1,4 +1,4 @@
-# stanley_controller (CONTROLLER=stanley), car values. Tuning notes: stanley_controller/TESTING.md.
+# stanley_controller (CONTROLLER=stanley), car values. Tuning notes: stanley_controller/README.md.
 /**:
   ros__parameters:
 
