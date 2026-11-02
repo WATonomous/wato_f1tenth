@@ -57,6 +57,10 @@ In `action_bringup/config/{car,sim}/stanley_controller.yaml`:
 | `enable_debug_vis` | true | true | |
 | `debug_vis_rate_hz` | 20 | 20 | Hz |
 
+`speed_limit`, `k_h`, `k_e` and `control_rate_hz` have no default in code, so the node won't start
+if one is missing from the YAML. `control_rate_hz`, `debug_vis_rate_hz`, `closest_point_window` and
+`closest_point_recovery_dist` must be greater than 0.
+
 ## Running
 
 ```bash

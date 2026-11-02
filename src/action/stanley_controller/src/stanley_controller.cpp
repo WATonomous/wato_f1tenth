@@ -301,19 +301,22 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<std::string>("global_frame_id", "map");
     this->declare_parameter<std::string>("local_frame_id", "base_link");
 
+    //no defaults for values that differ between car and sim:
+    //a missing or misspelled key stops the node instead of running on other gains
+    this->declare_parameter<double>("speed_limit");
+    this->declare_parameter<double>("k_e");
+    this->declare_parameter<double>("k_h");
+    this->declare_parameter<double>("control_rate_hz");
+
     this->declare_parameter<bool>("speed_limit_active", true);
-    this->declare_parameter<double>("speed_limit", 3.0);
     this->declare_parameter<double>("max_steering_angle", 0.52);
-    this->declare_parameter<double>("k_e", 0.2);
-    this->declare_parameter<double>("k_h", 0.5);
     this->declare_parameter<double>("k_soft", 0.5);
     this->declare_parameter<double>("wheelbase", 0.324);
 
     this->declare_parameter<bool>("enable_debug_vis", true);
-    this->declare_parameter<double>("control_rate_hz", 20.0);
     this->declare_parameter<double>("debug_vis_rate_hz", 20.0);
 
-    this->declare_parameter<int>("closest_point_window", 20);
+    this->declare_parameter<int>("closest_point_window", 40);
     this->declare_parameter<double>("closest_point_recovery_dist", 2.0);
 
     //init parameters
