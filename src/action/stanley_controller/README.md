@@ -33,6 +33,7 @@ With the dead man switch released or no path, it publishes a zero command.
 | in | `/hal/dead_man_switch` | `std_msgs/Bool` |
 | out | `/hal/drive/autonomy` | `ackermann_msgs/AckermannDriveStamped` |
 | out | `/debug/stanley/markers` | `visualization_msgs/MarkerArray` |
+| out | `/debug/stanley/path` (latched, once per path) | `visualization_msgs/MarkerArray` |
 | out | `/debug/stanley/{cte, heading_error, heading_term, cte_term, delta_cmd}` | `std_msgs/Float32` |
 
 The debug topics are published only when `enable_debug_vis` is true, at up to `debug_vis_rate_hz`.
@@ -86,7 +87,7 @@ The dev container doesn't start the controller itself; launch it again after a r
 
 | Marker | Meaning |
 | --- | --- |
-| grey line | path |
+| grey line | path (on `/debug/stanley/path`) |
 | yellow sphere | front axle |
 | green sphere | closest waypoint |
 | green arrow | path heading |

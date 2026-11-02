@@ -11,6 +11,9 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
 
     debug_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
         "/debug/stanley/markers", rclcpp::SensorDataQoS());
+    //the path marker is sent once per path, latched, so a viewer that connects later still gets it
+    debug_path_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        "/debug/stanley/path", rclcpp::QoS(1).transient_local());
     cte_pub_          = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte", rclcpp::SensorDataQoS());
     heading_err_pub_  = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_error", rclcpp::SensorDataQoS());
     heading_term_pub_ = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/heading_term", rclcpp::SensorDataQoS());
@@ -50,6 +53,9 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
             }
             //new path invalidates the cached search index
             closest_idx_initialized_ = false;
+            if (enable_debug_vis) {
+                publish_debug_path();
+            }
         }
     );
 
@@ -355,7 +361,32 @@ void Stanley_Controller_Node::init_parameters() {
     dead_man_active.data = false;
     controller_state = stanley_state_::INACTIVE;
     current_velocity = 0.0;
-   
+
+}
+
+void Stanley_Controller_Node::publish_debug_path() {
+
+    //the path Stanley follows (after duplicate points are dropped), grey
+    visualization_msgs::msg::Marker m;
+    m.header.frame_id = global_frame_id;
+    m.header.stamp = this->now();
+    m.ns = "path";
+    m.id = 0;
+    m.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    m.action = visualization_msgs::msg::Marker::ADD;
+    m.pose.orientation.w = 1.0;
+    m.scale.x = 0.05;
+    m.color.r = 0.4; m.color.g = 0.4; m.color.b = 0.4; m.color.a = 0.8;
+    for (const auto& p : current_global_path.poses) {
+        geometry_msgs::msg::Point pt;
+        pt.x = p.pose.position.x; pt.y = p.pose.position.y; pt.z = 0.02;
+        m.points.push_back(pt);
+    }
+
+    visualization_msgs::msg::MarkerArray arr;
+    arr.markers.push_back(m);
+    debug_path_pub_->publish(arr);
+
 }
 
 void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
@@ -410,21 +441,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         m.pose.orientation.w = 1.0;
     };
 
-    // 1. Reference path
-    {
-        visualization_msgs::msg::Marker m;
-        make_header(m, "path", 0, visualization_msgs::msg::Marker::LINE_STRIP);
-        m.scale.x = 0.05;
-        m.color.r = 0.4; m.color.g = 0.4; m.color.b = 0.4; m.color.a = 0.8;
-        for (auto& p : poses) {
-            geometry_msgs::msg::Point pt;
-            pt.x = p.pose.position.x; pt.y = p.pose.position.y; pt.z = 0.02;
-            m.points.push_back(pt);
-        }
-        arr.markers.push_back(m);
-    }
-
-    // 2. Front axle (yellow)
+    // 1. Front axle (yellow)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "front_axle", 0, visualization_msgs::msg::Marker::SPHERE);
@@ -434,7 +451,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 3. Closest path point (green)
+    // 2. Closest path point (green)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "closest_point", 0, visualization_msgs::msg::Marker::SPHERE);
@@ -444,7 +461,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
     
-    // 4. CTE line (colour by sign, intensity by magnitude)
+    // 3. CTE line (colour by sign, intensity by magnitude)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "cte", 0, visualization_msgs::msg::Marker::LINE_STRIP);
@@ -461,7 +478,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 5. Path tangent arrow (green)
+    // 4. Path tangent arrow (green)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "path_tangent", 0, visualization_msgs::msg::Marker::ARROW);
@@ -474,7 +491,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 6. Vehicle heading arrow (orange)
+    // 5. Vehicle heading arrow (orange)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "vehicle_heading", 0, visualization_msgs::msg::Marker::ARROW);
@@ -487,7 +504,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 7. Steering command arrow (magenta)
+    // 6. Steering command arrow (magenta)
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "steering_cmd", 0, visualization_msgs::msg::Marker::ARROW);
@@ -501,7 +518,7 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         arr.markers.push_back(m);
     }
 
-    // 8. Debug text above the car
+    // 7. Debug text above the car
     {
         visualization_msgs::msg::Marker m;
         make_header(m, "debug_text", 0, visualization_msgs::msg::Marker::TEXT_VIEW_FACING);
