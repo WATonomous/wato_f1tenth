@@ -53,6 +53,7 @@ private:
     //publishers
     rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr controls_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_markers_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_path_pub_;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cte_pub_;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr heading_err_pub_;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr heading_term_pub_;
@@ -81,6 +82,7 @@ private:
     size_t find_closest_point(double x, double y);
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
+    void publish_debug_path();
     void publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
                            size_t closest_idx,
                            double cross_track_error,
