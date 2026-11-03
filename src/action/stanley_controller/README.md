@@ -21,7 +21,9 @@ Each tick (`control_rate_hz`):
 
 5. Speed: the closest waypoint's `z` (raceline speed), capped at `speed_limit`.
 
-With the dead man switch released or no path, it publishes a zero command.
+With the dead man switch released, no path, or no pose for `pose_timeout_s`, it publishes a zero
+command. If the pose goes stale while armed, the car stays stopped after localization comes back
+until the dead man switch is released and pressed again.
 
 ## Topics
 
@@ -53,13 +55,14 @@ In `action_bringup/config/{car,sim}/stanley_controller.yaml`:
 | `wheelbase` | 0.324 | 0.324 | m |
 | `closest_point_window` | 40 | 40 | waypoints |
 | `closest_point_recovery_dist` | 2.0 | 2.0 | m |
+| `pose_timeout_s` | 0.5 | 0.5 | s, stop without a fresh pose |
 | `control_rate_hz` | 50 | 20 | Hz |
 | `enable_debug_vis` | true | true | |
 | `debug_vis_rate_hz` | 20 | 20 | Hz |
 
 `speed_limit`, `k_h`, `k_e` and `control_rate_hz` have no default in code, so the node won't start
-if one is missing from the YAML. `control_rate_hz`, `debug_vis_rate_hz`, `closest_point_window` and
-`closest_point_recovery_dist` must be greater than 0.
+if one is missing from the YAML. `control_rate_hz`, `debug_vis_rate_hz`, `closest_point_window`,
+`closest_point_recovery_dist` and `pose_timeout_s` must be greater than 0.
 
 ## Running
 
