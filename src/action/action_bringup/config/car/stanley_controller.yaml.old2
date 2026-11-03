@@ -1,5 +1,3 @@
-//GOOD PARAMS FOR CAR AT 4.5m/s
-
 # stanley_controller (CONTROLLER=stanley), car values. Tuning notes: stanley_controller/TESTING.md.
 /**:
   ros__parameters:
