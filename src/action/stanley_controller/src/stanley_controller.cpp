@@ -63,6 +63,7 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
     odom_topic, 10,
     [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         current_pose = *msg;
+        last_pose_rx_ = this->now();
     }
 );
 
@@ -91,8 +92,13 @@ void Stanley_Controller_Node::control_timer_callback() {
 
     const bool have_path = !current_global_path.poses.empty();
 
+    const bool pose_fresh = last_pose_rx_.nanoseconds() != 0 &&
+                            (this->now() - last_pose_rx_).seconds() <= pose_timeout_s;
+
     if (controller_state == stanley_state_::INACTIVE) {
 
+        //releasing the dead man switch is the only way to clear a pose-lost stop
+        pose_lost_ = false;
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
                              "Dead Man switch is off");
         controls_pub_->publish(dead_stop());
@@ -101,6 +107,21 @@ void Stanley_Controller_Node::control_timer_callback() {
 
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
                              "no waypoints in global path while in GLOBAL_FOLLOW state");
+        controls_pub_->publish(dead_stop());
+
+    } else if (!pose_fresh || pose_lost_) {
+
+        //no pose yet, or localization stalled while armed: stop, and stay stopped
+        //until the dead man switch is released, since the pose that comes back
+        //after a dropout is often wrong
+        if (!pose_fresh) {
+            pose_lost_ = true;
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                 "no fresh pose on %s, holding the car stopped", odom_topic.c_str());
+        } else {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                 "pose is back, release and re-press the dead man switch to drive");
+        }
         controls_pub_->publish(dead_stop());
 
     } else {
@@ -318,6 +339,7 @@ void Stanley_Controller_Node::init_parameters() {
 
     this->declare_parameter<int>("closest_point_window", 40);
     this->declare_parameter<double>("closest_point_recovery_dist", 2.0);
+    this->declare_parameter<double>("pose_timeout_s", 0.5);
 
     //init parameters
     global_path_topic       = this->get_parameter("global_path_topic").as_string();
@@ -344,6 +366,7 @@ void Stanley_Controller_Node::init_parameters() {
 
     const int64_t window         = this->get_parameter("closest_point_window").as_int();
     closest_point_recovery_dist_ = this->get_parameter("closest_point_recovery_dist").as_double();
+    pose_timeout_s               = this->get_parameter("pose_timeout_s").as_double();
 
     //validate: these divide, size a timer or bound a loop, so <= 0 would crash or hang the node
     auto require_positive = [this](const char* name, double value) {
@@ -356,6 +379,7 @@ void Stanley_Controller_Node::init_parameters() {
     require_positive("debug_vis_rate_hz", debug_vis_rate_hz);   //turn debug off with enable_debug_vis
     require_positive("closest_point_window", static_cast<double>(window));
     require_positive("closest_point_recovery_dist", closest_point_recovery_dist_);
+    require_positive("pose_timeout_s", pose_timeout_s);
 
     vis_every_n_ = static_cast<size_t>(std::max(1.0, std::round(control_rate_hz / debug_vis_rate_hz)));
     closest_point_window_ = static_cast<size_t>(window);
