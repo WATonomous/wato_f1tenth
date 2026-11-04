@@ -2,16 +2,14 @@
 
 Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_node") {
 
-    //parameters
     init_parameters();
 
-    //publishers
     controls_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
         ackermann_control_topic, 10);
 
     debug_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
         "/debug/stanley/markers", rclcpp::SensorDataQoS());
-    //the path marker is sent once per path, latched, so a viewer that connects later still gets it
+
     debug_path_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
         "/debug/stanley/path", rclcpp::QoS(1).transient_local());
     cte_pub_          = this->create_publisher<std_msgs::msg::Float32>("/debug/stanley/cte", rclcpp::SensorDataQoS());
@@ -24,7 +22,6 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
     //volatile + reliable matches both the gamepad's latched publisher and plain
     //volatile ones (Foxglove, ros2 topic pub); transient_local would ignore those
     auto dead_man_qos = rclcpp::QoS(1).reliable();
-    //the global planner publishes its path latched, once
     auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
 
     dead_man_sub_ = this->create_subscription<std_msgs::msg::Bool>(
@@ -38,19 +35,19 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         global_path_topic, latched_qos,
         [this](const nav_msgs::msg::Path::SharedPtr msg) {
             current_global_path = *msg;
-            //drop repeated points (closed paths repeat the first pose at the end):
-            //a zero-length segment gives atan2(0,0) = 0 as the path heading and
-            //slams the steering to full lock once per lap
+
             auto& poses = current_global_path.poses;
             auto same_xy = [](const geometry_msgs::msg::PoseStamped& a,
                               const geometry_msgs::msg::PoseStamped& b) {
                 return std::hypot(a.pose.position.x - b.pose.position.x,
                                   a.pose.position.y - b.pose.position.y) < 1e-3;
             };
+
             poses.erase(std::unique(poses.begin(), poses.end(), same_xy), poses.end());
             while (poses.size() > 1 && same_xy(poses.front(), poses.back())) {
                 poses.pop_back();
             }
+
             //new path invalidates the cached search index
             closest_idx_initialized_ = false;
             if (enable_debug_vis) {
@@ -66,28 +63,22 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         last_pose_rx_ = this->now();
     }
 );
-
-    //speed comes from /hal/odom: localization pose doesn't carry a reliable twist on the car
     speed_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
     speed_topic, 10,
     [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         current_velocity = msg->twist.twist.linear.x;
     }
 );
-
-
     control_loop_timer = this->create_wall_timer(
         std::chrono::duration<double>(1.0 / control_rate_hz),
         [this]() {
             control_timer_callback();
         }
     );
-
 }
 
 void Stanley_Controller_Node::control_timer_callback() {
 
-    //update controller state
     update_controller_state();
 
     const bool have_path = !current_global_path.poses.empty();
@@ -111,9 +102,7 @@ void Stanley_Controller_Node::control_timer_callback() {
 
     } else if (!pose_fresh || pose_lost_) {
 
-        //no pose yet, or localization stalled while armed: stop, and stay stopped
-        //until the dead man switch is released, since the pose that comes back
-        //after a dropout is often wrong
+        //no pose yet, or localization stalled while armed: stop, and stay stopped until the dead man switch is released
         if (!pose_fresh) {
             pose_lost_ = true;
             RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
@@ -131,9 +120,7 @@ void Stanley_Controller_Node::control_timer_callback() {
 
     }
 
-    //publish viz whether or not we're actively driving, so the markers keep
-    //tracking the car during dead-stop and sim-reset periods; every Nth tick
-    //so debug topics stay at debug_vis_rate_hz
+    //publish viz whether or not we're actively driving
     if (enable_debug_vis && have_path && tick_++ % vis_every_n_ == 0) {
         publish_debug_vis(current_pose.pose.pose,
                           last_closest_idx_,
@@ -171,20 +158,37 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
     double front_y = cy + wheelbase * std::sin(yaw);
 
     //find closest waypoint to front axle
+    const auto& poses  = current_global_path.poses;
+    const size_t n     = poses.size();
     size_t closest_idx = find_closest_point(front_x, front_y);
-    size_t next_idx    = (closest_idx + 1) % current_global_path.poses.size();
 
-    //path heading at closest point
-    double path_dx = current_global_path.poses[next_idx].pose.position.x -
-                     current_global_path.poses[closest_idx].pose.position.x;
-    double path_dy = current_global_path.poses[next_idx].pose.position.y -
-                     current_global_path.poses[closest_idx].pose.position.y;
-    double path_heading = std::atan2(path_dy, path_dx);
+    //the path segment the front axle is on: closest -> next, or prev -> closest
+    //when the axle hasn't reached the closest waypoint yet
+    auto segment_from = [&](size_t i, double& ax, double& ay, double& tx, double& ty) {
+        const auto& a = poses[i].pose.position;
+        const auto& b = poses[(i + 1) % n].pose.position;
+        ax = a.x; ay = a.y;
+        tx = b.x - a.x; ty = b.y - a.y;
+        double len = std::hypot(tx, ty);
+        if (len > 1e-6) { tx /= len; ty /= len; }
+    };
+    double ax, ay, tx, ty;
+    segment_from(closest_idx, ax, ay, tx, ty);
 
-    //cross track error in car frame (+ = car is right of path, - = left)
-    double dx = current_global_path.poses[closest_idx].pose.position.x - front_x;
-    double dy = current_global_path.poses[closest_idx].pose.position.y - front_y;
-    double cross_track_error = std::cos(yaw) * dy - std::sin(yaw) * dx;
+    //path heading at closest point (closest -> next). taken before the segment
+    //below can step back: the previous segment's heading lags in tight turns
+    //and the car runs wide
+    double path_heading = std::atan2(ty, tx);
+
+    if ((front_x - ax) * tx + (front_y - ay) * ty < 0.0) {
+        segment_from((closest_idx + n - 1) % n, ax, ay, tx, ty);
+    }
+
+    //cross track error: signed distance from the front axle to the segment's
+    //line, along its normal (+ = car is right of path, - = left). measuring to
+    //the line instead of the waypoint keeps the along-track offset out of it,
+    //which otherwise saw-tooths at the waypoint spacing whenever heading_error != 0
+    double cross_track_error = ty * (front_x - ax) - tx * (front_y - ay);
 
     //heading error, wrapped to [-pi, pi]
     double heading_error = path_heading - yaw;
@@ -271,10 +275,7 @@ size_t Stanley_Controller_Node::find_closest_point(double x, double y) {
         if (d < best_dist) { best_dist = d; best_idx = i; }
     }
 
-    //recovery: if nothing in the window is close, we've probably been
-    //teleported (sim reset after a crash). re-acquire with a full scan, at
-    //most once a second: if the car is simply far from the whole path, a scan
-    //every tick finds the same waypoint again
+    //recovery: the window only searches forward, so after a pose jump re-search the whole path
     const rclcpp::Time t = this->now();
     if (best_dist > closest_point_recovery_dist_ &&
         (last_recovery_scan_.nanoseconds() == 0 || (t - last_recovery_scan_).seconds() >= 1.0)) {
