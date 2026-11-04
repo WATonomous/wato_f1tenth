@@ -272,10 +272,15 @@ size_t Stanley_Controller_Node::find_closest_point(double x, double y) {
     }
 
     //recovery: if nothing in the window is close, we've probably been
-    //teleported (sim reset after a crash). re-acquire with a full scan
-    if (best_dist > closest_point_recovery_dist_) {
+    //teleported (sim reset after a crash). re-acquire with a full scan, at
+    //most once a second: if the car is simply far from the whole path, a scan
+    //every tick finds the same waypoint again
+    const rclcpp::Time t = this->now();
+    if (best_dist > closest_point_recovery_dist_ &&
+        (last_recovery_scan_.nanoseconds() == 0 || (t - last_recovery_scan_).seconds() >= 1.0)) {
         best_idx = full_scan();
-        RCLCPP_WARN(this->get_logger(),
+        last_recovery_scan_ = t;
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
             "closest point search lost track, re-acquiring (idx=%zu)", best_idx);
     }
 
