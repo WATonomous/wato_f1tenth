@@ -130,7 +130,8 @@ private:
     size_t prev_closest_idx_ = 0;
     bool   closest_idx_initialized_ = false;
     size_t closest_point_window_ = 20;            // waypoints searched ahead each tick
-    double closest_point_recovery_dist_ = 2.0;   
+    double closest_point_recovery_dist_ = 2.0;
+    rclcpp::Time last_recovery_scan_{0, 0, RCL_ROS_TIME};  // rate-limits the recovery full scan
     
     //last computed Stanley terms (for debug viz)
     size_t last_closest_idx_       = 0;
