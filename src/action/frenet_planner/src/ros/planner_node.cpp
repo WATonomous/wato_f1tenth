@@ -502,6 +502,7 @@ bool PlannerNode::transformPathToControllerFrame(
   } catch (const tf2::TransformException &) {
     return false;
   }
+  controller_path.header.stamp = transform.header.stamp;
   tf2::Transform tf;
   tf2::fromMsg(transform.transform, tf);
   for (auto & pose : controller_path.poses) {
