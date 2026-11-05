@@ -35,18 +35,7 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         global_path_topic, latched_qos,
         [this](const nav_msgs::msg::Path::SharedPtr msg) {
             current_global_path = *msg;
-
-            auto& poses = current_global_path.poses;
-            auto same_xy = [](const geometry_msgs::msg::PoseStamped& a,
-                              const geometry_msgs::msg::PoseStamped& b) {
-                return std::hypot(a.pose.position.x - b.pose.position.x,
-                                  a.pose.position.y - b.pose.position.y) < 1e-3;
-            };
-
-            poses.erase(std::unique(poses.begin(), poses.end(), same_xy), poses.end());
-            while (poses.size() > 1 && same_xy(poses.front(), poses.back())) {
-                poses.pop_back();
-            }
+            stanley::drop_duplicate_points(current_global_path.poses);
 
             //new path invalidates the cached search index
             closest_idx_initialized_ = false;
@@ -148,84 +137,43 @@ void Stanley_Controller_Node::update_controller_state() {
 
 ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_control() {
 
-    //get current pose
-    double cx  = current_pose.pose.pose.position.x;
-    double cy  = current_pose.pose.pose.position.y;
-    double yaw = extractYaw(current_pose.pose.pose.orientation);
+    //current pose and speed
+    stanley::State s;
+    s.x     = current_pose.pose.pose.position.x;
+    s.y     = current_pose.pose.pose.position.y;
+    s.yaw   = extractYaw(current_pose.pose.pose.orientation);
+    s.speed = current_velocity;
 
-    //calculate front axle position (stanley measures error here, not at base_link)
-    double front_x = cx + wheelbase * std::cos(yaw);
-    double front_y = cy + wheelbase * std::sin(yaw);
+    stanley::Params p;
+    p.k_h                = k_h;
+    p.k_e                = k_e;
+    p.k_soft             = k_soft;
+    p.max_steering_angle = max_steering_angle;
+    p.wheelbase          = wheelbase;
+    p.speed_limit_active = speed_limit_enable;
+    p.speed_limit        = speed_limit;
 
-    //find closest waypoint to front axle
-    const auto& poses  = current_global_path.poses;
-    const size_t n     = poses.size();
+    //find closest waypoint to front axle, then apply the control law (stanley.cpp)
+    double front_x, front_y;
+    stanley::front_axle(s, wheelbase, front_x, front_y);
     size_t closest_idx = find_closest_point(front_x, front_y);
-
-    //the path segment the front axle is on: closest -> next, or prev -> closest
-    //when the axle hasn't reached the closest waypoint yet
-    auto segment_from = [&](size_t i, double& ax, double& ay, double& tx, double& ty) {
-        const auto& a = poses[i].pose.position;
-        const auto& b = poses[(i + 1) % n].pose.position;
-        ax = a.x; ay = a.y;
-        tx = b.x - a.x; ty = b.y - a.y;
-        double len = std::hypot(tx, ty);
-        if (len > 1e-6) { tx /= len; ty /= len; }
-    };
-    double ax, ay, tx, ty;
-    segment_from(closest_idx, ax, ay, tx, ty);
-
-    //path heading at closest point (closest -> next). taken before the segment
-    //below can step back: the previous segment's heading lags in tight turns
-    //and the car runs wide
-    double path_heading = std::atan2(ty, tx);
-
-    if ((front_x - ax) * tx + (front_y - ay) * ty < 0.0) {
-        segment_from((closest_idx + n - 1) % n, ax, ay, tx, ty);
-    }
-
-    //cross track error: signed distance from the front axle to the segment's
-    //line, along its normal (+ = car is right of path, - = left). measuring to
-    //the line instead of the waypoint keeps the along-track offset out of it,
-    //which otherwise saw-tooths at the waypoint spacing whenever heading_error != 0
-    double cross_track_error = ty * (front_x - ax) - tx * (front_y - ay);
-
-    //heading error, wrapped to [-pi, pi]
-    double heading_error = path_heading - yaw;
-    if (heading_error >  M_PI) heading_error -= 2 * M_PI;
-    if (heading_error < -M_PI) heading_error += 2 * M_PI;
-
-    //stanley terms
-    //k_soft keeps the atan2 from saturating at ~pi/2 when the car is nearly
-    //stopped; abs() guards the denominator against rolling backward
-    double speed        = std::abs(current_velocity);
-    double heading_term = k_h * heading_error;
-    double cte_term     = std::atan2(k_e * cross_track_error, speed + k_soft);
-
-    double steering_angle = heading_term + cte_term;
-    steering_angle = std::clamp(steering_angle, -max_steering_angle, max_steering_angle);
+    const stanley::Result r = stanley::compute(s, current_global_path, closest_idx, p);
 
     //stash for debug viz
     last_closest_idx_       = closest_idx;
-    last_cross_track_error_ = cross_track_error;
-    last_heading_error_     = heading_error;
-    last_heading_term_      = heading_term;
-    last_cte_term_          = cte_term;
-    last_steering_cmd_      = steering_angle;
-
-    //get target speed from path z value
-    double target_speed = current_global_path.poses[closest_idx].pose.position.z;
-    if (speed_limit_enable) {
-        target_speed = std::clamp(target_speed, 0.0, speed_limit);
-    }
+    last_cross_track_error_ = r.cte;
+    last_heading_error_     = r.heading_error;
+    last_heading_term_      = r.heading_term;
+    last_cte_term_          = r.cte_term;
+    last_steering_cmd_      = r.steering;
 
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
         "heading_err=%.3f, cte=%.3f, steer=%.3f, speed=%.2f, idx=%zu",
-        heading_error, cross_track_error, steering_angle, target_speed, closest_idx);
+        r.heading_error, r.cte, r.steering, r.speed, closest_idx);
 
     ackermann_msgs::msg::AckermannDrive drive;
-    drive.steering_angle = steering_angle;
-    drive.speed = target_speed;
+    drive.steering_angle = r.steering;
+    drive.speed = r.speed;
 
     ackermann_msgs::msg::AckermannDriveStamped stamp;
     stamp.drive = drive;
