@@ -39,6 +39,8 @@
 
 #include "visualization_msgs/msg/marker_array.hpp"
 
+#include "stanley.hpp"
+
 
 enum stanley_state_ {
     INACTIVE,

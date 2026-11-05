@@ -90,6 +90,15 @@ ros2 launch action_bringup action.launch.yaml
 
 The dev container doesn't start the controller itself; launch it again after a reboot.
 
+## Tests
+
+The control law is in `src/stanley.cpp` (no ROS node), with unit tests in `test/test_stanley.cpp`:
+
+```bash
+./watod test action stanley_controller                                    # on the host
+colcon build --packages-up-to stanley_controller wato_test && colcon test --packages-select stanley_controller   # in the dev container
+```
+
 ## Debug markers
 
 | Marker | Meaning |
