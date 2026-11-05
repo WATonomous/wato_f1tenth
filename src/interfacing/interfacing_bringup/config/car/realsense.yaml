@@ -14,12 +14,20 @@
     unite_imu_method: 2  # 1 = copy, 2 = linear interpolation
     enable_sync: false
     # Color and depth cost CPU/USB bandwidth: off unless REALSENSE_IMAGES=true (realsense_images:=true
-    # in interfacing.launch.yaml turns both on). 640x480 @ 30 Hz keeps recording at 25 Hz+ without
-    # taking the particle filter's CPU; record them through image_transport (compressed / zstd).
+    # in interfacing.launch.yaml turns both on). Record them through image_transport
+    # (compressed / zstd).
     enable_depth: false
     enable_color: false
     rgb_camera.color_profile: "640,480,30"
-    depth_module.depth_profile: "640,480,30"
+    # Depth tuning (issue #38), measured on the car against 640x480 on a flat wall at ~0.95 m:
+    # 848x480 (the D435's native depth resolution) sees much more of the floor just in front of
+    # the car (bottom strip 4% -> 45% valid, whole image 86% -> 91%) for ~4% more of one core,
+    # and still delivers 30 Hz (interfacing only; not yet checked with the full stack running).
+    depth_module.depth_profile: "848,480,30"
+    # Temporal filter: averages each pixel over recent frames. Halves depth noise (median
+    # 1.4 -> 0.7 mm) without filling holes. Lag on moving edges not yet checked at driving speed.
+    # Hole filling stays off: it fills black pixels with guesses (97% "valid", noise doubles).
+    temporal_filter.enable: true
     enable_infra1: false
     enable_infra2: false
     pointcloud.enable: false
