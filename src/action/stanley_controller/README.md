@@ -12,14 +12,16 @@ Each tick (`control_rate_hz`):
    `closest_point_window` waypoints ahead of the last one. Beyond `closest_point_recovery_dist`,
    search the whole path.
 2. Heading error `ψ`: path heading (closest → next waypoint) minus yaw.
-3. Cross-track error `e`: positive when the car is right of the path.
+3. Cross-track error `e`: distance from the front axle to the path segment it is on, positive when
+   the car is right of the path.
 4. Steering, clamped to ±`max_steering_angle`, with `v` the speed from `/hal/odom`:
 
    ```text
    δ = k_h · ψ + atan2(k_e · e, |v| + k_soft)
    ```
 
-5. Speed: the closest waypoint's `z` (raceline speed), capped at `speed_limit`.
+5. Speed: the slowest waypoint `z` (raceline speed) within `|v| · speed_lookahead_s` metres ahead,
+   so the car brakes before slow corners, capped at `speed_limit`.
 
 With the dead man switch released, no path, or no pose for `pose_timeout_s`, it publishes a zero
 command. If the pose goes stale while armed, the car stays stopped after localization comes back
@@ -47,8 +49,9 @@ In `action_bringup/config/{car,sim}/stanley_controller.yaml`:
 | Parameter | Car | Sim | |
 | --- | --- | --- | --- |
 | `speed_limit_active` | true | true | apply `speed_limit` |
-| `speed_limit` | 4.5 | 5.0 | m/s |
-| `k_h` | 1.3 | 0.75 | heading gain |
+| `speed_limit` | 6.0 | 5.0 | m/s |
+| `speed_lookahead_s` | 0.4 | 0.0 | s of driving to look ahead for the speed (0 = closest waypoint) |
+| `k_h` | 1.0 | 0.75 | heading gain |
 | `k_e` | 0.9 | 0.2 | cross-track gain |
 | `k_soft` | 0.5 | 0.5 | low-speed softener, m/s |
 | `max_steering_angle` | 0.52 | 0.52 | rad |
@@ -60,9 +63,10 @@ In `action_bringup/config/{car,sim}/stanley_controller.yaml`:
 | `enable_debug_vis` | true | true | |
 | `debug_vis_rate_hz` | 20 | 20 | Hz |
 
-`speed_limit`, `k_h`, `k_e` and `control_rate_hz` have no default in code, so the node won't start
-if one is missing from the YAML. `control_rate_hz`, `debug_vis_rate_hz`, `closest_point_window`,
-`closest_point_recovery_dist` and `pose_timeout_s` must be greater than 0.
+`speed_limit`, `speed_lookahead_s`, `k_h`, `k_e` and `control_rate_hz` have no default in code, so
+the node won't start if one is missing from the YAML. `control_rate_hz`, `debug_vis_rate_hz`,
+`closest_point_window`, `closest_point_recovery_dist` and `pose_timeout_s` must be greater than 0;
+`speed_lookahead_s` must be 0 or more.
 
 ## Running
 
@@ -116,12 +120,14 @@ colcon build --packages-up-to stanley_controller wato_test && colcon test --pack
 | Symptom | Change |
 | --- | --- |
 | Turns in late, runs wide | raise `k_h` or lower `speed_limit` |
-| Weaves on straights | lower `k_h`, then `k_e` |
+| Enters slow corners too fast | raise `speed_lookahead_s` |
+| Weaves on straights | lower `k_h`, then `k_e` (on the car, much of it comes from noise in the localization heading) |
 | Stays off the line | raise `k_e` |
 | Twitchy at low speed | raise `k_soft` towards 1.0 |
 | Closest point jumps across the track | lower `closest_point_window` |
 
-| `control_rate_hz` | `k_h` | `k_e` | `speed_limit` |
-| --- | --- | --- | --- |
-| 20 | 0.85 | 0.7 | 4.0 |
-| 50 | 1.3 | 0.9 | 4.5 |
+| `control_rate_hz` | `k_h` | `k_e` | `speed_limit` | `speed_lookahead_s` |
+| --- | --- | --- | --- | --- |
+| 20 | 0.85 | 0.7 | 4.0 | 0 |
+| 50 | 1.3 | 0.9 | 4.5 | 0 |
+| 50 | 1.0 | 0.9 | 6.0 | 0.4 |
