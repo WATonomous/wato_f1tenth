@@ -117,6 +117,7 @@ private:
     double control_rate_hz;    // control loop rate
     double debug_vis_rate_hz;  // debug topics publish at most this often
     double pose_timeout_s;     // stop when the last pose is older than this
+    double speed_lookahead_s;  // command the slowest path speed this many seconds of driving ahead
     rclcpp::Time last_pose_rx_{0, 0, RCL_ROS_TIME};  // when the last pose arrived
     bool pose_lost_ = false;   // pose went stale while armed; cleared by releasing the dead man switch
     size_t vis_every_n_ = 1;   // control ticks per debug publish

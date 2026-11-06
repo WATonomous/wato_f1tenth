@@ -152,6 +152,7 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
     p.wheelbase          = wheelbase;
     p.speed_limit_active = speed_limit_enable;
     p.speed_limit        = speed_limit;
+    p.speed_lookahead_s  = speed_lookahead_s;
 
     //find closest waypoint to front axle, then apply the control law (stanley.cpp)
     double front_x, front_y;
@@ -294,6 +295,7 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<int>("closest_point_window", 40);
     this->declare_parameter<double>("closest_point_recovery_dist", 2.0);
     this->declare_parameter<double>("pose_timeout_s", 0.5);
+    this->declare_parameter<double>("speed_lookahead_s");   //differs between car and sim: no default
 
     //init parameters
     global_path_topic       = this->get_parameter("global_path_topic").as_string();
@@ -321,6 +323,7 @@ void Stanley_Controller_Node::init_parameters() {
     const int64_t window         = this->get_parameter("closest_point_window").as_int();
     closest_point_recovery_dist_ = this->get_parameter("closest_point_recovery_dist").as_double();
     pose_timeout_s               = this->get_parameter("pose_timeout_s").as_double();
+    speed_lookahead_s            = this->get_parameter("speed_lookahead_s").as_double();
 
     //validate: these divide, size a timer or bound a loop, so <= 0 would crash or hang the node
     auto require_positive = [this](const char* name, double value) {
@@ -334,6 +337,10 @@ void Stanley_Controller_Node::init_parameters() {
     require_positive("closest_point_window", static_cast<double>(window));
     require_positive("closest_point_recovery_dist", closest_point_recovery_dist_);
     require_positive("pose_timeout_s", pose_timeout_s);
+    if (speed_lookahead_s < 0.0) {
+        RCLCPP_FATAL(this->get_logger(), "parameter speed_lookahead_s must be >= 0 (got %g)", speed_lookahead_s);
+        throw std::invalid_argument("stanley_controller: speed_lookahead_s must be >= 0");
+    }
 
     vis_every_n_ = static_cast<size_t>(std::max(1.0, std::round(control_rate_hz / debug_vis_rate_hz)));
     closest_point_window_ = static_cast<size_t>(window);

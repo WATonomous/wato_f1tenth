@@ -16,6 +16,7 @@
     # ---- speed ----
     speed_limit_active: true
     speed_limit: 5.0            # m/s hard cap. START LOW on the real car, raise once trusted.
+    speed_lookahead_s: 0.0       # s: command the slowest path speed within this much driving ahead (0 = closest waypoint)
 
     # ---- steering physics ----
     max_steering_angle: 0.52   # rad (~30 deg). Physical limit - don't raise past the car's real max.
