@@ -53,6 +53,7 @@ stanley::Params params()
   p.wheelbase = 0.324;
   p.speed_limit_active = true;
   p.speed_limit = 5.0;
+  p.speed_lookahead_s = 0.0;
   return p;
 }
 
@@ -187,4 +188,29 @@ TEST_CASE("cross-track error is the distance to the line, not to a waypoint", "[
     REQUIRE(r.cte == Approx(0.3).margin(1e-9));
     REQUIRE(r.heading_error == Approx(-yaw).margin(1e-9));
   }
+}
+
+TEST_CASE("speed look-ahead brakes before a slow section", "[stanley]")
+{
+  // straight path, 0.5 m spacing: 4 m/s until x = 5 m, then 2 m/s
+  nav_msgs::msg::Path path;
+  for (int i = 0; i < 30; ++i) {
+    path.poses.push_back(pose_at(0.5 * i, 0.0, 0.5 * i < 5.0 ? 4.0 : 2.0));
+  }
+  auto p = params();
+  const auto s = state(1.0, 0.0, 0.0, 4.0);  // front axle at x = 1.324, 3.7 m before the slow part
+
+  // off: the speed of the closest waypoint
+  REQUIRE(run(path, s, p).speed == Approx(4.0));
+
+  // 0.5 s at 4 m/s = 2 m ahead: still all fast
+  p.speed_lookahead_s = 0.5;
+  REQUIRE(run(path, s, p).speed == Approx(4.0));
+
+  // 1 s at 4 m/s = 4 m ahead: reaches the slow part, so brake now
+  p.speed_lookahead_s = 1.0;
+  REQUIRE(run(path, s, p).speed == Approx(2.0));
+
+  // standing still looks nowhere ahead
+  REQUIRE(run(path, state(1.0, 0.0, 0.0, 0.0), p).speed == Approx(4.0));
 }

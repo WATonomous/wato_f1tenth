@@ -83,8 +83,18 @@ Result compute(const State& s, const nav_msgs::msg::Path& path, size_t closest_i
 
     r.steering = std::clamp(r.heading_term + r.cte_term, -p.max_steering_angle, p.max_steering_angle);
 
-    //target speed from path z value
+    //target speed from path z value: the slowest waypoint within speed_lookahead_s
+    //of driving ahead, so the car starts braking before a slow corner, not in it
     r.speed = poses[closest_idx].pose.position.z;
+    const double ahead = std::abs(s.speed) * p.speed_lookahead_s;
+    double dist = 0.0;
+    for (size_t k = 0, i = closest_idx; k + 1 < n && dist < ahead; k++) {
+        const size_t j = (i + 1) % n;
+        dist += std::hypot(poses[j].pose.position.x - poses[i].pose.position.x,
+                           poses[j].pose.position.y - poses[i].pose.position.y);
+        r.speed = std::min(r.speed, poses[j].pose.position.z);
+        i = j;
+    }
     if (p.speed_limit_active) {
         r.speed = std::clamp(r.speed, 0.0, p.speed_limit);
     }

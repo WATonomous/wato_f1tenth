@@ -22,6 +22,7 @@ struct Params {
     double wheelbase;           // distance between front and rear axles
     bool   speed_limit_active;
     double speed_limit;         // m/s
+    double speed_lookahead_s;   // s: command the slowest path speed within this much driving ahead (0 = closest waypoint)
 };
 
 //base_link pose in the path frame, and the measured speed
