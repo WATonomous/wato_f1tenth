@@ -48,7 +48,9 @@
 /system/status
 /system/power
 
-# Who has control (drive_status, ackermann_mux, gamepad)
+# Who has control (drive_status, ackermann_mux, gamepad), gamepad toggles and the speed limiter
 /control/status
 /control/active_input
 /control/mode
+/control/teleop
+/control/speed_limiter

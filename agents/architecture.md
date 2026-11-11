@@ -141,7 +141,7 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 | Stanley | `action_bringup/config/{car,sim}/stanley_controller.yaml` (see `stanley_controller/README.md`) |
 | gamepad mapping | `teleop_utils/config/joypad_config.yaml`; controls, hand-over and troubleshooting in `teleop_utils/README.md` |
 | battery (cells, capacity, warn/critical) | `interfacing_bringup/config/car/battery.yaml` |
-| Foxglove layouts | `config/car.json`, `config/sim.json` at the repo root: Drive (who drives, gamepad toggles, triggers, speed asked/limited/measured, 3D track with TF), System (computer, power, VESC, log), Camera (color + depth, car); `infrastructure_bringup/config/foxglove/battery.json`. Import in Foxglove: Layouts > Import |
+| Foxglove layouts | `config/car.json`, `config/sim.json` at the repo root: Drive (who drives, gamepad toggles, triggers, speed asked/limited/measured, drive/Jetson/total power, 3D track with TF), System (computer, power, VESC, log), Camera (color + depth, car); `infrastructure_bringup/config/foxglove/battery.json`. Import in Foxglove: Layouts > Import |
 | MPPI | `mppi_cpp/config/params_e7.yaml`, `mppi_bringup/config/` |
 
 ## Contract check

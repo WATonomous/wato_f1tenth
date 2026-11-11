@@ -4,67 +4,67 @@
       "path": "/control/status.state",
       "style": "background",
       "fallbackColor": "#d62828",
-      "fallbackLabel": "NO STATUS (drive_status not running)",
+      "fallbackLabel": "OFFLINE",
       "rules": [
         {
           "operator": "=",
           "rawValue": "AUTONOMY",
           "color": "#2e9d47",
-          "label": "AUTONOMY: controller driving"
+          "label": "AUTONOMY"
         },
         {
           "operator": "=",
           "rawValue": "STOPPED",
           "color": "#e07a00",
-          "label": "STOPPED: autonomy, dead man off"
+          "label": "STOPPED"
         },
         {
           "operator": "=",
           "rawValue": "MANUAL",
           "color": "#1f6feb",
-          "label": "MANUAL: gamepad driving"
+          "label": "MANUAL"
         },
         {
           "operator": "=",
           "rawValue": "KEYBOARD",
           "color": "#1f6feb",
-          "label": "KEYBOARD driving"
+          "label": "KEYBOARD"
         },
         {
           "operator": "=",
           "rawValue": "EBRAKE",
           "color": "#d62828",
-          "label": "EMERGENCY BRAKE"
+          "label": "EBRAKE"
         },
         {
           "operator": "=",
           "rawValue": "NO_COMMAND",
           "color": "#6e7681",
-          "label": "NO COMMAND: nothing reaches the motor"
+          "label": "NOBODY"
         }
       ],
-      "foxglovePanelTitle": "Who has control"
+      "foxglovePanelTitle": "Who has control (OFFLINE = drive_status not running, STOPPED = dead man off, NOBODY = nothing reaches the motor)"
     },
     "Indicator!direction": {
       "path": "/control/status.direction",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "track default (raceline.csv)",
+      "fallbackLabel": "DEFAULT",
       "rules": [
         {
           "operator": "=",
           "rawValue": "ccw",
           "color": "#1f6feb",
-          "label": "\u21ba counter-clockwise"
+          "label": "CCW"
         },
         {
           "operator": "=",
           "rawValue": "cw",
           "color": "#1f6feb",
-          "label": "\u21bb clockwise"
+          "label": "CW"
         }
       ],
-      "foxglovePanelTitle": "Direction (DIRECTION)"
+      "foxglovePanelTitle": "Direction (DIRECTION; DEFAULT = raceline.csv)"
     },
     "RawMessages!track": {
       "topicPath": "/control/status.track",
@@ -82,13 +82,13 @@
       "path": "/control/teleop.manual",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "X  manual off",
+      "fallbackLabel": "OFF",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#1f6feb",
-          "label": "X  MANUAL ON"
+          "label": "MANUAL"
         }
       ],
       "foxglovePanelTitle": "X: manual"
@@ -103,19 +103,19 @@
           "operator": "=",
           "rawValue": "AUTONOMY",
           "color": "#2e9d47",
-          "label": "R1: AUTONOMY"
+          "label": "AUTONOMY"
         },
         {
           "operator": "=",
           "rawValue": "MANUAL",
           "color": "#1f6feb",
-          "label": "X: MANUAL"
+          "label": "MANUAL"
         },
         {
           "operator": "=",
           "rawValue": "BLOCKED",
           "color": "#e07a00",
-          "label": "BLOCKED: toggle R1 off and on"
+          "label": "BLOCKED"
         },
         {
           "operator": "=",
@@ -127,22 +127,22 @@
           "operator": "=",
           "rawValue": "NO_GAMEPAD",
           "color": "#d62828",
-          "label": "NO GAMEPAD"
+          "label": "NOPAD"
         }
       ],
-      "foxglovePanelTitle": "R1: autonomy (gamepad mode)"
+      "foxglovePanelTitle": "R1: gamepad mode (BLOCKED = toggle R1 off and on)"
     },
     "Indicator!reverse": {
       "path": "/control/teleop.reverse",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "O  reverse off",
+      "fallbackLabel": "OFF",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#e07a00",
-          "label": "O  REVERSE ON"
+          "label": "REVERSE"
         }
       ],
       "foxglovePanelTitle": "O: reverse"
@@ -151,16 +151,16 @@
       "path": "/control/teleop.pit_limit",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "\u25a2  pit limit off",
+      "fallbackLabel": "OFF",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#e07a00",
-          "label": "\u25a2  PIT LIMIT 1 m/s"
+          "label": "PIT"
         }
       ],
-      "foxglovePanelTitle": "Square: pit limit"
+      "foxglovePanelTitle": "Square: pit limit 1 m/s"
     },
     "Gauge!throttle": {
       "path": "/control/teleop.throttle",
@@ -202,13 +202,13 @@
       "path": "/control/status.dead_man",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "DEAD MAN OFF",
+      "fallbackLabel": "OFF",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#2e9d47",
-          "label": "DEAD MAN ON"
+          "label": "ON"
         }
       ],
       "foxglovePanelTitle": "Dead man"
@@ -217,13 +217,13 @@
       "path": "/control/teleop.connected",
       "style": "background",
       "fallbackColor": "#d62828",
-      "fallbackLabel": "NO GAMEPAD",
+      "fallbackLabel": "NONE",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#2e9d47",
-          "label": "GAMEPAD CONNECTED"
+          "label": "OK"
         }
       ],
       "foxglovePanelTitle": "Gamepad"
@@ -232,13 +232,13 @@
       "path": "/system/status.bag_recording",
       "style": "background",
       "fallbackColor": "#d62828",
-      "fallbackLabel": "NOT RECORDING",
+      "fallbackLabel": "OFF",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#2e9d47",
-          "label": "RECORDING"
+          "label": "REC"
         }
       ],
       "foxglovePanelTitle": "Bag recording (watod bag record)"
@@ -358,37 +358,6 @@
       "followingViewWidth": 30,
       "foxglovePanelTitle": "Speed (m/s): asked, sent to the VESC (limiter), measured"
     },
-    "Gauge!speed": {
-      "path": "/control/status.measured_speed",
-      "minValue": 0,
-      "maxValue": 10,
-      "reverse": false,
-      "foxglovePanelTitle": "Speed (m/s)",
-      "colorMode": "colormap",
-      "colorMap": "turbo",
-      "gradient": [
-        "#0000ff",
-        "#ff00ff"
-      ]
-    },
-    "Plot!steering": {
-      "paths": [
-        {
-          "value": "/control/status.commanded_steering",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "steering"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "followingViewWidth": 30,
-      "foxglovePanelTitle": "Steering (rad), commanded"
-    },
     "Gauge!battery": {
       "path": "/hal/battery.percentage",
       "minValue": 0,
@@ -406,7 +375,7 @@
       "path": "/hal/battery.power_supply_health",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "NO DATA",
+      "fallbackLabel": "UNKNOWN",
       "rules": [
         {
           "operator": "=",
@@ -418,16 +387,16 @@
           "operator": "=",
           "rawValue": "3",
           "color": "#d62828",
-          "label": "CRITICAL: stop and charge"
+          "label": "CRITICAL"
         },
         {
           "operator": "=",
           "rawValue": "4",
           "color": "#e07a00",
-          "label": "OVERVOLTAGE: check cells"
+          "label": "OVERVOLT"
         }
       ],
-      "foxglovePanelTitle": "Battery health"
+      "foxglovePanelTitle": "Battery health (CRITICAL = stop and charge)"
     },
     "Plot!cpu": {
       "paths": [
@@ -561,16 +530,16 @@
       "path": "/sensors/core.state.fault_code",
       "style": "background",
       "fallbackColor": "#d62828",
-      "fallbackLabel": "VESC FAULT (or no data)",
+      "fallbackLabel": "FAULT",
       "rules": [
         {
           "operator": "=",
           "rawValue": "0",
           "color": "#2e9d47",
-          "label": "VESC OK"
+          "label": "OK"
         }
       ],
-      "foxglovePanelTitle": "VESC"
+      "foxglovePanelTitle": "VESC (FAULT = fault code set, or no data)"
     },
     "Plot!vesc_current": {
       "paths": [
@@ -755,12 +724,7 @@
               "second": {
                 "direction": "row",
                 "first": "Plot!speed",
-                "second": {
-                  "direction": "column",
-                  "first": "Gauge!speed",
-                  "second": "Plot!steering",
-                  "splitPercentage": 50.0
-                },
+                "second": "Plot!drive_power",
                 "splitPercentage": 62.5
               },
               "splitPercentage": 64.0
@@ -842,6 +806,36 @@
           }
         }
       ]
+    },
+    "Plot!drive_power": {
+      "paths": [
+        {
+          "value": "/system/power.drive_power_w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "drive"
+        },
+        {
+          "value": "/system/power.compute_power_w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Jetson"
+        },
+        {
+          "value": "/system/power.total_power_w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "total (estimate)"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 60,
+      "foxglovePanelTitle": "Power (W): drive, Jetson, total"
     }
   },
   "globalVariables": {},
