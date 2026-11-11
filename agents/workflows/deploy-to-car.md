@@ -43,7 +43,9 @@ the `orin` / `mppi_test` checklist below as the fallback.
 10. **Check.** `ros2 topic hz /scan`, `/odom`, `/pf/pose/odom`. Gamepad buttons toggle:
     **X** turns manual control on and off (it beats autonomy); **R1**, the dead man switch, turns
     autonomy on and off. After manual control, toggle R1 off and on to hand back to autonomy.
-    Try both with the wheels off the ground first.
+    **O** turns reverse on and off; while it is on, the throttle reverses at a fixed slow speed
+    (`reverse_speed` in `teleop_utils/config/joypad_config.yaml`, 0.75 m/s).
+    Try them with the wheels off the ground first.
 
 ## Container access to devices
 

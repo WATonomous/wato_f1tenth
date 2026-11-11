@@ -50,18 +50,22 @@ private:
   void publishDeadMan(bool active);
   void publishMode(const std::string & mode);
   void watchdogCallback();
-  float trigger_maper(const float r2);
+  float trigger_maper(const float travel);
+  float trigger_travel(const float axis, bool & seen);
   float steering_mapper(const float ls);
 
   // parameters
   std::string joy_topic, gamepad_topic, dead_man_topic, my_frame_id;
   float max_speed, max_steering_rate, steering_gain;
+  float reverse_speed, reverse_throttle_threshold;
   double joy_timeout_s;
   ackermann_msgs::msg::AckermannDrive emergancy_drive_msg;
 
   // data
   float direction = 1;
   bool reversing = false;
+  bool throttle_seen_ = false;  // trigger has reported a real value (see trigger_travel)
+  bool brake_seen_ = false;
   bool was_armed_ = false;
   bool dead_man_ = false;
   bool autonomy_blocked_ = false;

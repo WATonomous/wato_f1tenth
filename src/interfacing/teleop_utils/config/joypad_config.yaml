@@ -11,22 +11,31 @@
     my_frame_id: "base_link"
 
     # Speed and steering parameters
-    max_speed: 22.88
+    # m/s at full throttle in manual: the car's top speed (VESC and vesc.yaml allow 10 m/s). The
+    # throttle curve is exponential: about 1.4 m/s at half trigger, 3.7 at 3/4, 6.7 at 90%.
+    max_speed: 10.0
     steering_gain: 0.5236
     max_steering_rate: 3.2
 
-    # Joystick axis mappings (DualShock layout under ros2 joy)
+    # Reverse (O toggled on): one fixed speed while the throttle is pressed past the threshold.
+    # Keep it at 0.5 m/s or more: slower than that, the sensorless motor start stutters.
+    reverse_speed: 0.75               # m/s
+    reverse_throttle_threshold: 0.2   # fraction of trigger travel (0 released, 1 fully pressed)
+
+    # Joystick axis mappings. joy_node uses SDL's game-controller layout: 0 left X, 1 left Y,
+    # 2 right X, 3 right Y, 4 L2, 5 R2. Triggers read 1.0 released to -1.0 pressed, but exactly 0.0
+    # until first pressed; the node treats that as released (checked on the DualShock 4, 2026-11-10).
     steering_axis: 0   # left stick X
     throttel_axis: 5   # R2
-    break_axis: 2      # L2 (axis 4 is right-stick Y, which rests at 0 and would add constant brake)
+    break_axis: 4      # L2 (was 2, the right stick, so the brake trigger did nothing)
 
     # Button mappings (toggles: joy_node runs with sticky_buttons). joy_node uses SDL's
     # game-controller layout: 0 cross, 1 circle, 2 square, 3 triangle, 5 PS, 9 L1, 10 R1
     # (checked on the DualShock 4 on 2026-10-27)
     safety_button: 0     # X: manual control on/off (beats autonomy in the mux)
     autonomy_button: 10  # R1: dead man switch, autonomy on/off (after manual, toggle it off and on)
-    reverse_button: 1    # O: reverse (toggle while joy sticky_buttons is on)
-    pit_limit_button: 2  # square
+    reverse_button: 1    # O: reverse on/off; while on, the throttle reverses at reverse_speed
+    pit_limit_button: 2  # square: limit forward speed to 1 m/s
 
     # Release the dead man if /joy goes quiet this long (pad disconnected while R1 is on)
     joy_timeout_s: 0.5

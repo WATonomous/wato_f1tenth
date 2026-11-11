@@ -34,12 +34,14 @@
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <vesc_msgs/msg/vesc_state_stamped.hpp>
 
 namespace vesc_ackermann
 {
 
 using ackermann_msgs::msg::AckermannDriveStamped;
 using std_msgs::msg::Float64;
+using vesc_msgs::msg::VescStateStamped;
 
 class AckermannToVesc : public rclcpp::Node
 {
@@ -52,15 +54,38 @@ private:
   double speed_to_erpm_gain_, speed_to_erpm_offset_;
   double steering_to_servo_gain_, steering_to_servo_offset_;
 
+  // speed limiter: m/s^2 when speeding up / slowing down (0 = no limit), and how long (s) without a
+  // command before the limiter brakes to a stop
+  double max_accel_, max_decel_, cmd_timeout_;
+
   /** @todo consider also providing an interpolated look-up table conversion */
 
   // ROS services
   rclcpp::Publisher<Float64>::SharedPtr erpm_pub_;
   rclcpp::Publisher<Float64>::SharedPtr servo_pub_;
   rclcpp::Subscription<AckermannDriveStamped>::SharedPtr ackermann_sub_;
+  rclcpp::Subscription<VescStateStamped>::SharedPtr vesc_state_sub_;
+  rclcpp::TimerBase::SharedPtr limiter_timer_;
+
+  // speed limiter state
+  rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
+  double target_speed_ = 0.0;   // latest commanded speed (m/s)
+  double limited_speed_ = 0.0;  // speed sent to the VESC (m/s)
+  double measured_speed_ = 0.0;
+  bool have_measured_ = false;
+  bool active_ = false;  // publishing speed; false before the first command and after a stop
+  rclcpp::Time last_cmd_time_{0, 0, RCL_STEADY_TIME};
+  rclcpp::Time last_tick_time_{0, 0, RCL_STEADY_TIME};
 
   // ROS callbacks
   void ackermannCmdCallback(const AckermannDriveStamped::SharedPtr cmd);
+  void vescStateCallback(const VescStateStamped::SharedPtr state);
+  void limiterTimerCallback();
+
+  bool limiterEnabled() const {return max_accel_ > 0.0 || max_decel_ > 0.0;}
+  void publishSpeed(double speed);
+  // step the limited speed towards target over dt seconds
+  double limitSpeed(double current, double target, double dt) const;
 };
 
 }  // namespace vesc_ackermann

@@ -104,8 +104,13 @@ e-brake slot at priority 100.
 
 Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeouts), in
 `interfacing_bringup/config/{car,sim}/mux.yaml`. Gamepad buttons toggle: X = manual (wins), R1 =
-autonomy dead man; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has control in one word
+autonomy dead man, O = reverse (throttle then reverses at a fixed `reverse_speed`), square = 1 m/s
+pit limit; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has control in one word
 (`AUTONOMY`, `STOPPED`, `MANUAL`, `KEYBOARD`, `EBRAKE`, `NO_COMMAND`).
+
+On the car, `ackermann_to_vesc` limits how fast the commanded speed changes, for every input:
+`max_accel` 3.3 m/s^2 speeding up, `max_decel` 4.0 m/s^2 slowing down, and it brakes to a stop if
+no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/config/car/vesc.yaml`.
 
 ## TF tree
 
