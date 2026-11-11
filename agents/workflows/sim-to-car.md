@@ -29,9 +29,8 @@ through launch remaps; the old names (`/scan`, `/odom`, `/pf/pose/odom`, `/acker
 | `/hal/imu` | `Imu` | `imu_remap_node` (frame `imu_link`) | RealSense (`IMU=realsense`, default with `REALSENSE=true`) or VESC (`IMU=vesc`, not working as intended yet) |
 | `/hal/localization/odom` | `Odometry`, frame `map` | `fake_odom_node` ground truth (`LOCALIZATION=truth`, default) or `particle_filter` (`pf`, needs a sim map) | `particle_filter` |
 | `/hal/battery` | `BatteryState` (drive pack: voltage, %, health) | none (AutoDRIVE has no battery) | `vesc_battery` from VESC `/sensors/core` |
-| `/hal/drive/{autonomy,joystick,keyboard,ebrake}` | `AckermannDriveStamped` | shared nodes | shared nodes |
-| `/hal/drive/keyboard_teleop` | `AckermannDriveStamped` | `keyboard_teleop_node`, run by hand | none (sim only) |
-| `/hal/dead_man_switch` | `Bool` (transient local) | gamepad teleop, or `keyboard_teleop_node` | gamepad teleop |
+| `/hal/drive/{autonomy,teleop,keyboard,ebrake}` | `AckermannDriveStamped` | shared nodes | shared nodes |
+| `/hal/dead_man_switch` | `Bool` (transient local) | `joypad_node` (gamepad or keyboard, `TELEOP`) | `joypad_node` (gamepad or keyboard, `TELEOP`) |
 | `/hal/ackermann_cmd` | `AckermannDriveStamped` (mux output) | `ackermann_converter_node` drives AutoDRIVE | `ackermann_to_vesc_node` drives the VESC |
 | TF | `map -> odom -> base_link -> laser` | static `map->odom` + `fake_odom` | particle filter + VESC odometry |
 

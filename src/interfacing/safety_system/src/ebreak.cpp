@@ -32,7 +32,7 @@ EBREAK_NODE::EBREAK_NODE()
   this->declare_parameter<std::string>("laser_topic", "/hal/scan");
   this->declare_parameter<std::string>("ackermann_output_topic", "/hal/drive/ebrake");
   this->declare_parameter<std::string>("ackermann_mon_topic", "/hal/ackermann_cmd");
-  this->declare_parameter<std::string>("ackermann_steering_topic", "/hal/drive/joystick");
+  this->declare_parameter<std::string>("ackermann_steering_topic", "/hal/drive/teleop");
 
   // ttc time stages (lower the time, the more breaking need to be applied)
   this->declare_parameter<double>("ttc1", 0.1011);

@@ -12,47 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef KEYBOARD_TELEOP
-#define KEYBOARD_TELEOP
+#ifndef KEYBOARD_JOY
+#define KEYBOARD_JOY
 
 #include <termios.h>
 
-#include <memory>
 #include <optional>
 #include <string>
 
-#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
-#include "keyboard_teleop_state.hpp"  // NOLINT(build/include_subdir)
+#include "keyboard_joy_state.hpp"  // NOLINT(build/include_subdir)
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "sensor_msgs/msg/joy.hpp"
+#include "std_msgs/msg/string.hpp"
 
-class KeyboardTeleop : public rclcpp::Node
+class KeyboardJoy : public rclcpp::Node
 {
 public:
-  KeyboardTeleop();
-  ~KeyboardTeleop() override;
+  KeyboardJoy();
+  ~KeyboardJoy() override;
 
 private:
   // pubs and subs
-  rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr drive_pub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr dead_man_pub_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dead_man_sub_;
+  rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr joy_pub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mode_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   // functions
   void timerCallback();
-  void publishDrive(double speed, double steering);
-  void publishDeadMan(bool active);
-  void release();
+  bool readKeys(double now_s);
+  void publishJoy();
   void printStatus();
 
   // parameters
-  std::string drive_topic, dead_man_topic, my_frame_id;
+  std::string joy_topic, my_frame_id;
 
   // data
-  std::optional<KeyboardTeleopState> state_;
+  std::optional<KeyboardJoyState> state_;
   std::optional<termios> saved_termios_;
-  bool released_ = false;
+  std::string mode_ = "UNKNOWN";  // joypad_node's /control/mode
+  std::string last_status_;
 };
 
 #endif

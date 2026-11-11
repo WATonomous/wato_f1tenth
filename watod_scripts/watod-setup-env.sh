@@ -155,6 +155,8 @@ MAPPING=${MAPPING:-"false"}
 # Controller and local planner in action: file names in action_bringup/launch/{controllers,local_planners}/
 CONTROLLER=${CONTROLLER:-"pure_pursuit"}
 LOCAL_PLANNER=${LOCAL_PLANNER:-"none"}
+# Teleop input in interfacing: gamepad (joy_node) or keyboard (`watod teleop`), both through joypad_node
+TELEOP=${TELEOP:-"gamepad"}
 # Track: a folder in world_modeling/race_tracks/tracks/ (map + raceline). Car: the office; sim: AutoDRIVE
 if [[ -z ${TRACK:-} ]]; then
   if [[ "$PLATFORM" == "car" ]]; then TRACK="wato_office"; else TRACK="autodrive"; fi
@@ -267,6 +269,7 @@ append "PLATFORM" "$PLATFORM"
 append "MAPPING" "$MAPPING"
 append "CONTROLLER" "$CONTROLLER"
 append "LOCAL_PLANNER" "$LOCAL_PLANNER"
+append "TELEOP" "$TELEOP"
 append "TRACK" "$TRACK"
 append "REALSENSE" "$REALSENSE"
 append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
