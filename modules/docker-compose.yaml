@@ -193,6 +193,7 @@ services:
     environment:
       - PLATFORM=${PLATFORM}
       - TRACK=${TRACK}
+      - DIRECTION=${DIRECTION}
       - MAPPING=${MAPPING}
       - LOCALIZATION=${LOCALIZATION}
       - PF_VIZ=${PF_VIZ}
@@ -245,6 +246,7 @@ services:
     environment:
       - PLATFORM=${PLATFORM}
       - TRACK=${TRACK}
+      - DIRECTION=${DIRECTION}
       - MAPPING=${MAPPING}
       - CONTROLLER=${CONTROLLER}
       - LOCAL_PLANNER=${LOCAL_PLANNER}

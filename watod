@@ -466,6 +466,18 @@ for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml"
     exit 1
   fi
 done
+# DIRECTION picks raceline_<ccw|cw>.csv in the track's folder (empty: its raceline.csv)
+if [[ -n ${DIRECTION:-} ]]; then
+  track_dir="$MONO_DIR/src/world_modeling/race_tracks/tracks/$TRACK"
+  if [[ "$DIRECTION" != "ccw" && "$DIRECTION" != "cw" ]]; then
+    echo "Error: DIRECTION=\"$DIRECTION\": use ccw, cw, or leave it empty for the track's default." >&2
+    exit 1
+  elif [[ -d "$track_dir" && ! -f "$track_dir/raceline_$DIRECTION.csv" ]]; then
+    echo "Error: TRACK=\"$TRACK\" has no raceline_$DIRECTION.csv (regenerate it with the raceline" >&2
+    echo "generator's make_raceline.py, or leave DIRECTION empty for its raceline.csv)." >&2
+    exit 1
+  fi
+fi
 
 # ────────────────────────────── Run Tests ────────────────────────────────
 

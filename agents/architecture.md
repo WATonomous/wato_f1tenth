@@ -14,6 +14,7 @@ docker/                    <module>.Dockerfile, template.Dockerfile (shared stag
 src/<module>/              ROS 2 packages grouped by module; each module has <module>_bringup
 src/wato_test/             Catch2 test helpers (add_wato_test)
 docs/mppi/                 MPPI notes from mppi_test (run procedure, debugging, system overview)
+tools/                     separate repos cloned by `watod tools`, git-ignored: raceline generator, model framework
 agents/                    these docs
 ```
 
@@ -41,6 +42,7 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `CONTROLLER` | `pure_pursuit` (default), `stanley`, `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
 | `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
 | `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
+| `DIRECTION` | empty (default), `ccw`, `cw` | which way round: `raceline_<dir>.csv` (and `raceline_mppi_<dir>.csv`); empty = the track's `raceline.csv` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
 | `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |
