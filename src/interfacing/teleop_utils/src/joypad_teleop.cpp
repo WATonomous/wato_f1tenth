@@ -14,6 +14,7 @@
 
 #include "joypad_teleop.hpp"  // NOLINT(build/include_subdir)
 
+#include <cmath>
 #include <string>
 
 /*
@@ -32,9 +33,11 @@ JOYPAD::JOYPAD()
   this->declare_parameter<std::string>("mode_topic", "/control/mode");
   this->declare_parameter<std::string>("my_frame_id", "base_link");
 
-  this->declare_parameter<float>("max_speed", 22.88);
+  this->declare_parameter<float>("max_speed", 4.0);
   this->declare_parameter<float>("steering_gain", 0.5236);
   this->declare_parameter<float>("max_steering_rate", 3.2);
+  this->declare_parameter<float>("reverse_speed", 0.75);
+  this->declare_parameter<float>("reverse_throttle_threshold", 0.2);
 
   this->declare_parameter<int>("steering_axis", 0);
   this->declare_parameter<int>("throttel_axis", 5);
@@ -53,6 +56,8 @@ JOYPAD::JOYPAD()
   max_speed = this->get_parameter("max_speed").as_double();
   max_steering_rate = this->get_parameter("max_steering_rate").as_double();
   steering_gain = this->get_parameter("steering_gain").as_double();
+  reverse_speed = std::abs(this->get_parameter("reverse_speed").as_double());
+  reverse_throttle_threshold = this->get_parameter("reverse_throttle_threshold").as_double();
 
   // button
   ba.steering_axis = this->get_parameter("steering_axis").as_int();
@@ -162,10 +167,12 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   was_armed_ = true;
 
   float current_steering = JOYPAD::steering_mapper(msg->axes.at(ba.steering_axis));
-  float current_throtel = JOYPAD::trigger_maper(msg->axes.at(ba.throttle_axis));
-  float current_break = JOYPAD::trigger_maper(msg->axes.at(ba.break_axis));
+  float throttle_travel = trigger_travel(msg->axes.at(ba.throttle_axis), throttle_seen_);
+  float brake_travel = trigger_travel(msg->axes.at(ba.break_axis), brake_seen_);
+  float current_throtel = JOYPAD::trigger_maper(throttle_travel);
+  float current_break = JOYPAD::trigger_maper(brake_travel);
 
-  // reversing
+  // reversing: reverse_button (O) is a toggle like the others
   if (msg->buttons.at(ba.reverse_button)) {
     reversing = true;
     direction = -1;
@@ -184,16 +191,21 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
     total_throtel = 0.0;
   }
 
-  drive.speed = total_throtel * max_speed * direction;
+  if (reversing) {
+    // Reverse at one fixed, slow speed while the throttle is pressed past the threshold (brake
+    // trigger cancels). A fixed speed keeps the motor out of the very slow crawl, where the
+    // sensorless VESC start stutters.
+    bool throttle_pressed = throttle_travel > reverse_throttle_threshold;
+    bool brake_pressed = brake_travel > reverse_throttle_threshold;
+    drive.speed = (throttle_pressed && !brake_pressed) ? -reverse_speed : 0.0;
+  } else {
+    drive.speed = total_throtel * max_speed * direction;
+  }
   drive.steering_angle = current_steering;
   drive.steering_angle_velocity = max_steering_rate;
 
   if (pit_speed_limit && drive.speed > 1.0 && !reversing) {
     drive.speed = 1.0;
-  }
-
-  if (reversing && drive.speed < -1.5) {
-    drive.speed = -1.5;
   }
 
   // publish the message; manual control releases the dead man so autonomy stops
@@ -202,10 +214,24 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   publishDeadMan(false);
 }
 
-float JOYPAD::trigger_maper(const float r2)
+// Throttle curve: trigger travel (0 to 1) to a 0 to ~0.98 throttle fraction
+float JOYPAD::trigger_maper(const float travel)
 {
-  float ct = -(r2 - 1) / 2;
-  return (std::exp(4 * (ct - 1)) - 0.01832);
+  return (std::exp(4 * (travel - 1)) - 0.01832);
+}
+
+// How far a trigger is pressed: 0 released (axis 1.0) to 1 fully pressed (axis -1.0).
+// joy_node reports a trigger as exactly 0.0 until it is first pressed, which would read as half
+// pressed, so a trigger counts as released until it has reported anything else.
+float JOYPAD::trigger_travel(const float axis, bool & seen)
+{
+  if (axis != 0.0f) {
+    seen = true;
+  }
+  if (!seen) {
+    return 0.0f;
+  }
+  return -(axis - 1) / 2;
 }
 
 float JOYPAD::steering_mapper(const float ls)
