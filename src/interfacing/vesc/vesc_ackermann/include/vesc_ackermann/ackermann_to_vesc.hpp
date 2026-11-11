@@ -34,6 +34,7 @@
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <f1tenth_msgs/msg/speed_limiter_status.hpp>
 #include <vesc_msgs/msg/vesc_state_stamped.hpp>
 
 namespace vesc_ackermann
@@ -42,6 +43,7 @@ namespace vesc_ackermann
 using ackermann_msgs::msg::AckermannDriveStamped;
 using std_msgs::msg::Float64;
 using vesc_msgs::msg::VescStateStamped;
+using f1tenth_msgs::msg::SpeedLimiterStatus;
 
 class AckermannToVesc : public rclcpp::Node
 {
@@ -66,6 +68,7 @@ private:
   rclcpp::Subscription<AckermannDriveStamped>::SharedPtr ackermann_sub_;
   rclcpp::Subscription<VescStateStamped>::SharedPtr vesc_state_sub_;
   rclcpp::TimerBase::SharedPtr limiter_timer_;
+  rclcpp::Publisher<SpeedLimiterStatus>::SharedPtr limiter_status_pub_;
 
   // speed limiter state
   rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
@@ -73,6 +76,7 @@ private:
   double limited_speed_ = 0.0;  // speed sent to the VESC (m/s)
   double measured_speed_ = 0.0;
   bool have_measured_ = false;
+  unsigned int tick_count_ = 0;
   bool active_ = false;  // publishing speed; false before the first command and after a stop
   rclcpp::Time last_cmd_time_{0, 0, RCL_STEADY_TIME};
   rclcpp::Time last_tick_time_{0, 0, RCL_STEADY_TIME};
@@ -84,6 +88,7 @@ private:
 
   bool limiterEnabled() const {return max_accel_ > 0.0 || max_decel_ > 0.0;}
   void publishSpeed(double speed);
+  void publishLimiterStatus();
   // step the limited speed towards target over dt seconds
   double limitSpeed(double current, double target, double dt) const;
 };

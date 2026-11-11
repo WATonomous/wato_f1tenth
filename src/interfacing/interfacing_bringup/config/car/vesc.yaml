@@ -36,6 +36,7 @@ ackermann_to_vesc_node:
     max_accel: 3.3     # m/s^2
     max_decel: 4.0     # m/s^2
     cmd_timeout: 0.5   # s without a command before braking to a stop
+    limiter_status_topic: "/control/speed_limiter"   # target vs limited speed for the Foxglove Drive panel
 
 vesc_to_odom_node:
   ros__parameters:

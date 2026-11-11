@@ -7,6 +7,7 @@
     # Topic names
     gamepad_topic: "/hal/drive/joystick"
     dead_man_topic: "/hal/dead_man_switch"
+    teleop_state_topic: "/control/teleop"   # toggles and triggers for the Foxglove Drive panel
     joy_topic: "/joy"
     my_frame_id: "base_link"
 

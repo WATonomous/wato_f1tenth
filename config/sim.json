@@ -45,6 +45,54 @@
       ],
       "foxglovePanelTitle": "Who has control"
     },
+    "Indicator!direction": {
+      "path": "/control/status.direction",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "track default (raceline.csv)",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "ccw",
+          "color": "#1f6feb",
+          "label": "\u21ba counter-clockwise"
+        },
+        {
+          "operator": "=",
+          "rawValue": "cw",
+          "color": "#1f6feb",
+          "label": "\u21bb clockwise"
+        }
+      ],
+      "foxglovePanelTitle": "Direction (DIRECTION)"
+    },
+    "RawMessages!track": {
+      "topicPath": "/control/status.track",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Track"
+    },
+    "RawMessages!controller": {
+      "topicPath": "/control/status.controller",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Controller"
+    },
+    "Indicator!manual": {
+      "path": "/control/teleop.manual",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "X  manual off",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#1f6feb",
+          "label": "X  MANUAL ON"
+        }
+      ],
+      "foxglovePanelTitle": "X: manual"
+    },
     "Indicator!mode": {
       "path": "/control/status.mode",
       "style": "background",
@@ -82,7 +130,73 @@
           "label": "NO GAMEPAD"
         }
       ],
-      "foxglovePanelTitle": "Gamepad mode"
+      "foxglovePanelTitle": "R1: autonomy (gamepad mode)"
+    },
+    "Indicator!reverse": {
+      "path": "/control/teleop.reverse",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "O  reverse off",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#e07a00",
+          "label": "O  REVERSE ON"
+        }
+      ],
+      "foxglovePanelTitle": "O: reverse"
+    },
+    "Indicator!pit": {
+      "path": "/control/teleop.pit_limit",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "\u25a2  pit limit off",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#e07a00",
+          "label": "\u25a2  PIT LIMIT 1 m/s"
+        }
+      ],
+      "foxglovePanelTitle": "Square: pit limit"
+    },
+    "Gauge!throttle": {
+      "path": "/control/teleop.throttle",
+      "minValue": 0,
+      "maxValue": 1,
+      "reverse": false,
+      "foxglovePanelTitle": "Throttle (R2)",
+      "colorMode": "gradient",
+      "gradient": [
+        "#6e7681",
+        "#2e9d47"
+      ]
+    },
+    "Gauge!brake": {
+      "path": "/control/teleop.brake",
+      "minValue": 0,
+      "maxValue": 1,
+      "reverse": false,
+      "foxglovePanelTitle": "Brake (L2)",
+      "colorMode": "gradient",
+      "gradient": [
+        "#6e7681",
+        "#d62828"
+      ]
+    },
+    "Gauge!steering": {
+      "path": "/control/status.commanded_steering",
+      "minValue": -0.52,
+      "maxValue": 0.52,
+      "reverse": false,
+      "foxglovePanelTitle": "Steering command (rad)",
+      "colorMode": "gradient",
+      "gradient": [
+        "#1f6feb",
+        "#e07a00"
+      ]
     },
     "Indicator!dead_man": {
       "path": "/control/status.dead_man",
@@ -99,11 +213,35 @@
       ],
       "foxglovePanelTitle": "Dead man"
     },
-    "RawMessages!status": {
-      "topicPath": "/control/status",
-      "diffEnabled": false,
-      "expansion": "all",
-      "foxglovePanelTitle": "Status: controller, planner, track, commands"
+    "Indicator!connected": {
+      "path": "/control/teleop.connected",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "NO GAMEPAD",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#2e9d47",
+          "label": "GAMEPAD CONNECTED"
+        }
+      ],
+      "foxglovePanelTitle": "Gamepad"
+    },
+    "Indicator!recording": {
+      "path": "/system/status.bag_recording",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "NOT RECORDING",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#2e9d47",
+          "label": "RECORDING"
+        }
+      ],
+      "foxglovePanelTitle": "Bag recording (watod bag record)"
     },
     "3D!track": {
       "cameraState": {
@@ -136,14 +274,12 @@
       "fixedFrame": "map",
       "scene": {
         "transforms": {
-          "visible": false
+          "visible": true,
+          "showLabel": true,
+          "axisScale": 0.3
         }
       },
-      "transforms": {
-        "frame:base_link": {
-          "visible": true
-        }
-      },
+      "transforms": {},
       "topics": {
         "/map": {
           "visible": true,
@@ -190,7 +326,7 @@
         "poseEstimateThetaDeviation": 0.26179939
       },
       "imageMode": {},
-      "foxglovePanelTitle": "Track (pose estimate: /initialpose)"
+      "foxglovePanelTitle": "Track, raceline and TF frames"
     },
     "Plot!speed": {
       "paths": [
@@ -216,6 +352,19 @@
       "followingViewWidth": 30,
       "foxglovePanelTitle": "Speed (m/s): commanded vs measured"
     },
+    "Gauge!speed": {
+      "path": "/control/status.measured_speed",
+      "minValue": 0,
+      "maxValue": 10,
+      "reverse": false,
+      "foxglovePanelTitle": "Speed (m/s)",
+      "colorMode": "colormap",
+      "colorMap": "turbo",
+      "gradient": [
+        "#0000ff",
+        "#ff00ff"
+      ]
+    },
     "Plot!steering": {
       "paths": [
         {
@@ -233,30 +382,6 @@
       "xAxisVal": "timestamp",
       "followingViewWidth": 30,
       "foxglovePanelTitle": "Steering (rad), commanded"
-    },
-    "Plot!pose": {
-      "paths": [
-        {
-          "value": "/hal/localization/odom.pose.pose.position.x",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "x"
-        },
-        {
-          "value": "/hal/localization/odom.pose.pose.position.y",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "y"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "followingViewWidth": 30,
-      "foxglovePanelTitle": "Localization"
     },
     "Plot!cpu": {
       "paths": [
@@ -320,60 +445,11 @@
       "minLogLevel": 3,
       "foxglovePanelTitle": "Warnings and errors"
     },
-    "3D!tf": {
-      "cameraState": {
-        "perspective": true,
-        "distance": 3,
-        "phi": 50,
-        "thetaOffset": 90,
-        "targetOffset": [
-          0,
-          0,
-          0
-        ],
-        "target": [
-          0,
-          0,
-          0
-        ],
-        "targetOrientation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "fovy": 45,
-        "near": 0.5,
-        "far": 5000
-      },
-      "followMode": "follow-position",
-      "followTf": "base_link",
-      "fixedFrame": "map",
-      "scene": {
-        "transforms": {
-          "visible": true,
-          "showLabel": true,
-          "axisScale": 0.3
-        }
-      },
-      "transforms": {
-        "frame:base_link": {
-          "visible": true
-        }
-      },
-      "topics": {},
-      "layers": {},
-      "publish": {
-        "type": "pose_estimate",
-        "poseTopic": "/goal_pose",
-        "pointTopic": "/clicked_point",
-        "poseEstimateTopic": "/initialpose",
-        "poseEstimateXDeviation": 0.5,
-        "poseEstimateYDeviation": 0.5,
-        "poseEstimateThetaDeviation": 0.26179939
-      },
-      "imageMode": {},
-      "foxglovePanelTitle": "TF frames (labels on)"
+    "RawMessages!status": {
+      "topicPath": "/control/status",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Control status (raw)"
     },
     "Tab!main": {
       "activeTabIdx": 0,
@@ -389,36 +465,82 @@
                 "direction": "column",
                 "first": {
                   "direction": "row",
-                  "first": "Indicator!mode",
-                  "second": "Indicator!dead_man",
-                  "splitPercentage": 50
+                  "first": "Indicator!direction",
+                  "second": {
+                    "direction": "row",
+                    "first": "RawMessages!track",
+                    "second": "RawMessages!controller",
+                    "splitPercentage": 50.0
+                  },
+                  "splitPercentage": 33.3
                 },
                 "second": {
                   "direction": "column",
-                  "first": "Indicator!recording",
-                  "second": "RawMessages!status",
-                  "splitPercentage": 25
+                  "first": {
+                    "direction": "row",
+                    "first": "Indicator!manual",
+                    "second": {
+                      "direction": "row",
+                      "first": "Indicator!mode",
+                      "second": {
+                        "direction": "row",
+                        "first": "Indicator!reverse",
+                        "second": "Indicator!pit",
+                        "splitPercentage": 50.0
+                      },
+                      "splitPercentage": 33.3
+                    },
+                    "splitPercentage": 25.0
+                  },
+                  "second": {
+                    "direction": "column",
+                    "first": {
+                      "direction": "row",
+                      "first": "Gauge!throttle",
+                      "second": {
+                        "direction": "row",
+                        "first": "Gauge!brake",
+                        "second": "Gauge!steering",
+                        "splitPercentage": 50.0
+                      },
+                      "splitPercentage": 33.3
+                    },
+                    "second": {
+                      "direction": "row",
+                      "first": "Indicator!dead_man",
+                      "second": {
+                        "direction": "row",
+                        "first": "Indicator!connected",
+                        "second": "Indicator!recording",
+                        "splitPercentage": 50.0
+                      },
+                      "splitPercentage": 33.3
+                    },
+                    "splitPercentage": 72.2
+                  },
+                  "splitPercentage": 25.0
                 },
-                "splitPercentage": 18
+                "splitPercentage": 15.8
               },
-              "splitPercentage": 22
+              "splitPercentage": 17.4
             },
-            "second": "3D!track",
-            "splitPercentage": 30
-          }
-        },
-        {
-          "title": "Tuning",
-          "layout": {
-            "direction": "column",
-            "first": "Plot!speed",
             "second": {
               "direction": "column",
-              "first": "Plot!steering",
-              "second": "Plot!pose",
-              "splitPercentage": 50
+              "first": "3D!track",
+              "second": {
+                "direction": "row",
+                "first": "Plot!speed",
+                "second": {
+                  "direction": "column",
+                  "first": "Gauge!speed",
+                  "second": "Plot!steering",
+                  "splitPercentage": 50.0
+                },
+                "splitPercentage": 62.5
+              },
+              "splitPercentage": 64.0
             },
-            "splitPercentage": 40
+            "splitPercentage": 36.0
           }
         },
         {
@@ -429,7 +551,7 @@
               "direction": "column",
               "first": "Plot!cpu",
               "second": "Plot!temp",
-              "splitPercentage": 50
+              "splitPercentage": 50.0
             },
             "second": {
               "direction": "column",
@@ -437,34 +559,20 @@
               "second": {
                 "direction": "column",
                 "first": "SourceInfo!rates",
-                "second": "RosOut!log",
-                "splitPercentage": 50
+                "second": {
+                  "direction": "column",
+                  "first": "RosOut!log",
+                  "second": "RawMessages!status",
+                  "splitPercentage": 50.0
+                },
+                "splitPercentage": 33.3
               },
-              "splitPercentage": 20
+              "splitPercentage": 14.3
             },
-            "splitPercentage": 55
+            "splitPercentage": 50.0
           }
-        },
-        {
-          "title": "TF",
-          "layout": "3D!tf"
         }
       ]
-    },
-    "Indicator!recording": {
-      "path": "/system/status.bag_recording",
-      "style": "background",
-      "fallbackColor": "#d62828",
-      "fallbackLabel": "NOT RECORDING",
-      "rules": [
-        {
-          "operator": "=",
-          "rawValue": "true",
-          "color": "#2e9d47",
-          "label": "RECORDING"
-        }
-      ],
-      "foxglovePanelTitle": "Bag recording (watod bag record)"
     }
   },
   "globalVariables": {},

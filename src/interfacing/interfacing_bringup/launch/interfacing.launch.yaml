@@ -97,6 +97,8 @@ launch:
           value: "$(env LOCAL_PLANNER none)"
         - name: track
           value: "$(env TRACK unknown)"
+        - name: direction
+          value: "$(env DIRECTION '')"
 
   # Car drivers
   - group:
