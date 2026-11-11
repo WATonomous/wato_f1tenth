@@ -92,6 +92,8 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/workflows/port-to-jazzy.md` | You are porting a package from Humble to Jazzy |
 | `agents/workflows/update-legacy-branch.md` | You are bringing an old-layout branch onto the new layout |
 | `agents/workflows/debug-mppi.md` | You are working on MPPI or the opponent predictor |
+| `agents/workflows/raceline.md` | You make or fix a raceline, or need more margin from the track edges |
+| `agents/workflows/ml-data.md` | You work on datasets, annotation or perception model training (`tools/`) |
 | `agents/roles/reviewer.md` | You are asked to review a change or a PR |
 | `agents/roles/infra.md` | You are touching `watod`, Dockerfiles, compose files or CI |
 
@@ -111,6 +113,7 @@ cp watod-config.sh watod-config.local.sh   # personal settings: ACTIVE_MODULES, 
 ./watod up                                 # start ACTIVE_MODULES + infrastructure
 ./watod test [module] [pkg...]             # colcon test in the module's test image
 ./watod contract                           # check the running stack against the /hal contract
+./watod tools                              # clone/update tools/ (raceline generator, model framework)
 ./watod -t action_bringup_dev              # shell into a dev container (module listed as "action:dev")
 
 # inside a dev container only (workspace: /ws)
