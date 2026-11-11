@@ -1,0 +1,20 @@
+# Lidar intensity filter (laser_filters scan_to_scan_filter_chain): /hal/scan -> /hal/filter_scan.
+# /hal/scan stays the raw scan; nothing reads /hal/filter_scan by default (the particle filter
+# still uses /hal/scan). A point at or below lower_threshold keeps its beam but gets range NaN
+# (laser_filters LaserScanIntensityFilter), so readers must skip non-finite ranges.
+#
+# TRACK-SPECIFIC: 150 comes from one bag on e7_fifth_v3 (recording_20261111_184623): it removed 78%
+# of the isolated stray points and 1.2% of real points (4% of real points beyond 3 m, because
+# intensity falls with range: ~1300 at 1 m, ~950 at 1-3 m, ~520 beyond 3 m). Surfaces differ per
+# venue (glass, dark walls, tape), so re-check it on a new track with the Foxglove Lidar tab before
+# relying on it, and lower it if real walls drop out.
+scan_intensity_filter:
+  ros__parameters:
+    filter1:
+      name: intensity
+      type: laser_filters/LaserScanIntensityFilter
+      params:
+        lower_threshold: 150.0
+        upper_threshold: 100000.0   # no upper cut: retro-reflectors read up to ~7000
+        filter_override_range: true  # dropped point -> range NaN (the default, stated for clarity)
+        disp_histogram: 0            # the default 1 prints an intensity histogram on every scan

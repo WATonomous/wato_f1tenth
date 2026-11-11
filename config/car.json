@@ -315,6 +315,13 @@
         },
         "/hal/localization/odom": {
           "visible": true
+        },
+        "/hal/filter_scan": {
+          "visible": false,
+          "colorField": "intensity",
+          "colorMode": "flat",
+          "flatColor": "#ffffffff",
+          "pointSize": 2
         }
       },
       "layers": {},
@@ -925,6 +932,13 @@
         },
         "/hal/localization/odom": {
           "visible": true
+        },
+        "/hal/filter_scan": {
+          "visible": true,
+          "colorField": "intensity",
+          "colorMode": "flat",
+          "flatColor": "#ffffffff",
+          "pointSize": 2
         }
       },
       "layers": {},
@@ -938,7 +952,7 @@
         "poseEstimateThetaDeviation": 0.26179939
       },
       "imageMode": {},
-      "foxglovePanelTitle": "Scan coloured by intensity (blue 0 -> red 1600)"
+      "foxglovePanelTitle": "Scan by intensity (blue 0 -> red 1600); white dots = /hal/filter_scan, so coloured points without a white dot were filtered out"
     },
     "Plot!scan_intensity": {
       "paths": [

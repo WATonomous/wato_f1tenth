@@ -89,6 +89,7 @@ AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
 
 ```text
 Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /hal/scan
+/hal/scan                      -> scan_intensity_filter        -> /hal/filter_scan (dim points dropped; not used by default)
 VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sensors/imu
 RealSense D435i (USB)          -> realsense2_camera            -> /hal/imu (IMU=realsense)
 VESC /sensors/core             -> vesc_battery                 -> /hal/battery (3S 5000 mAh pack)
@@ -134,6 +135,7 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 | What | Where |
 | --- | --- |
 | mux, VESC, Hokuyo | `interfacing_bringup/config/{car,sim}/` |
+| lidar intensity filter (`/hal/filter_scan`, cutoff tuned on one track) | `interfacing_bringup/config/car/scan_filter.yaml` |
 | VESC motor settings (PID, Max ERPM, launch, braking) | on the VESC itself, not in the repo: `workflows/vesc-firmware.md`, scripts in `agents/scripts/vesc/` |
 | PF, global planner, RViz | `world_modeling_bringup/config/{car,sim}/`, `rviz/` |
 | track maps and racelines (`TRACK`) | `race_tracks/tracks/<track>/` (see its README) |

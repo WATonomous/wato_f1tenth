@@ -10,6 +10,7 @@
 
 # /hal contract
 /hal/scan
+/hal/filter_scan
 /hal/odom
 /hal/imu
 /hal/localization/odom

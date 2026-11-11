@@ -25,6 +25,7 @@ through launch remaps; the old names (`/scan`, `/odom`, `/pf/pose/odom`, `/acker
 | Topic | Type | Sim provides it with | Car provides it with |
 | --- | --- | --- | --- |
 | `/hal/scan` | `LaserScan`, frame `laser` | `scan_remap_node` | `urg_node` |
+| `/hal/filter_scan` | `LaserScan`, `/hal/scan` without dim points (optional, not in `contract.yaml`; nothing reads it by default) | none | `scan_intensity_filter` (`config/car/scan_filter.yaml`, cutoff tuned on one track) |
 | `/hal/odom` | `Odometry`, `odom -> base_link` (wheel, or perfect sim odom) | `fake_odom_node` | `vesc_to_odom_node` |
 | `/hal/imu` | `Imu` | `imu_remap_node` (frame `imu_link`) | RealSense (`IMU=realsense`, default with `REALSENSE=true`) or VESC (`IMU=vesc`, not working as intended yet) |
 | `/hal/localization/odom` | `Odometry`, frame `map` | `fake_odom_node` ground truth (`LOCALIZATION=truth`, default) or `particle_filter` (`pf`, needs a sim map) | `particle_filter` |
