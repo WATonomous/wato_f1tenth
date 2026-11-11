@@ -28,7 +28,7 @@ mounted at `/ws/src/<module>`.
 | `infrastructure` | `infrastructure_bringup`, `f1tenth_msgs`, `system_monitor`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays, `system_monitor` (`/system/status`, and on the car `/system/power` plus the black box: `workflows/power.md`); builds `vesc_msgs` so Foxglove can decode it |
 | `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `drive_status`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap`, `race_tracks` (data, also copied into `action`) | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
-| `action` | `action_bringup`, `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
+| `action` | `action_bringup`, `pure_pursuit`, `stanley_controller`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, Stanley, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
 | `perception` | `perception_bringup` | nothing yet |
 
@@ -38,7 +38,7 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | --- | --- | --- |
 | `PLATFORM` | detected: `car` on a Jetson, else `sim` | which `config/<platform>/` YAML, which nodes start, default `ACTIVE_MODULES` |
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
-| `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
+| `CONTROLLER` | `pure_pursuit` (default), `stanley`, `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
 | `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
 | `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
@@ -131,6 +131,7 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 | PF, global planner, RViz | `world_modeling_bringup/config/{car,sim}/`, `rviz/` |
 | track maps and racelines (`TRACK`) | `race_tracks/tracks/<track>/` (see its README) |
 | pure pursuit | `action_bringup/config/{car,sim}/pure_pursuit.yaml` |
+| Stanley | `action_bringup/config/{car,sim}/stanley_controller.yaml` (see `stanley_controller/README.md`) |
 | gamepad mapping | `teleop_utils/config/joypad_config.yaml` |
 | battery (cells, capacity, warn/critical) | `interfacing_bringup/config/car/battery.yaml` |
 | Foxglove layouts | `config/car.json`, `config/sim.json` at the repo root (control status, track, battery, system, camera, TF tabs); `infrastructure_bringup/config/foxglove/battery.json`. Import in Foxglove: Layouts > Import |

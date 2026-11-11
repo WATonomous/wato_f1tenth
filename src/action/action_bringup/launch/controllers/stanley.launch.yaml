@@ -1,0 +1,15 @@
+# Stanley: follows /global_planner/path (heading + cross-track error at the front axle).
+# It has no local planner input, so run it with LOCAL_PLANNER=none.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  - node:
+      pkg: stanley_controller
+      exec: stanley_controller
+      name: stanley_controller_node
+      output: screen
+      param:
+        - from: "$(var config_dir)/stanley_controller.yaml"
