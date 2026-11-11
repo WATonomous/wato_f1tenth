@@ -290,8 +290,10 @@
         "/hal/scan": {
           "visible": true,
           "colorField": "intensity",
-          "colorMode": "flat",
-          "flatColor": "#ff0000ff",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "minValue": 0,
+          "maxValue": 1600,
           "pointSize": 3
         },
         "/global_planner/path": {
@@ -797,6 +799,20 @@
           }
         },
         {
+          "title": "Lidar",
+          "layout": {
+            "direction": "row",
+            "first": "3D!lidar",
+            "second": {
+              "direction": "column",
+              "first": "Plot!scan_intensity",
+              "second": "Plot!scan_range",
+              "splitPercentage": 50
+            },
+            "splitPercentage": 55
+          }
+        },
+        {
           "title": "Camera",
           "layout": {
             "direction": "row",
@@ -836,6 +852,127 @@
       "xAxisVal": "timestamp",
       "followingViewWidth": 60,
       "foxglovePanelTitle": "Power (W): drive, Jetson, total"
+    },
+    "3D!lidar": {
+      "cameraState": {
+        "perspective": false,
+        "distance": 10,
+        "phi": 0.0001,
+        "thetaOffset": 90,
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-position",
+      "followTf": "base_link",
+      "fixedFrame": "map",
+      "scene": {
+        "transforms": {
+          "visible": true,
+          "showLabel": false,
+          "axisScale": 0.3
+        }
+      },
+      "transforms": {},
+      "topics": {
+        "/map": {
+          "visible": true,
+          "drawBehind": true,
+          "minColor": "#ffffffff",
+          "maxColor": "#000000ff"
+        },
+        "/hal/scan": {
+          "visible": true,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "minValue": 0,
+          "maxValue": 1600,
+          "pointSize": 4
+        },
+        "/global_planner/path": {
+          "visible": false,
+          "lineWidth": 0.05,
+          "gradient": [
+            "#2f81f7ff",
+            "#2f81f7ff"
+          ]
+        },
+        "/global_planner/edges": {
+          "visible": false
+        },
+        "/local_planner/path": {
+          "visible": false
+        },
+        "/debug/lookahead_point": {
+          "visible": false
+        },
+        "/hal/localization/odom": {
+          "visible": true
+        }
+      },
+      "layers": {},
+      "publish": {
+        "type": "pose_estimate",
+        "poseTopic": "/goal_pose",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "foxglovePanelTitle": "Scan coloured by intensity (blue 0 -> red 1600)"
+    },
+    "Plot!scan_intensity": {
+      "paths": [
+        {
+          "value": "/hal/scan.intensities[:]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "intensities"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "isSynced": false,
+      "xAxisVal": "index",
+      "foxglovePanelTitle": "Intensity per beam, latest scan (beam 0 = 135 deg right, 1080 = straight ahead, 2160 = 135 deg left; 0.125 deg per beam)"
+    },
+    "Plot!scan_range": {
+      "paths": [
+        {
+          "value": "/hal/scan.ranges[:]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ranges"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "isSynced": false,
+      "xAxisVal": "index",
+      "foxglovePanelTitle": "Range per beam (m), latest scan"
     }
   },
   "globalVariables": {},
