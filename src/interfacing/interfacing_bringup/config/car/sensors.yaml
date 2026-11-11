@@ -1,7 +1,10 @@
 urg_node:
   ros__parameters:
-    angle_max: 3.14
-    angle_min: -3.14
+    # +-113 deg (the UST covers +-135): past about 114 deg the beams graze the car itself and make
+    # a V of false points behind the lidar (scan analysis, 2026-11-11). Widen only after moving
+    # whatever sits at +-120 deg next to the lidar.
+    angle_max: 1.972
+    angle_min: -1.972
     ip_address: "192.168.0.10"
     ip_port: 10940
     # serial_port: "/dev/sensors/hokuyo"

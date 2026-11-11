@@ -955,7 +955,7 @@
       "legendDisplay": "floating",
       "isSynced": false,
       "xAxisVal": "index",
-      "foxglovePanelTitle": "Intensity per beam, latest scan (beam 0 = 135 deg right, 1080 = straight ahead, 2160 = 135 deg left; 0.125 deg per beam)"
+      "foxglovePanelTitle": "Intensity per beam, latest scan (beam 0 = 113 deg right, ~904 = straight ahead, ~1808 = 113 deg left; 0.125 deg per beam)"
     },
     "Plot!scan_range": {
       "paths": [
