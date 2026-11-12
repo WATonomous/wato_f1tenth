@@ -1,0 +1,26 @@
+---
+# Stateful frenet planner (frenet_planner): follow, overtake, pass and merge back around what the
+# costmap sees. Started by LOCAL_PLANNER=frenet; world_modeling runs the costmap whenever
+# LOCAL_PLANNER is set. Interface: agents/workflows/add-local-planner.md.
+
+launch:
+  - arg: {name: platform}
+  - arg: {name: config_dir}
+  - arg: {name: local_planner, default: "none"}
+
+  # /costmap (base_link) -> /local_planner/occupancy_grid (map frame), the grid the planner reads
+  - node:
+      pkg: frenet_planner
+      exec: occupancy_grid_frame_adapter_node
+      name: occupancy_grid_frame_adapter_node
+      output: screen
+      param:
+        - from: "$(var config_dir)/frenet_planner.yaml"
+
+  - node:
+      pkg: frenet_planner
+      exec: planner_node
+      name: planner_node
+      output: screen
+      param:
+        - from: "$(var config_dir)/frenet_planner.yaml"

@@ -42,7 +42,7 @@
   <!-- system health and power: /system/status, /system/power -->
   <exec_depend>system_monitor</exec_depend>
   <depend>f1tenth_msgs</depend>
-  <depend>global_planner</depend>
+  <depend>wato_msgs</depend>
   <depend>realsense2_camera_msgs</depend>
   <depend>nav2_msgs</depend>
   <!-- republish / decode compressed image topics (recording, Foxglove) -->

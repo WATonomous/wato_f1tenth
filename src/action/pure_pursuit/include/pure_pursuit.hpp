@@ -28,7 +28,7 @@
     unless the deadman switch on the human operated controller is activated.
 
     Implementation overview :
-    - A 50 ms timer drives control_timer_callback which updates the state
+    - A control_rate_hz timer (50 Hz by default) drives control_timer_callback which updates the state
       machine (INACTIVE / GLOBAL_FOLLOW / LOCAL_FOLLOW), refreshes the
       lookahead distance from current speed, picks a target waypoint,
       converts it to base_link, and runs the pure pursuit control law.
@@ -58,7 +58,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -121,6 +123,7 @@ private:
   void init_parameters();
 
   void update_controller_state();
+  std::optional<geometry_msgs::msg::Point> get_waypoint_from_path(const nav_msgs::msg::Path & path, bool closed_loop);
   std::optional<geometry_msgs::msg::Point> get_local_waypoint();
   std::optional<geometry_msgs::msg::Point> get_global_waypoint();
 
@@ -128,8 +131,9 @@ private:
   ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
   double find_distance(geometry_msgs::msg::Pose current_location, geometry_msgs::msg::Pose destination);
-  size_t find_current_position_index();
-  std::optional<geometry_msgs::msg::Point> find_lookahead_global(size_t current_vehicle_index);
+  size_t find_closest_index(const nav_msgs::msg::Path & path);
+  std::optional<geometry_msgs::msg::Point> find_lookahead(
+    const nav_msgs::msg::Path & path, size_t current_vehicle_index, bool closed_loop);
   geometry_msgs::msg::Point interpolate_lookahead_point(
     const geometry_msgs::msg::Point & prev_pt,
     const geometry_msgs::msg::Point & curr_pt,
@@ -137,11 +141,11 @@ private:
     double ref_y,
     double lookahead);
   std::optional<geometry_msgs::msg::Point> convert_to_local_frame(const geometry_msgs::msg::Point & global_point);
+  void update_local_path_in_map();
   geometry_msgs::msg::Point transfrom_point_(
     const geometry_msgs::msg::Point & point_, const geometry_msgs::msg::Transform & t_);
   double extractYaw(const geometry_msgs::msg::Quaternion & quat);
   void update_lookahead_distance();
-  size_t init_position_index_cache();
   void publish_debug_vis(geometry_msgs::msg::Point look_ahead_point_p);
 
   // parameters
@@ -151,7 +155,7 @@ private:
   std::string ackermann_control_topic, odom_topic;
   std::string speed_topic;
   bool overtaking_enable, speed_limit_enable;
-  double look_ahead_distance, speed_limit, max_steering_angle;
+  double look_ahead_distance, speed_limit, max_steering_angle, control_rate_hz;
   double kp_gain;
   double max_lookahead, min_lookahead, lookahead_ratio;
   double current_velocity;
@@ -161,7 +165,9 @@ private:
   state_ controller_state;
   std_msgs::msg::Bool dead_man_active, overtake_active;
   nav_msgs::msg::Path current_global_path;
+  nav_msgs::msg::Path received_local_path;
   nav_msgs::msg::Path current_local_path;
+  bool local_path_pending = false;
   nav_msgs::msg::Odometry current_pose;
 };
 

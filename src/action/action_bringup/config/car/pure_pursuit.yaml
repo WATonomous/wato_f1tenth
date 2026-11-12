@@ -8,6 +8,7 @@
     dead_man_active_topic: "/hal/dead_man_switch"
     ackermann_control_topic: "/hal/drive/autonomy"
     odom_topic: "/hal/localization/odom"
+    control_rate_hz: 50.0
     speed_limit_active: true
     speed_limit: 3.0
     max_steering_angle: 0.52
