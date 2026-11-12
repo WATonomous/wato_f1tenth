@@ -1,13 +1,19 @@
 particle_filter:
   ros__parameters:
+    # Changed 2026-11-12 against the e7 braking crashes (the car's nose dips under hard braking, the
+    # lidar reads the floor ahead as a wall and the pose lags behind). Previous values are in the
+    # comments. None of these has been tested on the car yet; revert one at a time if it misbehaves.
+
     # topic names
-    scan_topic: '/hal/scan'
+    # scan_topic: '/hal/scan'          # previous: the raw scan
+    scan_topic: '/hal/filter_scan'     # intensity-filtered (dim floor hits and strays dropped, as NaN = no return)
     # odometry_topic: '/hal/odom'      # previous: wheel odometry, heading from the steering command
     odometry_topic: '/hal/ekf_odom'    # EKF: wheel speed + RealSense gyro (config/car/ekf.yaml)
     # range data downsampling
     angle_step: 18
     max_particles: 8000
-    squash_factor: 2.2
+    # squash_factor: 2.2
+    squash_factor: 3.0      # a single bad scan swings the estimate less
     # visualization: /pf/viz/* topics, set by world_modeling.launch.yaml from PF_VIZ (default off)
     viz: 0
     max_viz_particles: 60
@@ -19,16 +25,31 @@ particle_filter:
     fine_timing: 0
     publish_odom: 1
     # sensor model constants
-    z_short: 0.01
+    # z_short: 0.01
+    z_short: 0.02           # a small step only: 0.10 (2026-11-11) also muted the cues that pull a lagging pose forward
     z_max: 0.07
     z_rand: 0.12
-    z_hit: 0.75
-    sigma_hit: 8.0
+    # z_hit: 0.75
+    z_hit: 0.74             # keeps the sum at 0.95 with z_short 0.02
+    # sigma_hit: 8.0
+    sigma_hit: 10.0         # map pixels (0.5 m): a few wrong beams pull less
     # motion model dispersion constants
-    motion_dispersion_x: 0.05
+    # motion_dispersion_x: 0.05
+    motion_dispersion_x: 0.03   # per update: follows odometry more closely along a corridor (slower to recover if lost)
     motion_dispersion_y: 0.025
     motion_dispersion_theta: 0.25
     # sensor model variant, variant 2 good for rmgpu, 3 doesn't work for rmgpu
     rangelib_variant: 2
+
+    # braking gate (particle_filter.py): while the car slows hard, ignore the forward beams
+    # (forward_mask) or skip the scan update and follow odometry (skip). Off until tested.
+    braking_gate_enable: false
+    braking_gate_mode: 'forward_mask'
+    braking_gate_decel: 2.0         # m/s^2 of slowing down (max_decel is 2.5 now)
+    braking_gate_min_speed: 1.0     # m/s
+    braking_gate_hold_s: 0.3        # s after braking eases
+    braking_gate_max_s: 3.0         # s per braking event (braking 9 -> 2 m/s at 2.5 m/s^2 takes 2.8 s); use ~1.5 with skip
+    braking_gate_forward_deg: 30.0  # forward_mask: the floor strip spans about +-25 deg
+    braking_gate_window_s: 0.15     # s of odometry speed used for the slowing rate
 
 # The map is chosen with world_modeling.launch.yaml's map argument (default wato_office).

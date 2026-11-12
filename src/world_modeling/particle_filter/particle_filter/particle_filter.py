@@ -83,6 +83,18 @@ class ParticleFiler(Node):
         self.declare_parameter('motion_dispersion_theta', 0.25)
         self.declare_parameter('scan_topic', '/scan')
         self.declare_parameter('odometry_topic', '/odom')
+        # braking gate: during hard braking the car's nose dips and the lidar reads the floor ahead
+        # as a wall, which drags the pose backwards (e7 crashes 2026-11-10/11). Off by default.
+        #   forward_mask: ignore the beams within +-braking_gate_forward_deg of straight ahead
+        #   skip:         no scan update at all; the particles follow odometry without added noise
+        self.declare_parameter('braking_gate_enable', False)
+        self.declare_parameter('braking_gate_mode', 'forward_mask')
+        self.declare_parameter('braking_gate_decel', 2.0)        # m/s^2 of slowing down that turns it on
+        self.declare_parameter('braking_gate_min_speed', 1.0)    # m/s: below this it stays off
+        self.declare_parameter('braking_gate_hold_s', 0.3)       # s it stays on after braking eases
+        self.declare_parameter('braking_gate_max_s', 1.5)        # s at most per braking event
+        self.declare_parameter('braking_gate_forward_deg', 30.0) # forward_mask half angle
+        self.declare_parameter('braking_gate_window_s', 0.15)    # s of odometry speed used for the slowing rate
 
         # parameters
         self.ANGLE_STEP           = self.get_parameter('angle_step').value
@@ -108,6 +120,27 @@ class ParticleFiler(Node):
         self.MOTION_DISPERSION_X     = self.get_parameter('motion_dispersion_x').value
         self.MOTION_DISPERSION_Y     = self.get_parameter('motion_dispersion_y').value
         self.MOTION_DISPERSION_THETA = self.get_parameter('motion_dispersion_theta').value
+
+        # braking gate
+        self.GATE_ENABLE      = bool(self.get_parameter('braking_gate_enable').value)
+        self.GATE_MODE        = str(self.get_parameter('braking_gate_mode').value)
+        self.GATE_DECEL       = float(self.get_parameter('braking_gate_decel').value)
+        self.GATE_MIN_SPEED   = float(self.get_parameter('braking_gate_min_speed').value)
+        self.GATE_HOLD_S      = float(self.get_parameter('braking_gate_hold_s').value)
+        self.GATE_MAX_S       = float(self.get_parameter('braking_gate_max_s').value)
+        self.GATE_FORWARD_RAD = np.radians(float(self.get_parameter('braking_gate_forward_deg').value))
+        self.GATE_WINDOW_S    = float(self.get_parameter('braking_gate_window_s').value)
+        if self.GATE_MODE not in ('forward_mask', 'skip'):
+            self.get_logger().warn("braking_gate_mode '%s' is not forward_mask or skip, using forward_mask" % self.GATE_MODE)
+            self.GATE_MODE = 'forward_mask'
+        self.speed_history = []       # (t, v) from odometry, for the slowing rate
+        self.gate_active = False
+        self.gate_start = None        # t the current braking event started
+        self.gate_until = None        # t the gate stays on until (hold)
+        self.gate_spent = False       # max_s reached: wait for braking to ease before re-arming
+        self.forward_mask = None      # downsampled beams within the forward half angle
+        if self.GATE_ENABLE:
+            self.get_logger().info('braking gate on: %s above %.1f m/s^2' % (self.GATE_MODE, self.GATE_DECEL))
         
         # various data containers used in the MCL algorithm
         self.MAX_RANGE_PX = None
@@ -377,9 +410,16 @@ class ParticleFiler(Node):
             self.viz_queries = np.zeros((self.downsampled_angles.shape[0],3), dtype=np.float32)
             self.viz_ranges = np.zeros(self.downsampled_angles.shape[0], dtype=np.float32)
             self.get_logger().info(str(self.downsampled_angles.shape[0]))
+            self.forward_mask = np.abs(self.downsampled_angles) < self.GATE_FORWARD_RAD
 
         # store the necessary scanner information for later processing
-        self.downsampled_ranges = np.array(msg.ranges[::self.ANGLE_STEP])
+        ranges = np.array(msg.ranges[::self.ANGLE_STEP], dtype=np.float32)
+        # No return: NaN (what /hal/filter_scan's intensity filter leaves for dropped points), inf, or
+        # at or below range_min (the Hokuyo's 0 for no echo). Read as a max-range reading, which the
+        # sensor model treats as carrying almost no information about the pose.
+        no_return = ~np.isfinite(ranges) | (ranges <= msg.range_min)
+        ranges[no_return] = self.MAX_RANGE_METERS
+        self.downsampled_ranges = ranges
         self.lidar_initialized = True
         # self.update()
 
@@ -396,6 +436,8 @@ class ParticleFiler(Node):
         orientation = Utils.quaternion_to_angle(msg.pose.pose.orientation)
         pose = np.array([position[0], position[1], orientation])
         self.current_speed = msg.twist.twist.linear.x
+        if self.GATE_ENABLE:
+            self.update_braking_gate(msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9, self.current_speed)
 
         if isinstance(self.last_pose, np.ndarray):
             # changes in x,y,theta in local coordinate system of the car
@@ -512,7 +554,7 @@ class ParticleFiler(Node):
         if self.RANGELIB_VAR > 0:
             self.range_method.set_sensor_model(self.sensor_model_table)
 
-    def motion_model(self, proposal_dist, action):
+    def motion_model(self, proposal_dist, action, add_noise=True):
         '''
         The motion model applies the odometry to the particle distribution. Since there the odometry
         data is inaccurate, the motion model mixes in gaussian noise to spread out the distribution.
@@ -535,6 +577,8 @@ class ParticleFiler(Node):
         self.local_deltas[:,2] = action[2]
 
         proposal_dist[:,:] += self.local_deltas
+        if not add_noise:
+            return
         proposal_dist[:,0] += np.random.normal(loc=0.0,scale=self.MOTION_DISPERSION_X,size=self.MAX_PARTICLES)
         proposal_dist[:,1] += np.random.normal(loc=0.0,scale=self.MOTION_DISPERSION_Y,size=self.MAX_PARTICLES)
         proposal_dist[:,2] += np.random.normal(loc=0.0,scale=self.MOTION_DISPERSION_THETA,size=self.MAX_PARTICLES)
@@ -684,6 +728,46 @@ class ParticleFiler(Node):
         # save the particles
         self.particles = proposal_distribution
     
+    def MCL_odometry_only(self, a):
+        '''
+        Braking gate, skip mode: move every particle by the odometry, with no scan update, no
+        resampling and no added noise. With the usual motion noise and no scan to pull it back, the
+        particle cloud would spread by motion_dispersion_* on every update (0.25 rad of heading at
+        50 Hz is ~1.8 rad after a second), so the cloud is moved as it is instead.
+        '''
+        self.motion_model(self.particles, a, add_noise=False)
+
+    def update_braking_gate(self, t, v):
+        '''
+        Turns the braking gate on while the car slows by more than braking_gate_decel (m/s^2, from the
+        odometry speed over braking_gate_window_s) above braking_gate_min_speed, keeps it on for
+        braking_gate_hold_s after, and never longer than braking_gate_max_s per braking event.
+        '''
+        self.speed_history.append((t, v))
+        while len(self.speed_history) > 2 and t - self.speed_history[1][0] >= self.GATE_WINDOW_S:
+            self.speed_history.pop(0)
+        t0, v0 = self.speed_history[0]
+        decel = (v0 - v) / (t - t0) if t - t0 >= 0.5 * self.GATE_WINDOW_S else 0.0
+        braking = decel >= self.GATE_DECEL and max(v0, v) >= self.GATE_MIN_SPEED
+
+        if braking and not self.gate_spent:
+            if self.gate_start is None:
+                self.gate_start = t
+            self.gate_until = t + self.GATE_HOLD_S
+        active = self.gate_until is not None and t <= self.gate_until
+        if active and self.gate_start is not None and t - self.gate_start > self.GATE_MAX_S:
+            active = False
+            self.gate_spent = True
+        if not braking:
+            self.gate_spent = False
+            if not active:
+                self.gate_start = None
+
+        if active != self.gate_active:
+            self.get_logger().info('braking gate %s (%s, slowing %.1f m/s^2 at %.1f m/s)' % (
+                'ON' if active else 'off', self.GATE_MODE, decel, v))
+        self.gate_active = active
+
     def expected_pose(self):
         # returns the expected value of the pose given the particle distribution
         return np.dot(self.particles.transpose(), self.weights)
@@ -707,8 +791,13 @@ class ParticleFiler(Node):
                 action = np.copy(self.odometry_data)
                 self.odometry_data = np.zeros(3)
 
-                # run the MCL update algorithm
-                self.MCL(action, observation)
+                # run the MCL update algorithm (the braking gate, when on, changes what the scan contributes)
+                if self.gate_active and self.GATE_MODE == 'skip':
+                    self.MCL_odometry_only(action)
+                else:
+                    if self.gate_active and self.forward_mask is not None:
+                        observation[self.forward_mask] = self.MAX_RANGE_METERS
+                    self.MCL(action, observation)
 
                 # compute the expected value of the robot pose
                 self.inferred_pose = self.expected_pose()

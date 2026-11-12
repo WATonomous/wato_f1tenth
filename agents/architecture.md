@@ -41,7 +41,7 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
 | `CONTROLLER` | `pure_pursuit` (default), `stanley`, `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
 | `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
-| `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
+| `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_v3-fixed` (gentler braking), `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
 | `DIRECTION` | empty (default), `ccw`, `cw` | which way round: `raceline_<dir>.csv` (and `raceline_mppi_<dir>.csv`); empty = the track's `raceline.csv` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
@@ -89,11 +89,12 @@ AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
 
 ```text
 Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /hal/scan
-/hal/scan                      -> scan_intensity_filter        -> /hal/filter_scan (dim points dropped; not used by default)
-VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sensors/imu
+/hal/scan                      -> scan_intensity_filter        -> /hal/filter_scan (dim points dropped; the particle filter's input)
+VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sensors/imu (no odom TF on the car: the EKF has it)
 RealSense D435i (USB)          -> realsense2_camera            -> /hal/imu (IMU=realsense)
 VESC /sensors/core             -> vesc_battery                 -> /hal/battery (3S 5000 mAh pack)
-/hal/scan + /hal/odom + map    -> particle_filter (rmgpu)      -> /hal/localization/odom, TF map->odom
+/hal/odom + /hal/imu           -> ackermann_ekf (ekf)          -> /hal/ekf_odom, TF odom->base_link (wheel speed + gyro yaw rate)
+/hal/filter_scan + /hal/ekf_odom + map -> particle_filter      -> /hal/localization/odom, TF map->odom
 /joy                           -> joypad_node (gamepad_node)   -> /hal/drive/joystick, /hal/dead_man_switch, /control/mode,
                                                                   /control/teleop (toggles and triggers, for Foxglove)
 /hal/drive/*                   -> ackermann_mux                -> /hal/ackermann_cmd -> ackermann_to_vesc -> VESC
@@ -103,9 +104,12 @@ VESC /sensors/core             -> vesc_battery                 -> /hal/battery (
 /global_planner/path + /hal/localization/odom + /hal/odom -> pure_pursuit -> /hal/drive/autonomy
 ```
 
-The car config follows `mppi_test` (the car as last driven): PF on `/hal/odom`, no EKF, no e-brake.
-Both packages are kept and can be switched on (`ekf:=true`, `ebrake:=true`); the mux keeps the
-e-brake slot at priority 100.
+Since 2026-11-12 the car runs the EKF (`ekf` defaults to on on the car) and the particle filter reads
+`/hal/filter_scan` and `/hal/ekf_odom`, against the localization lag under hard braking. The EKF owns
+the `odom -> base_link` TF there (`vesc.yaml` `publish_tf: false`): turning it off (`ekf:=false`) needs
+`publish_tf: true` and `odometry_topic: /hal/odom` back. The particle filter's braking gate
+(`braking_gate_*` in `localize.yaml`) is off by default. No e-brake (`ebrake:=true` switches it on; the
+mux keeps its slot at priority 100).
 
 Mux priorities: e-brake 100, joystick 50, keyboard and autonomy 25 (0.2 s timeouts), in
 `interfacing_bringup/config/{car,sim}/mux.yaml`. Gamepad buttons toggle: X = manual (wins), R1 =
@@ -124,7 +128,7 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 `map -> odom -> base_link -> laser` (and `base_link -> camera_link -> camera_*` with `REALSENSE=true`)
 
 - `map -> odom`: static identity in sim; the particle filter on the car; slam_toolbox when mapping.
-- `odom -> base_link`: the simulator in sim; the VESC / EKF path on the car.
+- `odom -> base_link`: the simulator in sim; the EKF on the car (`vesc_to_odom` when the EKF is off).
 - `base_link -> laser`: static, x 0.27 m, z 0.11 m, from `interfacing` on both.
 - `base_link -> camera_link`: static, x 0.27 m, z 0.31 m (20 cm above the lidar), from
   `interfacing` when the RealSense runs. The driver adds `camera_imu_optical_frame` and friends
