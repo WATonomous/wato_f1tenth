@@ -26,14 +26,15 @@ through launch remaps; the old names (`/scan`, `/odom`, `/pf/pose/odom`, `/acker
 | --- | --- | --- | --- |
 | `/hal/scan` | `LaserScan`, frame `laser` | `scan_remap_node` | `urg_node` |
 | `/hal/filter_scan` | `LaserScan`, `/hal/scan` without dim points (optional, not in `contract.yaml`; nothing reads it by default) | none | `scan_intensity_filter` (`config/car/scan_filter.yaml`, cutoff tuned on one track) |
-| `/hal/odom` | `Odometry`, `odom -> base_link` (wheel, or perfect sim odom) | `fake_odom_node` | `vesc_to_odom_node` |
+| `/hal/odom` | `Odometry`, `odom -> base_link` (wheel, or perfect sim odom) | `fake_odom_node` | `vesc_to_odom_node` (pose and twist; the TF comes from the EKF) |
+| `/hal/ekf_odom` | `Odometry`, wheel speed + IMU yaw rate (not in `contract.yaml`) | none (`ekf:=true` to try it) | `ackermann_ekf` (`config/car/ekf.yaml`), on by default |
 | `/hal/imu` | `Imu` | `imu_remap_node` (frame `imu_link`) | RealSense (`IMU=realsense`, default with `REALSENSE=true`) or VESC (`IMU=vesc`, not working as intended yet) |
 | `/hal/localization/odom` | `Odometry`, frame `map` | `fake_odom_node` ground truth (`LOCALIZATION=truth`, default) or `particle_filter` (`pf`, needs a sim map) | `particle_filter` |
 | `/hal/battery` | `BatteryState` (drive pack: voltage, %, health) | none (AutoDRIVE has no battery) | `vesc_battery` from VESC `/sensors/core` |
 | `/hal/drive/{autonomy,joystick,keyboard,ebrake}` | `AckermannDriveStamped` | shared nodes | shared nodes |
 | `/hal/dead_man_switch` | `Bool` (transient local) | gamepad teleop | gamepad teleop |
 | `/hal/ackermann_cmd` | `AckermannDriveStamped` (mux output) | `ackermann_converter_node` drives AutoDRIVE | `ackermann_to_vesc_node` drives the VESC |
-| TF | `map -> odom -> base_link -> laser` | static `map->odom` + `fake_odom` | particle filter + VESC odometry |
+| TF | `map -> odom -> base_link -> laser` | static `map->odom` + `fake_odom` | particle filter + EKF |
 
 Planners and controllers read the pose from `/hal/localization/odom` and the speed from
 `/hal/odom`. The planner interfaces, `/global_planner/*` and `/local_planner/*`, are in the same
