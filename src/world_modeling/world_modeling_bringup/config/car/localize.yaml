@@ -18,10 +18,14 @@ particle_filter:
     fine_timing: 0
     publish_odom: 1
     # sensor model constants
-    z_short: 0.01
+    # z_short: weight for returns shorter than the map predicts (people, boxes, and the floor the
+    # lidar sees ~3-4 m ahead when the car pitches under braking). At 0.01 the filter trusted every
+    # short return and slid the pose backwards in the e7 bottom hallway (2026-11-11 crash analysis);
+    # 0.10 treats them as unexplained obstacles. z_hit lowered to keep the sum at 0.95. Under test.
+    z_short: 0.10
     z_max: 0.07
     z_rand: 0.12
-    z_hit: 0.75
+    z_hit: 0.66
     sigma_hit: 8.0
     # motion model dispersion constants
     motion_dispersion_x: 0.05
