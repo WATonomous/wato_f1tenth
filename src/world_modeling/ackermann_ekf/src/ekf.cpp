@@ -42,12 +42,26 @@ EKF::EKF()
     RCLCPP_INFO(this->get_logger(), "tf is enabled");
     tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   }
+
+  // tf listener: the IMU frame -> base_link rotation (the RealSense IMU is in camera_imu_optical_frame)
+  tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
+  // publish at a fixed rate instead of from every callback (publish_rate_hz <= 0: every update, as before)
+  if (publish_rate_hz > 0.0) {
+    publish_timer = this->create_wall_timer(
+      std::chrono::duration<double>(1.0 / publish_rate_hz), [this]() {
+        if (state_valid) {
+          EKF::publish_state();
+        }
+      });
+  }
 }
 
 void EKF::control_callback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr input)
 {
-  // only calling the init_time() in this one because, we need the prev_input to drive any calculation forwared
-  // otherwise, the jacobian calculation corupts and becomes null
+  // The odometry and IMU callbacks start the clock too now: the jacobian corrupting without a control
+  // input was most likely the uninitialized matrices (.Zero()), and prev_input defaults to a stop.
   if (!time_init && input != nullptr) {
     EKF::init_time();
     prev_input = *input;
@@ -73,26 +87,51 @@ void EKF::control_callback(const ackermann_msgs::msg::AckermannDriveStamped::Sha
   mu = current_predition.mu;
   sigma_t = current_predition.sigma_t;
 
-  EKF::publish_state();
+  state_valid = true;
+  if (publish_rate_hz <= 0.0) {
+    EKF::publish_state();
+  }
 }
 
+/*
+The RealSense IMU has no orientation (only gyro and accelerometer), so the IMU no longer measures
+yaw directly. It measures, in base_link:
+  - the yaw rate (gyro about base_link z), which the model integrates into theta
+  - the forward and left acceleration, which are the world-frame ax, ay rotated by theta
+The message's frame (camera_imu_optical_frame on the car) is rotated into base_link with TF first.
+*/
 void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
 {
-  if (!time_init || imu_msg == nullptr) {
+  if (imu_msg == nullptr) {
+    return;
+  }
+  if (!time_init) {
+    // start on any input: on the car /hal/ackermann_cmd is silent until something drives
+    EKF::init_time();
+    return;
+  }
+
+  if (!EKF::lookup_imu_rotation(imu_msg->header.frame_id)) {
     return;
   }
 
   prediction current_predition = EKF::prediction_step(mu, sigma_t, prev_input);
+  if (current_predition.did_error) {
+    return;
+  }
+
+  // the accelerations depend on theta, so H is the jacobian of the measurement function at the prediction
+  matrix3x7d H_imu = EKF::imu_jacobian(current_predition.mu);
 
   // calculate kalman gain
-  matrix4d S = (H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu).eval();  // inovation covariance
+  matrix3d S = (H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu).eval();  // inovation covariance
   S = (0.5 * (S + S.transpose())).eval();  // correct the matrix scew
 
   // note to future self, generalize the kalman gain calculation with a template function and kalman gain class
 
   // use the llt to try and solve
-  Eigen::LLT<matrix4d> llt(S);
-  matrix7x4d K;
+  Eigen::LLT<matrix3d> llt(S);
+  matrix7x3d K;
 
   if (llt.info() != Eigen::Success) {
     // given llt fails, matrix is not positive definite, add jitter to fix
@@ -100,7 +139,7 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
     S.diagonal().array() += 1e-8;
     S = (0.5 * (S + S.transpose())).eval();
 
-    Eigen::LDLT<matrix4d> ldlt(S);
+    Eigen::LDLT<matrix3d> ldlt(S);
     RCLCPP_INFO(this->get_logger(), "using ldlt to solve inversion in imu");
 
     if (ldlt.info() != Eigen::Success) {
@@ -108,14 +147,14 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
       return;
 
     } else {
-      K = (current_predition.sigma_t * H_imu.transpose() * ldlt.solve(matrix4d::Identity())).eval();
+      K = (current_predition.sigma_t * H_imu.transpose() * ldlt.solve(matrix3d::Identity())).eval();
     }
 
   } else {
-    K = (current_predition.sigma_t * H_imu.transpose() * llt.solve(matrix4d::Identity())).eval();
+    K = (current_predition.sigma_t * H_imu.transpose() * llt.solve(matrix3d::Identity())).eval();
   }
 
-  vector4d imu_diff = (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu)).eval();
+  vector3d imu_diff = (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu)).eval();
   vector7d new_mu = (current_predition.mu + K * imu_diff).eval();
 
   // josephs formula for new covariance (sigma_t)
@@ -147,17 +186,28 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
   sigma_t = new_sigma_t;
   prev_update_time = current_predition.calc_time;
 
-  // publish the results
-  EKF::publish_state();
+  // publish the results (on the timer, or here when publish_rate_hz <= 0)
+  state_valid = true;
+  if (publish_rate_hz <= 0.0) {
+    EKF::publish_state();
+  }
 }
 
 void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
 {
-  if (!time_init || odom_msg == nullptr) {
+  if (odom_msg == nullptr) {
+    return;
+  }
+  if (!time_init) {
+    // start on any input: on the car /hal/ackermann_cmd is silent until something drives
+    EKF::init_time();
     return;
   }
 
   prediction current_predition = EKF::prediction_step(mu, sigma_t, prev_input);
+  if (current_predition.did_error) {
+    return;
+  }
 
   // calculate kalman gain
   matrix5d S = (H_odom * current_predition.sigma_t * H_odom.transpose() + Q_odom).eval();  // inovation covariance
@@ -220,24 +270,45 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
   sigma_t = new_sigma_t;
   prev_update_time = current_predition.calc_time;
 
-  // publish the results
-  EKF::publish_state();
+  // publish the results (on the timer, or here when publish_rate_hz <= 0)
+  state_valid = true;
+  if (publish_rate_hz <= 0.0) {
+    EKF::publish_state();
+  }
 }
 
+/*
+Motion model, state {x, y, theta, v, theta_dot, ax, ay} (ax, ay are world-frame accelerations).
+
+Position follows the state speed v, which the wheel odometry corrects. It used to follow the
+commanded speed, which differs from the real one while the speed limiter ramps, or when the car is
+blocked. The jacobian already assumed the state speed.
+
+Yaw (yaw_from_steering false, the default): theta integrates the theta_dot state, and theta_dot is
+held between updates. The IMU gyro (and, loosely, the wheel odometry) corrects theta_dot, so the
+gyro now steers the heading. Before, theta and theta_dot were rebuilt from the steering command every
+prediction, which overwrote any gyro correction.
+Yaw (yaw_from_steering true): the previous bicycle model, theta_dot = v / L * tan(steering).
+*/
 vector7d EKF::model_update(
   const vector7d & mu_prev, const ackermann_msgs::msg::AckermannDriveStamped & control_input, double dt_)
 {
   vector7d predicted_state;
-  double v = control_input.drive.speed;
+  const double v = mu_prev(state_index::v);
+  const double theta = mu_prev(state_index::theta);
+  const double ax = mu_prev(state_index::ax);
+  const double ay = mu_prev(state_index::ay);
 
-  predicted_state << mu_prev(state_index::x) + v * std::cos(mu_prev(state_index::theta)) * dt_ +
-                       0.5 * mu_prev(state_index::ax) * std::pow(dt_, 2),
-    mu_prev(state_index::y) + v * std::sin(mu_prev(state_index::theta)) * dt_ +
-      0.5 * mu_prev(state_index::ay) * std::pow(dt_, 2),
-    mu_prev(state_index::theta) + (v / wheel_base) * std::tan(control_input.drive.steering_angle) * dt_,
-    v + mu_prev(state_index::ax) * std::cos(mu_prev(state_index::theta)) * dt_ +
-      mu_prev(state_index::ay) * std::sin(mu_prev(state_index::theta)) * dt_,
-    (v / wheel_base) * std::tan(control_input.drive.steering_angle), mu_prev(state_index::ax), mu_prev(state_index::ay);
+  double theta_dot = mu_prev(state_index::theta_dot);
+  if (yaw_from_steering) {
+    theta_dot = (v / wheel_base) * std::tan(control_input.drive.steering_angle);
+  }
+  const double theta_new = theta + theta_dot * dt_;
+
+  predicted_state << mu_prev(state_index::x) + v * std::cos(theta) * dt_ + 0.5 * ax * std::pow(dt_, 2),
+    mu_prev(state_index::y) + v * std::sin(theta) * dt_ + 0.5 * ay * std::pow(dt_, 2),
+    std::atan2(std::sin(theta_new), std::cos(theta_new)),  // wrapped to [-pi, pi]
+    v + ax * std::cos(theta) * dt_ + ay * std::sin(theta) * dt_, theta_dot, ax, ay;
 
   return predicted_state.eval();
 }
@@ -278,7 +349,7 @@ matrix7d EKF::predict_sigma(const matrix7d & sigma_prev, const matrix7d & jacobi
 matrix7d EKF::calc_jacobian_g(const vector7d & mu_prev, double dt_)
 {
   matrix7d jacobian;
-  jacobian.Zero();
+  jacobian.setZero();  // was jacobian.Zero(), which returns a zero matrix and leaves this one uninitialized
 
   double DT = dt_, v = mu_prev(state_index::v), theta = mu_prev(state_index::theta),
          phi = prev_input.drive.steering_angle;
@@ -289,6 +360,7 @@ matrix7d EKF::calc_jacobian_g(const vector7d & mu_prev, double dt_)
       this->get_logger(),
       "dt is %f, v is %f, theta is %f, phi is %f, wheel_base is %f, ax is %f, ay is %f",
       DT,
+      v,
       theta,
       phi,
       L_WB,
@@ -296,35 +368,43 @@ matrix7d EKF::calc_jacobian_g(const vector7d & mu_prev, double dt_)
       ay);
   }
 
-  // 1st row
+  // 1st row: x
   jacobian(0, 0) = 1.0;
   jacobian(0, 2) = -v * std::sin(theta) * DT;
   jacobian(0, 3) = std::cos(theta) * DT;
   jacobian(0, 5) = 0.5 * std::pow(DT, 2);
 
-  // 2nd row
+  // 2nd row: y
   jacobian(1, 1) = 1.0;
   jacobian(1, 2) = v * std::cos(theta) * DT;
   jacobian(1, 3) = std::sin(theta) * DT;
   jacobian(1, 6) = 0.5 * std::pow(DT, 2);
 
-  // 3rd row
+  // 3rd row: theta
   jacobian(2, 2) = 1.0;
-  jacobian(2, 3) = (std::tan(phi) * DT) / L_WB;
+  if (yaw_from_steering) {
+    jacobian(2, 3) = (std::tan(phi) * DT) / L_WB;
+  } else {
+    jacobian(2, 4) = DT;
+  }
 
-  // 4th row
+  // 4th row: v
   jacobian(3, 2) = ay * std::cos(theta) * DT - ax * std::sin(theta) * DT;
   jacobian(3, 3) = 1.0;
   jacobian(3, 5) = std::cos(theta) * DT;
   jacobian(3, 6) = std::sin(theta) * DT;
 
-  // 5th row
-  jacobian(4, 3) = std::tan(phi) / L_WB;
+  // 5th row: theta_dot
+  if (yaw_from_steering) {
+    jacobian(4, 3) = std::tan(phi) / L_WB;
+  } else {
+    jacobian(4, 4) = 1.0;
+  }
 
-  // 6th row
+  // 6th row: ax
   jacobian(5, 5) = 1.0;
 
-  // 7th row
+  // 7th row: ay
   jacobian(6, 6) = 1.0;
 
   return jacobian.eval();
@@ -340,17 +420,16 @@ prediction EKF::prediction_step(
   rclcpp::Time current_time = this->now();
   double dt = EKF::calc_dt(current_time, prev_update_time);
 
-  // don't remove this, if you do, the filter stops working.
-  // I honestly don't know why
-  // some wierd timing bug, that gets syncrobized when this
-  // print statement is here
+  // This print was once needed to keep the filter working ("some weird timing bug"). The likely cause
+  // was the matrices that .Zero() / .Identity() left uninitialized (now setZero / setIdentity). It is
+  // throttled now: unthrottled it ran at every prediction, about 300 times a second.
   if (error_counter == 0) {
-    RCLCPP_INFO(this->get_logger(), "current dt is %f", dt);
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "current dt is %f", dt);
   }
 
   if (dt <= 1e-6) {
     current_prediction.did_error = true;
-    RCLCPP_INFO(this->get_logger(), "dt is too small");
+    RCLCPP_DEBUG(this->get_logger(), "dt is too small");
     return current_prediction;
   }
 
@@ -380,23 +459,46 @@ prediction EKF::prediction_step(
   return current_prediction;
 }
 
-vector4d EKF::imu_state_mapper(const vector7d & mu_predicted)
+// what the IMU should read for a state: yaw rate, and the world-frame ax, ay rotated into the car
+vector3d EKF::imu_state_mapper(const vector7d & mu_predicted)
 {
-  vector4d observation;
-  observation.Zero();
+  vector3d observation;
+  const double theta = mu_predicted(state_index::theta);
+  const double ax = mu_predicted(state_index::ax);
+  const double ay = mu_predicted(state_index::ay);
 
-  observation(0) = mu_predicted(state_index::theta);
-  observation(1) = mu_predicted(state_index::theta_dot);
-  observation(2) = mu_predicted(state_index::ax);
-  observation(3) = mu_predicted(state_index::ay);
+  observation(0) = mu_predicted(state_index::theta_dot);
+  observation(1) = ax * std::cos(theta) + ay * std::sin(theta);  // forward
+  observation(2) = -ax * std::sin(theta) + ay * std::cos(theta);  // left
 
   return observation.eval();
+}
+
+matrix3x7d EKF::imu_jacobian(const vector7d & mu_predicted)
+{
+  matrix3x7d H;
+  H.setZero();
+  const double theta = mu_predicted(state_index::theta);
+  const double ax = mu_predicted(state_index::ax);
+  const double ay = mu_predicted(state_index::ay);
+
+  H(0, state_index::theta_dot) = 1.0;
+
+  H(1, state_index::theta) = -ax * std::sin(theta) + ay * std::cos(theta);
+  H(1, state_index::ax) = std::cos(theta);
+  H(1, state_index::ay) = std::sin(theta);
+
+  H(2, state_index::theta) = -ax * std::cos(theta) - ay * std::sin(theta);
+  H(2, state_index::ax) = -std::sin(theta);
+  H(2, state_index::ay) = std::cos(theta);
+
+  return H.eval();
 }
 
 vector5d EKF::odom_state_mapper(const vector7d & mu_predicted)
 {
   vector5d observation;
-  observation.Zero();
+  observation.setZero();
 
   observation(0) = mu_predicted(state_index::x);
   observation(1) = mu_predicted(state_index::y);
@@ -407,28 +509,58 @@ vector5d EKF::odom_state_mapper(const vector7d & mu_predicted)
   return observation.eval();
 }
 
-vector4d EKF::imu_observation_maker(const sensor_msgs::msg::Imu & observation)
+// the IMU reading in base_link: {yaw rate, forward acceleration, left acceleration}
+vector3d EKF::imu_observation_maker(const sensor_msgs::msg::Imu & observation)
 {
-  vector4d z;
-  z.Zero();
+  vector3d z;
 
-  z(0) = std::atan2(
-    2.0 *
-      (observation.orientation.w * observation.orientation.z + observation.orientation.x * observation.orientation.y),
-    1.0 - 2.0 * (observation.orientation.y * observation.orientation.y +
-                 observation.orientation.z * observation.orientation.z));
+  const tf2::Vector3 gyro = imu_rotation * tf2::Vector3(
+                                             observation.angular_velocity.x, observation.angular_velocity.y,
+                                             observation.angular_velocity.z);
+  const tf2::Vector3 accel = imu_rotation * tf2::Vector3(
+                                              observation.linear_acceleration.x, observation.linear_acceleration.y,
+                                              observation.linear_acceleration.z);
 
-  z(1) = observation.angular_velocity.z;
-  z(2) = observation.linear_acceleration.x;
-  z(3) = observation.linear_acceleration.y;
+  z(0) = gyro.z();
+  z(1) = accel.x();
+  z(2) = accel.y();
 
   return z.eval();
+}
+
+// rotation from the IMU message's frame into base_link (child_frame), from TF; true once known
+bool EKF::lookup_imu_rotation(const std::string & imu_frame)
+{
+  if (imu_rotation_ready && imu_frame == imu_rotation_frame) {
+    return true;
+  }
+
+  if (imu_frame.empty() || imu_frame == child_frame) {
+    imu_rotation.setIdentity();
+  } else {
+    try {
+      const geometry_msgs::msg::TransformStamped t =
+        tf_buffer->lookupTransform(child_frame, imu_frame, tf2::TimePointZero);
+      imu_rotation.setRotation(tf2::Quaternion(
+        t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w));
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000, "no TF %s -> %s yet, skipping IMU: %s",
+        imu_frame.c_str(), child_frame.c_str(), ex.what());
+      return false;
+    }
+  }
+
+  imu_rotation_frame = imu_frame;
+  imu_rotation_ready = true;
+  RCLCPP_INFO(this->get_logger(), "IMU frame %s rotated into %s", imu_frame.c_str(), child_frame.c_str());
+  return true;
 }
 
 vector5d EKF::odom_observation_maker(const nav_msgs::msg::Odometry & observation)
 {
   vector5d z;
-  z.Zero();
+  z.setZero();
 
   z(0) = observation.pose.pose.position.x;
   z(1) = observation.pose.pose.position.y;
@@ -446,8 +578,9 @@ vector5d EKF::odom_observation_maker(const nav_msgs::msg::Odometry & observation
 
 double EKF::calc_dt(rclcpp::Time & current, rclcpp::Time & prev)
 {
-  return static_cast<double>(
-    (current.seconds() + current.nanoseconds() * 1e-9) - (prev.seconds() + prev.nanoseconds() * 1e-9));
+  // was (current.seconds() + current.nanoseconds() * 1e-9) - (prev...): seconds() and nanoseconds() each
+  // hold the whole time, so that counted it twice and every dt came out doubled
+  return (current - prev).seconds();
 }
 
 void EKF::init_time()
@@ -554,7 +687,7 @@ double EKF::velocity_lowPass(double current_speed)
 void EKF::init_params()
 {
   // topic decliration
-  this->declare_parameter<std::string>("ekf_topic", "/ekf/odom");
+  this->declare_parameter<std::string>("ekf_topic", "/hal/ekf_odom");
   this->declare_parameter<std::string>("odom_topic", "/hal/odom");
   this->declare_parameter<std::string>("imu_topic", "/hal/imu");
   this->declare_parameter<std::string>("ackermann_topic", "/hal/ackermann_cmd");
@@ -569,6 +702,12 @@ void EKF::init_params()
 
   // low pass filter
   this->declare_parameter<double>("alpha", 0.55);
+
+  // output rate (Hz) of the odometry and TF; <= 0 publishes after every update, as before
+  this->declare_parameter<double>("publish_rate_hz", 100.0);
+
+  // false: theta integrates theta_dot, which the IMU gyro corrects. true: the old bicycle model
+  this->declare_parameter<bool>("yaw_from_steering", false);
 
   // debug mode
   this->declare_parameter<bool>("debug_mode", false);
@@ -607,7 +746,7 @@ void EKF::init_params()
   this->declare_parameter<double>("Q_odom_v", 0.75);
   this->declare_parameter<double>("Q_odom_theta_dot", 3.0);
 
-  this->declare_parameter<double>("Q_imu_theta", 0.45);
+  // Q_imu_theta is no longer used: the RealSense IMU has no orientation
   this->declare_parameter<double>("Q_imu_theta_dot", 0.5);
   this->declare_parameter<double>("Q_imu_ax", 0.65);
   this->declare_parameter<double>("Q_imu_ay", 0.65);
@@ -629,6 +768,9 @@ void EKF::init_params()
   // low pass filter
   alpha = this->get_parameter("alpha").as_double();
 
+  publish_rate_hz = this->get_parameter("publish_rate_hz").as_double();
+  yaw_from_steering = this->get_parameter("yaw_from_steering").as_bool();
+
   // debug mode
   debug_mode = this->get_parameter("debug_mode").as_bool();
 
@@ -639,7 +781,7 @@ void EKF::init_params()
     this->get_parameter("inital_ay").as_double();
 
   // initalize the covariance matrix
-  sigma_t.Zero();
+  sigma_t.setZero();
   sigma_t(0, 0) = this->get_parameter("x_cov").as_double();
   sigma_t(1, 1) = this->get_parameter("y_cov").as_double();
   sigma_t(2, 2) = this->get_parameter("theta_cov").as_double();
@@ -649,8 +791,8 @@ void EKF::init_params()
   sigma_t(6, 6) = this->get_parameter("ay_cov").as_double();
 
   // initalize the sensor noice
-  Q_imu.Zero();
-  Q_odom.Zero();
+  Q_imu.setZero();
+  Q_odom.setZero();
 
   Q_odom(0, 0) = this->get_parameter("Q_odom_x").as_double();
   Q_odom(1, 1) = this->get_parameter("Q_odom_y").as_double();
@@ -658,13 +800,12 @@ void EKF::init_params()
   Q_odom(3, 3) = this->get_parameter("Q_odom_v").as_double();
   Q_odom(4, 4) = this->get_parameter("Q_odom_theta_dot").as_double();
 
-  Q_imu(0, 0) = this->get_parameter("Q_imu_theta").as_double();
-  Q_imu(1, 1) = this->get_parameter("Q_imu_theta_dot").as_double();
-  Q_imu(2, 2) = this->get_parameter("Q_imu_ax").as_double();
-  Q_imu(3, 3) = this->get_parameter("Q_imu_ay").as_double();
+  Q_imu(0, 0) = this->get_parameter("Q_imu_theta_dot").as_double();
+  Q_imu(1, 1) = this->get_parameter("Q_imu_ax").as_double();
+  Q_imu(2, 2) = this->get_parameter("Q_imu_ay").as_double();
 
   // initalize the process noise
-  R.Zero();
+  R.setZero();
   R(0, 0) = this->get_parameter("R_x").as_double();
   R(1, 1) = this->get_parameter("R_y").as_double();
   R(2, 2) = this->get_parameter("R_theta").as_double();
@@ -673,20 +814,14 @@ void EKF::init_params()
   R(5, 5) = this->get_parameter("R_ax").as_double();
   R(6, 6) = this->get_parameter("R_ay").as_double();
 
-  // initalize the H jacobian matrix for the sensor models
-  H_imu.Zero();
-  H_odom.Zero();
-
-  H_imu(0, 2) = 1.0;
-  H_imu(1, 4) = 1.0;
-  H_imu(2, 5) = 1.0;
-  H_imu(3, 6) = 1.0;
+  // initalize the H jacobian matrix for the odom sensor model (the IMU one is built per update)
+  H_odom.setZero();
 
   for (int i = 0; i < 5; i++) {
     H_odom(i, i) = 1.0;
   }
 
-  I7.Identity();
+  I7.setIdentity();
 
   RCLCPP_INFO(this->get_logger(), "initalized the params");
 }

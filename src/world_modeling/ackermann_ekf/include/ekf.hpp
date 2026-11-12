@@ -23,8 +23,13 @@
 #include <string>
 #include <thread>
 
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Vector3.h>
+
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_broadcaster.hpp>
+#include <tf2_ros/transform_listener.hpp>
 
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
@@ -32,12 +37,16 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 
+using vector3d = Eigen::Matrix<double, 3, 1>;
 using vector4d = Eigen::Matrix<double, 4, 1>;
 using vector5d = Eigen::Matrix<double, 5, 1>;
 using vector7d = Eigen::Matrix<double, 7, 1>;
 using matrix7d = Eigen::Matrix<double, 7, 7>;
 using matrix5d = Eigen::Matrix<double, 5, 5>;
 using matrix4d = Eigen::Matrix<double, 4, 4>;
+using matrix3d = Eigen::Matrix<double, 3, 3>;
+using matrix3x7d = Eigen::Matrix<double, 3, 7>;
+using matrix7x3d = Eigen::Matrix<double, 7, 3>;
 using matrix5x7d = Eigen::Matrix<double, 5, 7>;
 using matrix4x7d = Eigen::Matrix<double, 4, 7>;
 using matrix7x5d = Eigen::Matrix<double, 7, 5>;
@@ -97,9 +106,12 @@ private:
     const matrix7d & sigma_prev,
     const ackermann_msgs::msg::AckermannDriveStamped & control_input);
 
-  vector4d imu_state_mapper(const vector7d & mu_predicted);
+  // IMU observation {theta_dot, a_forward, a_left} in base_link (the RealSense has no orientation)
+  vector3d imu_state_mapper(const vector7d & mu_predicted);
+  matrix3x7d imu_jacobian(const vector7d & mu_predicted);
+  vector3d imu_observation_maker(const sensor_msgs::msg::Imu & observation);
+  bool lookup_imu_rotation(const std::string & imu_frame);
   vector5d odom_state_mapper(const vector7d & mu_predicted);
-  vector4d imu_observation_maker(const sensor_msgs::msg::Imu & observation);
   vector5d odom_observation_maker(const nav_msgs::msg::Odometry & observation);
 
   double velocity_lowPass(double current_speed);
@@ -116,7 +128,7 @@ private:
   matrix7d sigma_t;
   rclcpp::Time prev_update_time;
   ackermann_msgs::msg::AckermannDriveStamped prev_input;
-  double prev_speed;
+  double prev_speed = 0.0;  // the speed low-pass reads this before any control input sets it
 
   // process noise {x , y , theta, v, theta_dot, ax , ay}
   matrix7d R;
@@ -124,12 +136,24 @@ private:
   // sensor noise odom {x, y , theta , v, thata_dot}
   matrix5d Q_odom;
 
-  // sensor noise imu {theta , theta_dot, ax, ay}
-  matrix4d Q_imu;
+  // sensor noise imu {theta_dot, a_forward, a_left} (was {theta, theta_dot, ax, ay}: the RealSense has no yaw)
+  matrix3d Q_imu;
 
-  // H matrix for sensor model
-  matrix4x7d H_imu;  // 4 x 7 matrix
+  // H matrix for sensor model (the IMU one depends on theta, so it is built per update: imu_jacobian)
   matrix5x7d H_odom;  // 5 / 7 matrix
+
+  // IMU frame -> base_link rotation, looked up once from TF (static: base_link -> camera_* frames)
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+  tf2::Matrix3x3 imu_rotation;
+  std::string imu_rotation_frame;
+  bool imu_rotation_ready = false;
+
+  // publishing at a fixed rate: the callbacks run at ~300 Hz together, and the particle filter
+  // runs one update per odometry message
+  rclcpp::TimerBase::SharedPtr publish_timer;
+  double publish_rate_hz;
+  bool state_valid = false;
 
   // Identity matrix
   matrix7d I7;
@@ -138,6 +162,7 @@ private:
   std::string odom_topic, ekf_topic, imu_topic, ackermann_topic, child_frame, header_frame;
   double wheel_base;
   bool should_pub_tf;
+  bool yaw_from_steering;
   double alpha;
 
   // tf2 broadcaster

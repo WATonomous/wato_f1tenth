@@ -2,7 +2,8 @@ particle_filter:
   ros__parameters:
     # topic names
     scan_topic: '/hal/scan'
-    odometry_topic: '/hal/odom'
+    # odometry_topic: '/hal/odom'      # previous: wheel odometry, heading from the steering command
+    odometry_topic: '/hal/ekf_odom'    # EKF: wheel speed + RealSense gyro (config/car/ekf.yaml)
     # range data downsampling
     angle_step: 18
     max_particles: 8000
