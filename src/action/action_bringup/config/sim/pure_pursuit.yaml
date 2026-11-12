@@ -8,12 +8,13 @@
     dead_man_active_topic: "/hal/dead_man_switch"
     ackermann_control_topic: "/hal/drive/autonomy"
     odom_topic: "/hal/localization/odom"
+    control_rate_hz: 50.0
     speed_limit_active: true
     speed_limit: 10.0
     max_steering_angle: 0.52
-    kp_gain: 0.15 #change this if the not enough steering in hair pins or tight corners
-    max_lookahead: 2.0 #increase this if there is more lots of ossilation at high speed
+    kp_gain: 0.25 #change this if the not enough steering in hair pins or tight corners
+    max_lookahead: 3.0 #increase this if there is more lots of ossilation at high speed
     min_lookahead: 1.0 # decrease this if the car is very slugish on low speed corners
-    lookahead_ratio: 6.0 #this is he speed at which the car will have max look ahead distance
+    lookahead_ratio: 7.0 #this is he speed at which the car will have max look ahead distance
     speed_topic: "/hal/odom"
     enable_debug_vis: false

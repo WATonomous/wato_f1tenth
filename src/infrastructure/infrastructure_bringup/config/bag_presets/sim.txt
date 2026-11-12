@@ -23,6 +23,7 @@
 /global_planner/edges
 /local_planner/path
 /local_planner/active
+/local_planner/debug/decision
 
 # AutoDRIVE raw output
 /autodrive/roboracer_1/lidar

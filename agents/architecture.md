@@ -13,6 +13,7 @@ modules/                   docker-compose.yaml (base) + dep, dev, test, watcloud
 docker/                    <module>.Dockerfile, template.Dockerfile (shared stages), base/ (base image layers)
 src/<module>/              ROS 2 packages grouped by module; each module has <module>_bringup
 src/wato_test/             Catch2 test helpers (add_wato_test)
+src/wato_msgs/             messages shared across modules (ReferenceTrack, TrackWidth, PlannerDecision), copied into each image that uses them
 docs/mppi/                 MPPI notes from mppi_test (run procedure, debugging, system overview)
 tools/                     separate repos cloned by `watod tools`, git-ignored: raceline generator, model framework
 agents/                    these docs
@@ -26,10 +27,10 @@ mounted at `/ws/src/<module>`.
 
 | Module | Packages | Runs |
 | --- | --- | --- |
-| `infrastructure` | `infrastructure_bringup`, `f1tenth_msgs`, `system_monitor`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays, `system_monitor` (`/system/status`, and on the car `/system/power` plus the black box: `workflows/power.md`); builds `vesc_msgs` so Foxglove can decode it |
+| `infrastructure` | `infrastructure_bringup`, `f1tenth_msgs`, `system_monitor`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays, `system_monitor` (`/system/status`, and on the car `/system/power` plus the black box: `workflows/power.md`); builds `vesc_msgs` and `wato_msgs` so Foxglove can decode them |
 | `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `drive_status`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: joystick (USB or Bluetooth), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: keyboard teleop |
-| `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap`, `race_tracks` (data, also copied into `action`) | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
-| `action` | `action_bringup`, `pure_pursuit`, `stanley_controller`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, Stanley, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
+| `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap`, `race_tracks` (data, also copied into `action`) | car: PF + map server; both: global planner, costmap when `LOCAL_PLANNER` is set; optional EKF, mapping, RViz |
+| `action` | `action_bringup`, `pure_pursuit`, `stanley_controller`, `frenet_planner`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, Stanley, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
 | `perception` | `perception_bringup` | nothing yet |
 
@@ -40,7 +41,7 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `PLATFORM` | detected: `car` on a Jetson, else `sim` | which `config/<platform>/` YAML, which nodes start, default `ACTIVE_MODULES` |
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
 | `CONTROLLER` | `pure_pursuit` (default), `stanley`, `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
-| `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
+| `LOCAL_PLANNER` | `none` (default), `frenet` | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml`; any value but `none` also starts the costmap |
 | `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_v3-fixed` (racelines for 2.5 m/s^2 braking: last resort, with `max_decel` 2.5), `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
 | `DIRECTION` | empty (default), `ccw`, `cw` | which way round: `raceline_<dir>.csv` (and `raceline_mppi_<dir>.csv`); empty = the track's `raceline.csv` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |

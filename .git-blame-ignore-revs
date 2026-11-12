@@ -1,3 +1,5 @@
 # Formatting-only commits, skipped by `git blame` (git config blame.ignoreRevsFile .git-blame-ignore-revs)
 # Apply pre-commit formatting and lint fixes across the repo
 6297be691e732579d189a14ce7a472693705974d
+# frenet_planner: apply pre-commit formatting and lint fixes
+a5723da8389b12fd8c6126e2ee175ad7ed0827fc

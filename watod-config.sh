@@ -95,7 +95,7 @@
 # export CONTROLLER="pure_pursuit"
 
 ## Local planner in the action module: a file name in action_bringup/launch/local_planners/
-## (none). DEFAULT = "none"
+## (none, frenet). Setting one also starts the costmap in world_modeling. DEFAULT = "none"
 # export LOCAL_PLANNER="none"
 
 ## Track: a folder in world_modeling/race_tracks/tracks/ (wato_office, e7_fifth_v3, e7_fifth_big,
