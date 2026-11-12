@@ -41,7 +41,7 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
 | `CONTROLLER` | `pure_pursuit` (default), `stanley`, `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
 | `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
-| `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_v3-fixed` (gentler braking), `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
+| `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_v3-fixed` (racelines for 2.5 m/s^2 braking: last resort, with `max_decel` 2.5), `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
 | `DIRECTION` | empty (default), `ccw`, `cw` | which way round: `raceline_<dir>.csv` (and `raceline_mppi_<dir>.csv`); empty = the track's `raceline.csv` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |

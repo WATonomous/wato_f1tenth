@@ -49,7 +49,7 @@ In `action_bringup/config/{car,sim}/stanley_controller.yaml`:
 | Parameter | Car | Sim | |
 | --- | --- | --- | --- |
 | `speed_limit_active` | true | true | apply `speed_limit` |
-| `speed_limit` | 5.0 | 5.0 | m/s |
+| `speed_limit` | 10.0 | 5.0 | m/s |
 | `speed_lookahead_s` | 0.4 | 0.0 | s of driving to look ahead for the speed (0 = closest waypoint) |
 | `k_h` | 0.95 | 0.75 | heading gain |
 | `k_e` | 0.7 | 0.2 | cross-track gain |
@@ -133,8 +133,10 @@ colcon build --packages-up-to stanley_controller wato_test && colcon test --pack
 | 50 | 1.0 | 0.9 | 6.0 | 0.4 |
 | 50 | 0.95 | 0.85 | 10.0 | 0.4 |
 | 50 | 0.95 | 0.7 | 5.0 | 0.4 |
+| 50 | 0.95 | 0.7 | 10.0 | 0.4 |
 
-The car is capped at 5 m/s since 2026-11-11: at 9 m/s it brakes hard into the e7 bottom-hallway
-corner, the nose dives, the lidar reads the floor 3-4 m ahead and the particle filter falls 1.7-2.9 m
-behind, so Stanley turns in late and hits the wall (same spot on 2026-11-10 and 11). Raise it only
-after the lidar is tilted up or the scan is otherwise fixed.
+At 9 m/s the car brakes hard into the e7 bottom-hallway corner, the nose dives, the lidar reads the
+floor 3-4 m ahead and the particle filter falls 1.7-2.9 m behind, so Stanley turns in late and hits
+the wall (2026-11-10 and 11). The car was capped at 5 m/s for a day; it is back at 10 to test the EKF
+and particle filter fixes (`localization-fix`). If those don't hold, cap it at 5 again, or use the
+last resort: `max_decel` 2.5 in `vesc.yaml` with `TRACK=e7_fifth_v3-fixed`.

@@ -15,10 +15,10 @@
 
     # ---- speed ----
     speed_limit_active: true
-    # m/s hard cap. 5.0 since 2026-11-11: at 9 m/s the car brakes hard into the e7 bottom-hallway
-    # corner, the nose dives, the lidar sees the floor ahead and localization lags into the wall.
-    # Raise only after the lidar is tilted up (or the scan otherwise fixed) and re-tested.
-    speed_limit: 5.0
+    # m/s hard cap. Back to 10 (2026-11-12) to test the EKF + particle filter fixes for the localization
+    # lag under hard braking at the e7 bottom-hallway corner. If they don't fix it, drop back to 5.0.
+    # speed_limit: 5.0   # 2026-11-11 to 2026-11-12
+    speed_limit: 10.0
     speed_lookahead_s: 0.4       # s: command the slowest path speed within this much driving ahead (0 = closest waypoint)
 
     # ---- steering physics ----
