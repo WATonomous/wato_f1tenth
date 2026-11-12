@@ -8,6 +8,9 @@
     ackermann_control_topic: "/hal/drive/autonomy"
     odom_topic:              "/hal/localization/odom"  # pose
     speed_topic:             "/hal/odom"               # speed
+    local_path_topic:        "/local_planner/path"     # followed while active and fresh (LOCAL_PLANNER set)
+    local_active_topic:      "/local_planner/active"
+    local_path_timeout_s:    0.5                       # s: older local path -> back to the global path
 
     # ---- frames ----
     global_frame_id: "map"        # markers + path live here

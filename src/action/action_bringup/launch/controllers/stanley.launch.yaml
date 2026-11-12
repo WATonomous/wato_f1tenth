@@ -1,5 +1,6 @@
-# Stanley: follows /global_planner/path (heading + cross-track error at the front axle).
-# It has no local planner input, so run it with LOCAL_PLANNER=none.
+# Stanley: follows /global_planner/path (heading + cross-track error at the front axle), and
+# /local_planner/path while the local planner holds /local_planner/active true (only when
+# LOCAL_PLANNER is set).
 
 launch:
   - arg: {name: platform}
@@ -13,3 +14,5 @@ launch:
       output: screen
       param:
         - from: "$(var config_dir)/stanley_controller.yaml"
+        - name: use_local_planner
+          value: "$(eval '\"$(var local_planner)\" != \"none\"')"

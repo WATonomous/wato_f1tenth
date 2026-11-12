@@ -23,6 +23,7 @@ struct Params {
     bool   speed_limit_active;
     double speed_limit;         // m/s
     double speed_lookahead_s;   // s: command the slowest path speed within this much driving ahead (0 = closest waypoint)
+    bool   closed = true;       // closed loop (the global raceline) or open (a local planner path: no wrap at the end)
 };
 
 //base_link pose in the path frame, and the measured speed
@@ -54,7 +55,8 @@ void front_axle(const State& s, double wheelbase, double& fx, double& fy);
 void drop_duplicate_points(std::vector<geometry_msgs::msg::PoseStamped>& poses);
 
 //the control law for one tick. closest_idx is the waypoint closest to the
-//front axle; path must be non-empty with duplicate points dropped
+//front axle; path must be non-empty with duplicate points dropped (an open
+//path, p.closed == false, needs at least two points)
 Result compute(const State& s, const nav_msgs::msg::Path& path, size_t closest_idx, const Params& p);
 
 }  // namespace stanley

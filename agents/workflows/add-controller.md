@@ -42,7 +42,8 @@ MPC) are just controllers, run with `LOCAL_PLANNER=none`.
   (rules.md, "Don't block the executor"). Debug topics: `/debug/<name>/...`, BEST_EFFORT, behind
   `enable_debug_vis`.
 
-`pure_pursuit` follows this already (`overtake_ready_topic` is its name for the active flag).
+`pure_pursuit` and `stanley_controller` follow this already (`overtake_ready_topic` is pure pursuit's name
+for the active flag; Stanley's is `local_active_topic`).
 `mppi` follows its own raceline CSV and ignores both paths.
 
 ## Checklist
