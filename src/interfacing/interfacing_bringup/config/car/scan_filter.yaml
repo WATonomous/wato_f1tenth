@@ -8,6 +8,11 @@
 # intensity falls with range: ~1300 at 1 m, ~950 at 1-3 m, ~520 beyond 3 m). Surfaces differ per
 # venue (glass, dark walls, tape), so re-check it on a new track with the Foxglove Lidar tab before
 # relying on it, and lower it if real walls drop out.
+#
+# On the polished e7 floor, half of what it drops (recording_20261111_190159) is a strip of floor about
+# 4 m ahead that moves with the car: the car leans forward when driving, so the lidar looks down
+# far enough to graze the floor. The filter only catches the dim part; leveling the lidar (or
+# tilting it up slightly) is the real fix.
 scan_intensity_filter:
   ros__parameters:
     filter1:
