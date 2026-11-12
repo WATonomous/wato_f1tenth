@@ -46,6 +46,7 @@ using ackermann_msgs::msg::AckermannDriveStamped;
 using std::placeholders::_1;
 using std_msgs::msg::Float64;
 using vesc_msgs::msg::VescStateStamped;
+using f1tenth_msgs::msg::SpeedLimiterStatus;
 
 AckermannToVesc::AckermannToVesc(const rclcpp::NodeOptions & options)
 : Node("ackermann_to_vesc_node", options)
@@ -59,6 +60,7 @@ AckermannToVesc::AckermannToVesc(const rclcpp::NodeOptions & options)
   declare_parameter("max_accel", 0.0);
   declare_parameter("max_decel", 0.0);
   declare_parameter("cmd_timeout", 0.5);
+  declare_parameter("limiter_status_topic", "/control/speed_limiter");
 
   // get conversion parameters
   speed_to_erpm_gain_ = get_parameter("speed_to_erpm_gain").get_value<double>();
@@ -89,6 +91,9 @@ AckermannToVesc::AckermannToVesc(const rclcpp::NodeOptions & options)
     // control ends) is followed all the way down instead of leaving the VESC on the last speed.
     limiter_timer_ = create_wall_timer(
       std::chrono::milliseconds(20), std::bind(&AckermannToVesc::limiterTimerCallback, this));
+    // target vs limited speed for the Drive panel: 10 Hz, best effort (visualization, rule 7)
+    limiter_status_pub_ = create_publisher<SpeedLimiterStatus>(
+      get_parameter("limiter_status_topic").get_value<std::string>(), rclcpp::QoS(1).best_effort());
   }
 }
 
@@ -123,6 +128,9 @@ double AckermannToVesc::limitSpeed(double current, double target, double dt) con
 
 void AckermannToVesc::limiterTimerCallback()
 {
+  if (++tick_count_ % 5 == 0) {   // status at 10 Hz for the Foxglove Drive panel
+    publishLimiterStatus();
+  }
   if (!active_) {
     return;
   }
@@ -139,6 +147,20 @@ void AckermannToVesc::limiterTimerCallback()
   if (stale && limited_speed_ == 0.0) {
     active_ = false;
   }
+}
+
+void AckermannToVesc::publishLimiterStatus()
+{
+  const bool stale = (steady_clock_.now() - last_cmd_time_).seconds() > cmd_timeout_;
+  SpeedLimiterStatus status;
+  status.header.stamp = now();
+  status.target_speed = (active_ && !stale) ? target_speed_ : 0.0;
+  status.limited_speed = active_ ? limited_speed_ : 0.0;
+  status.max_accel = max_accel_;
+  status.max_decel = max_decel_;
+  status.active = active_;
+  status.stopping = active_ && stale;
+  limiter_status_pub_->publish(status);
 }
 
 void AckermannToVesc::publishSpeed(double speed)

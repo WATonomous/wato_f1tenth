@@ -37,6 +37,11 @@ launch:
       description: "Track in race_tracks/tracks/: its map.yaml for localization, raceline.csv for the global planner"
 
   - arg:
+      name: direction
+      default: "$(env DIRECTION '')"
+      description: "ccw or cw: the track's raceline_<dir>.csv; empty: its raceline.csv (the default direction)"
+
+  - arg:
       name: planner
       default: "true"
       description: "Run the global planner"
@@ -59,6 +64,10 @@ launch:
   - let:
       name: share
       value: "$(find-pkg-share world_modeling_bringup)"
+
+  - let:
+      name: raceline_suffix
+      value: "$(eval '\"_$(var direction)\" if \"$(var direction)\" else \"\"')"
 
   - let:
       name: run_pf
@@ -151,7 +160,7 @@ launch:
       param:
         - from: "$(var share)/config/$(var platform)/global_planner.yaml"
         - name: raceline_file
-          value: "$(find-pkg-share race_tracks)/tracks/$(var track)/raceline.csv"
+          value: "$(find-pkg-share race_tracks)/tracks/$(var track)/raceline$(var raceline_suffix).csv"
 
   - node:
       if: "$(var costmap)"

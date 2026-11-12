@@ -4,46 +4,94 @@
       "path": "/control/status.state",
       "style": "background",
       "fallbackColor": "#d62828",
-      "fallbackLabel": "NO STATUS (drive_status not running)",
+      "fallbackLabel": "OFFLINE",
       "rules": [
         {
           "operator": "=",
           "rawValue": "AUTONOMY",
           "color": "#2e9d47",
-          "label": "AUTONOMY: controller driving"
+          "label": "AUTONOMY"
         },
         {
           "operator": "=",
           "rawValue": "STOPPED",
           "color": "#e07a00",
-          "label": "STOPPED: autonomy, dead man off"
+          "label": "STOPPED"
         },
         {
           "operator": "=",
           "rawValue": "MANUAL",
           "color": "#1f6feb",
-          "label": "MANUAL: gamepad driving"
+          "label": "MANUAL"
         },
         {
           "operator": "=",
           "rawValue": "KEYBOARD",
           "color": "#1f6feb",
-          "label": "KEYBOARD driving"
+          "label": "KEYBOARD"
         },
         {
           "operator": "=",
           "rawValue": "EBRAKE",
           "color": "#d62828",
-          "label": "EMERGENCY BRAKE"
+          "label": "EBRAKE"
         },
         {
           "operator": "=",
           "rawValue": "NO_COMMAND",
           "color": "#6e7681",
-          "label": "NO COMMAND: nothing reaches the motor"
+          "label": "NOBODY"
         }
       ],
-      "foxglovePanelTitle": "Who has control"
+      "foxglovePanelTitle": "Who has control (OFFLINE = drive_status not running, STOPPED = dead man off, NOBODY = nothing reaches the motor)"
+    },
+    "Indicator!direction": {
+      "path": "/control/status.direction",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "DEFAULT",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "ccw",
+          "color": "#1f6feb",
+          "label": "CCW"
+        },
+        {
+          "operator": "=",
+          "rawValue": "cw",
+          "color": "#1f6feb",
+          "label": "CW"
+        }
+      ],
+      "foxglovePanelTitle": "Direction (DIRECTION; DEFAULT = raceline.csv)"
+    },
+    "RawMessages!track": {
+      "topicPath": "/control/status.track",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Track"
+    },
+    "RawMessages!controller": {
+      "topicPath": "/control/status.controller",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Controller"
+    },
+    "Indicator!manual": {
+      "path": "/control/teleop.manual",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "OFF",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#1f6feb",
+          "label": "MANUAL"
+        }
+      ],
+      "foxglovePanelTitle": "X: manual"
     },
     "Indicator!mode": {
       "path": "/control/status.mode",
@@ -55,19 +103,19 @@
           "operator": "=",
           "rawValue": "AUTONOMY",
           "color": "#2e9d47",
-          "label": "R1: AUTONOMY"
+          "label": "AUTONOMY"
         },
         {
           "operator": "=",
           "rawValue": "MANUAL",
           "color": "#1f6feb",
-          "label": "X: MANUAL"
+          "label": "MANUAL"
         },
         {
           "operator": "=",
           "rawValue": "BLOCKED",
           "color": "#e07a00",
-          "label": "BLOCKED: toggle R1 off and on"
+          "label": "BLOCKED"
         },
         {
           "operator": "=",
@@ -79,31 +127,121 @@
           "operator": "=",
           "rawValue": "NO_GAMEPAD",
           "color": "#d62828",
-          "label": "NO GAMEPAD"
+          "label": "NOPAD"
         }
       ],
-      "foxglovePanelTitle": "Gamepad mode"
+      "foxglovePanelTitle": "R1: gamepad mode (BLOCKED = toggle R1 off and on)"
+    },
+    "Indicator!reverse": {
+      "path": "/control/teleop.reverse",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "OFF",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#e07a00",
+          "label": "REVERSE"
+        }
+      ],
+      "foxglovePanelTitle": "O: reverse"
+    },
+    "Indicator!pit": {
+      "path": "/control/teleop.pit_limit",
+      "style": "background",
+      "fallbackColor": "#6e7681",
+      "fallbackLabel": "OFF",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#e07a00",
+          "label": "PIT"
+        }
+      ],
+      "foxglovePanelTitle": "Square: pit limit 1 m/s"
+    },
+    "Gauge!throttle": {
+      "path": "/control/teleop.throttle",
+      "minValue": 0,
+      "maxValue": 1,
+      "reverse": false,
+      "foxglovePanelTitle": "Throttle (R2)",
+      "colorMode": "gradient",
+      "gradient": [
+        "#6e7681",
+        "#2e9d47"
+      ]
+    },
+    "Gauge!brake": {
+      "path": "/control/teleop.brake",
+      "minValue": 0,
+      "maxValue": 1,
+      "reverse": false,
+      "foxglovePanelTitle": "Brake (L2)",
+      "colorMode": "gradient",
+      "gradient": [
+        "#6e7681",
+        "#d62828"
+      ]
+    },
+    "Gauge!steering": {
+      "path": "/control/status.commanded_steering",
+      "minValue": -0.52,
+      "maxValue": 0.52,
+      "reverse": false,
+      "foxglovePanelTitle": "Steering command (rad)",
+      "colorMode": "gradient",
+      "gradient": [
+        "#1f6feb",
+        "#e07a00"
+      ]
     },
     "Indicator!dead_man": {
       "path": "/control/status.dead_man",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "DEAD MAN OFF",
+      "fallbackLabel": "OFF",
       "rules": [
         {
           "operator": "=",
           "rawValue": "true",
           "color": "#2e9d47",
-          "label": "DEAD MAN ON"
+          "label": "ON"
         }
       ],
       "foxglovePanelTitle": "Dead man"
     },
-    "RawMessages!status": {
-      "topicPath": "/control/status",
-      "diffEnabled": false,
-      "expansion": "all",
-      "foxglovePanelTitle": "Status: controller, planner, track, commands"
+    "Indicator!connected": {
+      "path": "/control/teleop.connected",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "NONE",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#2e9d47",
+          "label": "OK"
+        }
+      ],
+      "foxglovePanelTitle": "Gamepad"
+    },
+    "Indicator!recording": {
+      "path": "/system/status.bag_recording",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "OFF",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#2e9d47",
+          "label": "REC"
+        }
+      ],
+      "foxglovePanelTitle": "Bag recording (watod bag record)"
     },
     "3D!track": {
       "cameraState": {
@@ -136,14 +274,12 @@
       "fixedFrame": "map",
       "scene": {
         "transforms": {
-          "visible": false
+          "visible": true,
+          "showLabel": true,
+          "axisScale": 0.3
         }
       },
-      "transforms": {
-        "frame:base_link": {
-          "visible": true
-        }
-      },
+      "transforms": {},
       "topics": {
         "/map": {
           "visible": true,
@@ -154,8 +290,10 @@
         "/hal/scan": {
           "visible": true,
           "colorField": "intensity",
-          "colorMode": "flat",
-          "flatColor": "#ff0000ff",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "minValue": 0,
+          "maxValue": 1600,
           "pointSize": 3
         },
         "/global_planner/path": {
@@ -177,6 +315,13 @@
         },
         "/hal/localization/odom": {
           "visible": true
+        },
+        "/hal/filter_scan": {
+          "visible": false,
+          "colorField": "intensity",
+          "colorMode": "flat",
+          "flatColor": "#ffffffff",
+          "pointSize": 2
         }
       },
       "layers": {},
@@ -190,7 +335,37 @@
         "poseEstimateThetaDeviation": 0.26179939
       },
       "imageMode": {},
-      "foxglovePanelTitle": "Track (pose estimate: /initialpose)"
+      "foxglovePanelTitle": "Track, raceline and TF frames"
+    },
+    "Plot!speed": {
+      "paths": [
+        {
+          "value": "/control/speed_limiter.target_speed",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "asked"
+        },
+        {
+          "value": "/control/speed_limiter.limited_speed",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "sent (limited)"
+        },
+        {
+          "value": "/control/status.measured_speed",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "measured"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 30,
+      "foxglovePanelTitle": "Speed (m/s): asked, sent to the VESC (limiter), measured"
     },
     "Gauge!battery": {
       "path": "/hal/battery.percentage",
@@ -209,7 +384,7 @@
       "path": "/hal/battery.power_supply_health",
       "style": "background",
       "fallbackColor": "#6e7681",
-      "fallbackLabel": "NO DATA",
+      "fallbackLabel": "UNKNOWN",
       "rules": [
         {
           "operator": "=",
@@ -221,112 +396,16 @@
           "operator": "=",
           "rawValue": "3",
           "color": "#d62828",
-          "label": "CRITICAL: stop and charge"
+          "label": "CRITICAL"
         },
         {
           "operator": "=",
           "rawValue": "4",
           "color": "#e07a00",
-          "label": "OVERVOLTAGE: check cells"
+          "label": "OVERVOLT"
         }
       ],
-      "foxglovePanelTitle": "Battery health"
-    },
-    "Plot!battery": {
-      "paths": [
-        {
-          "value": "/system/power.pack_voltage_v",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "pack V"
-        },
-        {
-          "value": "/system/power.drive_current_a",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "drive A (VESC)"
-        },
-        {
-          "value": "/system/power.total_current_a",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "total A (estimate)"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "followingViewWidth": 60,
-      "foxglovePanelTitle": "Pack voltage (V) and current (A)"
-    },
-    "Plot!speed": {
-      "paths": [
-        {
-          "value": "/control/status.commanded_speed",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "commanded"
-        },
-        {
-          "value": "/control/status.measured_speed",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "measured"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "followingViewWidth": 30,
-      "foxglovePanelTitle": "Speed (m/s): commanded vs measured"
-    },
-    "Plot!steering": {
-      "paths": [
-        {
-          "value": "/control/status.commanded_steering",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "steering"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "followingViewWidth": 30,
-      "foxglovePanelTitle": "Steering (rad), commanded"
-    },
-    "Plot!pose": {
-      "paths": [
-        {
-          "value": "/hal/localization/odom.pose.pose.position.x",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "x"
-        },
-        {
-          "value": "/hal/localization/odom.pose.pose.position.y",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "y"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "followingViewWidth": 30,
-      "foxglovePanelTitle": "Localization"
+      "foxglovePanelTitle": "Battery health (CRITICAL = stop and charge)"
     },
     "Plot!cpu": {
       "paths": [
@@ -390,6 +469,12 @@
       "minLogLevel": 3,
       "foxglovePanelTitle": "Warnings and errors"
     },
+    "RawMessages!status": {
+      "topicPath": "/control/status",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "Control status (raw)"
+    },
     "Plot!power": {
       "paths": [
         {
@@ -420,11 +505,366 @@
       "followingViewWidth": 120,
       "foxglovePanelTitle": "Power (W)"
     },
-    "3D!tf": {
+    "Plot!battery": {
+      "paths": [
+        {
+          "value": "/system/power.pack_voltage_v",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pack V"
+        },
+        {
+          "value": "/system/power.drive_current_a",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "drive A (VESC)"
+        },
+        {
+          "value": "/system/power.total_current_a",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "total A (estimate)"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 60,
+      "foxglovePanelTitle": "Pack voltage (V) and current (A)"
+    },
+    "Indicator!vesc_fault": {
+      "path": "/sensors/core.state.fault_code",
+      "style": "background",
+      "fallbackColor": "#d62828",
+      "fallbackLabel": "FAULT",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "0",
+          "color": "#2e9d47",
+          "label": "OK"
+        }
+      ],
+      "foxglovePanelTitle": "VESC (FAULT = fault code set, or no data)"
+    },
+    "Plot!vesc_current": {
+      "paths": [
+        {
+          "value": "/sensors/core.state.current_motor",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "motor"
+        },
+        {
+          "value": "/sensors/core.state.current_input",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "battery"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 60,
+      "foxglovePanelTitle": "VESC current (A)"
+    },
+    "Plot!vesc_temp": {
+      "paths": [
+        {
+          "value": "/sensors/core.state.temp_fet",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "MOSFET"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 120,
+      "foxglovePanelTitle": "VESC MOSFET temperature (C)"
+    },
+    "Plot!vesc_voltage": {
+      "paths": [
+        {
+          "value": "/sensors/core.state.voltage_input",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "V in"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 120,
+      "foxglovePanelTitle": "Pack voltage at the VESC (V)"
+    },
+    "Plot!vesc_duty": {
+      "paths": [
+        {
+          "value": "/sensors/core.state.duty_cycle",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "duty"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 60,
+      "foxglovePanelTitle": "VESC duty cycle (0.95 = voltage limit)"
+    },
+    "Image!camera": {
+      "imageMode": {
+        "imageTopic": "/camera/camera/color/image_raw/compressed"
+      },
+      "foxglovePanelTitle": "RealSense color (REALSENSE_IMAGES=true)"
+    },
+    "Image!depth": {
+      "imageMode": {
+        "imageTopic": "/camera/camera/depth/image_rect_raw/compressedDepth",
+        "colorMode": "colormap",
+        "colorMap": "turbo",
+        "minValue": 0,
+        "maxValue": 4000
+      },
+      "foxglovePanelTitle": "RealSense depth, mm (REALSENSE_IMAGES=true)"
+    },
+    "Tab!main": {
+      "activeTabIdx": 0,
+      "tabs": [
+        {
+          "title": "Drive",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Indicator!state",
+              "second": {
+                "direction": "column",
+                "first": {
+                  "direction": "row",
+                  "first": "Indicator!direction",
+                  "second": {
+                    "direction": "row",
+                    "first": "RawMessages!track",
+                    "second": "RawMessages!controller",
+                    "splitPercentage": 50.0
+                  },
+                  "splitPercentage": 33.3
+                },
+                "second": {
+                  "direction": "column",
+                  "first": {
+                    "direction": "row",
+                    "first": "Indicator!manual",
+                    "second": {
+                      "direction": "row",
+                      "first": "Indicator!mode",
+                      "second": {
+                        "direction": "row",
+                        "first": "Indicator!reverse",
+                        "second": "Indicator!pit",
+                        "splitPercentage": 50.0
+                      },
+                      "splitPercentage": 33.3
+                    },
+                    "splitPercentage": 25.0
+                  },
+                  "second": {
+                    "direction": "column",
+                    "first": {
+                      "direction": "row",
+                      "first": "Gauge!throttle",
+                      "second": {
+                        "direction": "row",
+                        "first": "Gauge!brake",
+                        "second": "Gauge!steering",
+                        "splitPercentage": 50.0
+                      },
+                      "splitPercentage": 33.3
+                    },
+                    "second": {
+                      "direction": "column",
+                      "first": {
+                        "direction": "row",
+                        "first": "Indicator!dead_man",
+                        "second": {
+                          "direction": "row",
+                          "first": "Indicator!connected",
+                          "second": "Indicator!recording",
+                          "splitPercentage": 50.0
+                        },
+                        "splitPercentage": 33.3
+                      },
+                      "second": {
+                        "direction": "row",
+                        "first": "Gauge!battery",
+                        "second": "Indicator!battery_health",
+                        "splitPercentage": 66.7
+                      },
+                      "splitPercentage": 31.2
+                    },
+                    "splitPercentage": 44.8
+                  },
+                  "splitPercentage": 17.1
+                },
+                "splitPercentage": 11.4
+              },
+              "splitPercentage": 13.2
+            },
+            "second": {
+              "direction": "column",
+              "first": "3D!track",
+              "second": {
+                "direction": "row",
+                "first": "Plot!speed",
+                "second": "Plot!drive_power",
+                "splitPercentage": 62.5
+              },
+              "splitPercentage": 64.0
+            },
+            "splitPercentage": 36.0
+          }
+        },
+        {
+          "title": "System",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Plot!cpu",
+              "second": {
+                "direction": "column",
+                "first": "Plot!temp",
+                "second": {
+                  "direction": "column",
+                  "first": "Plot!power",
+                  "second": "Plot!battery",
+                  "splitPercentage": 50.0
+                },
+                "splitPercentage": 33.3
+              },
+              "splitPercentage": 25.0
+            },
+            "second": {
+              "direction": "row",
+              "first": {
+                "direction": "column",
+                "first": "Indicator!vesc_fault",
+                "second": {
+                  "direction": "column",
+                  "first": "Plot!vesc_current",
+                  "second": {
+                    "direction": "column",
+                    "first": "Plot!vesc_temp",
+                    "second": {
+                      "direction": "column",
+                      "first": "Plot!vesc_voltage",
+                      "second": "Plot!vesc_duty",
+                      "splitPercentage": 50.0
+                    },
+                    "splitPercentage": 33.3
+                  },
+                  "splitPercentage": 25.0
+                },
+                "splitPercentage": 7.7
+              },
+              "second": {
+                "direction": "column",
+                "first": "RawMessages!alarms",
+                "second": {
+                  "direction": "column",
+                  "first": "SourceInfo!rates",
+                  "second": {
+                    "direction": "column",
+                    "first": "RosOut!log",
+                    "second": "RawMessages!status",
+                    "splitPercentage": 50.0
+                  },
+                  "splitPercentage": 33.3
+                },
+                "splitPercentage": 14.3
+              },
+              "splitPercentage": 50.0
+            },
+            "splitPercentage": 33.3
+          }
+        },
+        {
+          "title": "Lidar",
+          "layout": {
+            "direction": "row",
+            "first": "3D!lidar",
+            "second": {
+              "direction": "column",
+              "first": "Plot!scan_intensity",
+              "second": "Plot!scan_range",
+              "splitPercentage": 50
+            },
+            "splitPercentage": 55
+          }
+        },
+        {
+          "title": "Camera",
+          "layout": {
+            "direction": "row",
+            "first": "Image!camera",
+            "second": "Image!depth",
+            "splitPercentage": 50.0
+          }
+        }
+      ]
+    },
+    "Plot!drive_power": {
+      "paths": [
+        {
+          "value": "/system/power.drive_power_w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "drive"
+        },
+        {
+          "value": "/system/power.compute_power_w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Jetson"
+        },
+        {
+          "value": "/system/power.total_power_w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "total (estimate)"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 60,
+      "foxglovePanelTitle": "Power (W): drive, Jetson, total"
+    },
+    "3D!lidar": {
       "cameraState": {
-        "perspective": true,
-        "distance": 3,
-        "phi": 50,
+        "perspective": false,
+        "distance": 10,
+        "phi": 0.0001,
         "thetaOffset": 90,
         "targetOffset": [
           0,
@@ -452,16 +892,55 @@
       "scene": {
         "transforms": {
           "visible": true,
-          "showLabel": true,
+          "showLabel": false,
           "axisScale": 0.3
         }
       },
-      "transforms": {
-        "frame:base_link": {
+      "transforms": {},
+      "topics": {
+        "/map": {
+          "visible": true,
+          "drawBehind": true,
+          "minColor": "#ffffffff",
+          "maxColor": "#000000ff"
+        },
+        "/hal/scan": {
+          "visible": true,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "minValue": 0,
+          "maxValue": 1600,
+          "pointSize": 4
+        },
+        "/global_planner/path": {
+          "visible": false,
+          "lineWidth": 0.05,
+          "gradient": [
+            "#2f81f7ff",
+            "#2f81f7ff"
+          ]
+        },
+        "/global_planner/edges": {
+          "visible": false
+        },
+        "/local_planner/path": {
+          "visible": false
+        },
+        "/debug/lookahead_point": {
+          "visible": false
+        },
+        "/hal/localization/odom": {
           "visible": true
+        },
+        "/hal/filter_scan": {
+          "visible": true,
+          "colorField": "intensity",
+          "colorMode": "flat",
+          "flatColor": "#ffffffff",
+          "pointSize": 2
         }
       },
-      "topics": {},
       "layers": {},
       "publish": {
         "type": "pose_estimate",
@@ -473,128 +952,41 @@
         "poseEstimateThetaDeviation": 0.26179939
       },
       "imageMode": {},
-      "foxglovePanelTitle": "TF frames (labels on)"
+      "foxglovePanelTitle": "Scan by intensity (blue 0 -> red 1600); white dots = /hal/filter_scan, so coloured points without a white dot were filtered out"
     },
-    "Image!camera": {
-      "imageMode": {
-        "imageTopic": "/camera/camera/color/image_raw/compressed"
-      },
-      "foxglovePanelTitle": "RealSense color (REALSENSE_IMAGES=true)"
-    },
-    "Tab!main": {
-      "activeTabIdx": 0,
-      "tabs": [
+    "Plot!scan_intensity": {
+      "paths": [
         {
-          "title": "Drive",
-          "layout": {
-            "direction": "row",
-            "first": {
-              "direction": "column",
-              "first": "Indicator!state",
-              "second": {
-                "direction": "column",
-                "first": {
-                  "direction": "row",
-                  "first": "Indicator!mode",
-                  "second": "Indicator!dead_man",
-                  "splitPercentage": 50
-                },
-                "second": {
-                  "direction": "column",
-                  "first": "Indicator!recording",
-                  "second": "RawMessages!status",
-                  "splitPercentage": 25
-                },
-                "splitPercentage": 18
-              },
-              "splitPercentage": 22
-            },
-            "second": {
-              "direction": "column",
-              "first": "3D!track",
-              "second": {
-                "direction": "row",
-                "first": {
-                  "direction": "column",
-                  "first": "Gauge!battery",
-                  "second": "Indicator!battery_health",
-                  "splitPercentage": 70
-                },
-                "second": "Plot!battery",
-                "splitPercentage": 30
-              },
-              "splitPercentage": 72
-            },
-            "splitPercentage": 30
-          }
-        },
-        {
-          "title": "Tuning",
-          "layout": {
-            "direction": "column",
-            "first": "Plot!speed",
-            "second": {
-              "direction": "column",
-              "first": "Plot!steering",
-              "second": "Plot!pose",
-              "splitPercentage": 50
-            },
-            "splitPercentage": 40
-          }
-        },
-        {
-          "title": "System",
-          "layout": {
-            "direction": "row",
-            "first": {
-              "direction": "column",
-              "first": "Plot!power",
-              "second": {
-                "direction": "column",
-                "first": "Plot!cpu",
-                "second": "Plot!temp",
-                "splitPercentage": 50
-              },
-              "splitPercentage": 34
-            },
-            "second": {
-              "direction": "column",
-              "first": "RawMessages!alarms",
-              "second": {
-                "direction": "column",
-                "first": "SourceInfo!rates",
-                "second": "RosOut!log",
-                "splitPercentage": 50
-              },
-              "splitPercentage": 20
-            },
-            "splitPercentage": 55
-          }
-        },
-        {
-          "title": "Camera",
-          "layout": "Image!camera"
-        },
-        {
-          "title": "TF",
-          "layout": "3D!tf"
-        }
-      ]
-    },
-    "Indicator!recording": {
-      "path": "/system/status.bag_recording",
-      "style": "background",
-      "fallbackColor": "#d62828",
-      "fallbackLabel": "NOT RECORDING",
-      "rules": [
-        {
-          "operator": "=",
-          "rawValue": "true",
-          "color": "#2e9d47",
-          "label": "RECORDING"
+          "value": "/hal/scan.intensities[:]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "intensities"
         }
       ],
-      "foxglovePanelTitle": "Bag recording (watod bag record)"
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "isSynced": false,
+      "xAxisVal": "index",
+      "foxglovePanelTitle": "Intensity per beam, latest scan (beam 0 = 113 deg right, ~904 = straight ahead, ~1808 = 113 deg left; 0.125 deg per beam)"
+    },
+    "Plot!scan_range": {
+      "paths": [
+        {
+          "value": "/hal/scan.ranges[:]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ranges"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "legendDisplay": "floating",
+      "isSynced": false,
+      "xAxisVal": "index",
+      "foxglovePanelTitle": "Range per beam (m), latest scan"
     }
   },
   "globalVariables": {},

@@ -99,3 +99,5 @@ hold the dead-man switch until the checks pass.
   (see `deploy-to-car.md`).
 - BlueZ 5.64 on the Jetson: use `./watod controller` for the gamepad. It runs bluetoothctl on the
   host, so it works over SSH.
+- VESC motor settings (VESC Tool, backups, tuning) are changed outside Docker with the headless
+  scripts in `agents/scripts/vesc/`: see `vesc-firmware.md`.

@@ -63,6 +63,8 @@ Commands
   controller [pair|connect|status|forget]
                               Pair / reconnect a Bluetooth PS4 or PS5 pad (runs on the host)
   blackbox [list|<file>]      Read the car's black box: the last seconds before a power cut
+  tools [sync|status]         Clone or update the tool repos in tools/ (raceline generator,
+                              model framework) to their latest main/master
   down                        Stop ACTIVE_MODULES containers + infrastructure
   down <service>              Stop only the specified service(s)
   down all                    Stop all watod containers (all modules/profiles)
@@ -262,6 +264,11 @@ while [[ $# -gt 0 ]]; do
       "$MONO_DIR/watod_scripts/watod-blackbox.sh" "$@"
       exit $?
       ;;
+    tools)
+      shift
+      "$MONO_DIR/watod_scripts/watod-tools.sh" "$@"
+      exit $?
+      ;;
     -s|--setup-dev-env)
       shift
       "$MONO_DIR/watod_scripts/watod-setup-dev-env.sh" "$@"
@@ -459,6 +466,18 @@ for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml"
     exit 1
   fi
 done
+# DIRECTION picks raceline_<ccw|cw>.csv in the track's folder (empty: its raceline.csv)
+if [[ -n ${DIRECTION:-} ]]; then
+  track_dir="$MONO_DIR/src/world_modeling/race_tracks/tracks/$TRACK"
+  if [[ "$DIRECTION" != "ccw" && "$DIRECTION" != "cw" ]]; then
+    echo "Error: DIRECTION=\"$DIRECTION\": use ccw, cw, or leave it empty for the track's default." >&2
+    exit 1
+  elif [[ -d "$track_dir" && ! -f "$track_dir/raceline_$DIRECTION.csv" ]]; then
+    echo "Error: TRACK=\"$TRACK\" has no raceline_$DIRECTION.csv (regenerate it with the raceline" >&2
+    echo "generator's make_raceline.py, or leave DIRECTION empty for its raceline.csv)." >&2
+    exit 1
+  fi
+fi
 
 # ────────────────────────────── Run Tests ────────────────────────────────
 

@@ -21,3 +21,4 @@ float32 measured_speed      # /hal/odom (m/s)
 string controller       # CONTROLLER
 string local_planner    # LOCAL_PLANNER
 string track            # TRACK
+string direction        # DIRECTION: ccw, cw, or "" (the track's default raceline.csv)

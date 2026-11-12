@@ -22,7 +22,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ControlStatus.msg"
   "msg/PowerRail.msg"
   "msg/PowerStatus.msg"
+  "msg/SpeedLimiterStatus.msg"
   "msg/SystemStatus.msg"
+  "msg/TeleopState.msg"
   "msg/Temperature.msg"
   DEPENDENCIES std_msgs)
 

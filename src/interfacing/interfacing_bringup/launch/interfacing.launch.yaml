@@ -97,6 +97,8 @@ launch:
           value: "$(env LOCAL_PLANNER none)"
         - name: track
           value: "$(env TRACK unknown)"
+        - name: direction
+          value: "$(env DIRECTION '')"
 
   # Car drivers
   - group:
@@ -140,6 +142,19 @@ launch:
             remap:
               - from: scan
                 to: /hal/scan
+        # Intensity filter: /hal/scan (raw, unchanged) -> /hal/filter_scan without the dim stray points.
+        # Cutoff in config/car/scan_filter.yaml; tuned on one track, so check it on a new one.
+        - node:
+            pkg: laser_filters
+            exec: scan_to_scan_filter_chain
+            name: scan_intensity_filter
+            param:
+              - from: "$(var config_dir)/scan_filter.yaml"
+            remap:
+              - from: scan
+                to: /hal/scan
+              - from: scan_filtered
+                to: /hal/filter_scan
         # Drive battery from VESC telemetry -> /hal/battery (the Jetson shares the pack)
         - node:
             pkg: vesc_battery

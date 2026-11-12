@@ -45,10 +45,6 @@ target_include_directories(global_planner_node PUBLIC include)
 target_link_libraries(global_planner_node ${cpp_typesupport_target})
 ament_target_dependencies(global_planner_node rclcpp std_msgs nav_msgs geometry_msgs visualization_msgs)
 
-install(PROGRAMS scripts/generate_raceline_reference.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 install(TARGETS
   global_planner_node
   DESTINATION lib/${PROJECT_NAME}

@@ -17,6 +17,7 @@
   <depend>sensor_msgs</depend>
   <depend>joy</depend>
   <depend>ackermann_msgs</depend>
+  <depend>f1tenth_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

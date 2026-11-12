@@ -22,6 +22,7 @@
 
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#include "f1tenth_msgs/msg/teleop_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -43,6 +44,7 @@ private:
   rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackerman_pub;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr dead_man_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mode_pub_;
+  rclcpp::Publisher<f1tenth_msgs::msg::TeleopState>::SharedPtr teleop_state_pub_;
   rclcpp::TimerBase::SharedPtr watchdog_;
 
   // functions
@@ -70,6 +72,7 @@ private:
   bool dead_man_ = false;
   bool autonomy_blocked_ = false;
   std::string mode_;
+  f1tenth_msgs::msg::TeleopState teleop_state_;
   rclcpp::Time last_joy_{0, 0, RCL_ROS_TIME};
 
   // buttons

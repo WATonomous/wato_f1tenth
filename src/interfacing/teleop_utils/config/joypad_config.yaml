@@ -7,12 +7,14 @@
     # Topic names
     gamepad_topic: "/hal/drive/joystick"
     dead_man_topic: "/hal/dead_man_switch"
+    teleop_state_topic: "/control/teleop"   # toggles and triggers for the Foxglove Drive panel
     joy_topic: "/joy"
     my_frame_id: "base_link"
 
     # Speed and steering parameters
     # m/s at full throttle in manual: the car's top speed (VESC and vesc.yaml allow 10 m/s). The
-    # throttle curve is exponential: about 1.4 m/s at half trigger, 3.7 at 3/4, 6.7 at 90%.
+    # throttle curve is exponential: about 1.2 m/s at half trigger, 3.5 at 3/4, 6.5 at 90%.
+    # Every control and setting: teleop_utils/README.md.
     max_speed: 10.0
     steering_gain: 0.5236
     max_steering_rate: 3.2

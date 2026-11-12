@@ -24,6 +24,8 @@ install/
 log/
 # system_monitor black box on the car (watod blackbox)
 /logs/
+# tool repos cloned by `watod tools` (they follow their own main/master, not pinned here)
+/tools/*/
 /external/
 /weights/
 /models/

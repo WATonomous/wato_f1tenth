@@ -31,6 +31,7 @@ JOYPAD::JOYPAD()
   this->declare_parameter<std::string>("joy_topic", "/joy");
   this->declare_parameter<std::string>("dead_man_topic", "/hal/dead_man_switch");
   this->declare_parameter<std::string>("mode_topic", "/control/mode");
+  this->declare_parameter<std::string>("teleop_state_topic", "/control/teleop");
   this->declare_parameter<std::string>("my_frame_id", "base_link");
 
   this->declare_parameter<float>("max_speed", 4.0);
@@ -80,6 +81,10 @@ JOYPAD::JOYPAD()
     this->get_parameter("mode_topic").as_string(), rclcpp::QoS(1).transient_local().reliable());
   publishMode("NO_GAMEPAD");
 
+  // the toggles and triggers for the Drive panel: 10 Hz, best effort (visualization, rule 7)
+  teleop_state_pub_ = this->create_publisher<f1tenth_msgs::msg::TeleopState>(
+    this->get_parameter("teleop_state_topic").as_string(), rclcpp::QoS(1).best_effort());
+
   gamepad_sub = this->create_subscription<sensor_msgs::msg::Joy>(
     joy_topic, 20, std::bind(&JOYPAD::gamepadCallback, this, std::placeholders::_1));
 
@@ -113,6 +118,15 @@ void JOYPAD::publishMode(const std::string & mode)
 
 void JOYPAD::watchdogCallback()
 {
+  const bool connected =
+    last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() <= joy_timeout_s;
+  teleop_state_.header.stamp = this->now();
+  teleop_state_.connected = connected;
+  teleop_state_.mode = mode_;
+  teleop_state_.max_speed = max_speed;
+  teleop_state_.reverse_speed = reverse_speed;
+  teleop_state_pub_->publish(teleop_state_);
+
   if (last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() > joy_timeout_s) {
     publishMode("NO_GAMEPAD");
   }
@@ -150,6 +164,17 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   }
   bool autonomy = !armed && autonomy_on && !autonomy_blocked_;
   publishMode(armed ? "MANUAL" : autonomy ? "AUTONOMY" : (autonomy_on && autonomy_blocked_) ? "BLOCKED" : "IDLE");
+
+  // What the toggles and triggers are set to, for /control/teleop (sent by watchdogCallback)
+  teleop_state_.manual = armed;
+  teleop_state_.autonomy = autonomy_on;
+  teleop_state_.autonomy_blocked = autonomy_on && autonomy_blocked_;
+  teleop_state_.reverse = msg->buttons.at(ba.reverse_button);
+  teleop_state_.pit_limit = msg->buttons.at(ba.pitLimit_button);
+  teleop_state_.throttle = trigger_travel(msg->axes.at(ba.throttle_axis), throttle_seen_);
+  teleop_state_.brake = trigger_travel(msg->axes.at(ba.break_axis), brake_seen_);
+  teleop_state_.steering = steering_mapper(msg->axes.at(ba.steering_axis));
+  teleop_state_.requested_speed = 0.0;
 
   // On the manual->released edge, publish one zero command so the last thing downstream sees is a
   // stop, then go quiet on gamepad_topic. ackermann_mux (timeout: 0.2s in mux.yaml) then sees the
@@ -207,6 +232,8 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   if (pit_speed_limit && drive.speed > 1.0 && !reversing) {
     drive.speed = 1.0;
   }
+
+  teleop_state_.requested_speed = drive.speed;
 
   // publish the message; manual control releases the dead man so autonomy stops
   drive_msg.drive = drive;

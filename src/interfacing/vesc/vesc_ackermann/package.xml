@@ -24,6 +24,7 @@
   <depend>std_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>vesc_msgs</depend>
+  <depend>f1tenth_msgs</depend>
 
 
   <export>
