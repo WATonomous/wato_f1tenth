@@ -53,8 +53,12 @@ launch:
 
   - arg:
       name: ekf
-      default: "false"
-      description: "Run the ackermann EKF (off on the car since mppi_test)"
+      # was "false" (off on the car since mppi_test). On by default on the car since 2026-11-12: it
+      # feeds the particle filter (/hal/ekf_odom) and owns the odom -> base_link TF there (vesc.yaml
+      # publish_tf: false), so turning it off on the car also needs publish_tf: true back in vesc.yaml
+      # and odometry_topic: /hal/odom in localize.yaml.
+      default: "$(eval '\"$(var platform)\" == \"car\"')"
+      description: "Run the ackermann EKF: wheel odometry + IMU -> /hal/ekf_odom (car: on, sim: off)"
 
   - arg:
       name: rviz
@@ -150,6 +154,8 @@ launch:
       exec: ekf
       name: ekf
       output: screen
+      param:
+        - from: "$(var share)/config/$(var platform)/ekf.yaml"
 
   - node:
       if: "$(var planner)"

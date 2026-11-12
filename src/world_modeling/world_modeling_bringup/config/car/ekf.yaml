@@ -1,0 +1,74 @@
+# ackermann_ekf (world_modeling, ekf:=true; on by default on the car since 2026-11-12).
+# Fuses wheel odometry (/hal/odom: speed, and a loose steering-based yaw rate) with the RealSense IMU
+# (/hal/imu: gyro yaw rate and acceleration, no orientation) into /hal/ekf_odom and the TF
+# odom -> base_link. The particle filter uses /hal/ekf_odom as its motion input (localize.yaml), and
+# vesc_to_odom stops publishing that TF (interfacing_bringup/config/car/vesc.yaml publish_tf: false).
+#
+# The R and Q values are added per update, not per second. The filter predicts on every message
+# (control 50 Hz + odometry 50 Hz + IMU 200 Hz, about 300 per second). The previous values (the code
+# defaults, never tuned on the car) are kept in the comments. The new ones are a first guess:
+# untested on the car.
+/**:
+  ros__parameters:
+    use_sim_time: false
+
+    # ---- topics and frames ----
+    ekf_topic: "/hal/ekf_odom"             # was the code default "/ekf/odom"
+    odom_topic: "/hal/odom"
+    imu_topic: "/hal/imu"                  # RealSense (IMU=realsense, REALSENSE=true); frame from the message, via TF
+    ackermann_topic: "/hal/ackermann_cmd"  # only used with yaw_from_steering: true
+    header_frame: "odom"
+    child_frame: "base_link"
+    publish_tf: true                       # odom -> base_link (vesc_to_odom's publish_tf is off on the car)
+    publish_rate_hz: 100.0                 # odometry + TF rate (first set to 50); the particle filter updates once per message
+
+    # ---- model ----
+    yaw_from_steering: false   # false: heading integrates the gyro-corrected yaw rate. true: the old
+                               # bicycle model, yaw rate = v / L * tan(steering command)
+                               # (it diverges when the gyro and the wheel odometry's yaw rate
+                               # disagree: it ties yaw rate to speed. Tested in a container 2026-11-12)
+    wheel_base: 0.3302         # vesc.yaml vesc_to_odom wheelbase (only used with yaw_from_steering)
+    alpha: 0.55                # speed low-pass (1 = none)
+    debug_mode: false
+
+    # ---- initial state: the car starts at the odom origin ----
+    inital_x: 0.0
+    inital_y: 0.0
+    inital_theta: 0.0
+    inital_velocity: 0.0
+    inital_theta_dot: 0.0
+    inital_ax: 0.0
+    inital_ay: 0.0
+
+    # ---- initial covariance ----
+    x_cov: 0.01          # was 10.0 (the start is the odom origin by definition)
+    y_cov: 0.01          # was 10.0
+    theta_cov: 0.01      # was 10.0
+    velocity_cov: 0.1    # was 10.1
+    theta_dot_cov: 0.1   # was 10.0
+    ax_cov: 1.0          # was 10.0
+    ay_cov: 1.0          # was 10.0
+
+    # ---- process noise, per prediction step ----
+    R_x: 0.0001          # was 1.0   (1 cm per step: position comes from v and theta)
+    R_y: 0.0001          # was 1.0
+    R_theta: 0.000001    # was 5.0   (heading comes from theta_dot; 5.0 let any measurement overwrite it)
+    R_v: 0.01            # was 1.0
+    R_theta_dot: 0.05    # was 5.0   (the yaw rate can change fast; the gyro pins it)
+    R_ax: 0.5            # was 3.5
+    R_ay: 0.5            # was 3.5
+
+    # ---- wheel odometry noise ----
+    # The wheel odometry's pose is dead-reckoned from the steering command, so its x, y and heading
+    # drift; huge values mean the EKF ignores them and only uses the odometry's speed and yaw rate.
+    Q_odom_x: 1000000.0          # was 1.5
+    Q_odom_y: 1000000.0          # was 1.5
+    Q_odom_theta: 1000000.0      # was 3.0
+    Q_odom_v: 0.05               # was 0.75  (wheel speed is good: ~0.2 m/s)
+    Q_odom_theta_dot: 1.0        # was 3.0   (yaw rate from the steering command: loose)
+
+    # ---- IMU noise ----
+    # Q_imu_theta: 0.45          # previous, no longer used: the RealSense IMU has no orientation
+    Q_imu_theta_dot: 0.0025      # was 0.5   (gyro: ~0.05 rad/s)
+    Q_imu_ax: 1.0                # was 0.65  (accelerometer: vibration, and pitch leaks gravity in)
+    Q_imu_ay: 1.0                # was 0.65
