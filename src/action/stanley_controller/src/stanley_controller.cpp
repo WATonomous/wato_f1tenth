@@ -58,6 +58,31 @@ Stanley_Controller_Node::Stanley_Controller_Node() : Node("stanley_controller_no
         current_velocity = msg->twist.twist.linear.x;
     }
 );
+
+    //local planner (LOCAL_PLANNER set): follow /local_planner/path while /local_planner/active is
+    //true and the path is fresh, else the global path (agents/workflows/add-controller.md)
+    if (use_local_planner) {
+        tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+        local_active_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+            local_active_topic, latched_qos,
+            [this](const std_msgs::msg::Bool::SharedPtr msg) {
+                local_active_ = msg->data;
+                if (!local_active_) {
+                    current_local_path.poses.clear();
+                }
+            });
+        local_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+            local_path_topic, 10,
+            [this](const nav_msgs::msg::Path::SharedPtr msg) {
+                received_local_path = *msg;
+                local_path_pending_ = true;
+                local_path_rx_ = this->now();
+            });
+        RCLCPP_INFO(this->get_logger(), "local planner on: %s while %s is true",
+                    local_path_topic.c_str(), local_active_topic.c_str());
+    }
     control_loop_timer = this->create_wall_timer(
         std::chrono::duration<double>(1.0 / control_rate_hz),
         [this]() {
@@ -70,7 +95,23 @@ void Stanley_Controller_Node::control_timer_callback() {
 
     update_controller_state();
 
-    const bool have_path = !current_global_path.poses.empty();
+    //which path to follow this tick: the local planner's while it is usable, else the global one
+    bool follow_local = false;
+    if (use_local_planner) {
+        update_local_path_in_map();
+        follow_local = local_path_usable();
+        if (follow_local != following_local_) {
+            RCLCPP_INFO(this->get_logger(), "following the %s path", follow_local ? "local" : "global");
+            if (!follow_local) {
+                closest_idx_initialized_ = false;   //re-find our place on the global path
+            }
+            following_local_ = follow_local;
+        }
+    }
+    const nav_msgs::msg::Path& path = follow_local ? current_local_path : current_global_path;
+    const bool closed = !follow_local;
+
+    const bool have_path = !path.poses.empty();
 
     const bool pose_fresh = last_pose_rx_.nanoseconds() != 0 &&
                             (this->now() - last_pose_rx_).seconds() <= pose_timeout_s;
@@ -86,7 +127,7 @@ void Stanley_Controller_Node::control_timer_callback() {
     } else if (!have_path) {
 
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                             "no waypoints in global path while in GLOBAL_FOLLOW state");
+                             "no waypoints to follow (no global path yet) while armed");
         controls_pub_->publish(dead_stop());
 
     } else if (!pose_fresh || pose_lost_) {
@@ -105,13 +146,13 @@ void Stanley_Controller_Node::control_timer_callback() {
     } else {
 
         //apply the stanley control law
-        controls_pub_->publish(calculate_control());
+        controls_pub_->publish(calculate_control(path, closed));
 
     }
 
     //publish viz whether or not we're actively driving
     if (enable_debug_vis && have_path && tick_++ % vis_every_n_ == 0) {
-        publish_debug_vis(current_pose.pose.pose,
+        publish_debug_vis(path, closed, current_pose.pose.pose,
                           last_closest_idx_,
                           last_cross_track_error_,
                           last_heading_error_,
@@ -135,7 +176,7 @@ void Stanley_Controller_Node::update_controller_state() {
 
 }
 
-ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_control() {
+ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_control(const nav_msgs::msg::Path& path, bool closed) {
 
     //current pose and speed
     stanley::State s;
@@ -153,12 +194,14 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
     p.speed_limit_active = speed_limit_enable;
     p.speed_limit        = speed_limit;
     p.speed_lookahead_s  = speed_lookahead_s;
+    p.closed             = closed;
 
-    //find closest waypoint to front axle, then apply the control law (stanley.cpp)
+    //find closest waypoint to front axle, then apply the control law (stanley.cpp). The global
+    //raceline uses the windowed search; the short local path is scanned whole every tick
     double front_x, front_y;
     stanley::front_axle(s, wheelbase, front_x, front_y);
-    size_t closest_idx = find_closest_point(front_x, front_y);
-    const stanley::Result r = stanley::compute(s, current_global_path, closest_idx, p);
+    size_t closest_idx = closed ? find_closest_point(front_x, front_y) : find_closest_in(path, front_x, front_y);
+    const stanley::Result r = stanley::compute(s, path, closest_idx, p);
 
     //stash for debug viz
     last_closest_idx_       = closest_idx;
@@ -169,8 +212,8 @@ ackermann_msgs::msg::AckermannDriveStamped Stanley_Controller_Node::calculate_co
     last_steering_cmd_      = r.steering;
 
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
-        "heading_err=%.3f, cte=%.3f, steer=%.3f, speed=%.2f, idx=%zu",
-        r.heading_error, r.cte, r.steering, r.speed, closest_idx);
+        "%s heading_err=%.3f, cte=%.3f, steer=%.3f, speed=%.2f, idx=%zu",
+        closed ? "global" : "local", r.heading_error, r.cte, r.steering, r.speed, closest_idx);
 
     ackermann_msgs::msg::AckermannDrive drive;
     drive.steering_angle = r.steering;
@@ -239,6 +282,70 @@ size_t Stanley_Controller_Node::find_closest_point(double x, double y) {
 
 }
 
+size_t Stanley_Controller_Node::find_closest_in(const nav_msgs::msg::Path& path, double x, double y) {
+
+    size_t best_idx = 0;
+    double best = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < path.poses.size(); i++) {
+        const double d = std::hypot(x - path.poses[i].pose.position.x, y - path.poses[i].pose.position.y);
+        if (d < best) { best = d; best_idx = i; }
+    }
+    return best_idx;
+
+}
+
+void Stanley_Controller_Node::update_local_path_in_map() {
+
+    if (!local_path_pending_) return;
+
+    //already in the map frame (or empty): use it as it is
+    if (received_local_path.poses.empty() || received_local_path.header.frame_id == global_frame_id ||
+        received_local_path.header.frame_id.empty()) {
+        current_local_path = received_local_path;
+        current_local_path.header.frame_id = global_frame_id;
+        stanley::drop_duplicate_points(current_local_path.poses);
+        local_path_pending_ = false;
+        return;
+    }
+
+    //the planner stamps the path with the pose it planned from: transform at that time, or at the
+    //latest transform if that time isn't in the buffer
+    geometry_msgs::msg::TransformStamped t;
+    try {
+        t = tf_buffer_->lookupTransform(global_frame_id, received_local_path.header.frame_id,
+                                        tf2_ros::fromMsg(received_local_path.header.stamp));
+    } catch (const tf2::TransformException&) {
+        try {
+            t = tf_buffer_->lookupTransform(global_frame_id, received_local_path.header.frame_id,
+                                            tf2::TimePointZero);
+        } catch (const tf2::TransformException& ex) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                 "local path not transformed to %s yet: %s", global_frame_id.c_str(), ex.what());
+            return;   //stays pending; tried again next tick
+        }
+    }
+
+    tf2::Transform tr;
+    tf2::fromMsg(t.transform, tr);
+    current_local_path = received_local_path;
+    current_local_path.header.frame_id = global_frame_id;
+    for (auto& pose : current_local_path.poses) {
+        const tf2::Vector3 v = tr * tf2::Vector3(pose.pose.position.x, pose.pose.position.y, 0.0);
+        pose.pose.position.x = v.x();
+        pose.pose.position.y = v.y();   //z keeps the speed
+    }
+    stanley::drop_duplicate_points(current_local_path.poses);
+    local_path_pending_ = false;
+
+}
+
+bool Stanley_Controller_Node::local_path_usable() {
+
+    if (!local_active_ || current_local_path.poses.size() < 2) return false;
+    return local_path_rx_.nanoseconds() != 0 && (this->now() - local_path_rx_).seconds() <= local_path_timeout_s;
+
+}
+
 double Stanley_Controller_Node::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
 
     tf2::Quaternion q(quat.x, quat.y, quat.z, quat.w);
@@ -272,7 +379,10 @@ void Stanley_Controller_Node::init_parameters() {
     this->declare_parameter<std::string>("ackermann_control_topic", "/hal/drive/autonomy");
     this->declare_parameter<std::string>("odom_topic", "/hal/localization/odom");
     this->declare_parameter<std::string>("speed_topic", "/hal/odom");
-    
+    this->declare_parameter<std::string>("local_path_topic", "/local_planner/path");
+    this->declare_parameter<std::string>("local_active_topic", "/local_planner/active");
+    this->declare_parameter<bool>("use_local_planner", false);   //the launch file sets it from LOCAL_PLANNER
+    this->declare_parameter<double>("local_path_timeout_s", 0.5);
 
     this->declare_parameter<std::string>("global_frame_id", "map");
     this->declare_parameter<std::string>("local_frame_id", "base_link");
@@ -303,7 +413,10 @@ void Stanley_Controller_Node::init_parameters() {
     ackermann_control_topic = this->get_parameter("ackermann_control_topic").as_string();
     odom_topic              = this->get_parameter("odom_topic").as_string();
     speed_topic             = this->get_parameter("speed_topic").as_string();
-   
+    local_path_topic        = this->get_parameter("local_path_topic").as_string();
+    local_active_topic      = this->get_parameter("local_active_topic").as_string();
+    use_local_planner       = this->get_parameter("use_local_planner").as_bool();
+    local_path_timeout_s    = this->get_parameter("local_path_timeout_s").as_double();
 
     global_frame_id = this->get_parameter("global_frame_id").as_string();
     local_frame_id  = this->get_parameter("local_frame_id").as_string();
@@ -337,6 +450,7 @@ void Stanley_Controller_Node::init_parameters() {
     require_positive("closest_point_window", static_cast<double>(window));
     require_positive("closest_point_recovery_dist", closest_point_recovery_dist_);
     require_positive("pose_timeout_s", pose_timeout_s);
+    require_positive("local_path_timeout_s", local_path_timeout_s);
     if (speed_lookahead_s < 0.0) {
         RCLCPP_FATAL(this->get_logger(), "parameter speed_lookahead_s must be >= 0 (got %g)", speed_lookahead_s);
         throw std::invalid_argument("stanley_controller: speed_lookahead_s must be >= 0");
@@ -377,7 +491,9 @@ void Stanley_Controller_Node::publish_debug_path() {
 
 }
 
-void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
+void Stanley_Controller_Node::publish_debug_vis(const nav_msgs::msg::Path& path,
+                                                bool closed,
+                                                const geometry_msgs::msg::Pose& base_link_pose,
                                                 size_t closest_idx,
                                                 double cross_track_error,
                                                 double heading_error,
@@ -403,15 +519,19 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
     const double fy = base_link_pose.position.y + wheelbase * std::sin(yaw);
 
     double cx = 0, cy = 0, tx = 1, ty = 0;
-    const auto& poses = current_global_path.poses;
+    const auto& poses = path.poses;
     if (closest_idx < poses.size()) {
         cx = poses[closest_idx].pose.position.x;
         cy = poses[closest_idx].pose.position.y;
         //wrap the same way calculate_control does, so the tangent arrow
-        //matches what the controller is actually using at loop closure
-        size_t next = (closest_idx + 1) % poses.size();
-        tx = poses[next].pose.position.x - cx;
-        ty = poses[next].pose.position.y - cy;
+        //matches what the controller is actually using at loop closure (an open path doesn't wrap)
+        size_t from = closest_idx;
+        size_t next = closed ? (closest_idx + 1) % poses.size() : std::min(closest_idx + 1, poses.size() - 1);
+        if (next == from && from > 0) {
+            from = from - 1;   //last point of an open path: the tangent of its last segment
+        }
+        tx = poses[next].pose.position.x - poses[from].pose.position.x;
+        ty = poses[next].pose.position.y - poses[from].pose.position.y;
         double n = std::hypot(tx, ty);
         if (n > 1e-6) { tx /= n; ty /= n; }
     }
@@ -517,7 +637,8 @@ void Stanley_Controller_Node::publish_debug_vis(const geometry_msgs::msg::Pose& 
         m.color.r = m.color.g = m.color.b = 1.0; m.color.a = 1.0;
         char buf[160];
         std::snprintf(buf, sizeof(buf),
-                      "cte=%+.2fm\ndelta=%+.1fdeg\nv=%.2fm/s idx=%zu",
+                      "%s cte=%+.2fm\ndelta=%+.1fdeg\nv=%.2fm/s idx=%zu",
+                      closed ? "global" : "local",
                       cross_track_error,
                       steering_cmd * 180.0 / M_PI,
                       velocity, closest_idx);

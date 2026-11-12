@@ -44,10 +44,16 @@ Result compute(const State& s, const nav_msgs::msg::Path& path, size_t closest_i
     front_axle(s, p.wheelbase, front_x, front_y);
 
     //the path segment the front axle is on: closest -> next, or prev -> closest
-    //when the axle hasn't reached the closest waypoint yet
+    //when the axle hasn't reached the closest waypoint yet. A closed path wraps
+    //from its last point to its first; an open one uses its last segment there
     auto segment_from = [&](size_t i, double& ax, double& ay, double& tx, double& ty) {
-        const auto& a = poses[i].pose.position;
-        const auto& b = poses[(i + 1) % n].pose.position;
+        size_t ia = i, ib = (i + 1) % n;
+        if (!p.closed && i + 1 >= n) {
+            ia = n >= 2 ? n - 2 : 0;
+            ib = n - 1;
+        }
+        const auto& a = poses[ia].pose.position;
+        const auto& b = poses[ib].pose.position;
         ax = a.x; ay = a.y;
         tx = b.x - a.x; ty = b.y - a.y;
         double len = std::hypot(tx, ty);
@@ -62,7 +68,9 @@ Result compute(const State& s, const nav_msgs::msg::Path& path, size_t closest_i
     double path_heading = std::atan2(ty, tx);
 
     if ((front_x - ax) * tx + (front_y - ay) * ty < 0.0) {
-        segment_from((closest_idx + n - 1) % n, ax, ay, tx, ty);
+        //an open path has nothing before its first point: stay on the first segment
+        const size_t prev = p.closed ? (closest_idx + n - 1) % n : (closest_idx > 0 ? closest_idx - 1 : 0);
+        segment_from(prev, ax, ay, tx, ty);
     }
 
     Result r;
@@ -89,6 +97,7 @@ Result compute(const State& s, const nav_msgs::msg::Path& path, size_t closest_i
     const double ahead = std::abs(s.speed) * p.speed_lookahead_s;
     double dist = 0.0;
     for (size_t k = 0, i = closest_idx; k + 1 < n && dist < ahead; k++) {
+        if (!p.closed && i + 1 >= n) break;   //an open path ends: no look-ahead past it
         const size_t j = (i + 1) % n;
         dist += std::hypot(poses[j].pose.position.x - poses[i].pose.position.x,
                            poses[j].pose.position.y - poses[i].pose.position.y);

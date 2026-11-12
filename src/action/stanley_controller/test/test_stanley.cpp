@@ -214,3 +214,43 @@ TEST_CASE("speed look-ahead brakes before a slow section", "[stanley]")
   // standing still looks nowhere ahead
   REQUIRE(run(path, state(1.0, 0.0, 0.0, 0.0), p).speed == Approx(4.0));
 }
+
+TEST_CASE("open path (local planner): no wrap from the last point to the first", "[stanley]")
+{
+  // a straight open path along x, 2 m/s, except its first point is slow (1 m/s)
+  auto path = straight_path(0.0, 0.2, 20, 2.0);
+  path.poses.front().pose.position.z = 1.0;
+  // car near the end, on the line, facing along it: the front axle is past the last point
+  const auto s = state(3.7, 0.0, 0.0);
+
+  auto open = params();
+  open.closed = false;
+  const auto r = run(path, s, open);
+  // it keeps the last segment's heading (along x), not last -> first (back towards the origin)
+  REQUIRE(r.heading_error == Approx(0.0).margin(1e-9));
+  REQUIRE(r.cte == Approx(0.0).margin(1e-9));
+  REQUIRE(r.steering == Approx(0.0).margin(1e-9));
+
+  // the closed-loop reading of the same path wraps and wants to turn around
+  const auto wrapped = run(path, s, params());
+  REQUIRE(std::abs(wrapped.heading_error) > 3.0);
+
+  // the speed look-ahead stops at the end instead of wrapping to the slow first point
+  open.speed_lookahead_s = 5.0;
+  REQUIRE(run(path, s, open).speed == Approx(2.0));
+}
+
+TEST_CASE("open path: behind the first point stays on the first segment", "[stanley]")
+{
+  auto open = params();
+  open.closed = false;
+  // path starts at x = 1 m; car's front axle is just behind it, offset 0.1 m to the right
+  nav_msgs::msg::Path path;
+  for (int i = 0; i < 10; ++i) {
+    path.poses.push_back(pose_at(1.0 + 0.2 * i, 0.0, 2.0));
+  }
+  const auto r = run(path, state(0.5, -0.1, 0.0), open);
+  REQUIRE(r.heading_error == Approx(0.0).margin(1e-9));
+  REQUIRE(r.cte == Approx(0.1).margin(1e-9));  // right of the path
+  REQUIRE(r.steering > 0.0);                     // steers left, back towards it
+}

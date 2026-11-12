@@ -33,6 +33,10 @@
 
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Transform.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
 
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
@@ -44,7 +48,7 @@
 
 enum stanley_state_ {
     INACTIVE,
-    GLOBAL_FOLLOW
+    GLOBAL_FOLLOW   // armed; follows the local planner's path instead while it is usable
 };
 
 class Stanley_Controller_Node : public rclcpp::Node {
@@ -67,6 +71,12 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr global_path_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr speed_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr local_path_sub_;   // only with use_local_planner
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr local_active_sub_;
+
+    //tf: the local planner's path comes in base_link and is followed in the map frame
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     
 
     //timer
@@ -78,14 +88,19 @@ private:
     //helpers
     void init_parameters();
     void update_controller_state();
-    ackermann_msgs::msg::AckermannDriveStamped calculate_control();
+    ackermann_msgs::msg::AckermannDriveStamped calculate_control(const nav_msgs::msg::Path& path, bool closed);
     ackermann_msgs::msg::AckermannDriveStamped dead_stop();
 
     size_t find_closest_point(double x, double y);
+    size_t find_closest_in(const nav_msgs::msg::Path& path, double x, double y);  // full scan, for the short local path
+    void update_local_path_in_map();   // the latest local path, transformed into global_frame_id
+    bool local_path_usable();          // active, fresh and at least two points
     double extractYaw(const geometry_msgs::msg::Quaternion &quat);
 
     void publish_debug_path();
-    void publish_debug_vis(const geometry_msgs::msg::Pose& base_link_pose,
+    void publish_debug_vis(const nav_msgs::msg::Path& path,
+                           bool closed,
+                           const geometry_msgs::msg::Pose& base_link_pose,
                            size_t closest_idx,
                            double cross_track_error,
                            double heading_error,
@@ -100,7 +115,10 @@ private:
     std::string ackermann_control_topic;
     std::string odom_topic;
     std::string speed_topic;
-    
+    std::string local_path_topic;     // /local_planner/path: base_link, open, speed in z
+    std::string local_active_topic;   // /local_planner/active: follow the local path only while true
+    bool use_local_planner;           // set by the launch file from LOCAL_PLANNER
+    double local_path_timeout_s;      // fall back to the global path when the local one is older than this
 
     std::string global_frame_id;
     std::string local_frame_id;
@@ -127,6 +145,12 @@ private:
     stanley_state_ controller_state;
     std_msgs::msg::Bool dead_man_active;
     nav_msgs::msg::Path current_global_path;
+    nav_msgs::msg::Path received_local_path;   // as published (base_link)
+    nav_msgs::msg::Path current_local_path;    // in global_frame_id, duplicates dropped
+    bool local_path_pending_ = false;          // received_local_path not transformed yet
+    bool local_active_ = false;
+    rclcpp::Time local_path_rx_{0, 0, RCL_ROS_TIME};
+    bool following_local_ = false;             // which path the last tick followed (for the log and debug viz)
     nav_msgs::msg::Odometry current_pose;
 
     //closest-point search state

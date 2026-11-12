@@ -35,12 +35,22 @@ until the dead man switch is released and pressed again.
 | in | `/hal/localization/odom` (pose) | `nav_msgs/Odometry` |
 | in | `/hal/odom` (speed) | `nav_msgs/Odometry` |
 | in | `/hal/dead_man_switch` | `std_msgs/Bool` |
+| in | `/local_planner/path` (`LOCAL_PLANNER` set) | `nav_msgs/Path`, base_link, open, speed in `z` |
+| in | `/local_planner/active` (latched, `LOCAL_PLANNER` set) | `std_msgs/Bool` |
 | out | `/hal/drive/autonomy` | `ackermann_msgs/AckermannDriveStamped` |
 | out | `/debug/stanley/markers` | `visualization_msgs/MarkerArray` |
 | out | `/debug/stanley/path` (latched, once per path) | `visualization_msgs/MarkerArray` |
 | out | `/debug/stanley/{cte, heading_error, heading_term, cte_term, delta_cmd}` | `std_msgs/Float32` |
 
 The debug topics are published only when `enable_debug_vis` is true, at up to `debug_vis_rate_hz`.
+
+With `LOCAL_PLANNER` set (for example `frenet`), the launch file sets `use_local_planner`. Stanley then
+follows `/local_planner/path` while `/local_planner/active` is true and the path is younger than
+`local_path_timeout_s`, and the global path otherwise. The local path is transformed into the map
+frame at its own timestamp (the latest transform if that time isn't buffered), read as an open path
+(no wrap from its end to its start, and no speed look-ahead past its end), and searched whole every
+tick. It logs `following the local path` / `following the global path` when it switches, and the
+debug markers and text show which path it is following.
 
 ## Parameters
 
@@ -59,6 +69,8 @@ In `action_bringup/config/{car,sim}/stanley_controller.yaml`:
 | `closest_point_window` | 40 | 40 | waypoints |
 | `closest_point_recovery_dist` | 2.0 | 2.0 | m |
 | `pose_timeout_s` | 0.5 | 0.5 | s, stop without a fresh pose |
+| `use_local_planner` | launch | launch | set from `LOCAL_PLANNER` by the launch file |
+| `local_path_timeout_s` | 0.5 | 0.5 | s: an older local path falls back to the global path |
 | `control_rate_hz` | 50 | 20 | Hz |
 | `enable_debug_vis` | true | true | |
 | `debug_vis_rate_hz` | 20 | 20 | Hz |
