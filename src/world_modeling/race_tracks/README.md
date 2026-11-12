@@ -22,7 +22,7 @@ tracks/<name>/
 | --- | --- | --- | --- |
 | `wato_office` | WATO office loop (car default) | counter-clockwise | the office MPPI raceline |
 | `e7_fifth_v3` | E7 fifth floor | counter-clockwise | raceline generator, both directions (drawn edges, `track_info.yaml`) |
-| `e7_fifth_v3-fixed` | E7 fifth floor (same map as `e7_fifth_v3`) | counter-clockwise | raceline generator with braking at 2.5 m/s^2 (was 4.0), so the car's nose dips less and the lidar stays off the floor; 2026-11-12 |
+| `e7_fifth_v3-fixed` | E7 fifth floor (same map as `e7_fifth_v3`) | counter-clockwise | raceline generator with braking at 2.5 m/s^2, so the car's nose dips less and the lidar stays off the floor. Last resort: only with `max_decel: 2.5` in `vesc.yaml` (the car brakes at 4.0) |
 | `e7_fifth_big` | E7 fifth floor, larger loop | counter-clockwise | its reference raceline |
 | `autodrive` | AutoDRIVE sim track (sim default); same geometry as the F1TENTH gym's Porto | clockwise | the sim raceline; edges measured to the map's walls |
 
