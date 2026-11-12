@@ -29,12 +29,15 @@ ackermann_to_vesc_node:
   ros__parameters:
     # Speed limiter between the mux and the VESC, for every input (autonomy, gamepad, keyboard).
     # Speeding up at 3.3 m/s^2 (15250 ERPM/s); VESC ground tests launched most smoothly at
-    # 2.2 m/s^2 (10000 ERPM/s), so drop back to that if launches stutter. Slowing down at 4.0 m/s^2 stops from 10 m/s in about 2.5 s / 12.5 m. The VESC caps the
+    # 2.2 m/s^2 (10000 ERPM/s), so drop back to that if launches stutter. Slowing down at 2.5 m/s^2 (was 4.0) stops from 10 m/s in about 4 s / 20 m. The VESC caps the
     # current braking feeds back into the battery (Battery Current Max Regen, -10 A = 2C for the
     # 5000 mAh pack), so this rate cannot overcharge the pack; at top speed that cap may soften the
     # first moments of braking. The VESC's own speed ramp (25000 ERPM/s, 5.4 m/s^2) sits above both.
     max_accel: 3.3     # m/s^2
-    max_decel: 4.0     # m/s^2
+    # max_decel: 4.0   # m/s^2, previous value (until 2026-11-12)
+    max_decel: 2.5     # m/s^2: gentler braking so the nose dips less and the lidar doesn't read the floor
+                       # ahead as a wall (e7 crashes 2026-11-10/11). Racelines must be generated with the
+                       # same limit (raceline generator params/wato_car.yaml max_decel_mps2).
     cmd_timeout: 0.5   # s without a command before braking to a stop
     limiter_status_topic: "/control/speed_limiter"   # target vs limited speed for the Foxglove Drive panel
 
