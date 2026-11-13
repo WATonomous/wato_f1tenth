@@ -71,6 +71,7 @@ Run it from the car's checkout of this repo.
 | `ground_test` | **yes, on the floor** | two launches: 2500 and 4500 ERPM, 50 Hz log |
 | `current_sweep` | **yes, on the floor** | fixed-current launches at 8, 15, 25 A (no speed PID) |
 | `brake_test` | **yes, on the floor** | 4000 ERPM, step down to 1500, coast: does the PID brake? |
+| `imu_check` | no | which IMU the firmware set up, the app config's IMU settings, and 20 IMU samples (on this VESC: BMI160 reported, but all zeros, 2026-11-12) |
 
 `set_mcconf` reads the config, checks every `expect` (aborts and writes nothing on a mismatch or an
 unknown name), snapshots `history/<time>_before_<label>.xml`, writes, reads back, and snapshots
