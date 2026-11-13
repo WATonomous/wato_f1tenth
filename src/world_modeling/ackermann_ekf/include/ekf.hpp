@@ -152,6 +152,11 @@ private:
   // publishing at a fixed rate: the callbacks run at ~300 Hz together, and the particle filter
   // runs one update per odometry message
   rclcpp::TimerBase::SharedPtr publish_timer;
+
+  // IMU watchdog: warns when odometry arrives but the IMU doesn't
+  rclcpp::TimerBase::SharedPtr imu_watchdog;
+  rclcpp::Time last_imu_rx{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_odom_rx{0, 0, RCL_ROS_TIME};
   double publish_rate_hz;
   bool state_valid = false;
 
