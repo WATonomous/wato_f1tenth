@@ -29,8 +29,11 @@ EKF::EKF()
   odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(
     odom_topic, 10, std::bind(&EKF::odom_callback, this, std::placeholders::_1));
 
+  // Best effort: the RealSense publishes the IMU best effort, and a reliable subscription to a
+  // best-effort publisher gets nothing at all ("offering incompatible QoS"), which is how the EKF ran
+  // without the IMU on the car on 2026-11-12. Best effort also receives from reliable publishers.
   imu_sub = this->create_subscription<sensor_msgs::msg::Imu>(
-    imu_topic, 10, std::bind(&EKF::imu_callback, this, std::placeholders::_1));
+    imu_topic, rclcpp::SensorDataQoS(), std::bind(&EKF::imu_callback, this, std::placeholders::_1));
 
   // pubs
   ekf_pub = this->create_publisher<nav_msgs::msg::Odometry>(ekf_topic, 10);
@@ -46,6 +49,19 @@ EKF::EKF()
   // tf listener: the IMU frame -> base_link rotation (the RealSense IMU is in camera_imu_optical_frame)
   tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
+  // warn while odometry arrives but the IMU doesn't: the EKF then runs on wheel odometry alone, whose
+  // yaw rate comes from the steering command
+  imu_watchdog = this->create_wall_timer(std::chrono::seconds(1), [this]() {
+    const rclcpp::Time now = this->now();
+    const bool odom_live = last_odom_rx.nanoseconds() != 0 && (now - last_odom_rx).seconds() < 1.0;
+    const bool imu_live = last_imu_rx.nanoseconds() != 0 && (now - last_imu_rx).seconds() < 1.0;
+    if (odom_live && !imu_live) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "no IMU on %s (odometry is arriving): heading comes from the wheel odometry only", imu_topic.c_str());
+    }
+  });
 
   // publish at a fixed rate instead of from every callback (publish_rate_hz <= 0: every update, as before)
   if (publish_rate_hz > 0.0) {
@@ -105,6 +121,7 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
   if (imu_msg == nullptr) {
     return;
   }
+  last_imu_rx = this->now();
   if (!time_init) {
     // start on any input: on the car /hal/ackermann_cmd is silent until something drives
     EKF::init_time();
@@ -198,6 +215,7 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
   if (odom_msg == nullptr) {
     return;
   }
+  last_odom_rx = this->now();
   if (!time_init) {
     // start on any input: on the car /hal/ackermann_cmd is silent until something drives
     EKF::init_time();

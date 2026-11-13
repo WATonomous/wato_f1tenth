@@ -63,5 +63,8 @@
     # ---- IMU noise ----
     # Q_imu_theta: 0.45          # previous, no longer used: the RealSense IMU has no orientation
     Q_imu_theta_dot: 0.0025      # was 0.5   (gyro: ~0.05 rad/s)
-    Q_imu_ax: 1.0                # was 0.65  (accelerometer: vibration, and pitch leaks gravity in)
-    Q_imu_ay: 1.0                # was 0.65
+    # Q_imu_ax: 1.0              # first guess; code default 0.65
+    Q_imu_ax: 25.0               # accelerometer: ~5 m/s^2 of vibration at speed on the car (bag 2026-11-12),
+                                 # and pitch leaks gravity in; low values let braking noise swing the heading
+    # Q_imu_ay: 1.0              # first guess; code default 0.65
+    Q_imu_ay: 25.0

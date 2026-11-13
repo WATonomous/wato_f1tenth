@@ -42,13 +42,14 @@ particle_filter:
     rangelib_variant: 2
 
     # braking gate (particle_filter.py): while the car slows hard, ignore the forward beams
-    # (forward_mask) or skip the scan update and follow odometry (skip). Off until tested.
-    braking_gate_enable: false
+    # (forward_mask) or skip the scan update and follow odometry (skip).
+    # braking_gate_enable: false
+    braking_gate_enable: true       # on 2026-11-12: the heading glitched at the start of braking (bag 191244)
     braking_gate_mode: 'forward_mask'
-    braking_gate_decel: 2.0         # m/s^2 of slowing down (max_decel is 2.5 now)
+    braking_gate_decel: 2.0         # m/s^2 of slowing down (vesc.yaml max_decel is 4.0)
     braking_gate_min_speed: 1.0     # m/s
     braking_gate_hold_s: 0.3        # s after braking eases
-    braking_gate_max_s: 3.0         # s per braking event (braking 9 -> 2 m/s at 2.5 m/s^2 takes 2.8 s); use ~1.5 with skip
+    braking_gate_max_s: 3.0         # s per braking event (9 -> 2 m/s takes ~1.8 s at 4.0 m/s^2, 2.8 s at 2.5); use ~1.5 with skip
     braking_gate_forward_deg: 30.0  # forward_mask: the floor strip spans about +-25 deg
     braking_gate_window_s: 0.15     # s of odometry speed used for the slowing rate
 
