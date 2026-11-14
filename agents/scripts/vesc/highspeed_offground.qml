@@ -8,7 +8,7 @@ Item {
     property real t0: 0
     property bool testActive: false
     property string phase: "connect"
-    property real servoCenter: 0.4735
+    property real servoCenter: 0.4700
     //            [end time s, command, value]
     property var plan: [[1.0, "cur", 0], [2.5, "rpm", 10000], [4.0, "rpm", 20000], [5.5, "rpm", 30000],
                         [7.0, "rpm", 40000], [9.0, "rpm", 46200], [11.0, "rpm", 5000], [13.0, "cur", 0]]
