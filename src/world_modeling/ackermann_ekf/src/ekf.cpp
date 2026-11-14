@@ -173,6 +173,10 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
   if (heading_from_gyro_only) {
     K.row(state_index::theta).setZero();
   }
+  if (!use_accel_states) {
+    K.row(state_index::ax).setZero();
+    K.row(state_index::ay).setZero();
+  }
 
   vector3d imu_diff = (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu)).eval();
   vector7d new_mu = (current_predition.mu + K * imu_diff).eval();
@@ -260,6 +264,10 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
   }
   if (heading_from_gyro_only) {
     K.row(state_index::theta).setZero();
+  }
+  if (!use_accel_states) {
+    K.row(state_index::ax).setZero();
+    K.row(state_index::ay).setZero();
   }
 
   vector5d odom_diff = (odom_observation_maker(*odom_msg) - odom_state_mapper(current_predition.mu)).eval();
@@ -737,6 +745,11 @@ void EKF::init_params()
   // correction leaked into the heading (6.8 deg more than the gyro in one stop, bag 20261113_211155). The
   // Joseph covariance update stays valid for this (suboptimal) gain.
   this->declare_parameter<bool>("heading_from_gyro_only", true);
+  // false: the world-frame accelerations ax, ay stay at their initial value (0), no update changes them.
+  // With the accelerometer ignored, the wheel speed only observes the part along the heading; the
+  // sideways part wandered after hard braking and moved the position ~0.24 m/s sideways while the car
+  // stood still (bag 20261113_212243). true: the previous behaviour (use with the accelerometer on).
+  this->declare_parameter<bool>("use_accel_states", false);
 
   // debug mode
   this->declare_parameter<bool>("debug_mode", false);
@@ -800,6 +813,7 @@ void EKF::init_params()
   publish_rate_hz = this->get_parameter("publish_rate_hz").as_double();
   yaw_from_steering = this->get_parameter("yaw_from_steering").as_bool();
   heading_from_gyro_only = this->get_parameter("heading_from_gyro_only").as_bool();
+  use_accel_states = this->get_parameter("use_accel_states").as_bool();
 
   // debug mode
   debug_mode = this->get_parameter("debug_mode").as_bool();
@@ -809,6 +823,10 @@ void EKF::init_params()
     this->get_parameter("inital_theta").as_double(), this->get_parameter("inital_velocity").as_double(),
     this->get_parameter("inital_theta_dot").as_double(), this->get_parameter("inital_ax").as_double(),
     this->get_parameter("inital_ay").as_double();
+  if (!use_accel_states) {
+    mu(state_index::ax) = 0.0;
+    mu(state_index::ay) = 0.0;
+  }
 
   // initalize the covariance matrix
   sigma_t.setZero();
