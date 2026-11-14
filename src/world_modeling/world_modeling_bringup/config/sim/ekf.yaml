@@ -20,6 +20,9 @@
                                # bicycle model, yaw rate = v / L * tan(steering command)
                                # (it diverges when the gyro and the wheel odometry's yaw rate
                                # disagree: it ties yaw rate to speed. Tested in a container 2026-11-12)
+    heading_from_gyro_only: true   # no update writes into the heading directly; it only integrates the yaw
+                                   # rate. false (before 2026-11-13) let the wheel-speed correction leak into the
+                                   # heading under hard braking (6.8 deg off the gyro in bag 20261113_211155)
     wheel_base: 0.3302         # vesc.yaml vesc_to_odom wheelbase (only used with yaw_from_steering)
     alpha: 0.55                # speed low-pass (1 = none)
     debug_mode: false

@@ -47,10 +47,11 @@ particle_filter:
     braking_gate_enable: true       # on 2026-11-12: the heading glitched at the start of braking (bag 191244)
     # braking_gate_mode: 'forward_mask'   # until 2026-11-13: masks only +-30 deg, but the floor line of a
     #   pitched lidar reaches +-60-70 deg at 3 m ahead, and those lopsided hits still twisted the heading 15-30 deg
-    # braking_gate_mode: 'skip'     # 2026-11-13: no scan update while braking; no lag and the heading followed the
-    #   gyro, but the pose drifted ~0.5 m sideways over a 15 m stop from 9.7 m/s (bag 20261113_210025)
-    braking_gate_mode: 'forward_mask'   # with the mask widened to +-75 deg: the side walls (near +-90 deg and
-                                        # behind) keep the lateral position and heading pinned during the stop
+    # braking_gate_mode: 'forward_mask'   # +-75 deg (2026-11-13, bag 20261113_211155): the pose flipped 180 deg
+    #   within 0.2 s of the gate turning on. Masked beams are set to max range ("no wall"), and with over half
+    #   the scan saying "open ahead" the particles facing back down the hallway won.
+    braking_gate_mode: 'skip'       # no scan update while braking; particles follow the EKF. No lag and heading
+                                    # within 1-2 deg; ~0.5 m sideways drift over a 15 m stop (bag 20261113_210025)
     # braking_gate_decel: 2.0
     braking_gate_decel: 1.5         # m/s^2 of slowing down (vesc.yaml max_decel is 4.0). Lowered with the window
                                     # so the gate fires sooner: at 2.0 / 0.15 s one or two floor scans before it
@@ -59,8 +60,8 @@ particle_filter:
     braking_gate_hold_s: 0.3        # s after braking eases
     # braking_gate_max_s: 3.0
     braking_gate_max_s: 2.5         # s per braking event: a full stop from 9.3 m/s took 2.3 s at 4.0 m/s^2
-    # braking_gate_forward_deg: 30.0  # the floor line of a pitched lidar reaches +-60-70 deg
-    braking_gate_forward_deg: 75.0  # forward_mask half angle: covers the whole floor line
+    # braking_gate_forward_deg: 75.0  # flipped the pose (see braking_gate_mode)
+    braking_gate_forward_deg: 30.0  # forward_mask half angle (unused in skip mode)
     # braking_gate_window_s: 0.15
     braking_gate_window_s: 0.10     # s of odometry speed used for the slowing rate
 
