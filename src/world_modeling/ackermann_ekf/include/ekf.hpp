@@ -170,6 +170,7 @@ private:
   bool yaw_from_steering;
   bool heading_from_gyro_only;
   bool use_accel_states;
+  bool use_odom_pose;
   double alpha;
 
   // tf2 broadcaster
