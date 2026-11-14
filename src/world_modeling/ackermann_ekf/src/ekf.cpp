@@ -246,7 +246,17 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
   }
 
   // calculate kalman gain
-  matrix5d S = (H_odom * current_predition.sigma_t * H_odom.transpose() + Q_odom).eval();  // inovation covariance
+  // use_odom_pose false: only the wheel speed and yaw rate are used. Q_odom_x/y/theta = 1e6 alone is not
+  // enough: the x, y variance grows without bound (nothing else observes them), the gain grows with it, and
+  // the EKF slid toward vesc_to_odom's own position, 76 m away, accelerating while parked (2026-11-13).
+  matrix5x7d H = H_odom;
+  if (!use_odom_pose) {
+    H.row(0).setZero();
+    H.row(1).setZero();
+    H.row(2).setZero();
+  }
+
+  matrix5d S = (H * current_predition.sigma_t * H.transpose() + Q_odom).eval();  // inovation covariance
   S = (0.5 * (S + S.transpose())).eval();  // correct the matrix scew
 
   // use the llt to try and solve
@@ -267,11 +277,11 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
       return;
 
     } else {
-      K = (current_predition.sigma_t * H_odom.transpose() * ldlt.solve(matrix5d::Identity())).eval();
+      K = (current_predition.sigma_t * H.transpose() * ldlt.solve(matrix5d::Identity())).eval();
     }
 
   } else {
-    K = (current_predition.sigma_t * H_odom.transpose() * llt.solve(matrix5d::Identity())).eval();
+    K = (current_predition.sigma_t * H.transpose() * llt.solve(matrix5d::Identity())).eval();
   }
   if (heading_from_gyro_only) {
     K.row(state_index::theta).setZero();
@@ -282,10 +292,15 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
   }
 
   vector5d odom_diff = (odom_observation_maker(*odom_msg) - odom_state_mapper(current_predition.mu)).eval();
+  if (!use_odom_pose) {
+    odom_diff(0) = 0.0;
+    odom_diff(1) = 0.0;
+    odom_diff(2) = 0.0;
+  }
   vector7d new_mu = (current_predition.mu + K * odom_diff).eval();
 
   // josephs formula for new covariance (sigma_t)
-  matrix7d A = (matrix7d::Identity() - K * H_odom).eval();
+  matrix7d A = (matrix7d::Identity() - K * H).eval();
   matrix7d new_sigma_t = (A * current_predition.sigma_t * A.transpose() + K * Q_odom * K.transpose()).eval();
 
   // final safety check
@@ -773,6 +788,8 @@ void EKF::init_params()
   // sideways part wandered after hard braking and moved the position ~0.24 m/s sideways while the car
   // stood still (bag 20261113_212243). true: the previous behaviour (use with the accelerometer on).
   this->declare_parameter<bool>("use_accel_states", false);
+  // false: from the wheel odometry only the speed and yaw rate are used, never its x, y, heading.
+  this->declare_parameter<bool>("use_odom_pose", false);
 
   // debug mode
   this->declare_parameter<bool>("debug_mode", false);
@@ -837,6 +854,7 @@ void EKF::init_params()
   yaw_from_steering = this->get_parameter("yaw_from_steering").as_bool();
   heading_from_gyro_only = this->get_parameter("heading_from_gyro_only").as_bool();
   use_accel_states = this->get_parameter("use_accel_states").as_bool();
+  use_odom_pose = this->get_parameter("use_odom_pose").as_bool();
 
   // debug mode
   debug_mode = this->get_parameter("debug_mode").as_bool();
