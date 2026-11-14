@@ -479,6 +479,18 @@ prediction EKF::prediction_step(
   vector7d mu_bar = EKF::model_update(mu_prev, control_input, dt).eval();
   matrix7d jacobian_G = EKF::calc_jacobian_g(mu_prev, dt).eval();
   matrix7d sigma_bar = EKF::predict_sigma(sigma_prev, jacobian_G).eval();
+  if (!use_accel_states) {
+    // ax, ay are not estimated: keep them at 0 with ~no variance. Left alone, nothing observes them, their
+    // variance grows without bound and leaks into x, y through the model (y variance 199 and 4 m of drift
+    // in a minute while parked on 2026-11-13).
+    mu_bar(state_index::ax) = 0.0;
+    mu_bar(state_index::ay) = 0.0;
+    for (int i : {static_cast<int>(state_index::ax), static_cast<int>(state_index::ay)}) {
+      sigma_bar.row(i).setZero();
+      sigma_bar.col(i).setZero();
+      sigma_bar(i, i) = 1e-9;
+    }
+  }
 
   // normalize the yaw
   mu_bar(state_index::theta) = std::atan2(std::sin(mu_bar(state_index::theta)), std::cos(mu_bar(state_index::theta)));
