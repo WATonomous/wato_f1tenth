@@ -139,6 +139,13 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
 
   // the accelerations depend on theta, so H is the jacobian of the measurement function at the prediction
   matrix3x7d H_imu = EKF::imu_jacobian(current_predition.mu);
+  if (!use_accel_states) {
+    // gyro only: drop the accelerometer rows. A huge Q_imu_ax/ay alone is not enough: the unobserved ax, ay
+    // variance keeps growing until it matches Q, and then the accelerometer (gravity from tilt) leaked into
+    // x, y, ~0.01 m/s of drift while parked on 2026-11-13. With H rows zero, K's columns for them are zero.
+    H_imu.row(1).setZero();
+    H_imu.row(2).setZero();
+  }
 
   // calculate kalman gain
   matrix3d S = (H_imu * current_predition.sigma_t * H_imu.transpose() + Q_imu).eval();  // inovation covariance
@@ -179,6 +186,10 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
   }
 
   vector3d imu_diff = (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu)).eval();
+  if (!use_accel_states) {
+    imu_diff(1) = 0.0;
+    imu_diff(2) = 0.0;
+  }
   vector7d new_mu = (current_predition.mu + K * imu_diff).eval();
 
   // josephs formula for new covariance (sigma_t)
