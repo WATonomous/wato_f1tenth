@@ -13,8 +13,9 @@
     # -gain * -0.0047 = -0.0026. vesc_to_odom uses this too, for the steering-based yaw rate.
     # steering_angle_to_servo_offset: 0.4735  # 2026-11-13 first trim: still pulled right; driving straight at
     #   5-10 m/s needed +0.0064 rad of left on the stick (bag 20261113_204040), so -0.5635 * 0.0064 = -0.0036
-    # steering_angle_to_servo_offset: 0.4700  # second trim: straight at 5-10 m/s, but ~0.2 deg left (bag 20261113_204858)
-    steering_angle_to_servo_offset: 0.4715
+    # steering_angle_to_servo_offset: 0.4715  # third trim (bag 20261113_210025): looked straight in the bag, but the
+    #   driver felt the pull to the right again, so back to 0.4700
+    steering_angle_to_servo_offset: 0.4700    # second trim: straight at 5-10 m/s, ~0.2 deg left (bag 20261113_204858)
 
     port: /dev/sensors/vesc
     duty_cycle_min: 0.0
