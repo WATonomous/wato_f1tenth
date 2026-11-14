@@ -9,7 +9,7 @@ Item {
     property real t0: 0
     property bool testActive: false
     property string phase: "connect"
-    property real servoCenter: 0.476
+    property real servoCenter: 0.4735
 
     function now() { return (Date.now() - t0) / 1000.0 }
     function log(msg) { console.log("TEST " + now().toFixed(3) + " " + msg) }

@@ -7,7 +7,11 @@
 
     # servo value (0 to 1) =  steering_angle_to_servo_gain * steering angle (radians) + steering_angle_to_servo_offset
     steering_angle_to_servo_gain: -0.5635
-    steering_angle_to_servo_offset: 0.476
+    # steering_angle_to_servo_offset: 0.476   # until 2026-11-13
+    # The car pulled right: across three bags (516 near-straight samples, gyro vs commanded steering) the
+    # wheels sat ~0.27 deg right of the command at every speed (-0.0047 rad), so the centre moves
+    # -gain * -0.0047 = -0.0026. vesc_to_odom uses this too, for the steering-based yaw rate.
+    steering_angle_to_servo_offset: 0.4735
 
     port: /dev/sensors/vesc
     duty_cycle_min: 0.0

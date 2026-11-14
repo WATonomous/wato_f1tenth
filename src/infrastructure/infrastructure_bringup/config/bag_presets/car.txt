@@ -56,3 +56,7 @@
 /control/mode
 /control/teleop
 /control/speed_limiter
+
+# Particle filter braking gate state (localize.yaml braking_gate_*), and the EKF
+/debug/pf/braking_gate
+/hal/ekf_odom
