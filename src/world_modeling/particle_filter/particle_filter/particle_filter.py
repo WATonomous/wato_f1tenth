@@ -22,6 +22,7 @@
 
 # ros2 python
 import rclpy
+from rclpy.qos import qos_profile_sensor_data
 from rclpy.node import Node
 
 # libraries
@@ -195,6 +196,11 @@ class ParticleFiler(Node):
         self.pose_pub = self.create_publisher(PoseStamped, '/pf/viz/inferred_pose', 1)
         self.particle_pub = self.create_publisher(PoseArray, '/pf/viz/particles', 1)
         self.pub_fake_scan = self.create_publisher(LaserScan, '/pf/viz/fake_scan', 1)
+        # braking gate debug (only while braking_gate_enable): best effort, at most 20 Hz.
+        # data = [active, braking, decel m/s^2, speed m/s, speed at window start m/s, window s,
+        #         samples in window, spent (max_s reached)]
+        self.pub_gate_debug = self.create_publisher(Float32MultiArray, '/debug/pf/braking_gate', qos_profile_sensor_data)
+        self.gate_debug_last = 0.0
         self.rect_pub = self.create_publisher(PolygonStamped, '/pf/viz/poly1', 1)
 
         if self.PUBLISH_ODOM:
@@ -767,6 +773,13 @@ class ParticleFiler(Node):
             self.get_logger().info('braking gate %s (%s, slowing %.1f m/s^2 at %.1f m/s)' % (
                 'ON' if active else 'off', self.GATE_MODE, decel, v))
         self.gate_active = active
+
+        if t - self.gate_debug_last >= 0.05 or t < self.gate_debug_last:
+            self.gate_debug_last = t
+            msg = Float32MultiArray()
+            msg.data = [float(active), float(braking), float(decel), float(v), float(v0), float(t - t0),
+                        float(len(self.speed_history)), float(self.gate_spent)]
+            self.pub_gate_debug.publish(msg)
 
     def expected_pose(self):
         # returns the expected value of the pose given the particle distribution

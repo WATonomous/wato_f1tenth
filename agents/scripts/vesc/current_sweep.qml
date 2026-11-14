@@ -10,7 +10,7 @@ Item {
     property real t0: 0
     property bool testActive: false
     property string phase: "connect"
-    property real servoCenter: 0.476
+    property real servoCenter: 0.4735
     property var steps: [8, 15, 25]
     property real driveS: 0.8
     property real coastS: 1.5
