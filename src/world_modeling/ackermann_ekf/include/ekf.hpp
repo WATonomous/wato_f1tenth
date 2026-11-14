@@ -169,6 +169,7 @@ private:
   bool should_pub_tf;
   bool yaw_from_steering;
   bool heading_from_gyro_only;
+  bool use_accel_states;
   double alpha;
 
   // tf2 broadcaster

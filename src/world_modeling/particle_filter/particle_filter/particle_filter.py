@@ -761,13 +761,13 @@ class ParticleFiler(Node):
                 self.gate_start = t
             self.gate_until = t + self.GATE_HOLD_S
         active = self.gate_until is not None and t <= self.gate_until
-        if not active:
-            # clear it: an odometry message stamped slightly earlier (bag 20261113_211155) put t back inside the
-            # old hold and logged a spurious "ON" while the car stood still
-            self.gate_until = None
         if active and self.gate_start is not None and t - self.gate_start > self.GATE_MAX_S:
             active = False
             self.gate_spent = True
+        if not active:
+            # clear the hold: when max_s cut the gate, the hold was still running, so the next message (no longer
+            # braking, so gate_spent cleared) turned it back on: a spurious "ON" while stopped (bag 20261113_212243)
+            self.gate_until = None
         if not braking:
             self.gate_spent = False
             if not active:
