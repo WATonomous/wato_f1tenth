@@ -8,7 +8,7 @@ Item {
     property real t0: 0
     property bool testActive: false
     property string phase: "connect"
-    property real servoCenter: 0.4700   // steering_angle_to_servo_offset in vesc.yaml
+    property real servoCenter: 0.4715   // steering_angle_to_servo_offset in vesc.yaml
 
     function now() { return (Date.now() - t0) / 1000.0 }
     function log(msg) { console.log("TEST " + now().toFixed(2) + " " + msg) }
