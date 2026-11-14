@@ -170,6 +170,9 @@ void EKF::imu_callback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
   } else {
     K = (current_predition.sigma_t * H_imu.transpose() * llt.solve(matrix3d::Identity())).eval();
   }
+  if (heading_from_gyro_only) {
+    K.row(state_index::theta).setZero();
+  }
 
   vector3d imu_diff = (imu_observation_maker(*imu_msg) - imu_state_mapper(current_predition.mu)).eval();
   vector7d new_mu = (current_predition.mu + K * imu_diff).eval();
@@ -254,6 +257,9 @@ void EKF::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)
 
   } else {
     K = (current_predition.sigma_t * H_odom.transpose() * llt.solve(matrix5d::Identity())).eval();
+  }
+  if (heading_from_gyro_only) {
+    K.row(state_index::theta).setZero();
   }
 
   vector5d odom_diff = (odom_observation_maker(*odom_msg) - odom_state_mapper(current_predition.mu)).eval();
@@ -726,6 +732,11 @@ void EKF::init_params()
 
   // false: theta integrates theta_dot, which the IMU gyro corrects. true: the old bicycle model
   this->declare_parameter<bool>("yaw_from_steering", false);
+  // true: no update writes into theta directly, theta only integrates theta_dot (the gyro). Without it, the
+  // speed prediction depends on theta through the world-frame ax, ay, so under hard braking the wheel-speed
+  // correction leaked into the heading (6.8 deg more than the gyro in one stop, bag 20261113_211155). The
+  // Joseph covariance update stays valid for this (suboptimal) gain.
+  this->declare_parameter<bool>("heading_from_gyro_only", true);
 
   // debug mode
   this->declare_parameter<bool>("debug_mode", false);
@@ -788,6 +799,7 @@ void EKF::init_params()
 
   publish_rate_hz = this->get_parameter("publish_rate_hz").as_double();
   yaw_from_steering = this->get_parameter("yaw_from_steering").as_bool();
+  heading_from_gyro_only = this->get_parameter("heading_from_gyro_only").as_bool();
 
   // debug mode
   debug_mode = this->get_parameter("debug_mode").as_bool();

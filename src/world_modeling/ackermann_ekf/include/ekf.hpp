@@ -168,6 +168,7 @@ private:
   double wheel_base;
   bool should_pub_tf;
   bool yaw_from_steering;
+  bool heading_from_gyro_only;
   double alpha;
 
   // tf2 broadcaster
