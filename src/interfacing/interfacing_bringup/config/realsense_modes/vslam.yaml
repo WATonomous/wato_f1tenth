@@ -16,4 +16,6 @@
     # features. Depth is off in this mode, so nothing else needs the dots.
     depth_module.emitter_enabled: 0
     gyro_fps: 200
-    accel_fps: 250  # NVIDIA: "set to 250 for rs d435i"
+    # NVIDIA's launch uses 200 (its comment says 250 for a D435i), but our D435i (FW 5.17.3.10,
+    # RSUSB) rejects 250 and 63 and accepts 100 and 200
+    accel_fps: 200
