@@ -36,9 +36,14 @@ launch:
       description: "Start the Intel RealSense driver (IMU on; depth/color per config)"
 
   - arg:
-      name: realsense_images
-      default: "$(env REALSENSE_IMAGES false)"
-      description: "Also stream RealSense color + depth (640x480 @ 30 Hz)"
+      name: realsense_mode
+      default: "$(env REALSENSE_MODE imu)"
+      description: "RealSense streams: a file in config/realsense_modes/ (imu, depth, data, vslam)"
+
+  - arg:
+      name: realsense_align
+      default: "$(env REALSENSE_ALIGN auto)"
+      description: "Publish depth aligned to color: true, false or auto (on in data mode only)"
 
   - arg:
       name: imu
@@ -50,6 +55,10 @@ launch:
   - let:
       name: config_dir
       value: "$(find-pkg-share interfacing_bringup)/config/$(var platform)"
+
+  - let:
+      name: realsense_align_on
+      value: "$(eval '\"$(var realsense_align)\".lower() == \"true\" or (\"$(var realsense_align)\" == \"auto\" and \"$(var realsense_mode)\" == \"data\")')"
 
   - let:
       name: imu_source
@@ -186,8 +195,8 @@ launch:
       name: ebreak
       output: screen
 
-  # Intel RealSense: IMU on /camera/camera/imu (/hal/imu with imu:=realsense), depth/color per
-  # config/<platform>/realsense.yaml.
+  # Intel RealSense: IMU on /camera/camera/imu (/hal/imu with imu:=realsense). Streams: all off in
+  # config/<platform>/realsense.yaml, then turned on by config/realsense_modes/<realsense_mode>.yaml.
   # base_link -> camera_link: above the lidar (x 0.27, z 0.11 + 0.20); the driver hangs its
   # camera_*_frame / *_optical_frame TFs off camera_link.
   - node:
@@ -206,10 +215,9 @@ launch:
       output: screen
       param:
         - from: "$(var config_dir)/realsense.yaml"
-        - name: enable_color
-          value: "$(var realsense_images)"
-        - name: enable_depth
-          value: "$(var realsense_images)"
+        - from: "$(find-pkg-share interfacing_bringup)/config/realsense_modes/$(var realsense_mode).yaml"
+        - name: align_depth.enable
+          value: "$(var realsense_align_on)"
       remap:
         - from: /camera/camera/imu
           to: "$(var realsense_imu_topic)"

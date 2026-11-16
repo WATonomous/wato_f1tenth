@@ -444,10 +444,12 @@ else
     popd > /dev/null
 fi
 
-# CONTROLLER and LOCAL_PLANNER name launch files in action_bringup, TRACK a folder in race_tracks;
-# catch a typo here rather than as a missing file deep inside ros2 launch
+# CONTROLLER and LOCAL_PLANNER name launch files in action_bringup, TRACK a folder in race_tracks,
+# REALSENSE_MODE a config file in interfacing_bringup; catch a typo here rather than as a missing
+# file deep inside ros2 launch
 for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml" \
   "LOCAL_PLANNER action/action_bringup/launch/local_planners .launch.yaml" \
+  "REALSENSE_MODE interfacing/interfacing_bringup/config/realsense_modes .yaml" \
   "TRACK world_modeling/race_tracks/tracks /raceline.csv"; do
   read -r var dir suffix <<< "$choice"
   dir="$MONO_DIR/src/$dir"

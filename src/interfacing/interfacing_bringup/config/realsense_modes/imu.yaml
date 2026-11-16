@@ -1,0 +1,9 @@
+---
+# REALSENSE_MODE=imu (the default): the IMU only, no images. The streams are already off in
+# config/<platform>/realsense.yaml; they are listed here so the mode reads on its own.
+/**:
+  ros__parameters:
+    enable_color: false
+    enable_depth: false
+    enable_infra1: false
+    enable_infra2: false
