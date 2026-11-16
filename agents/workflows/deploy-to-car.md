@@ -17,7 +17,8 @@ the `orin` / `mppi_test` checklist below as the fallback.
 - Jetson Orin Nano Super or Orin NX (both `sm_87`), on JetPack 6 (L4T r36.4).
 - Hokuyo lidar over Ethernet at `192.168.0.10:10940`, frame `laser`.
 - VESC motor controller at `/dev/sensors/vesc` (a udev symlink).
-- PS4 controller over Bluetooth, read by `joy_node`.
+- PS4 controller over Bluetooth, read by `joy_node`. Pair it with `./watod controller pair`;
+  controls and hand-over: `src/interfacing/teleop_utils/README.md`.
 - Remote access over Tailscale, with a desktop over noVNC.
 
 ## Bring-up checklist (old layout: `orin` / `mppi_test`)
@@ -43,7 +44,9 @@ the `orin` / `mppi_test` checklist below as the fallback.
 10. **Check.** `ros2 topic hz /scan`, `/odom`, `/pf/pose/odom`. Gamepad buttons toggle:
     **X** turns manual control on and off (it beats autonomy); **R1**, the dead man switch, turns
     autonomy on and off. After manual control, toggle R1 off and on to hand back to autonomy.
-    Try both with the wheels off the ground first.
+    **O** turns reverse on and off; while it is on, the throttle reverses at a fixed slow speed
+    (`reverse_speed` in `teleop_utils/config/joypad_config.yaml`, 0.75 m/s).
+    Try them with the wheels off the ground first.
 
 ## Container access to devices
 

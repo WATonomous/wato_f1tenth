@@ -12,6 +12,7 @@
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>rmw_cyclonedds_cpp</exec_depend>
   <exec_depend>pure_pursuit</exec_depend>
+  <exec_depend>stanley_controller</exec_depend>
   <exec_depend>mppi_cpp</exec_depend>
   <exec_depend>race_tracks</exec_depend>
 

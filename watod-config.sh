@@ -103,6 +103,10 @@
 ## DEFAULT = "wato_office" on the car, "autodrive" in sim
 # export TRACK="wato_office"
 
+## Driving direction on the track: "ccw" (counter-clockwise) or "cw" (clockwise) uses its
+## raceline_<dir>.csv; tracks made by the raceline generator have both. DEFAULT = "" (its raceline.csv)
+# export DIRECTION="ccw"
+
 ## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
 # export REALSENSE="true"
 

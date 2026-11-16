@@ -3,6 +3,7 @@
 # Don't exclude *.mcap globally: src/sim/sim_bringup/test/data/ holds the contract test bag.
 .git/
 bags/
+tools/
 build/
 install/
 log/

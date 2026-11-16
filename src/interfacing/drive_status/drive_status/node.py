@@ -52,10 +52,11 @@ class DriveStatus(Node):
         self.declare_parameter("rate_hz", 10.0)
         # Command older than this: shown as 0 (the mux stopped sending)
         self.declare_parameter("command_stale_s", 0.5)
-        # Set by interfacing.launch.yaml from CONTROLLER, LOCAL_PLANNER, TRACK
+        # Set by interfacing.launch.yaml from CONTROLLER, LOCAL_PLANNER, TRACK, DIRECTION
         self.declare_parameter("controller", "")
         self.declare_parameter("local_planner", "")
         self.declare_parameter("track", "")
+        self.declare_parameter("direction", "")
 
         p = self.get_parameter
         self.stale_s = p("command_stale_s").value
@@ -65,6 +66,7 @@ class DriveStatus(Node):
             controller=p("controller").value,
             local_planner=p("local_planner").value,
             track=p("track").value,
+            direction=p("direction").value,
             measured_speed=math.nan,
         )
         self.command_rx = None
