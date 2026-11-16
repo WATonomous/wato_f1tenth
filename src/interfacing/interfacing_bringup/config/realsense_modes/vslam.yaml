@@ -1,0 +1,19 @@
+---
+# REALSENSE_MODE=vslam: the stereo infrared pair + IMU for Isaac ROS Visual SLAM (cuVSLAM).
+# Recorded by the car_vslam bag preset. Values follow NVIDIA's
+# isaac_ros_visual_slam_realsense.launch.py (isaac_ros_visual_slam release-5.0). cuVSLAM reads
+# /camera/camera/infra1/image_rect_raw, /camera/camera/infra2/image_rect_raw (+ camera_info)
+# and the IMU (/hal/imu with IMU=realsense, else /camera/camera/imu).
+# Note: this D435i reports "IMU Calibration is not available", so IMU fusion runs on defaults.
+/**:
+  ros__parameters:
+    enable_color: false
+    enable_depth: false
+    enable_infra1: true
+    enable_infra2: true
+    depth_module.infra_profile: "640,360,60"
+    # Emitter off: its dot pattern moves with the camera, so cuVSLAM would track the dots as
+    # features. Depth is off in this mode, so nothing else needs the dots.
+    depth_module.emitter_enabled: 0
+    gyro_fps: 200
+    accel_fps: 250  # NVIDIA: "set to 250 for rs d435i"

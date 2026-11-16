@@ -1,0 +1,18 @@
+---
+# REALSENSE_MODE=data: color + depth for the perception dataset. Recorded by the car_data bag preset.
+# - enable_sync: color and depth come out as matched framesets (the dataset keeps pairs whose
+#   stamps are within 10 ms).
+# - Alignment is on by default here (REALSENSE_ALIGN=auto): the driver then publishes
+#   /camera/camera/aligned_depth_to_color/image_raw + camera_info, depth at color resolution with
+#   pixel (u, v) in depth = pixel (u, v) in color. REALSENSE_ALIGN=false turns it off.
+# - No temporal filter: the dataset gets measured depth, not depth averaged over frames.
+# Alignment runs on the CPU (our librealsense is built without CUDA). If 30 Hz doesn't hold,
+# try 15 Hz ("640,480,15" and "848,480,15") before building librealsense with CUDA.
+/**:
+  ros__parameters:
+    enable_color: true
+    enable_depth: true
+    rgb_camera.color_profile: "640,480,30"
+    depth_module.depth_profile: "848,480,30"
+    enable_sync: true
+    temporal_filter.enable: false

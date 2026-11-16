@@ -196,10 +196,25 @@ DIRECTION=${DIRECTION:-""}
 REALSENSE=${REALSENSE:-"false"}
 # true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
 REALSENSE_IMAGES=${REALSENSE_IMAGES:-"false"}
+# RealSense streams: a file in interfacing_bringup/config/realsense_modes/ (imu, depth, data, vslam).
+# Unset: depth when REALSENSE_IMAGES=true (the older switch), else imu
+if [[ -z ${REALSENSE_MODE:-} ]]; then
+  if [[ "$REALSENSE_IMAGES" == "true" ]]; then REALSENSE_MODE="depth"; else REALSENSE_MODE="imu"; fi
+fi
+# Depth aligned to color: true, false or auto (on in data mode only; resolved in interfacing.launch.yaml)
+REALSENSE_ALIGN=${REALSENSE_ALIGN:-"auto"}
+# Topic preset for `watod bag record` with no topics (bag_presets/<name>.txt); "" = none.
+# Unset: the platform's preset; on the car in data or vslam mode, car_data or car_vslam
+# (car_data records aligned depth, so data mode with REALSENSE_ALIGN=false keeps car)
+if [[ -z ${BAG_PRESET+x} ]]; then
+  BAG_PRESET="$PLATFORM"
+  if [[ "$PLATFORM" == "car" && "$REALSENSE" == "true" ]]; then
+    if [[ "$REALSENSE_MODE" == "data" && "$REALSENSE_ALIGN" != "false" ]]; then BAG_PRESET="car_data"; fi
+    if [[ "$REALSENSE_MODE" == "vslam" ]]; then BAG_PRESET="car_vslam"; fi
+  fi
+fi
 # CPUs for the bag recorder container (docker --cpuset-cpus), so recording can't starve the
 # particle filter. Car default: the last two of the Orin's six cores. Empty = no limit.
-# Topic preset for `watod bag record` with no topics (bag_presets/<name>.txt); "" = none
-BAG_PRESET=${BAG_PRESET-"$PLATFORM"}
 if [[ -z ${BAG_CPUSET+x} ]]; then
   if [[ "$PLATFORM" == "car" ]]; then BAG_CPUSET="4,5"; else BAG_CPUSET=""; fi
 fi
@@ -355,6 +370,8 @@ append "TRACK" "$TRACK"
 append "DIRECTION" "$DIRECTION"
 append "REALSENSE" "$REALSENSE"
 append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
+append "REALSENSE_MODE" "$REALSENSE_MODE"
+append "REALSENSE_ALIGN" "$REALSENSE_ALIGN"
 append "IMU" "$IMU"
 append "LOCALIZATION" "$LOCALIZATION"
 append "PF_VIZ" "$PF_VIZ"
