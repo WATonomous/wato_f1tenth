@@ -75,6 +75,7 @@ Commands
   bag <ros2-bag-args>...      Run ros2 bag commands (record/play/info/etc)
                               Runs in ./bags directory with auto-mounting
   contract [checker-args]     Check the running stack against the /hal topic contract
+  teleop                      Drive with the keyboard (TELEOP=keyboard), in this terminal
 
 Examples
   watod up                              # docker compose up
@@ -101,6 +102,7 @@ Examples
   watod bag play my_bag                 # play bag from ./bags directory
   watod bag info my_bag                 # show bag info
   watod contract                        # PASS/FAIL per /hal topic on the running stack
+  watod teleop                          # keyboard teleop (TELEOP=keyboard), also over SSH on the car
   watod -s                              # setup dev env (extracts all module headers)
   watod -s world_modeling               # setup dev env with specific module only
 
@@ -303,6 +305,10 @@ while [[ $# -gt 0 ]]; do
       shift
       CONTRACT_ARGS=( "$@" )
       break ;;
+    teleop)
+      RUN_TELEOP=1
+      shift
+      break ;;
     down)
       RUN_DOWN=1
       shift
@@ -466,6 +472,10 @@ for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml"
     exit 1
   fi
 done
+if [[ "$TELEOP" != "gamepad" && "$TELEOP" != "keyboard" ]]; then
+  echo "Error: TELEOP=\"$TELEOP\". Choose one of: gamepad keyboard" >&2
+  exit 1
+fi
 # DIRECTION picks raceline_<ccw|cw>.csv in the track's folder (empty: its raceline.csv)
 if [[ -n ${DIRECTION:-} ]]; then
   track_dir="$MONO_DIR/src/world_modeling/race_tracks/tracks/$TRACK"
@@ -520,6 +530,14 @@ fi
 if [[ -n ${RUN_CONTRACT:-} ]]; then
   export COMPOSE_PROJECT_NAME PLATFORM IMU LOCALIZATION MAPPING REALSENSE CONTROLLER LOCAL_PLANNER
   "$MONO_DIR/watod_scripts/watod-contract.sh" "${CONTRACT_ARGS[@]}"
+  exit $?
+fi
+
+# ──────────────────────────── Run Teleop ─────────────────────────────
+
+if [[ -n ${RUN_TELEOP:-} ]]; then
+  export COMPOSE_PROJECT_NAME TELEOP
+  "$MONO_DIR/watod_scripts/watod-teleop.sh"
   exit $?
 fi
 

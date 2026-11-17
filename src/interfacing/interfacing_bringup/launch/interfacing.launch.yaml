@@ -16,14 +16,16 @@ launch:
       description: "car or sim"
 
   - arg:
-      name: joystick
-      default: "true"
-      description: "Start joy_node and the gamepad teleop (USB or Bluetooth pad, car and PC)"
+      name: teleop
+      default: "$(env TELEOP gamepad)"
+      description: >-
+        Teleop input, both read by joypad_node: gamepad (joy_node, USB or Bluetooth pad) or
+        keyboard (keyboard_joy_node, started in a terminal with `watod teleop`)
 
   - arg:
       name: keyboard
       default: "$(eval '\"$(var platform)\" == \"sim\"')"
-      description: "Start the keyboard teleop converter"
+      description: "Start keyboard_converter (Foxglove teleop panel, /cmd_vel); not TELEOP=keyboard"
 
   - arg:
       name: ebrake
@@ -164,29 +166,30 @@ launch:
             param:
               - from: "$(var config_dir)/battery.yaml"
 
-  # Gamepad teleop: /joy -> /hal/drive/joystick and /hal/dead_man_switch
-  - group:
-      if: "$(var joystick)"
-      children:
-        - node:
-            pkg: joy
-            exec: joy_node
-            name: joy_node
-            output: screen
-            param:
-              - name: deadzone
-                value: 0.080
-              - name: sticky_buttons
-                value: true
-        - node:
-            pkg: teleop_utils
-            exec: joypad_node
-            name: gamepad_node
-            output: screen
-            param:
-              - from: "$(find-pkg-share teleop_utils)/config/joypad_config.yaml"
+  # Teleop: /joy -> joypad_node -> /hal/drive/teleop, /hal/dead_man_switch, /control/mode.
+  # One /joy source at a time: joy_node for the gamepad, or keyboard_joy_node for the keyboard.
+  # keyboard_joy_node reads keys from a terminal, so `watod teleop` starts it with docker exec.
+  - node:
+      if: "$(eval '\"$(var teleop)\" == \"gamepad\"')"
+      pkg: joy
+      exec: joy_node
+      name: joy_node
+      output: screen
+      param:
+        - name: deadzone
+          value: 0.080
+        - name: sticky_buttons
+          value: true
+  - node:
+      if: "$(eval '\"$(var teleop)\" in (\"gamepad\", \"keyboard\")')"
+      pkg: teleop_utils
+      exec: joypad_node
+      name: gamepad_node
+      output: screen
+      param:
+        - from: "$(find-pkg-share teleop_utils)/config/joypad_config.yaml"
 
-  # Keyboard teleop: /cmd_vel -> /hal/drive/keyboard (Foxglove teleop panel)
+  # Foxglove teleop panel: /cmd_vel -> /hal/drive/keyboard (separate from TELEOP=keyboard)
   - node:
       if: "$(var keyboard)"
       pkg: teleop_utils

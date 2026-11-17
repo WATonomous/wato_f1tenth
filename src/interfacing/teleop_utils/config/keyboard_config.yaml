@@ -1,0 +1,21 @@
+# keyboard_joy_node (TELEOP=keyboard): the keyboard as a stand-in for joy_node.
+# It also loads joypad_config.yaml for the button and axis layout, max_speed and steering, so both
+# inputs drive the same through joypad_node. Started by `watod teleop`.
+/**:
+  ros__parameters:
+    mode_topic: "/control/mode"  # joypad_node's mode, shown in the status line
+
+    # Like joy_node's autorepeat: /joy keeps coming while idle, so joypad_node's watchdog only fires
+    # when this node stops
+    publish_rate_hz: 20.0
+
+    # What holding w drives at (m/s); q / e step through them. Start at the slowest
+    speed_levels: [1.0, 2.0, 3.0, 4.0, 5.0]
+    initial_speed_level: 1.0
+
+    # A terminal has no key-up, so a key counts as released when its repeats stop.
+    # initial_hold_s must be above the desktop's repeat delay (500 ms by default) and is how long a
+    # single tap lasts; repeat_hold_s must be above the repeat interval (30 ms) plus one tick (50 ms).
+    # Over a slow SSH link, raise repeat_hold_s if holding a key stutters.
+    initial_hold_s: 0.55
+    repeat_hold_s: 0.15

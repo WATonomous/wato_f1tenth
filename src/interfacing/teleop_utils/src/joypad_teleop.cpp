@@ -27,7 +27,7 @@ JOYPAD::JOYPAD()
 : Node("joypad_node")
 {
   // parameters
-  this->declare_parameter<std::string>("gamepad_topic", "/hal/drive/joystick");
+  this->declare_parameter<std::string>("gamepad_topic", "/hal/drive/teleop");
   this->declare_parameter<std::string>("joy_topic", "/joy");
   this->declare_parameter<std::string>("dead_man_topic", "/hal/dead_man_switch");
   this->declare_parameter<std::string>("mode_topic", "/control/mode");
