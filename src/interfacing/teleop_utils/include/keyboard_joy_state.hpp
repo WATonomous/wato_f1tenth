@@ -30,6 +30,8 @@
 //   q / e    raise / lower the speed level (what full w drives at)
 //   space    X: manual on/off (sticky, like joy_node's sticky_buttons)
 //   f        R1: dead man on/off for autonomy (sticky)
+//   r        O: reverse on/off (sticky); while on, w reverses at joypad_node's reverse_speed
+//   p        square: pit limit on/off (sticky), forward speed capped at 1 m/s
 //   Ctrl-C   quit
 //
 // A terminal sends no key-up, only repeats (about 500 ms after the press, then every 30 ms), and only
@@ -39,7 +41,7 @@
 
 struct KeyboardJoyConfig
 {
-  int steering_axis, throttle_axis, brake_axis, safety_button, autonomy_button;
+  int steering_axis, throttle_axis, brake_axis, safety_button, autonomy_button, reverse_button, pit_limit_button;
   std::size_t num_axes, num_buttons;
   double max_speed;  // joypad_node's: full trigger drives at max_speed
   double steering_rate;  // left stick units per second
@@ -91,6 +93,12 @@ public:
       case 'f':
         autonomy_ = !autonomy_;
         return KeyEvent::kChanged;
+      case 'r':
+        reverse_ = !reverse_;
+        return KeyEvent::kChanged;
+      case 'p':
+        pit_limit_ = !pit_limit_;
+        return KeyEvent::kChanged;
       case 0x03:  // Ctrl-C (the terminal is raw, so it arrives as a key)
         return KeyEvent::kQuit;
     }
@@ -118,7 +126,7 @@ public:
   {
     throttle_ = brake_ = steer_left_ = steer_right_ = HeldKey{};
     steering_ = 0.0;
-    safety_ = autonomy_ = false;
+    safety_ = autonomy_ = reverse_ = pit_limit_ = false;
   }
 
   std::vector<float> axes() const
@@ -136,18 +144,22 @@ public:
     std::vector<int32_t> buttons(config_.num_buttons, 0);
     buttons[config_.safety_button] = safety_ ? 1 : 0;
     buttons[config_.autonomy_button] = autonomy_ ? 1 : 0;
+    buttons[config_.reverse_button] = reverse_ ? 1 : 0;
+    buttons[config_.pit_limit_button] = pit_limit_ ? 1 : 0;
     return buttons;
   }
 
-  // Trigger position that joypad_node's trigger_maper turns into `fraction` of max_speed. A released
-  // trigger rests at +1.0 (0 throttle); 0.0 would already be about 12% throttle.
+  // Trigger axis that joypad_node turns into `fraction` of max_speed: its trigger_travel maps the axis
+  // (1.0 released, -1.0 pressed) to travel 0..1, then trigger_maper's exp(4 (travel - 1)) - 0.01832.
+  // Always send 1.0 when released: joypad_node treats 0.0 as released only until a trigger reports
+  // something else, and after that 0.0 is half travel, about 12% throttle.
   static double triggerFor(double fraction)
   {
     if (fraction <= 0.0) {
       return kTriggerReleased;
     }
-    const double ct = std::clamp(1.0 + std::log(fraction + kTriggerOffset) / 4.0, 0.0, 1.0);
-    return 1.0 - 2.0 * ct;
+    const double travel = std::clamp(1.0 + std::log(fraction + kTriggerOffset) / 4.0, 0.0, 1.0);
+    return 1.0 - 2.0 * travel;
   }
 
   // The fastest level joypad_node's trigger curve can reach (full trigger is ~98% of max_speed)
@@ -186,6 +198,16 @@ public:
     return autonomy_;
   }
 
+  bool reverse() const
+  {
+    return reverse_;
+  }
+
+  bool pitLimit() const
+  {
+    return pit_limit_;
+  }
+
 private:
   static constexpr double kTriggerReleased = 1.0;
   static constexpr double kTriggerPressed = -1.0;
@@ -219,6 +241,8 @@ private:
   double last_update_s_ = -1.0;
   bool safety_ = false;
   bool autonomy_ = false;
+  bool reverse_ = false;
+  bool pit_limit_ = false;
 };
 
 #endif

@@ -42,7 +42,7 @@ KeyboardJoy::KeyboardJoy()
   // joypad_config.yaml: the same names and defaults as joypad_node
   this->declare_parameter<std::string>("joy_topic", "/joy");
   this->declare_parameter<std::string>("my_frame_id", "base_link");
-  this->declare_parameter<double>("max_speed", 22.88);
+  this->declare_parameter<double>("max_speed", 4.0);
   this->declare_parameter<double>("steering_gain", 0.5236);
   this->declare_parameter<double>("max_steering_rate", 3.2);
   this->declare_parameter<int>("steering_axis", 0);
@@ -74,13 +74,12 @@ KeyboardJoy::KeyboardJoy()
   config.brake_axis = this->get_parameter("break_axis").as_int();
   config.safety_button = this->get_parameter("safety_button").as_int();
   config.autonomy_button = this->get_parameter("autonomy_button").as_int();
+  config.reverse_button = this->get_parameter("reverse_button").as_int();
+  config.pit_limit_button = this->get_parameter("pit_limit_button").as_int();
   // as many axes and buttons as joypad_node reads, including the ones the keyboard leaves at rest
   config.num_axes = 1 + std::max({config.steering_axis, config.throttle_axis, config.brake_axis});
-  config.num_buttons = 1 + std::max(
-                             {config.safety_button,
-                              config.autonomy_button,
-                              static_cast<int>(this->get_parameter("reverse_button").as_int()),
-                              static_cast<int>(this->get_parameter("pit_limit_button").as_int())});
+  config.num_buttons =
+    1 + std::max({config.safety_button, config.autonomy_button, config.reverse_button, config.pit_limit_button});
   config.max_speed = this->get_parameter("max_speed").as_double();
   config.steering_rate =
     this->get_parameter("max_steering_rate").as_double() / this->get_parameter("steering_gain").as_double();
@@ -135,7 +134,8 @@ KeyboardJoy::KeyboardJoy()
     "\nkeyboard teleop: the gamepad's buttons on keys\n"
     "  w / s  hold: throttle (R2) / brake (L2)      a / d  hold: steer left / right\n"
     "  q / e  speed level up / down                 space  X: manual on/off\n"
-    "  f      R1: dead man on/off (autonomy)        Ctrl-C quit (stops the car)\n\n");
+    "  f      R1: dead man on/off (autonomy)        r      O: reverse on/off (w reverses slowly)\n"
+    "  p      square: pit limit on/off (1 m/s)      Ctrl-C quit (stops the car)\n\n");
   printStatus();
 }
 
@@ -202,14 +202,16 @@ void KeyboardJoy::printStatus()
   std::snprintf(
     line,
     sizeof(line),
-    "  %-10s  level %.1f m/s  %s %s  steer %+5.2f  X %-3s  R1 %-3s",
+    "  %-10s  level %.1f m/s  %s %s  steer %+5.2f  X %-3s  R1 %-3s  O %-3s  sq %-3s",
     mode_.c_str(),
     state_->speedLevel(),
     state_->throttleHeld() ? "[w]" : " w ",
     state_->brakeHeld() ? "[s]" : " s ",
     state_->steering(),
     state_->safety() ? "on" : "off",
-    state_->autonomy() ? "on" : "off");
+    state_->autonomy() ? "on" : "off",
+    state_->reverse() ? "on" : "off",
+    state_->pitLimit() ? "on" : "off");
   if (line != last_status_) {
     last_status_ = line;
     std::printf("\r%s\033[K", line);

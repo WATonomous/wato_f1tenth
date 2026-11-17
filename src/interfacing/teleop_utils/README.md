@@ -1,13 +1,17 @@
-# teleop_utils: driving the car with a gamepad (and the keyboard in sim)
+# teleop_utils: driving the car with a gamepad or the keyboard
 
-Two nodes:
+Three nodes:
 
-- `joypad_node`, launched as `gamepad_node`: reads `/joy` from `joy_node` and publishes the manual
-  drive command, the autonomy dead man switch, the gamepad mode and the gamepad state.
-- `keyboard_converter`: turns `/cmd_vel` (the Foxglove teleop panel) into a drive command. Sim only.
+- `joypad_node`, launched as `gamepad_node`: reads `/joy` and publishes the manual drive command,
+  the autonomy dead man switch, the gamepad mode and the gamepad state.
+- `keyboard_joy_node`: the keyboard as a gamepad. With `TELEOP=keyboard` it replaces `joy_node` as
+  the `/joy` source, so everything below applies to the keyboard too (see [Keyboard](#keyboard)).
+- `keyboard_converter`: turns `/cmd_vel` (the Foxglove teleop panel) into a drive command. Sim only;
+  unrelated to `TELEOP=keyboard`.
 
-Both start from `interfacing_bringup/launch/interfacing.launch.yaml`, on the car and on a PC
-(`teleop` from `TELEOP`, gamepad by default; `keyboard` is on in sim). Settings: `config/joypad_config.yaml`.
+`joypad_node` and `keyboard_converter` start from `interfacing_bringup/launch/interfacing.launch.yaml`,
+on the car and on a PC (`teleop` from `TELEOP`, gamepad by default; `keyboard` is on in sim);
+`keyboard_joy_node` starts with `./watod teleop`. Settings: `config/joypad_config.yaml`.
 
 ## Connecting a pad
 
@@ -91,6 +95,31 @@ The throttle curve is exponential, so the first half of the trigger is gentle:
 If `/joy` goes quiet for `joy_timeout_s` (0.5 s), for example the pad disconnects or its battery
 dies: the mode becomes `NO_GAMEPAD` and the dead man is released, so autonomy stops. A manual
 command stops arriving too, so the mux times out and `ackermann_to_vesc` brakes to a stop.
+
+## Keyboard
+
+Set `TELEOP="keyboard"` in `watod-config.local.sh`, `./watod up`, then run `./watod teleop` in a
+terminal (also over SSH on the car). `joy_node` does not run; `keyboard_joy_node` publishes the
+`/joy` a pad would, so the hand-over, BLOCKED, the watchdog, reverse and the pit limit work as above.
+
+| Key | Gamepad | Does |
+| --- | --- | --- |
+| **w** / **s** | R2 / L2 | Throttle / full brake while held |
+| **a** / **d** | Left stick | Steer left / right while held, ramping at `max_steering_rate` |
+| **q** / **e** | none | Speed level up / down: what holding w asks for (1 to 5 m/s) |
+| **space** | X | Manual control on/off |
+| **f** | R1 | Autonomy dead man on/off |
+| **r** | O | Reverse on/off: while on, w reverses at `reverse_speed` (every level is past the threshold) |
+| **p** | Square | Pit limit on/off |
+| Ctrl-C | none | Quit: sends one released `/joy`, so the car stops and the dead man drops |
+
+- A terminal sends no key-up, only repeats (about 500 ms after the press, then every 30 ms), so a
+  key counts as held until its repeats stop: a tap lasts about 0.5 s, a release takes about 0.15 s.
+  Only the newest key repeats; holding w then a keeps both alive.
+- `./watod teleop` refuses a second reader, and stops the reader when its terminal or SSH session
+  ends, so a dropped connection can't leave R1 on.
+- Settings: `config/keyboard_config.yaml` (speed levels, hold times); the button and axis layout,
+  `max_speed` and steering come from `joypad_config.yaml`.
 
 ## Topics
 

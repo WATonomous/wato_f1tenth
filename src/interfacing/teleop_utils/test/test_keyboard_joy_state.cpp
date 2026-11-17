@@ -20,9 +20,11 @@
 
 namespace
 {
-// joypad_config.yaml's layout: steering axis 0, R2 axis 5, L2 axis 2, X button 0, R1 button 10
-constexpr int kSteer = 0, kThrottle = 5, kBrake = 2, kX = 0, kR1 = 10;
-constexpr double kMaxSpeed = 22.88;
+// joypad_config.yaml's layout: steering axis 0, R2 axis 5, L2 axis 4, X button 0, O button 1,
+// square button 2, R1 button 10; max_speed 10 m/s
+constexpr int kSteer = 0, kThrottle = 5, kBrake = 4, kX = 0, kO = 1, kSquare = 2, kR1 = 10;
+constexpr double kMaxSpeed = 10.0;
+constexpr double kReverseThreshold = 0.2;  // joypad_config.yaml's reverse_throttle_threshold
 
 KeyboardJoyState makeState()
 {
@@ -32,6 +34,8 @@ KeyboardJoyState makeState()
   config.brake_axis = kBrake;
   config.safety_button = kX;
   config.autonomy_button = kR1;
+  config.reverse_button = kO;
+  config.pit_limit_button = kSquare;
   config.num_axes = 6;
   config.num_buttons = 11;
   config.max_speed = kMaxSpeed;
@@ -43,11 +47,16 @@ KeyboardJoyState makeState()
   return KeyboardJoyState(config);
 }
 
+// joypad_node's trigger_travel: 0 released (axis 1.0) to 1 fully pressed (axis -1.0)
+double travel(float trigger)
+{
+  return -(trigger - 1.0) / 2.0;
+}
+
 // joypad_node's trigger_maper and how it scales the result
 double joypadSpeed(float trigger)
 {
-  const double ct = -(trigger - 1.0) / 2.0;
-  return (std::exp(4.0 * (ct - 1.0)) - 0.01832) * kMaxSpeed;
+  return (std::exp(4.0 * (travel(trigger) - 1.0)) - 0.01832) * kMaxSpeed;
 }
 
 // A key held as a terminal sends it: one press, a 0.5 s gap, then a repeat every 30 ms.
@@ -94,6 +103,32 @@ TEST_CASE("space and f toggle X and R1 like sticky buttons", "[keyboard_joy]")
   state.handleKey('F', 0.1);
   REQUIRE(state.buttons()[kX] == 0);
   REQUIRE(state.buttons()[kR1] == 0);
+}
+
+TEST_CASE("r and p toggle O (reverse) and square (pit limit)", "[keyboard_joy]")
+{
+  auto state = makeState();
+  REQUIRE(state.handleKey('r', 0.0) == KeyEvent::kChanged);
+  REQUIRE(state.buttons()[kO] == 1);
+  REQUIRE(state.handleKey('p', 0.0) == KeyEvent::kChanged);
+  REQUIRE(state.buttons()[kSquare] == 1);
+  state.handleKey('R', 0.1);
+  state.handleKey('P', 0.1);
+  REQUIRE(state.buttons()[kO] == 0);
+  REQUIRE(state.buttons()[kSquare] == 0);
+}
+
+TEST_CASE("every speed level presses w past the reverse threshold", "[keyboard_joy]")
+{
+  // with O on, joypad_node reverses only while throttle travel is above the threshold
+  auto state = makeState();
+  for (int level = 0; level < 5; ++level) {
+    INFO("level " << state.speedLevel());
+    state.handleKey('w', 0.0);
+    state.update(0.0);
+    REQUIRE(travel(state.axes()[kThrottle]) > kReverseThreshold);
+    state.handleKey('q', 0.0);
+  }
 }
 
 TEST_CASE("w drives at the speed level through joypad_node's trigger curve", "[keyboard_joy]")
@@ -201,6 +236,8 @@ TEST_CASE("releaseAll leaves an untouched gamepad", "[keyboard_joy]")
   auto state = makeState();
   state.handleKey(' ', 0.0);
   state.handleKey('f', 0.0);
+  state.handleKey('r', 0.0);
+  state.handleKey('p', 0.0);
   holdKey(state, 'a', 0.0, 0.5);
   state.handleKey('w', 0.5);
   state.releaseAll();
@@ -210,6 +247,8 @@ TEST_CASE("releaseAll leaves an untouched gamepad", "[keyboard_joy]")
   REQUIRE(axes[kSteer] == 0.0f);
   REQUIRE(state.buttons()[kX] == 0);
   REQUIRE(state.buttons()[kR1] == 0);
+  REQUIRE(state.buttons()[kO] == 0);
+  REQUIRE(state.buttons()[kSquare] == 0);
 }
 
 TEST_CASE("Ctrl-C quits and other keys are ignored", "[keyboard_joy]")

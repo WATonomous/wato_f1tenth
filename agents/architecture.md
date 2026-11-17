@@ -123,7 +123,8 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 Teleop (`TELEOP`): `joypad_node` is the only teleop logic (mux input `/hal/drive/teleop`, dead man,
 `/control/mode`, BLOCKED, the 0.5 s `/joy` watchdog). Its `/joy` comes from `joy_node` (gamepad) or
 `keyboard_joy_node` (keyboard), never both. The keyboard publishes the Joy a pad would: w/s = R2/L2,
-a/d = left stick, q/e = speed level, space = X, f = R1. It reads keys from a terminal, so
+a/d = left stick, q/e = speed level, space = X, f = R1, r = O (reverse), p = square (pit limit).
+It reads keys from a terminal, so
 `./watod teleop` starts it with `docker exec -it` (also over SSH on the car) and stops it when that
 terminal or SSH session ends. A terminal has no key-up, so a key counts as held until its repeats stop.
 
