@@ -1,0 +1,5 @@
+{"label": "example_kd", "dry_run": true,
+ "changes": [
+  {"name": "s_pid_kd", "type": "double", "expect": 0.0002, "value": 0.0002},
+  {"name": "s_pid_allow_braking", "type": "bool", "expect": true, "value": true}
+ ]}

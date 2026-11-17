@@ -17,6 +17,7 @@
   <depend>sensor_msgs</depend>
   <depend>joy</depend>
   <depend>ackermann_msgs</depend>
+  <depend>f1tenth_msgs</depend>
 
   <test_depend>wato_test</test_depend>
 

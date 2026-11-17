@@ -28,12 +28,13 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(f1tenth_msgs REQUIRED)
 
 # Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
 
 add_executable(joypad_node src/joypad_teleop.cpp)
 target_include_directories(joypad_node PUBLIC include)
-ament_target_dependencies(joypad_node rclcpp std_msgs sensor_msgs ackermann_msgs)
+ament_target_dependencies(joypad_node rclcpp std_msgs sensor_msgs ackermann_msgs f1tenth_msgs)
 
 add_executable(keyboard_converter src/keyboard_converter.cpp)
 target_include_directories(keyboard_converter PUBLIC include)

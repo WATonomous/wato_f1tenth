@@ -14,6 +14,7 @@ docker/                    <module>.Dockerfile, template.Dockerfile (shared stag
 src/<module>/              ROS 2 packages grouped by module; each module has <module>_bringup
 src/wato_test/             Catch2 test helpers (add_wato_test)
 docs/mppi/                 MPPI notes from mppi_test (run procedure, debugging, system overview)
+tools/                     separate repos cloned by `watod tools`, git-ignored: raceline generator, model framework
 agents/                    these docs
 ```
 
@@ -28,7 +29,7 @@ mounted at `/ws/src/<module>`.
 | `infrastructure` | `infrastructure_bringup`, `f1tenth_msgs`, `system_monitor`, `tf_static_relay`, `vision_msgs_markers`, `wato_lifecycle_manager` | Foxglove bridge (port `uid*20 + 2`), TF relays, `system_monitor` (`/system/status`, and on the car `/system/power` plus the black box: `workflows/power.md`); builds `vesc_msgs` so Foxglove can decode it |
 | `interfacing` | `vesc` (vesc_driver, vesc_ackermann, vesc_msgs), `vesc_battery`, `teleop_utils`, `ackermann_mux`, `drive_status`, `safety_system` (`safety_node`); RealSense driver (apt) | car: VESC, Hokuyo; both: teleop (`TELEOP`: gamepad over USB or Bluetooth, or keyboard), mux, base_link->laser, RealSense IMU with `REALSENSE=true`; sim: Foxglove teleop panel (`/cmd_vel`) |
 | `world_modeling` | `particle_filter` (+ range_libc), `ackermann_ekf`, `global_planner`, `costmap`, `race_tracks` (data, also copied into `action`) | car: PF + map server; both: global planner; optional costmap, EKF, mapping, RViz |
-| `action` | `action_bringup`, `pure_pursuit`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
+| `action` | `action_bringup`, `pure_pursuit`, `stanley_controller`, `mppi_example` (JAX), `mppi_cpp`, `mppi_bringup`, `opponent_predictor` | one controller (`CONTROLLER`: pure pursuit by default, Stanley, MPPI untested) and optionally a local planner (`LOCAL_PLANNER`); see `workflows/add-controller.md` |
 | `sim` | `sim_bringup`, `sim_util`, AutoDRIVE `autodrive_roboracer` (fetched at build) | AutoDRIVE bridge (port 4567) + sim adapter |
 | `perception` | `perception_bringup` | nothing yet |
 
@@ -38,10 +39,11 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | --- | --- | --- |
 | `PLATFORM` | detected: `car` on a Jetson, else `sim` | which `config/<platform>/` YAML, which nodes start, default `ACTIVE_MODULES` |
 | `MAPPING` | `false` (default), `true` | slam_toolbox instead of localization; sim drops its static map->odom |
-| `CONTROLLER` | `pure_pursuit` (default), `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
+| `CONTROLLER` | `pure_pursuit` (default), `stanley`, `mppi`, `none` | controller in `action`: `action_bringup/launch/controllers/<name>.launch.yaml` |
 | `LOCAL_PLANNER` | `none` (default) | local planner in `action`: `action_bringup/launch/local_planners/<name>.launch.yaml` |
 | `TELEOP` | `gamepad` (default), `keyboard` | `/joy` source for `joypad_node` in `interfacing`: `joy_node`, or `keyboard_joy_node` started with `./watod teleop` |
 | `TRACK` | `wato_office` (car default), `autodrive` (sim default), `e7_fifth_v3`, `e7_fifth_big` | map and raceline: `race_tracks/tracks/<name>/` |
+| `DIRECTION` | empty (default), `ccw`, `cw` | which way round: `raceline_<dir>.csv` (and `raceline_mppi_<dir>.csv`); empty = the track's `raceline.csv` |
 | `REALSENSE` | `false` (default), `true` | RealSense driver in `interfacing`; IMU on `/camera/camera/imu` |
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
 | `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |
@@ -88,12 +90,15 @@ AutoDRIVE simulator (host) <-> autodrive_bridge (sim)   /autodrive/roboracer_1/*
 
 ```text
 Hokuyo (Ethernet 192.168.0.10) -> urg_node                     -> /hal/scan
+/hal/scan                      -> scan_intensity_filter        -> /hal/filter_scan (dim points dropped; not used by default)
 VESC (/dev/sensors/vesc)       -> vesc_driver + vesc_to_odom   -> /hal/odom, sensors/imu
 RealSense D435i (USB)          -> realsense2_camera            -> /hal/imu (IMU=realsense)
 VESC /sensors/core             -> vesc_battery                 -> /hal/battery (3S 5000 mAh pack)
 /hal/scan + /hal/odom + map    -> particle_filter (rmgpu)      -> /hal/localization/odom, TF map->odom
-/joy                           -> joypad_node (gamepad_node)   -> /hal/drive/teleop, /hal/dead_man_switch, /control/mode
+/joy                           -> joypad_node (gamepad_node)   -> /hal/drive/teleop, /hal/dead_man_switch, /control/mode,
+                                                                  /control/teleop (toggles and triggers, for Foxglove)
 /hal/drive/*                   -> ackermann_mux                -> /hal/ackermann_cmd -> ackermann_to_vesc -> VESC
+                                                                  (+ /control/speed_limiter: asked vs limited speed)
                                                                   /control/active_input (which input is in control)
 /control/* + dead man + cmd    -> drive_status                 -> /control/status (the status panel)
 /global_planner/path + /hal/localization/odom + /hal/odom -> pure_pursuit -> /hal/drive/autonomy
@@ -105,8 +110,15 @@ e-brake slot at priority 100.
 
 Mux priorities: e-brake 100, teleop 50, keyboard (Foxglove panel) and autonomy 25 (0.2 s timeouts), in
 `interfacing_bringup/config/{car,sim}/mux.yaml`. Gamepad buttons toggle: X = manual (wins), R1 =
-autonomy dead man; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has control in one word
-(`AUTONOMY`, `STOPPED`, `MANUAL`, `KEYBOARD`, `EBRAKE`, `NO_COMMAND`).
+autonomy dead man, O = reverse (throttle then reverses at a fixed `reverse_speed`), square = 1 m/s
+pit limit; `/control/status` (`f1tenth_msgs/ControlStatus`) says who has control in one word
+(`AUTONOMY`, `STOPPED`, `MANUAL`, `KEYBOARD`, `EBRAKE`, `NO_COMMAND`), plus the track, direction and controller.
+`/control/teleop` (`TeleopState`) and `/control/speed_limiter` (`SpeedLimiterStatus`) feed the Foxglove Drive
+tab (10 Hz, best effort). The full gamepad guide is `src/interfacing/teleop_utils/README.md`.
+
+On the car, `ackermann_to_vesc` limits how fast the commanded speed changes, for every input:
+`max_accel` 3.3 m/s^2 speeding up, `max_decel` 4.0 m/s^2 slowing down, and it brakes to a stop if
+no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/config/car/vesc.yaml`.
 
 Teleop (`TELEOP`): `joypad_node` is the only teleop logic (mux input `/hal/drive/teleop`, dead man,
 `/control/mode`, BLOCKED, the 0.5 s `/joy` watchdog). Its `/joy` comes from `joy_node` (gamepad) or
@@ -131,13 +143,16 @@ terminal or SSH session ends. A terminal has no key-up, so a key counts as held 
 | What | Where |
 | --- | --- |
 | mux, VESC, Hokuyo | `interfacing_bringup/config/{car,sim}/` |
+| lidar intensity filter (`/hal/filter_scan`, cutoff tuned on one track) | `interfacing_bringup/config/car/scan_filter.yaml` |
+| VESC motor settings (PID, Max ERPM, launch, braking) | on the VESC itself, not in the repo: `workflows/vesc-firmware.md`, scripts in `agents/scripts/vesc/` |
 | PF, global planner, RViz | `world_modeling_bringup/config/{car,sim}/`, `rviz/` |
 | track maps and racelines (`TRACK`) | `race_tracks/tracks/<track>/` (see its README) |
 | pure pursuit | `action_bringup/config/{car,sim}/pure_pursuit.yaml` |
-| gamepad mapping | `teleop_utils/config/joypad_config.yaml` (also read by the keyboard) |
+| Stanley | `action_bringup/config/{car,sim}/stanley_controller.yaml` (see `stanley_controller/README.md`) |
+| gamepad mapping | `teleop_utils/config/joypad_config.yaml` (also read by the keyboard); controls, hand-over and troubleshooting in `teleop_utils/README.md` |
 | keyboard speed levels, key hold times | `teleop_utils/config/keyboard_config.yaml` |
 | battery (cells, capacity, warn/critical) | `interfacing_bringup/config/car/battery.yaml` |
-| Foxglove layouts | `config/car.json`, `config/sim.json` at the repo root (control status, track, battery, system, camera, TF tabs); `infrastructure_bringup/config/foxglove/battery.json`. Import in Foxglove: Layouts > Import |
+| Foxglove layouts | `config/car.json`, `config/sim.json` at the repo root: Drive (who drives, gamepad toggles, triggers, speed asked/limited/measured, drive/Jetson/total power, 3D track with TF), System (computer, power, VESC, log), Lidar (scan by intensity, intensity and range per beam, car), Camera (color + depth, car); `infrastructure_bringup/config/foxglove/battery.json`. Import in Foxglove: Layouts > Import |
 | MPPI | `mppi_cpp/config/params_e7.yaml`, `mppi_bringup/config/` |
 
 ## Contract check

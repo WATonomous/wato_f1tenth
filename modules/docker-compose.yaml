@@ -89,6 +89,7 @@ services:
       - LOCAL_PLANNER=${LOCAL_PLANNER}
       - TELEOP=${TELEOP}
       - TRACK=${TRACK}
+      - DIRECTION=${DIRECTION}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
       - ZENOH_ROUTER_CONFIG_URI=${ZENOH_ROUTER_CONFIG_URI}
@@ -194,6 +195,7 @@ services:
     environment:
       - PLATFORM=${PLATFORM}
       - TRACK=${TRACK}
+      - DIRECTION=${DIRECTION}
       - MAPPING=${MAPPING}
       - LOCALIZATION=${LOCALIZATION}
       - PF_VIZ=${PF_VIZ}
@@ -246,6 +248,7 @@ services:
     environment:
       - PLATFORM=${PLATFORM}
       - TRACK=${TRACK}
+      - DIRECTION=${DIRECTION}
       - MAPPING=${MAPPING}
       - CONTROLLER=${CONTROLLER}
       - LOCAL_PLANNER=${LOCAL_PLANNER}

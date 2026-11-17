@@ -14,6 +14,7 @@
 
 #include "joypad_teleop.hpp"  // NOLINT(build/include_subdir)
 
+#include <cmath>
 #include <string>
 
 /*
@@ -30,11 +31,14 @@ JOYPAD::JOYPAD()
   this->declare_parameter<std::string>("joy_topic", "/joy");
   this->declare_parameter<std::string>("dead_man_topic", "/hal/dead_man_switch");
   this->declare_parameter<std::string>("mode_topic", "/control/mode");
+  this->declare_parameter<std::string>("teleop_state_topic", "/control/teleop");
   this->declare_parameter<std::string>("my_frame_id", "base_link");
 
-  this->declare_parameter<float>("max_speed", 22.88);
+  this->declare_parameter<float>("max_speed", 4.0);
   this->declare_parameter<float>("steering_gain", 0.5236);
   this->declare_parameter<float>("max_steering_rate", 3.2);
+  this->declare_parameter<float>("reverse_speed", 0.75);
+  this->declare_parameter<float>("reverse_throttle_threshold", 0.2);
 
   this->declare_parameter<int>("steering_axis", 0);
   this->declare_parameter<int>("throttel_axis", 5);
@@ -53,6 +57,8 @@ JOYPAD::JOYPAD()
   max_speed = this->get_parameter("max_speed").as_double();
   max_steering_rate = this->get_parameter("max_steering_rate").as_double();
   steering_gain = this->get_parameter("steering_gain").as_double();
+  reverse_speed = std::abs(this->get_parameter("reverse_speed").as_double());
+  reverse_throttle_threshold = this->get_parameter("reverse_throttle_threshold").as_double();
 
   // button
   ba.steering_axis = this->get_parameter("steering_axis").as_int();
@@ -74,6 +80,10 @@ JOYPAD::JOYPAD()
   mode_pub_ = this->create_publisher<std_msgs::msg::String>(
     this->get_parameter("mode_topic").as_string(), rclcpp::QoS(1).transient_local().reliable());
   publishMode("NO_GAMEPAD");
+
+  // the toggles and triggers for the Drive panel: 10 Hz, best effort (visualization, rule 7)
+  teleop_state_pub_ = this->create_publisher<f1tenth_msgs::msg::TeleopState>(
+    this->get_parameter("teleop_state_topic").as_string(), rclcpp::QoS(1).best_effort());
 
   gamepad_sub = this->create_subscription<sensor_msgs::msg::Joy>(
     joy_topic, 20, std::bind(&JOYPAD::gamepadCallback, this, std::placeholders::_1));
@@ -108,6 +118,15 @@ void JOYPAD::publishMode(const std::string & mode)
 
 void JOYPAD::watchdogCallback()
 {
+  const bool connected =
+    last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() <= joy_timeout_s;
+  teleop_state_.header.stamp = this->now();
+  teleop_state_.connected = connected;
+  teleop_state_.mode = mode_;
+  teleop_state_.max_speed = max_speed;
+  teleop_state_.reverse_speed = reverse_speed;
+  teleop_state_pub_->publish(teleop_state_);
+
   if (last_joy_.nanoseconds() > 0 && (this->now() - last_joy_).seconds() > joy_timeout_s) {
     publishMode("NO_GAMEPAD");
   }
@@ -146,6 +165,17 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   bool autonomy = !armed && autonomy_on && !autonomy_blocked_;
   publishMode(armed ? "MANUAL" : autonomy ? "AUTONOMY" : (autonomy_on && autonomy_blocked_) ? "BLOCKED" : "IDLE");
 
+  // What the toggles and triggers are set to, for /control/teleop (sent by watchdogCallback)
+  teleop_state_.manual = armed;
+  teleop_state_.autonomy = autonomy_on;
+  teleop_state_.autonomy_blocked = autonomy_on && autonomy_blocked_;
+  teleop_state_.reverse = msg->buttons.at(ba.reverse_button);
+  teleop_state_.pit_limit = msg->buttons.at(ba.pitLimit_button);
+  teleop_state_.throttle = trigger_travel(msg->axes.at(ba.throttle_axis), throttle_seen_);
+  teleop_state_.brake = trigger_travel(msg->axes.at(ba.break_axis), brake_seen_);
+  teleop_state_.steering = steering_mapper(msg->axes.at(ba.steering_axis));
+  teleop_state_.requested_speed = 0.0;
+
   // On the manual->released edge, publish one zero command so the last thing downstream sees is a
   // stop, then go quiet on gamepad_topic. ackermann_mux (timeout: 0.2s in mux.yaml) then sees the
   // topic expire and falls through to autonomy. Publishing zero every message here (instead of
@@ -162,10 +192,12 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   was_armed_ = true;
 
   float current_steering = JOYPAD::steering_mapper(msg->axes.at(ba.steering_axis));
-  float current_throtel = JOYPAD::trigger_maper(msg->axes.at(ba.throttle_axis));
-  float current_break = JOYPAD::trigger_maper(msg->axes.at(ba.break_axis));
+  float throttle_travel = trigger_travel(msg->axes.at(ba.throttle_axis), throttle_seen_);
+  float brake_travel = trigger_travel(msg->axes.at(ba.break_axis), brake_seen_);
+  float current_throtel = JOYPAD::trigger_maper(throttle_travel);
+  float current_break = JOYPAD::trigger_maper(brake_travel);
 
-  // reversing
+  // reversing: reverse_button (O) is a toggle like the others
   if (msg->buttons.at(ba.reverse_button)) {
     reversing = true;
     direction = -1;
@@ -184,7 +216,16 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
     total_throtel = 0.0;
   }
 
-  drive.speed = total_throtel * max_speed * direction;
+  if (reversing) {
+    // Reverse at one fixed, slow speed while the throttle is pressed past the threshold (brake
+    // trigger cancels). A fixed speed keeps the motor out of the very slow crawl, where the
+    // sensorless VESC start stutters.
+    bool throttle_pressed = throttle_travel > reverse_throttle_threshold;
+    bool brake_pressed = brake_travel > reverse_throttle_threshold;
+    drive.speed = (throttle_pressed && !brake_pressed) ? -reverse_speed : 0.0;
+  } else {
+    drive.speed = total_throtel * max_speed * direction;
+  }
   drive.steering_angle = current_steering;
   drive.steering_angle_velocity = max_steering_rate;
 
@@ -192,9 +233,7 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
     drive.speed = 1.0;
   }
 
-  if (reversing && drive.speed < -1.5) {
-    drive.speed = -1.5;
-  }
+  teleop_state_.requested_speed = drive.speed;
 
   // publish the message; manual control releases the dead man so autonomy stops
   drive_msg.drive = drive;
@@ -202,10 +241,24 @@ void JOYPAD::gamepadCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
   publishDeadMan(false);
 }
 
-float JOYPAD::trigger_maper(const float r2)
+// Throttle curve: trigger travel (0 to 1) to a 0 to ~0.98 throttle fraction
+float JOYPAD::trigger_maper(const float travel)
 {
-  float ct = -(r2 - 1) / 2;
-  return (std::exp(4 * (ct - 1)) - 0.01832);
+  return (std::exp(4 * (travel - 1)) - 0.01832);
+}
+
+// How far a trigger is pressed: 0 released (axis 1.0) to 1 fully pressed (axis -1.0).
+// joy_node reports a trigger as exactly 0.0 until it is first pressed, which would read as half
+// pressed, so a trigger counts as released until it has reported anything else.
+float JOYPAD::trigger_travel(const float axis, bool & seen)
+{
+  if (axis != 0.0f) {
+    seen = true;
+  }
+  if (!seen) {
+    return 0.0f;
+  }
+  return -(axis - 1) / 2;
 }
 
 float JOYPAD::steering_mapper(const float ls)

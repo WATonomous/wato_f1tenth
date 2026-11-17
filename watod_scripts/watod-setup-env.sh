@@ -161,6 +161,9 @@ TELEOP=${TELEOP:-"gamepad"}
 if [[ -z ${TRACK:-} ]]; then
   if [[ "$PLATFORM" == "car" ]]; then TRACK="wato_office"; else TRACK="autodrive"; fi
 fi
+# Driving direction on the track: ccw or cw uses its raceline_<dir>.csv (and raceline_mppi_<dir>.csv);
+# empty = its raceline.csv (the track's default direction, see its track_info.yaml)
+DIRECTION=${DIRECTION:-""}
 # true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
 REALSENSE=${REALSENSE:-"false"}
 # true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
@@ -271,6 +274,7 @@ append "CONTROLLER" "$CONTROLLER"
 append "LOCAL_PLANNER" "$LOCAL_PLANNER"
 append "TELEOP" "$TELEOP"
 append "TRACK" "$TRACK"
+append "DIRECTION" "$DIRECTION"
 append "REALSENSE" "$REALSENSE"
 append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
 append "IMU" "$IMU"
