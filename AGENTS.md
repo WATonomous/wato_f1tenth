@@ -114,7 +114,7 @@ cp watod-config.sh watod-config.local.sh   # personal settings: ACTIVE_MODULES, 
 ./watod up                                 # start ACTIVE_MODULES + infrastructure
 ./watod test [module] [pkg...]             # colcon test in the module's test image
 ./watod contract                           # check the running stack against the /hal contract
-./watod tools                              # clone/update tools/ (raceline generator, model framework)
+./watod tools                              # clone/update tools/ (raceline generator, model farm)
 ./watod -t action_bringup_dev              # shell into a dev container (module listed as "action:dev")
 
 # inside a dev container only (workspace: /ws)

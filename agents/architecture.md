@@ -14,7 +14,7 @@ docker/                    <module>.Dockerfile, template.Dockerfile (shared stag
 src/<module>/              ROS 2 packages grouped by module; each module has <module>_bringup
 src/wato_test/             Catch2 test helpers (add_wato_test)
 docs/mppi/                 MPPI notes from mppi_test (run procedure, debugging, system overview)
-tools/                     separate repos cloned by `watod tools`, git-ignored: raceline generator, model framework
+tools/                     separate repos cloned by `watod tools`, git-ignored: raceline generator, model farm
 agents/                    these docs
 ```
 

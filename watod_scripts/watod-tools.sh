@@ -30,8 +30,27 @@ TOOLS_DIR="$MONO_DIR/tools"
 # name  url (HTTPS, so cloning needs no SSH key; the repos are public)
 REPOS=(
   "wato_f1tenth_raceline_generator https://github.com/WATonomous/wato_f1tenth_raceline_generator.git"
-  "wato_f1tenth_model_fram https://github.com/WATonomous/wato_f1tenth_model_fram.git"
+  "wato_f1tenth_model_farm https://github.com/WATonomous/wato_f1tenth_model_farm.git"
 )
+
+# Repos renamed on GitHub (old folder -> new folder): a clone under the old name is pointed at
+# the rename instead of being cloned a second time
+RENAMED=(
+  "wato_f1tenth_model_fram wato_f1tenth_model_farm"
+)
+
+rename_hints() {
+  local old new
+  for entry in "${RENAMED[@]}"; do
+    read -r old new <<< "$entry"
+    if [[ -d "$TOOLS_DIR/$old/.git" && ! -e "$TOOLS_DIR/$new" ]]; then
+      echo "== $old was renamed to $new. Move your clone (local work stays):"
+      echo "   mv tools/$old tools/$new"
+      echo "   git -C tools/$new remote set-url origin https://github.com/WATonomous/$new.git"
+      return 1
+    fi
+  done
+}
 
 default_branch() {
   # the remote's default branch (main or master), from origin/HEAD
@@ -82,6 +101,7 @@ status_repo() {
 mkdir -p "$TOOLS_DIR"
 case "${1:-sync}" in
   sync)
+    rename_hints || exit 1
     rc=0
     for entry in "${REPOS[@]}"; do
       read -r name url <<< "$entry"
@@ -90,6 +110,7 @@ case "${1:-sync}" in
     exit $rc
     ;;
   status)
+    rename_hints
     for entry in "${REPOS[@]}"; do
       read -r name _ <<< "$entry"
       status_repo "$name"

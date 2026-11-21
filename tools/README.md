@@ -6,7 +6,7 @@ repo, and follow their own default branch (no pinned commit):
 | Folder | Repo | What it is |
 | --- | --- | --- |
 | `wato_f1tenth_raceline_generator/` | [WATonomous/wato_f1tenth_raceline_generator](https://github.com/WATonomous/wato_f1tenth_raceline_generator) | Turns a track map into a raceline (`race_tracks/tracks/<name>/raceline.csv`) |
-| `wato_f1tenth_model_fram/` | [WATonomous/wato_f1tenth_model_fram](https://github.com/WATonomous/wato_f1tenth_model_fram) | Data annotation and ML model framework, with the data standards |
+| `wato_f1tenth_model_farm/` | [WATonomous/wato_f1tenth_model_farm](https://github.com/WATonomous/wato_f1tenth_model_farm) | Model farm: the Data Standard, auto-labelling and model training (conda env, WATcloud jobs). Renamed from `wato_f1tenth_model_fram` |
 
 ```bash
 ./watod tools          # clone the missing ones, pull the rest to the latest main/master
