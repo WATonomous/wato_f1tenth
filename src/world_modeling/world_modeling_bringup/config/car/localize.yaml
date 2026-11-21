@@ -56,7 +56,10 @@ particle_filter:
     braking_gate_decel: 1.5         # m/s^2 of slowing down (vesc.yaml max_decel is 4.0). Lowered with the window
                                     # so the gate fires sooner: at 2.0 / 0.15 s one or two floor scans before it
                                     # turned on pulled the pose 0.3 m sideways (bag 20261113_204858)
-    braking_gate_min_speed: 1.0     # m/s
+    # braking_gate_min_speed: 1.0   # until 2026-11-21: gentle braking into the last corner (5.8 -> 2.1 m/s at
+    #   ~1.5-2 m/s^2, hovering at the threshold) kept the gate on for 2.1 s and froze a pose that was already
+    #   off; it never recovered in the corner (Stanley run, bag 20261113_215802)
+    braking_gate_min_speed: 4.0     # m/s: below this the nose barely dips, so the scan stays in use
     braking_gate_hold_s: 0.3        # s after braking eases
     # braking_gate_max_s: 3.0
     braking_gate_max_s: 2.5         # s per braking event: a full stop from 9.3 m/s took 2.3 s at 4.0 m/s^2
