@@ -6,18 +6,26 @@ note: raceline.csv and raceline_mppi.csv are copies of the default direction. Pi
 source_map: e7_fifth_v3
 track_map: e7_fifth_v3_track
 drawn_edges: e7_fifth_v3_track_lines.json
-centerline: {smoothing: 30.0, width_mode: normal, width_curv_frac: 0.9}
-generated: '2026-11-21T19:36:19'
-generator_commit: a6906fd
+centerline: {smoothing: 60.0, width_mode: normal, width_curv_frac: 0.9}
+generated: '2026-11-21T21:06:25'
+generator_commit: a3ebc70
 car: {mass_kg: 3.74, top_speed_mps: 10.0, max_accel_mps2: 3.3, max_decel_mps2: 4.0,
   max_lateral_accel_mps2: 4.905, mue: 0.5, mue_safety_factor: 1.0, edge_margin_m: 0.28,
   width_opt_m: 0.856}
 directions:
   ccw:
     direction_name: counter-clockwise
-    laptime_s: 19.398
-    length_m: 108.69
+    laptime_s: 18.501
+    length_m: 108.46
     top_speed_mps: 10.0
-    min_speed_mps: 1.157
-    min_edge_clearance_m: 0.232
-    start_m: [0.493, 0.384]
+    min_speed_mps: 1.315
+    min_edge_clearance_m: 0.213
+    start_m: [0.524, 0.421]
+  cw:
+    direction_name: clockwise
+    laptime_s: 18.329
+    length_m: 108.42
+    top_speed_mps: 10.0
+    min_speed_mps: 1.817
+    min_edge_clearance_m: 0.231
+    start_m: [0.515, 0.423]

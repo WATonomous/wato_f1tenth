@@ -25,7 +25,8 @@ tracks/<name>/
 | `e7_fifth_v3-mu035` | E7 fifth floor (same map as `e7_fifth_v3`) | counter-clockwise | friction experiment: as `e7_fifth_v3`, but planned with `mue` 0.35 (corners 3.43 m/s^2 sideways). Drive the `-mu*` tracks in order to find the real grip: the first one where the car slides wide in the corners is past it |
 | `e7_fifth_v3-mu040` | E7 fifth floor (same map) | counter-clockwise | friction experiment: `mue` 0.40 (3.92 m/s^2) |
 | `e7_fifth_v3-mu045` | E7 fifth floor (same map) | counter-clockwise | friction experiment: `mue` 0.45 (4.41 m/s^2) |
-| `e7_fifth_v3-mu050` | E7 fifth floor (same map) | counter-clockwise only | friction experiment: `mue` 0.50 (4.91 m/s^2); the clockwise solve failed, and counter-clockwise needed heavy smoothing (`s_reg` 10), so its lap is slower than `-mu045` |
+| `e7_fifth_v3-mu0475` | E7 fifth floor (same map) | counter-clockwise | friction experiment: `mue` 0.475 (4.66 m/s^2), between `-mu045` (driven clean on 2026-11-21) and `-mu050` |
+| `e7_fifth_v3-mu050` | E7 fifth floor (same map) | counter-clockwise | friction experiment: `mue` 0.50 (4.91 m/s^2), centerline smoothing 60. Counter-clockwise only solved at heavy optimizer smoothing (`s_reg` 10) and comes within 0.21-0.22 m of the drawn edges at three short spots (bottom-right, top-left, peninsula), under the 0.28 m margin: drive it with care |
 | `e7_fifth_v3-fixed` | E7 fifth floor (same map as `e7_fifth_v3`) | counter-clockwise | raceline generator with braking at 2.5 m/s^2, so the car's nose dips less and the lidar stays off the floor. Last resort: only with `max_decel: 2.5` in `vesc.yaml` (the car brakes at 4.0) |
 | `e7_fifth_big` | E7 fifth floor, larger loop | counter-clockwise | its reference raceline |
 | `autodrive` | AutoDRIVE sim track (sim default); same geometry as the F1TENTH gym's Porto | clockwise | the sim raceline; edges measured to the map's walls |
