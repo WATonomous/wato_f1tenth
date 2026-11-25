@@ -12,6 +12,7 @@ What to build on which machine, which command a change needs, and what keeps reb
 | Module `source` / `deps` / bringup images (`:source_<TAG>`, `:deps_<hash>`, `:<TAG>`) | `./watod -m <module> build` | anything in that module's `src/`, its Dockerfile or `template.Dockerfile` changes |
 | Module test image (`:test_<TAG>`, the `build` stage) | `./watod test <module>` | built on demand |
 | Dev image (`<module>:dev`, tagged `:dev_<hash>`) | `./watod -m <module>:dev up` | only when that module's Dockerfile, `template.Dockerfile` or `package.xml` changes (source is mounted) |
+| Lint image (`lint:lint_<hash>`, `docker/lint.Dockerfile`) | `./watod lint` (auto-built) | only when `docker/lint.Dockerfile` changes; hook envs cached in `watod_pre_commit_cache` volume |
 
 ## Image tagging across branches (`IMAGE_TAG_MODE`)
 

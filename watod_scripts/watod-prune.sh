@@ -132,6 +132,13 @@ for mod in infrastructure interfacing perception world_modeling action sim; do
   fi
 done
 
+# 4. Keep current content-hashed lint image (if docker/lint.Dockerfile exists)
+if [[ -f "$MONO_DIR/docker/lint.Dockerfile" ]]; then
+  source "$MONO_DIR/watod_scripts/watod-image-tags.sh"
+  lint_hash="$(watod_short_hash < "$MONO_DIR/docker/lint.Dockerfile")"
+  add_keep_ref "${REPO_PREFIX}/lint:lint_${lint_hash}"
+fi
+
 # Scan local images belonging to REPO_PREFIX
 declare -a CANDIDATES=()
 while IFS=$'\t' read -r repo tag img_id size; do

@@ -139,6 +139,7 @@ watod_resolve_base_tag() {
 # Expects: MONO_DIR, BRANCH (optional), IMAGE_TAG_MODE (optional), BASE_TAG_MODE (optional),
 #          BASE_TAG_SUFFIX (optional), BASE_REPO (optional), ROS_DISTRO (optional).
 watod_resolve_base_images() {
+  # shellcheck disable=SC2153 # MONO_DIR is set by the caller before sourcing this helper
   local mono_dir="${MONO_DIR}"
   local branch="${BRANCH:-}"
   if [[ -z "$branch" ]] && command -v git >/dev/null 2>&1; then

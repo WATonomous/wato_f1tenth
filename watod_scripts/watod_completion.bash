@@ -118,7 +118,7 @@ _watod_completions() {
   fi
 
   # Top-level commands and options
-  local commands="up down ps logs build pull install test bag contract build-base prune controller blackbox tools run -m -t -v -s -h"
+  local commands="up down ps logs build pull install test bag contract build-base lint prune controller blackbox tools run -m -t -v -s -h"
   local options="-v --verbose -m --module -t --terminal -s --setup-dev-env -h --help"
 
   # 1. Handle Options contexts regardless of where we are
@@ -260,6 +260,12 @@ _watod_completions() {
       local services
       services=$(__watod_get_running_services "$watod_cmd")
       mapfile -t COMPREPLY < <(compgen -W "$services" -- "$cur")
+      ;;
+
+    lint)
+      if [[ "$cur" == -* ]]; then
+        mapfile -t COMPREPLY < <(compgen -W "-a --all -b --base --hook --rebuild -h --help" -- "$cur")
+      fi
       ;;
 
     prune)
