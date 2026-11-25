@@ -24,19 +24,26 @@
 
 set -euo pipefail
 
-MONO_DIR="$(cd -- "$(dirname -- "$(realpath "$0")")/.." && pwd)"
-BASE_REPO=${BASE_REPO:-ghcr.io/watonomous/wato_f1tenth/base}
-ROS_DISTRO=${ROS_DISTRO:-jazzy}
+export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
 
-CPU_TAG="${ROS_DISTRO}-ubuntu24.04"
-GPU_TAG="cuda12.9-trt-${ROS_DISTRO}-ubuntu24.04"
-JETSON_TAG="jetson-cuda12.8-trt-${ROS_DISTRO}-ubuntu24.04"
+MONO_DIR="$(cd -- "$(dirname -- "$(realpath "$0")")/.." && pwd)"
+
+# Source user config so IMAGE_TAG_MODE, BASE_TAG_MODE, BASE_TAG_SUFFIX, REGISTRY_URL apply here too
+[[ -f "$MONO_DIR/watod-config.sh"       ]] && source "$MONO_DIR/watod-config.sh"
+[[ -f "$MONO_DIR/watod-config.local.sh" ]] && source "$MONO_DIR/watod-config.local.sh"
+
+source "$MONO_DIR/watod_scripts/watod-image-tags.sh"
+watod_resolve_base_images
+
+CPU_TAG="${BASE_TAG_CPU}"
+GPU_TAG="${BASE_TAG_AMD64_NVIDIA}"
+JETSON_TAG="${BASE_TAG_ARM64_NVIDIA}"
 
 usage() {
   cat <<EOF
 Usage: watod build-base [cpu|gpu|jetson|all]
 
-Builds f1tenth base images locally as ${BASE_REPO}:<tag>.
+Builds f1tenth base images locally as ${BASE_REPO}:<tag> (BASE_TAG_MODE=${BASE_TAG_MODE}).
   cpu     ${CPU_TAG}
   gpu     ${GPU_TAG}      (x86_64 only)
   jetson  ${JETSON_TAG}   (aarch64 only)
@@ -47,13 +54,16 @@ EOF
 # inject ROS 2 into GENERIC, then the WATO base layer, tagged BASE_REPO:TAG
 build_ros_base() {
   local generic=$1 tag=$2
+  local tmp_generic="${BASE_REPO}:${tag}_generic"
   echo "==> ${BASE_REPO}:${tag} (from ${generic})"
   docker build -f "$MONO_DIR/docker/base/inject_ros2.Dockerfile" --target devel \
     --build-arg GENERIC_IMAGE="$generic" --build-arg ROS_DISTRO="$ROS_DISTRO" \
-    -t "${BASE_REPO}:${tag}_generic" "$MONO_DIR"
+    -t "$tmp_generic" "$MONO_DIR"
   docker build -f "$MONO_DIR/docker/base/inject_wato_base.Dockerfile" --target wato_base \
-    --build-arg GENERIC_IMAGE="${BASE_REPO}:${tag}_generic" \
+    --build-arg GENERIC_IMAGE="$tmp_generic" \
     -t "${BASE_REPO}:${tag}" "$MONO_DIR"
+  # Drop the intermediate tag once the final base image is tagged so stale layers don't stay pinned
+  docker rmi "$tmp_generic" >/dev/null 2>&1 || true
 }
 
 build_cpu() {
@@ -62,18 +72,22 @@ build_cpu() {
 
 build_gpu() {
   [[ $(uname -m) == "x86_64" ]] || { echo "gpu base is x86_64 only"; exit 1; }
+  local tmp_cuda="${BASE_REPO}:${GPU_TAG}_cuda"
   docker build -f "$MONO_DIR/docker/base/inject_tensorrt.Dockerfile" --target tensorrt \
     --build-arg GENERIC_IMAGE="nvcr.io/nvidia/cuda:12.9.1-cudnn-devel-ubuntu24.04" \
-    -t "${BASE_REPO}:${GPU_TAG}_cuda" "$MONO_DIR"
-  build_ros_base "${BASE_REPO}:${GPU_TAG}_cuda" "$GPU_TAG"
+    -t "$tmp_cuda" "$MONO_DIR"
+  build_ros_base "$tmp_cuda" "$GPU_TAG"
+  docker rmi "$tmp_cuda" >/dev/null 2>&1 || true
 }
 
 build_jetson() {
   [[ $(uname -m) == "aarch64" ]] || { echo "jetson base is aarch64 only; build it on the Jetson"; exit 1; }
+  local tmp_cuda="${BASE_REPO}:${JETSON_TAG}_cuda"
   docker build -f "$MONO_DIR/docker/base/inject_jetson_cuda.Dockerfile" --target jetson_cuda \
     --build-arg GENERIC_IMAGE="ubuntu:24.04" \
-    -t "${BASE_REPO}:${JETSON_TAG}_cuda" "$MONO_DIR"
-  build_ros_base "${BASE_REPO}:${JETSON_TAG}_cuda" "$JETSON_TAG"
+    -t "$tmp_cuda" "$MONO_DIR"
+  build_ros_base "$tmp_cuda" "$JETSON_TAG"
+  docker rmi "$tmp_cuda" >/dev/null 2>&1 || true
 }
 
 case "${1:-all}" in

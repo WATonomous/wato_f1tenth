@@ -11,7 +11,8 @@ Adding a module means copying an existing one end to end (the `sim` module is th
 - `docker/<module>.Dockerfile`
 - the `_source`, `_deps` and `_bringup` services in `modules/docker-compose.yaml`
 - matching entries in `modules/docker-compose.{dep,dev,test,watcloud}.yaml`
-- `<MODULE>_IMAGE` in `watod_scripts/watod-setup-env.sh`
+- `watod_scripts/watod-setup-env.sh` (`<MODULE>_IMAGE`, `<MODULE>_DEPS_TAG`, `<MODULE>_DEV_TAG`)
+- `watod_scripts/watod-prune.sh` (module list for active-tag protection)
 - `get_all_modules()` in `watod`
 - the module list in `watod_scripts/watod-setup-dev-env.sh`
 - the module lists in `.github/templates/` (`check_src_changes`, `docker_context`)
@@ -27,11 +28,14 @@ Other rules:
 - f1tenth departs from the template in: `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`,
   `ROS_DOMAIN_ID=0`, no Zenoh router, log viewer or topic healthchecker, root-anchored
   `/maps/` etc. in `.gitignore`, and pre-commit excludes for vendored packages.
-- Build speed departs from the template too (`workflows/build.md`): `watod` turns off provenance
-  attestations (they broke the cache between builds), `template.Dockerfile` copies the source last,
-  runs the rosdep scan without `apt-get update` and builds with ccache in a cache mount, compose has
-  no GHCR `cache_from` until step 5, and `.dockerignore` keeps bags and build output out of the
-  context. Keep these when merging template updates.
+- Build speed and tag sharing depart from the template too (`workflows/build.md`): `watod` turns off
+  provenance attestations (they broke the cache between builds), `template.Dockerfile` copies source
+  in `build` (keeping `develop` decoupled from code edits), runs the rosdep scan without `apt-get
+  update`, and builds with ccache in a cache mount; `watod-image-tags.sh` shares base images across
+  branches (auto-suffixing only on `docker/base/` diffs), content-hashes module `deps`/`dev` tags,
+  and uses a floating `:local` deploy tag (or `:local-<COMPOSE_PROJECT_NAME>` when customized);
+  compose has no GHCR `cache_from` until step 5, and `.dockerignore` keeps bags and build output out
+  of the context. Keep these when merging template updates.
 
 ## Template updates
 
