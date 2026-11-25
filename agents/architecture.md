@@ -47,7 +47,10 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
 | `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |
 | `GPU` | detected: `nvidia` or `none` | GPU or CPU base for `action`, `perception`, `world_modeling`; `nvidia` on a PC adds the GPU overlay |
-| `REALSENSE_IMAGES` | `false` (default), `true` | RealSense color + depth, 640x480 @ 30 Hz |
+| `REALSENSE_MODE` | `imu` (default), `depth`, `data`, `vslam` | RealSense streams: `interfacing_bringup/config/realsense_modes/<name>.yaml` (depth: color 640x480 + depth 848x480 @ 30 Hz; data: the same synced, for datasets; vslam: infra1/2 640x360 @ 60 Hz, emitter off, for cuVSLAM) |
+| `REALSENSE_ALIGN` | `auto` (default), `true`, `false` | depth aligned to color (`aligned_depth_to_color`); auto = on in `data` mode only (costs about 30% of a core) |
+| `REALSENSE_IMAGES` | `false` (default), `true` | older switch: `true` = `REALSENSE_MODE=depth` when the mode is unset |
+| `BAG_PRESET` | the platform (`car`/`sim`); `car_data` / `car_vslam` on the car in data / vslam mode | topics `watod bag record` records with none given |
 | `BAG_CPUSET` | `4,5` on the car, empty elsewhere | CPUs the bag recorder container may use |
 | `PF_VIZ` | `false` (default), `true` | particle filter `/pf/viz/*` debug topics (cost it CPU per update) |
 

@@ -194,7 +194,7 @@ fi
 DIRECTION=${DIRECTION:-""}
 # true to start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu)
 REALSENSE=${REALSENSE:-"false"}
-# true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
+# Older switch: true = REALSENSE_MODE=depth (color + depth @ 30 Hz) when REALSENSE_MODE is unset
 REALSENSE_IMAGES=${REALSENSE_IMAGES:-"false"}
 # RealSense streams: a file in interfacing_bringup/config/realsense_modes/ (imu, depth, data, vslam).
 # Unset: depth when REALSENSE_IMAGES=true (the older switch), else imu

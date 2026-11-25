@@ -128,12 +128,22 @@
 ## Start the Intel RealSense driver in interfacing (IMU on /camera/camera/imu). DEFAULT = "false"
 # export REALSENSE="true"
 
-## Also stream RealSense color + depth (640x480 @ 30 Hz), recorded as JPEG / zstd by
-## `watod bag record --preset car`. DEFAULT = "false"
+## RealSense streams (interfacing_bringup/config/realsense_modes/<name>.yaml). DEFAULT = "imu"
+##   imu:   IMU only
+##   depth: color 640x480 + depth 848x480 @ 30 Hz (recorded by the car preset as JPEG / zstd)
+##   data:  color + depth synced, aligned depth on; dataset recording (bag preset car_data)
+##   vslam: infra1/2 640x360 @ 60 Hz, emitter off, for cuVSLAM (bag preset car_vslam)
+# export REALSENSE_MODE="data"
+
+## Depth aligned to color: true, false or auto (on in data mode only). DEFAULT = "auto"
+# export REALSENSE_ALIGN="false"
+
+## Older switch: "true" = REALSENSE_MODE=depth when REALSENSE_MODE is unset. DEFAULT = "false"
 # export REALSENSE_IMAGES="true"
 
 ## Topic preset for `watod bag record` with no topics given (infrastructure_bringup/config/
-## bag_presets/<name>.txt). DEFAULT = the platform: "car" or "sim". "" = no default.
+## bag_presets/<name>.txt). DEFAULT = the platform: "car" or "sim" (on the car with REALSENSE_MODE
+## data or vslam: "car_data" or "car_vslam"). "" = no default.
 # export BAG_PRESET="car"
 
 ## CPUs the bag recorder container may use (docker --cpuset-cpus), so recording can't

@@ -114,7 +114,7 @@ Check: `./watod contract` passes with `/hal/localization/odom` at 40 Hz or more 
 # watod-config.local.sh on the Jetson. PLATFORM=car and ACTIVE_MODULES="interfacing
 # world_modeling action" are detected; set them only to override (interfacing alone = old jetson_up)
 export REALSENSE="true"         # RealSense IMU on /hal/imu (IMU=auto picks it on the car)
-export REALSENSE_IMAGES="true"  # also color + depth 640x480 @ 30 Hz, for recording
+export REALSENSE_MODE="depth"   # also color + depth @ 30 Hz (imu, depth, data, vslam; see below)
 export CONTROLLER="none"        # bench testing: no pure pursuit (default pure_pursuit)
 ./watod build-base      # once: CPU + Jetson CUDA/TensorRT bases (step 5 replaces this with a pull)
 ./watod build           # or one module at a time (see Known traps)
@@ -146,8 +146,12 @@ pulls prebuilt arm64 images from GHCR, pinned to a dated `car-YYYY-MM-DD` tag on
 ```
 
 The `car` preset (`infrastructure_bringup/config/bag_presets/car.txt`) records the `/hal`
-contract (including `/hal/battery`), TF, the map and plan, VESC state, the gamepad and, with `REALSENSE_IMAGES=true`, color
-(JPEG) and depth (zstd) at about 30 Hz. It leaves out `/pf/viz/*`: the particle filter does extra
+contract (including `/hal/battery`), TF, the map and plan, VESC state, the gamepad and, with `REALSENSE_MODE=depth`, color
+(JPEG) and depth (zstd) at about 30 Hz. With `REALSENSE=true` and `REALSENSE_MODE=data` the default
+preset is `car_data` (color + depth aligned to color + extrinsics, about 400 MiB/min); with
+`REALSENSE_MODE=vslam` it is `car_vslam` (infra1/2 + IMU). The depth "zstd" payload is a small
+header (height, width, encoding) followed by gzip of the raw 16UC1 mm image, so Foxglove can't show
+it; convert it to a plain Image first. It leaves out `/pf/viz/*`: the particle filter does extra
 ray casting and sampling for every subscriber to those, which costs it its 40 Hz floor. They are
 off unless `PF_VIZ=true` (debugging localization); avoid `record -a` on the car with them on.
 The recorder container runs on CPUs 4 and 5 (`BAG_CPUSET`). The Orin Nano has no

@@ -34,10 +34,11 @@ Other branches in that repo hold work in progress (for example `ROS-bag-extracti
 
 ## From the car to a dataset
 
-1. **Record on the car** (this repo): `REALSENSE=true` and `REALSENSE_IMAGES=true` in the car's
+1. **Record on the car** (this repo): `REALSENSE=true` and `REALSENSE_MODE=data` in the car's
    `watod-config.local.sh`, then `./watod bag record -d` / `./watod bag stop`
-   (`agents/workflows/deploy-to-car.md`, "Recording on the car"). The `car` preset records colour
-   (JPEG) and depth (zstd) at about 30 Hz, plus TF and the `/hal` topics. Bags land in `bags/`.
+   (`agents/workflows/deploy-to-car.md`, "Recording on the car"). The `car_data` preset records
+   colour (JPEG) and depth aligned to colour (zstd) at about 30 Hz with matching stamps, plus TF
+   and the `/hal` topics. Bags land in `bags/`.
 2. **Name the session** `<YYYYMMDD>_<location>_r<NN>`, for example `20261006_e7-hallway_r03`
    (one camera, calibration and environment per session; Data Standard, section 2).
 3. **Copy the bag** unchanged to `src/data/recordings/<session_id>/` in the framework.

@@ -1,7 +1,7 @@
 # Car recording preset: ./watod bag record --preset car
 #
 # What later work needs from a drive: the /hal contract, TF, the plan, VESC state, the
-# gamepad, and the RealSense images when REALSENSE_IMAGES=true. Images go through
+# gamepad, and the RealSense images in REALSENSE_MODE=depth. Images go through
 # image_transport: color as JPEG (compressed), depth lossless (zstd), about 30 Hz each.
 #
 # Left out on purpose: /pf/viz/* (the particle filter ray-casts an extra scan and samples
@@ -39,7 +39,7 @@
 /commands/servo/position
 /joy
 
-# RealSense images (published only with REALSENSE_IMAGES=true)
+# RealSense images (published only in REALSENSE_MODE=depth)
 /camera/camera/color/image_raw/compressed
 /camera/camera/color/camera_info
 /camera/camera/depth/image_rect_raw/zstd
