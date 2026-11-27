@@ -50,7 +50,7 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `REALSENSE_MODE` | `imu` (default), `depth`, `data`, `vslam` | RealSense streams: `interfacing_bringup/config/realsense_modes/<name>.yaml` (depth: color 640x480 + depth 848x480 @ 30 Hz; data: the same synced, for datasets; vslam: infra1/2 640x360 @ 60 Hz, emitter off, for cuVSLAM) |
 | `REALSENSE_ALIGN` | `auto` (default), `true`, `false` | depth aligned to color (`aligned_depth_to_color`); auto = on in `data` mode only (costs about 30% of a core) |
 | `REALSENSE_IMAGES` | `false` (default), `true` | older switch: `true` = `REALSENSE_MODE=depth` when the mode is unset |
-| `BAG_PRESET` | the platform (`car`/`sim`); `car_data` / `car_vslam` on the car in data / vslam mode | topics `watod bag record` records with none given |
+| `BAG_PRESET` | the platform (`car`/`sim`); `car_data` on the car with aligned depth on (data mode, or depth with `REALSENSE_ALIGN=true`), `car_vslam` in vslam mode | topics `watod bag record` records with none given |
 | `BAG_CPUSET` | `4,5` on the car, empty elsewhere | CPUs the bag recorder container may use |
 | `PF_VIZ` | `false` (default), `true` | particle filter `/pf/viz/*` debug topics (cost it CPU per update) |
 

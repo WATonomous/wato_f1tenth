@@ -204,12 +204,16 @@ fi
 # Depth aligned to color: true, false or auto (on in data mode only; resolved in interfacing.launch.yaml)
 REALSENSE_ALIGN=${REALSENSE_ALIGN:-"auto"}
 # Topic preset for `watod bag record` with no topics (bag_presets/<name>.txt); "" = none.
-# Unset: the platform's preset; on the car in data or vslam mode, car_data or car_vslam
-# (car_data records aligned depth, so data mode with REALSENSE_ALIGN=false keeps car)
+# Unset: the platform's preset; on the car car_data when aligned depth is on (data mode, or
+# depth mode with REALSENSE_ALIGN=true; same rule as interfacing.launch.yaml), car_vslam in vslam
+# mode. car_data records only aligned depth, so without alignment the car preset stays
 if [[ -z ${BAG_PRESET+x} ]]; then
   BAG_PRESET="$PLATFORM"
   if [[ "$PLATFORM" == "car" && "$REALSENSE" == "true" ]]; then
-    if [[ "$REALSENSE_MODE" == "data" && "$REALSENSE_ALIGN" != "false" ]]; then BAG_PRESET="car_data"; fi
+    if [[ ( "$REALSENSE_MODE" == "data" || "$REALSENSE_MODE" == "depth" ) && \
+          ( "$REALSENSE_ALIGN" == "true" || ( "$REALSENSE_ALIGN" == "auto" && "$REALSENSE_MODE" == "data" ) ) ]]; then
+      BAG_PRESET="car_data"
+    fi
     if [[ "$REALSENSE_MODE" == "vslam" ]]; then BAG_PRESET="car_vslam"; fi
   fi
 fi

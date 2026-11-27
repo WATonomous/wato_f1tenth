@@ -143,7 +143,7 @@
 
 ## Topic preset for `watod bag record` with no topics given (infrastructure_bringup/config/
 ## bag_presets/<name>.txt). DEFAULT = the platform: "car" or "sim" (on the car with REALSENSE_MODE
-## data or vslam: "car_data" or "car_vslam"). "" = no default.
+## data or vslam: "car_data" or "car_vslam"; car_data also in depth mode with REALSENSE_ALIGN=true). "" = no default.
 # export BAG_PRESET="car"
 
 ## CPUs the bag recorder container may use (docker --cpuset-cpus), so recording can't
