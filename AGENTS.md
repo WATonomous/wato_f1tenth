@@ -95,6 +95,7 @@ Read `agents/architecture.md` first for anything non-trivial. Then pick what fit
 | `agents/workflows/debug-mppi.md` | You are working on MPPI or the opponent predictor |
 | `agents/workflows/raceline.md` | You make or fix a raceline, or need more margin from the track edges |
 | `agents/workflows/ml-data.md` | You work on datasets, annotation or perception model training (`tools/`) |
+| `agents/workflows/just-execute.md` | The user invokes `just-execute`: get initial plan approval once, then execute uninterrupted |
 | `agents/roles/reviewer.md` | You are asked to review a change or a PR |
 | `agents/roles/infra.md` | You are touching `watod`, Dockerfiles, compose files or CI |
 
