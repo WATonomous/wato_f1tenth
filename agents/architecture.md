@@ -129,7 +129,7 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 - `map -> odom`: static identity in sim; the particle filter on the car; slam_toolbox when mapping.
 - `odom -> base_link`: the simulator in sim; the VESC / EKF path on the car.
 - `base_link -> laser`: static, x 0.27 m, z 0.11 m, from `interfacing` on both.
-- `base_link -> camera_link`: static, x 0.27 m, z 0.31 m (20 cm above the lidar), from
+- `base_link -> camera_link`: static, x 0.27 m, z 0.15 m (lens measured 4 cm above the lidar window, camera level), from
   `interfacing` when the RealSense runs. The driver adds `camera_imu_optical_frame` and friends
   under `camera_link` (`base_frame_id: link`, because the driver prefixes the camera name).
 
