@@ -19,7 +19,7 @@ services:
       - ${MONO_DIR}/src/infrastructure:/ws/src/infrastructure
       - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
       - ${MONO_DIR}/src/interfacing/vesc/vesc_msgs:/ws/src/vesc_msgs
-      - ${MONO_DIR}/src/world_modeling/global_planner:/ws/src/global_planner
+      - ${MONO_DIR}/src/wato_msgs:/ws/src/wato_msgs
       - ${MONO_DIR}/bags:/ws/bags
 
   #################### INTERFACING SERVICE ####################
@@ -84,6 +84,7 @@ services:
     volumes:
       - ${MONO_DIR}/maps:/opt/watonomous/maps
       - ${MONO_DIR}/src/world_modeling:/ws/src/world_modeling
+      - ${MONO_DIR}/src/wato_msgs:/ws/src/wato_msgs
       - ${MONO_DIR}/src/infrastructure/wato_lifecycle_manager:/ws/src/wato_lifecycle_manager
       - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
       - ${MONO_DIR}/bags:/ws/bags
@@ -105,6 +106,7 @@ services:
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/src/action:/ws/src/action
+      - ${MONO_DIR}/src/wato_msgs:/ws/src/wato_msgs
       - ${MONO_DIR}/src/world_modeling/race_tracks:/ws/src/race_tracks
       - ${MONO_DIR}/src/infrastructure/wato_lifecycle_manager:/ws/src/wato_lifecycle_manager
       - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
