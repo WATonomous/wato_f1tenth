@@ -28,17 +28,17 @@ ARG TARGETARCH
 
 # RealSense on arm64: the apt librealsense uses the kernel backend, which reads the D435i
 # IMU through the hid_sensor IIO drivers. JetPack kernels don't ship those, so the IMU
-# fails ("HID Motion Sensor Failure"). Rebuild the same version with the RSUSB (libusb)
-# backend over the apt library (same SONAME, so the apt realsense2_camera loads it) and
-# hold the package so the rosdep stage keeps it. x86 keeps the apt build.
-ARG LIBREALSENSE_VERSION=2.58.4
+# fails ("HID Motion Sensor Failure"). Rebuild the exact installed apt version with the
+# RSUSB (libusb) backend over the apt library (same SONAME, so the apt realsense2_camera
+# loads it) and hold the package so the rosdep stage keeps it. x86 keeps the apt build.
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
       apt-get update && \
       apt-get install -y --no-install-recommends \
-        "ros-${ROS_DISTRO}-librealsense2=${LIBREALSENSE_VERSION}-*" "ros-${ROS_DISTRO}-realsense2-camera" \
+        "ros-${ROS_DISTRO}-librealsense2" "ros-${ROS_DISTRO}-realsense2-camera" \
         git cmake build-essential pkg-config libusb-1.0-0-dev libudev-dev libssl-dev && \
       apt-mark hold "ros-${ROS_DISTRO}-librealsense2" && \
-      git clone --depth 1 --branch "v${LIBREALSENSE_VERSION}" https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
+      LRS_VERSION="$(dpkg-query -W -f='${Version}' "ros-${ROS_DISTRO}-librealsense2" | cut -d- -f1)" && \
+      git clone --depth 1 --branch "v${LRS_VERSION}" https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
       cmake -S /tmp/librealsense -B /tmp/librealsense/build \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="/opt/ros/${ROS_DISTRO}" \
