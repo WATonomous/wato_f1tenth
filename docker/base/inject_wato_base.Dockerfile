@@ -18,11 +18,6 @@ ENV WATONOMOUS_INSTALL=/opt/watonomous
 # Setup WATonomous Install Directory
 RUN mkdir -p "${WATONOMOUS_INSTALL}"
 
-# User Setup
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y --no-install-recommends curl sudo && \
-    rm -rf /var/lib/apt/lists/*
-
 # install apt-fast
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget gnupg && \

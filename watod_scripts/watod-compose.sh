@@ -139,32 +139,46 @@ else
   ALL_COMPOSE_FILES=("${DEFAULT_ALL_COMPOSE_FILES[@]}")
 fi
 
-# If build, pull base images for active modules to ensure they're tagged locally
-if [[ "${COMPOSE_CMD[0]}" == "build" ]]; then
-  echo "Pulling base images for active modules..."
+# Source modules/.env when present so base image checks and staleness warnings know active tags
+if [[ -f "$MONO_DIR/modules/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$MONO_DIR/modules/.env"
+  set +a
+fi
 
-  # Derive Dockerfiles from active module profiles
-  declare -a active_dockerfiles=()
+# If build, pull base images for active modules only when not already present locally
+if [[ "${COMPOSE_CMD[0]}" == "build" ]]; then
+  declare -A active_bases=()
+  arch="$(uname -m)"
   for p in "${PRE_PROFILES[@]}"; do
     module_name="${p%_pre}"
     dockerfile="docker/${module_name}.Dockerfile"
-    if [[ -f "$dockerfile" ]]; then
-      active_dockerfiles+=("$dockerfile")
+    [[ -f "$dockerfile" ]] || continue
+    if grep -q '^ARG GPU' "$dockerfile" && [[ "${GPU:-none}" == "nvidia" ]]; then
+      if [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+        [[ -n "${BASE_IMAGE_ARM64_NVIDIA:-}" ]] && active_bases["$BASE_IMAGE_ARM64_NVIDIA"]=1
+      elif grep -q 'BASE_IMAGE_AMD64_NVIDIA' "$dockerfile"; then
+        [[ -n "${BASE_IMAGE_AMD64_NVIDIA:-}" ]] && active_bases["$BASE_IMAGE_AMD64_NVIDIA"]=1
+      else
+        [[ -n "${BASE_IMAGE_CPU:-}" ]] && active_bases["$BASE_IMAGE_CPU"]=1
+      fi
+    else
+      [[ -n "${BASE_IMAGE_CPU:-}" ]] && active_bases["$BASE_IMAGE_CPU"]=1
     fi
   done
 
-  if [[ ${#active_dockerfiles[@]} -gt 0 ]]; then
-    base_images=$(grep -h "^ARG BASE_IMAGE=" "${active_dockerfiles[@]}" 2>/dev/null | \
-                  sed 's/ARG BASE_IMAGE=//' | \
-                  sort -u)
-
-    if [[ -n "$base_images" ]]; then
-      while IFS= read -r base_image; do
-        echo "  Pulling $base_image..."
-        docker pull "$base_image" 2>/dev/null || \
-          echo "    (Skipped - using cached version or offline)"
-      done <<< "$base_images"
-    fi
+  if [[ ${#active_bases[@]} -gt 0 ]]; then
+    for base_image in "${!active_bases[@]}"; do
+      if docker image inspect "$base_image" >/dev/null 2>&1; then
+        continue
+      fi
+      echo "Pulling missing base image $base_image..."
+      if ! docker pull "$base_image" 2>/dev/null; then
+        echo "  Base image not found locally or in registry: $base_image" >&2
+        echo "  Run './watod build-base' to build it locally." >&2
+      fi
+    done
   fi
 fi
 
@@ -191,11 +205,47 @@ if [[ "${COMPOSE_CMD[0]}" == "build" && ${#PRE_PROFILES[@]} -gt 0 ]]; then
   fi
 fi
 
-# Handle 'up' command preprocessing: always run in detached mode
+# Handle 'up' command preprocessing: always run in detached mode unless -d/--detach already passed
 SHOW_STATUS_PANEL=false
-if [[ "${COMPOSE_CMD[0]}" == "up" && ! "${EXTRA_COMPOSE_ARGS[*]}" =~ -d ]]; then
-  EXTRA_COMPOSE_ARGS+=( -d )
-  SHOW_STATUS_PANEL=true
+if [[ "${COMPOSE_CMD[0]}" == "up" ]]; then
+  has_detach=false
+  for arg in "${EXTRA_COMPOSE_ARGS[@]}"; do
+    if [[ "$arg" == "-d" || "$arg" == "--detach" ]]; then
+      has_detach=true
+      break
+    fi
+  done
+  if [[ "$has_detach" == "false" ]]; then
+    EXTRA_COMPOSE_ARGS+=( -d )
+    SHOW_STATUS_PANEL=true
+  fi
+
+  # Warn if any active deploy image (floating local tag) was built from a different branch or checkout
+  if [[ -n "${GIT_BRANCH:-}" && -n "${TAG:-}" ]]; then
+    declare -A checked_profiles=()
+    for p in "${ALL_PROFILES[@]}"; do
+      [[ "$p" == *_dev || "$p" == "claude_code" ]] && continue
+      [[ -n "${checked_profiles[$p]:-}" ]] && continue
+      checked_profiles["$p"]=1
+      mod_upper="$(echo "$p" | tr '[:lower:]' '[:upper:]')"
+      img_var="${mod_upper}_IMAGE"
+      img_repo="${!img_var:-}"
+      [[ -z "$img_repo" ]] && continue
+      img_ref="${img_repo}:${TAG}"
+      if docker image inspect "$img_ref" >/dev/null 2>&1; then
+        built_branch="$(docker image inspect --format '{{index .Config.Labels "org.watonomous.git_branch"}}' "$img_ref" 2>/dev/null || true)"
+        built_commit="$(docker image inspect --format '{{index .Config.Labels "org.watonomous.git_commit"}}' "$img_ref" 2>/dev/null || true)"
+        built_dir="$(docker image inspect --format '{{index .Config.Labels "org.watonomous.mono_dir"}}' "$img_ref" 2>/dev/null || true)"
+        if [[ -n "$built_branch" && "$built_branch" != "unknown" && "$built_branch" != "$GIT_BRANCH" ]]; then
+          echo -e "\033[0;33mWarning:\033[0m ${p}_bringup (${TAG}) was built from branch '${built_branch}' (${built_commit}), current branch is '${GIT_BRANCH}' (${GIT_COMMIT:-?})." >&2
+          echo -e "         Run './watod -m ${p} build' if ${p} code changed on this branch." >&2
+        elif [[ -n "$built_dir" && "$built_dir" != "unknown" && "$built_dir" != "$MONO_DIR" ]]; then
+          echo -e "\033[0;33mWarning:\033[0m ${p}_bringup (${TAG}) was built from checkout '${built_dir}', current checkout is '${MONO_DIR}'." >&2
+          echo -e "         Run './watod -m ${p} build' or set COMPOSE_PROJECT_NAME/TAG in watod-config.local.sh." >&2
+        fi
+      fi
+    done
+  fi
 fi
 
 # Run main compose command

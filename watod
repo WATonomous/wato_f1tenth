@@ -60,6 +60,8 @@ Options
 Commands
   install                     Install watod to /usr/local/bin (requires sudo)
   build-base [cpu|gpu|jetson] Build the f1tenth base images locally (run before build)
+  lint [OPTIONS] [FILES...]   Run .pre-commit-config.yaml hooks in a lightweight container
+  prune [OPTIONS]             Remove unused Docker image tags belonging to this repo
   controller [pair|connect|status|forget]
                               Pair / reconnect a Bluetooth PS4 or PS5 pad (runs on the host)
   blackbox [list|<file>]      Read the car's black box: the last seconds before a power cut
@@ -252,6 +254,16 @@ while [[ $# -gt 0 ]]; do
     build-base)
       shift
       "$MONO_DIR/watod_scripts/watod-build-base.sh" "$@"
+      exit $?
+      ;;
+    lint)
+      shift
+      "$MONO_DIR/watod_scripts/watod-lint.sh" "$@"
+      exit $?
+      ;;
+    prune)
+      shift
+      "$MONO_DIR/watod_scripts/watod-prune.sh" "$@"
       exit $?
       ;;
     controller)

@@ -87,10 +87,12 @@ shell elsewhere needs the same values to see the topics.
 With the stack running, `./watod contract` checks the live `/hal/*` topics (see `sim-to-car.md`).
 
 Tests run in each module's `test` image with `rmw_fastrtps_cpp`. Lint-only tests were removed;
-linting runs through pre-commit:
+linting runs through pre-commit inside a lightweight Docker container (no host install needed):
 
 ```bash
-pre-commit run --files <changed files>
+./watod lint                    # changed files (or branch diff vs main)
+./watod lint --base             # all files changed on this branch vs main
+./watod lint <changed files>    # specific files
 ```
 
 When you add logic that can be tested without the sim (math, parsing, state machines), add a

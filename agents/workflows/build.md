@@ -9,9 +9,27 @@ What to build on which machine, which command a change needs, and what keeps reb
 | Image | Built by | Rebuild when |
 | --- | --- | --- |
 | Base (`ghcr.io/watonomous/wato_f1tenth/base:*`): Jazzy, plus CUDA + TensorRT where there is a GPU | `./watod build-base` | `docker/base/` changes, or once on a new machine |
-| Module `source` / `deps` / bringup images, one set per module | `./watod -m <module> build` | anything in that module's `src/`, its Dockerfile or `template.Dockerfile` changes |
-| Module test image (`:test_<branch>`, the `build` stage) | `./watod test <module>` | built on demand |
-| Dev image (`<module>:dev`) | `./watod -m <module>:dev up` | for iterating; your source is mounted, not copied |
+| Module `source` / `deps` / bringup images (`:source_<TAG>`, `:deps_<hash>`, `:<TAG>`) | `./watod -m <module> build` | anything in that module's `src/`, its Dockerfile or `template.Dockerfile` changes |
+| Module test image (`:test_<TAG>`, the `build` stage) | `./watod test <module>` | built on demand |
+| Dev image (`<module>:dev`, tagged `:dev_<hash>`) | `./watod -m <module>:dev up` | only when that module's Dockerfile, `template.Dockerfile` or `package.xml` changes (source is mounted) |
+| Lint image (`lint:lint_<hash>`, `docker/lint.Dockerfile`) | `./watod lint` (auto-built) | only when `docker/lint.Dockerfile` changes; hook envs cached in `watod_pre_commit_cache` volume |
+
+## Image tagging across branches (`IMAGE_TAG_MODE`)
+
+By default (`IMAGE_TAG_MODE=auto`, implemented in `watod_scripts/watod-image-tags.sh`), branches share
+images instead of creating a full duplicate set per branch:
+
+- **Base images:** canonical shared tags (`jazzy-ubuntu24.04`, etc.) when `docker/base/` matches `main`;
+  automatically suffixed `-<branch>` (or `-dirty-<hash>` on `main`) when a branch edits `docker/base/`.
+- **Module `deps` and `dev` images:** content-hashed per module (`:deps_<hash>`, `:dev_<hash>` over
+  Dockerfiles, `docker/config/`, and that module's `package.xml` files). Unchanged environments are
+  reused across branches with no rebuilds.
+- **Module deploy/test/source images:** floating `:local` tag (or `:local-<COMPOSE_PROJECT_NAME>` when
+  `COMPOSE_PROJECT_NAME` is customized on a shared host like the Jetson). `watod up` warns if `:local`
+  was built from a different branch or checkout. CI always uses the sanitized branch name.
+
+Override in `watod-config.local.sh` with `IMAGE_TAG_MODE="branch"` (tag everything by branch),
+`BASE_TAG_MODE="shared|branch"`, `BASE_TAG_SUFFIX="..."`, or `TAG="..."`.
 
 ## Which machine
 
@@ -54,9 +72,9 @@ Three things keep that cached. Keep them when you edit `watod` or the Dockerfile
 
 1. **No provenance attestations** (`watod` exports `BUILDX_NO_DEFAULT_ATTESTATIONS=1`). With them,
    every export got a new image ID, and everything built `FROM` it started over.
-2. **The source is copied last** in `template.Dockerfile`, so a code change re-runs only the copy and
-   the build, not the dependency install or cleanup. Don't add steps after the copy that don't need
-   the source.
+2. **The source is copied in `build`, not `rosdep_install`** in `template.Dockerfile`, so a code
+   change skips dependency install/cleanup and never invalidates the `develop` (`:dev`) image. Don't
+   add steps after the copy that don't need the source.
 3. **ccache** in a BuildKit cache mount, shared by every module: unchanged files come from the cache.
    The build log prints its hit rate after `colcon build` (`ccache --show-stats`).
 
@@ -86,8 +104,10 @@ Before, every rebuild on the car re-ran everything (2-4 min per module).
 
 ## Clearing space and caches
 
-- `docker builder prune` clears **every project's** build cache on the machine, including ccache, so
-  the next build of everything is cold. Ask first if the machine is shared.
+- `./watod prune` (pass `-n`/`--dry-run` to preview, `--bases` for stale branch-suffixed base images)
+  removes unused `wato_f1tenth` tags while keeping active `.env` and container images intact.
+- `docker builder prune` (or `./watod prune --cache`) clears **every project's** build cache on the
+  machine, including ccache, so the next build of everything is cold. Ask first if the machine is shared.
 - `docker image prune` removes dangling images only, which is safe.
 - The f1tenth base images are only local until step 5. Deleting them means running
   `./watod build-base` again.

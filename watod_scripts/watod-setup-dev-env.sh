@@ -165,9 +165,13 @@ for MODULE_NAME in "${MODULES[@]}"; do
     fi
 
     # Check if image exists locally first (avoid slow pulls)
+    IMAGE_NAME_LOCAL="${IMAGE_NAME%:*}:local"
     IMAGE_NAME_MAIN="${IMAGE_NAME%:*}:main"
     if docker image inspect "$IMAGE_NAME" &>/dev/null; then
         echo -e "  Using local image"
+    elif docker image inspect "$IMAGE_NAME_LOCAL" &>/dev/null; then
+        echo -e "  Using local image (:local)"
+        IMAGE_NAME="$IMAGE_NAME_LOCAL"
     elif docker image inspect "$IMAGE_NAME_MAIN" &>/dev/null; then
         echo -e "  Using local main image"
         IMAGE_NAME="$IMAGE_NAME_MAIN"

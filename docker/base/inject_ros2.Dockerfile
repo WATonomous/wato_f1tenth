@@ -39,7 +39,7 @@ ENV ROS_DISTRO=${ROS_DISTRO}
 # install ros-core
 RUN apt-get update && \
     apt-get install -y --no-install-recommends "ros-${ROS_DISTRO}-ros-core" && \
-    rm -rf /var/lib/apt/lists*
+    rm -rf /var/lib/apt/lists/*
 
 
 ######### Install ROS2 Developer Tools (rosdep, colcon, vcstools) #########
