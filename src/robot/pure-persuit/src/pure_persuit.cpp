@@ -491,16 +491,16 @@ void Pure_Persuit_Node::init_parameters () {
     this->declare_parameter<bool>("overtake_enable",false);
 
     this->declare_parameter<bool>("speed_limit_active", true);
-    this->declare_parameter<double>("speed_limit", 3.0);
+    this->declare_parameter<double>("speed_limit", 3.0); // prev : 3.0 
 
     this->declare_parameter<double>("wheel_base",0.3240);
     this->declare_parameter<double>("max_steering_angle",0.52);
 
-    this->declare_parameter<double>("kp_gain", 0.15);
+    this->declare_parameter<double>("kp_gain", 0.13); // prev : 0.13
 
-    this->declare_parameter<double>("max_lookahead",2.0);
-    this->declare_parameter<double>("min_lookahead",0.75);
-    this->declare_parameter<double>("lookahead_ratio",3.0);
+    this->declare_parameter<double>("max_lookahead",4.0);
+    this->declare_parameter<double>("min_lookahead",1.0); // prev : 1.0
+    this->declare_parameter<double>("lookahead_ratio",8.0);
 
     this->declare_parameter<std::string>("speed_topic","/ekf/odom");
     //this->declare_parameter<std::string>("speed_topic","/autodrive/roboracer_1/odom");

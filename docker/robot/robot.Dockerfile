@@ -85,6 +85,9 @@ RUN sudo apt-get update
 RUN sudo apt-get install -y ros-humble-navigation2
 RUN sudo apt-get install -y ros-humble-slam-toolbox
 
+# Realsense driver
+RUN sudo apt install -y ros-humble-realsense2-camera
+
 #add controler support to the container
 RUN sudo apt-get install -y ros-humble-joy 
 RUN sudo apt-get install -y jstest-gtk

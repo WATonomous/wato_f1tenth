@@ -533,7 +533,7 @@ void EKF::init_params () {
     this->declare_parameter<double>("wheel_base",0.3302);
 
     //low pass filter
-    this->declare_parameter<double>("alpha", 0.55);
+    this->declare_parameter<double>("alpha", 0.50);
 
     //debug mode
     this->declare_parameter<bool>("debug_mode", false);
