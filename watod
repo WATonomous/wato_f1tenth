@@ -480,6 +480,12 @@ for choice in "CONTROLLER action/action_bringup/launch/controllers .launch.yaml"
     exit 1
   fi
 done
+# REALSENSE_ALIGN also picks the bag preset (car_data records only aligned depth), so a typo must
+# not leave the driver unaligned while the preset still expects aligned depth
+if [[ "$REALSENSE_ALIGN" != "auto" && "$REALSENSE_ALIGN" != "true" && "$REALSENSE_ALIGN" != "false" ]]; then
+  echo "Error: REALSENSE_ALIGN=\"$REALSENSE_ALIGN\": use auto, true or false." >&2
+  exit 1
+fi
 # DIRECTION picks raceline_<ccw|cw>.csv in the track's folder (empty: its raceline.csv)
 if [[ -n ${DIRECTION:-} ]]; then
   track_dir="$MONO_DIR/src/world_modeling/race_tracks/tracks/$TRACK"
