@@ -47,7 +47,10 @@ Bringup launch files read environment variables written to `modules/.env` by `wa
 | `IMU` | `auto` (default), `realsense`, `vesc`, `none` | source of `/hal/imu` (auto: RealSense on the car with `REALSENSE=true`, AutoDRIVE in sim) |
 | `LOCALIZATION` | `auto` (default), `pf`, `truth`, `none` | source of `/hal/localization/odom` (auto: `pf` on the car, `truth` in sim) |
 | `GPU` | detected: `nvidia` or `none` | GPU or CPU base for `action`, `perception`, `world_modeling`; `nvidia` on a PC adds the GPU overlay |
-| `REALSENSE_IMAGES` | `false` (default), `true` | RealSense color + depth, 640x480 @ 30 Hz |
+| `REALSENSE_MODE` | `imu` (default), `depth`, `data`, `vslam` | RealSense streams: `interfacing_bringup/config/realsense_modes/<name>.yaml` (depth: color 640x480 + depth 848x480 @ 30 Hz; data: the same synced, for datasets; vslam: infra1/2 640x360 @ 60 Hz, emitter off, for cuVSLAM) |
+| `REALSENSE_ALIGN` | `auto` (default), `true`, `false` | depth aligned to color (`aligned_depth_to_color`); auto = on in `data` mode only (costs about 30% of a core) |
+| `REALSENSE_IMAGES` | `false` (default), `true` | older switch: `true` = `REALSENSE_MODE=depth` when the mode is unset |
+| `BAG_PRESET` | the platform (`car`/`sim`); `car_data` on the car with aligned depth on (data mode, or depth with `REALSENSE_ALIGN=true`), `car_vslam` in vslam mode | topics `watod bag record` records with none given |
 | `BAG_CPUSET` | `4,5` on the car, empty elsewhere | CPUs the bag recorder container may use |
 | `PF_VIZ` | `false` (default), `true` | particle filter `/pf/viz/*` debug topics (cost it CPU per update) |
 
@@ -126,7 +129,7 @@ no command arrives for `cmd_timeout` (0.5 s). Settings in `interfacing_bringup/c
 - `map -> odom`: static identity in sim; the particle filter on the car; slam_toolbox when mapping.
 - `odom -> base_link`: the simulator in sim; the VESC / EKF path on the car.
 - `base_link -> laser`: static, x 0.27 m, z 0.11 m, from `interfacing` on both.
-- `base_link -> camera_link`: static, x 0.27 m, z 0.31 m (20 cm above the lidar), from
+- `base_link -> camera_link`: static, x 0.27 m, z 0.15 m (lens measured 4 cm above the lidar window, camera level), from
   `interfacing` when the RealSense runs. The driver adds `camera_imu_optical_frame` and friends
   under `camera_link` (`base_frame_id: link`, because the driver prefixes the camera name).
 

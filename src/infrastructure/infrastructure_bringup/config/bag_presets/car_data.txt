@@ -1,0 +1,58 @@
+# Car recording preset for REALSENSE_MODE=data (perception dataset): ./watod bag record
+# (the default preset in data mode with alignment on) or ./watod bag record --preset car_data
+#
+# The car preset with depth aligned to color instead of raw depth: color as JPEG (compressed),
+# aligned depth lossless (zstd), both ~30 Hz as synced pairs, plus the depth-to-color extrinsics.
+# Raw depth is left out, which saves the CPU of compressing it.
+#
+# Left out on purpose: /pf/viz/* (costs the particle filter its 40 Hz floor), raw images
+# (~1 MB per frame through DDS), raw depth, and the RealSense metadata topics.
+
+# /hal contract
+/hal/scan
+/hal/filter_scan
+/hal/odom
+/hal/imu
+/hal/localization/odom
+/hal/battery
+/hal/ackermann_cmd
+/hal/drive/autonomy
+/hal/drive/joystick
+/hal/drive/keyboard
+/hal/drive/ebrake
+/hal/dead_man_switch
+
+# TF, map and plan (the /local_planner topics exist only with LOCAL_PLANNER set)
+/tf
+/tf_static
+/map
+/global_planner/path
+/global_planner/reference_track
+/global_planner/edges
+/local_planner/path
+/local_planner/active
+
+# VESC and gamepad
+/sensors/core
+/sensors/servo_position_command
+/commands/motor/speed
+/commands/servo/position
+/joy
+
+# RealSense images (REALSENSE_MODE=data, aligned depth)
+/camera/camera/color/image_raw/compressed
+/camera/camera/color/camera_info
+/camera/camera/aligned_depth_to_color/image_raw/zstd
+/camera/camera/aligned_depth_to_color/camera_info
+/camera/camera/extrinsics/depth_to_color
+
+# Computer health and pack power (system_monitor)
+/system/status
+/system/power
+
+# Who has control (drive_status, ackermann_mux, gamepad), gamepad toggles and the speed limiter
+/control/status
+/control/active_input
+/control/mode
+/control/teleop
+/control/speed_limiter

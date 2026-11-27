@@ -30,15 +30,24 @@ ARG TARGETARCH
 # IMU through the hid_sensor IIO drivers. JetPack kernels don't ship those, so the IMU
 # fails ("HID Motion Sensor Failure"). Rebuild the same version with the RSUSB (libusb)
 # backend over the apt library (same SONAME, so the apt realsense2_camera loads it) and
-# hold the package so the rosdep stage keeps it. x86 keeps the apt build.
-ARG LIBREALSENSE_VERSION=2.58.4
+# hold both packages so the rosdep stage keeps them: realsense2_camera 4.59.x links
+# librealsense2.so.2.59, so an upgraded camera package over an older library crashes at
+# start. The ROS apt server keeps only the newest version, so the source build takes its
+# version from whatever apt installed (e.g. 2.59.1-1noble.<date> -> tag v2.59.1).
+# x86 keeps the apt build.
+# Empty = the version on the ROS apt server; set it (e.g. 2.59.1) only to pin one apt still has.
+ARG LIBREALSENSE_VERSION=""
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
       apt-get update && \
+      if [ -n "${LIBREALSENSE_VERSION}" ]; then pin="=${LIBREALSENSE_VERSION}-*"; else pin=""; fi && \
       apt-get install -y --no-install-recommends \
-        "ros-${ROS_DISTRO}-librealsense2=${LIBREALSENSE_VERSION}-*" "ros-${ROS_DISTRO}-realsense2-camera" \
+        "ros-${ROS_DISTRO}-librealsense2${pin}" "ros-${ROS_DISTRO}-realsense2-camera" \
         git cmake build-essential pkg-config libusb-1.0-0-dev libudev-dev libssl-dev && \
-      apt-mark hold "ros-${ROS_DISTRO}-librealsense2" && \
-      git clone --depth 1 --branch "v${LIBREALSENSE_VERSION}" https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
+      apt-mark hold "ros-${ROS_DISTRO}-librealsense2" "ros-${ROS_DISTRO}-realsense2-camera" && \
+      version="$(dpkg-query -W -f='${Version}' "ros-${ROS_DISTRO}-librealsense2")" && \
+      version="${version#*:}" && version="${version%%-*}" && \
+      echo "librealsense: rebuilding v${version} with RSUSB" && \
+      git clone --depth 1 --branch "v${version}" https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
       cmake -S /tmp/librealsense -B /tmp/librealsense/build \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="/opt/ros/${ROS_DISTRO}" \
