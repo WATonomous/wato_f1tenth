@@ -123,6 +123,9 @@ def main():
     )
     parser.add_argument("--mapping", default=os.environ.get("MAPPING", "false"))
     parser.add_argument("--realsense", default=os.environ.get("REALSENSE", "false"))
+    parser.add_argument(
+        "--jetson-battery", default=os.environ.get("JETSON_BATTERY", "false")
+    )
     parser.add_argument("--controller", default=os.environ.get("CONTROLLER", "none"))
     parser.add_argument(
         "--local-planner", default=os.environ.get("LOCAL_PLANNER", "none")
@@ -154,6 +157,7 @@ def main():
         args.localization,
         as_bool(args.mapping),
         as_bool(args.realsense),
+        as_bool(args.jetson_battery),
     )
     sources["controller"] = args.controller
     sources["local_planner"] = args.local_planner

@@ -12,11 +12,17 @@ ament_auto_find_build_dependencies()
 ## Build ##
 ###########
 
+# Pure-C++ speed limiter / traction control library (unit-tested directly via wato_test)
+ament_auto_add_library(speed_limiter SHARED
+  src/speed_limiter.cpp
+)
+
 # nodes library
 ament_auto_add_library(${PROJECT_NAME} SHARED
   src/ackermann_to_vesc.cpp
   src/vesc_to_odom.cpp
 )
+target_link_libraries(${PROJECT_NAME} speed_limiter)
 
 # register nodes as components
 rclcpp_components_register_node(${PROJECT_NAME}
@@ -33,6 +39,14 @@ rclcpp_components_register_node(${PROJECT_NAME}
 #############
 
 # Linting runs through pre-commit; unit tests use wato_test (add_wato_test).
+if(BUILD_TESTING)
+  find_package(wato_test REQUIRED)
+  add_wato_test(test_speed_limiter
+    test/test_speed_limiter.cpp
+    LIBRARIES
+      speed_limiter
+  )
+endif()
 
 ament_auto_package(
   INSTALL_TO_SHARE

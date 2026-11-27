@@ -196,6 +196,8 @@ DIRECTION=${DIRECTION:-""}
 REALSENSE=${REALSENSE:-"false"}
 # true to also stream RealSense color + depth (640x480 @ 30 Hz; recorded as JPEG / zstd)
 REALSENSE_IMAGES=${REALSENSE_IMAGES:-"false"}
+# true to start the INA226 I2C 4S Jetson battery monitor (/hal/jetson_battery)
+JETSON_BATTERY=${JETSON_BATTERY:-"false"}
 # CPUs for the bag recorder container (docker --cpuset-cpus), so recording can't starve the
 # particle filter. Car default: the last two of the Orin's six cores. Empty = no limit.
 # Topic preset for `watod bag record` with no topics (bag_presets/<name>.txt); "" = none
@@ -355,6 +357,7 @@ append "TRACK" "$TRACK"
 append "DIRECTION" "$DIRECTION"
 append "REALSENSE" "$REALSENSE"
 append "REALSENSE_IMAGES" "$REALSENSE_IMAGES"
+append "JETSON_BATTERY" "$JETSON_BATTERY"
 append "IMU" "$IMU"
 append "LOCALIZATION" "$LOCALIZATION"
 append "PF_VIZ" "$PF_VIZ"

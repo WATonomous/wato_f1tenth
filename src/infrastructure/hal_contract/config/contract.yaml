@@ -53,6 +53,13 @@ topics:
     publishers: true
     when: battery  # car only: the VESC reports the pack, AutoDRIVE has no battery
 
+  - name: /hal/jetson_battery
+    type: sensor_msgs/msg/BatteryState
+    group: sensors
+    min_hz: {car: 1.0}
+    publishers: true
+    when: jetson_battery  # car only, optional (JETSON_BATTERY=true): INA226 on /dev/i2c-7
+
   - name: /hal/ackermann_cmd
     type: ackermann_msgs/msg/AckermannDriveStamped
     group: drive

@@ -11,7 +11,7 @@
         "#ff00ff"
       ],
       "reverse": false,
-      "foxglovePanelTitle": "Battery charge (0-1)"
+      "foxglovePanelTitle": "Drive 3S charge (0-1)"
     },
     "Indicator!battery_health": {
       "path": "/hal/battery.power_supply_health",
@@ -38,7 +38,47 @@
           "label": "OVERVOLTAGE: check cell count"
         }
       ],
-      "foxglovePanelTitle": "Battery health"
+      "foxglovePanelTitle": "Drive 3S health"
+    },
+    "Gauge!jetson_battery_pct": {
+      "path": "/hal/jetson_battery.percentage",
+      "minValue": 0,
+      "maxValue": 1,
+      "colorMode": "colormap",
+      "colorMap": "red-yellow-green",
+      "gradient": [
+        "#0000ff",
+        "#ff00ff"
+      ],
+      "reverse": false,
+      "foxglovePanelTitle": "Jetson 4S charge (0-1)"
+    },
+    "Indicator!jetson_battery_health": {
+      "path": "/hal/jetson_battery.power_supply_health",
+      "style": "background",
+      "fallbackColor": "#808080",
+      "fallbackLabel": "OFF / UNPLUGGED",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "1",
+          "color": "#2e9d47",
+          "label": "OK"
+        },
+        {
+          "operator": "=",
+          "rawValue": "3",
+          "color": "#d62828",
+          "label": "CRITICAL: swap 4S pack"
+        },
+        {
+          "operator": "=",
+          "rawValue": "4",
+          "color": "#e07a00",
+          "label": "OVERVOLTAGE: check scale"
+        }
+      ],
+      "foxglovePanelTitle": "Jetson 4S health"
     },
     "Plot!battery_voltage": {
       "paths": [
@@ -46,13 +86,25 @@
           "value": "/hal/battery.voltage",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "pack V"
+          "label": "drive 3S V"
         },
         {
           "value": "/hal/battery.cell_voltage[0]",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "cell V"
+          "label": "drive cell V"
+        },
+        {
+          "value": "/hal/jetson_battery.voltage",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "jetson 4S V"
+        },
+        {
+          "value": "/hal/jetson_battery.cell_voltage[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "jetson cell V"
         }
       ],
       "showXAxisLabels": true,
@@ -62,7 +114,7 @@
       "isSynced": true,
       "xAxisVal": "timestamp",
       "followingViewWidth": 300,
-      "foxglovePanelTitle": "Battery voltage"
+      "foxglovePanelTitle": "Battery voltages (drive 3S & Jetson 4S)"
     },
     "Plot!battery_current": {
       "paths": [
@@ -87,6 +139,12 @@
       "diffEnabled": false,
       "expansion": "all",
       "foxglovePanelTitle": "/hal/battery"
+    },
+    "RawMessages!jetson_battery_raw": {
+      "topicPath": "/hal/jetson_battery",
+      "diffEnabled": false,
+      "expansion": "all",
+      "foxglovePanelTitle": "/hal/jetson_battery"
     }
   },
   "globalVariables": {},
@@ -96,10 +154,20 @@
   },
   "layout": {
     "first": {
-      "first": "Gauge!battery_pct",
-      "second": "Indicator!battery_health",
+      "first": {
+        "first": "Gauge!battery_pct",
+        "second": "Indicator!battery_health",
+        "direction": "column",
+        "splitPercentage": 65
+      },
+      "second": {
+        "first": "Gauge!jetson_battery_pct",
+        "second": "Indicator!jetson_battery_health",
+        "direction": "column",
+        "splitPercentage": 65
+      },
       "direction": "column",
-      "splitPercentage": 70
+      "splitPercentage": 50
     },
     "second": {
       "first": {
@@ -107,7 +175,12 @@
         "second": "Plot!battery_current",
         "direction": "column"
       },
-      "second": "RawMessages!battery_raw",
+      "second": {
+        "first": "RawMessages!battery_raw",
+        "second": "RawMessages!jetson_battery_raw",
+        "direction": "column",
+        "splitPercentage": 50
+      },
       "direction": "row",
       "splitPercentage": 65
     },

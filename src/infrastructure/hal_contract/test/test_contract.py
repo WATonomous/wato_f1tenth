@@ -79,27 +79,65 @@ def test_controller_and_local_planner_checks():
 @pytest.mark.parametrize(
     "platform,kw,expected",
     [
-        ("car", {}, {"imu": "none", "localization": "pf", "battery": "vesc"}),
         (
             "car",
-            {"realsense": True},
-            {"imu": "realsense", "localization": "pf", "battery": "vesc"},
+            {},
+            {
+                "imu": "none",
+                "localization": "pf",
+                "battery": "vesc",
+                "jetson_battery": "none",
+            },
+        ),
+        (
+            "car",
+            {"realsense": True, "jetson_battery": True},
+            {
+                "imu": "realsense",
+                "localization": "pf",
+                "battery": "vesc",
+                "jetson_battery": "ina226",
+            },
         ),
         (
             "car",
             {"imu": "vesc"},
-            {"imu": "vesc", "localization": "pf", "battery": "vesc"},
+            {
+                "imu": "vesc",
+                "localization": "pf",
+                "battery": "vesc",
+                "jetson_battery": "none",
+            },
         ),
-        ("sim", {}, {"imu": "sim", "localization": "truth", "battery": "none"}),
         (
             "sim",
-            {"localization": "pf"},
-            {"imu": "sim", "localization": "pf", "battery": "none"},
+            {},
+            {
+                "imu": "sim",
+                "localization": "truth",
+                "battery": "none",
+                "jetson_battery": "none",
+            },
+        ),
+        (
+            "sim",
+            {"localization": "pf", "jetson_battery": True},
+            {
+                "imu": "sim",
+                "localization": "pf",
+                "battery": "none",
+                "jetson_battery": "none",
+            },
         ),
         (
             "sim",
             {"mapping": True},
-            {"imu": "sim", "localization": "none", "battery": "none"},
+            {
+                "imu": "sim",
+                "localization": "none",
+                "battery": "none",
+                "jetson_battery": "none",
+            },
         ),
     ],
 )
@@ -111,6 +149,14 @@ def test_inactive_sources_and_groups_are_skipped():
     sources = c.resolve_sources("car", localization="none")
     checks = names(c.topic_checks(CONTRACT, "car", {"sensors"}, sources))
     assert checks == ["/hal/scan", "/hal/odom", "/hal/battery"]
+    sources_4s = c.resolve_sources("car", localization="none", jetson_battery=True)
+    checks_4s = names(c.topic_checks(CONTRACT, "car", {"sensors"}, sources_4s))
+    assert checks_4s == [
+        "/hal/scan",
+        "/hal/odom",
+        "/hal/battery",
+        "/hal/jetson_battery",
+    ]
     assert [
         (t.parent, t.child) for t in c.tf_checks(CONTRACT, {"sensors"}, sources)
     ] == [

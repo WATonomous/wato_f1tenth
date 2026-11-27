@@ -15,6 +15,7 @@
 /hal/imu
 /hal/localization/odom
 /hal/battery
+/hal/jetson_battery
 /hal/ackermann_cmd
 /hal/drive/autonomy
 /hal/drive/joystick

@@ -41,6 +41,11 @@ launch:
       description: "Also stream RealSense color + depth (640x480 @ 30 Hz)"
 
   - arg:
+      name: jetson_battery
+      default: "$(env JETSON_BATTERY false)"
+      description: "Start the INA226 I2C 4S Jetson battery monitor (/hal/jetson_battery)"
+
+  - arg:
       name: imu
       default: "$(env IMU auto)"
       description: >-
@@ -110,6 +115,8 @@ launch:
             pkg: vesc_driver
             exec: vesc_driver_node
             name: vesc_driver_node
+            respawn: true
+            respawn_delay: 2.0
             param:
               - from: "$(var config_dir)/vesc.yaml"
             remap:
@@ -155,7 +162,7 @@ launch:
                 to: /hal/scan
               - from: scan_filtered
                 to: /hal/filter_scan
-        # Drive battery from VESC telemetry -> /hal/battery (the Jetson shares the pack)
+        # Drive battery from VESC telemetry -> /hal/battery
         - node:
             pkg: vesc_battery
             exec: battery_node
@@ -163,6 +170,15 @@ launch:
             output: screen
             param:
               - from: "$(var config_dir)/battery.yaml"
+        # Dedicated 4S Jetson battery via INA226 on /dev/i2c-7 -> /hal/jetson_battery
+        - node:
+            if: "$(var jetson_battery)"
+            pkg: vesc_battery
+            exec: jetson_battery_node
+            name: jetson_battery
+            output: screen
+            param:
+              - from: "$(var config_dir)/jetson_battery.yaml"
 
   # Gamepad teleop: /joy -> /hal/drive/joystick and /hal/dead_man_switch
   - group:

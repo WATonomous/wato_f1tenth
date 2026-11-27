@@ -25,9 +25,23 @@ LiPo pack ──┬── VESC ──────────────── 
 
 | Topic | From | What |
 | --- | --- | --- |
-| `/hal/battery` | `vesc_battery` (interfacing) | pack voltage, estimated charge, health |
+| `/hal/battery` | `vesc_battery` (interfacing) | 3S drive pack voltage, estimated charge, health |
+| `/hal/jetson_battery` | `jetson_battery` (interfacing, `JETSON_BATTERY=true`) | dedicated 4S Jetson pack voltage, estimated charge, health via INA226 on `/dev/i2c-7` |
 | `/system/power` (10 Hz, car) | `system_monitor` (infrastructure) | pack voltage and drive current (VESC), Jetson module power (INA3221 `VDD_IN`), estimated total draw |
 | `/system/status` (1 Hz) | `system_monitor` | CPU, GPU, RAM, disk, temperatures, the Jetson's power rails, alarms |
+
+### Dedicated 4S Jetson battery monitoring (INA226 on `/dev/i2c-7`)
+
+When running a separate 4S LiPo for the Jetson through a DC-DC regulator, the Jetson's onboard
+INA3221 (`VDD_IN`) only sees the regulated rail. Wire a tiny TI INA226 breakout (`0x40`) to the
+Jetson Orin Nano 40-pin header (`Pin 1` 3.3 V, `Pin 6` GND, `Pin 3` SDA / `i2c-7`, `Pin 5` SCL /
+`i2c-7`) and tap the 4S pack's JST-XH 5-pin balance plug (`Pin 1` B- -> GND, `Pin 5` B4+ -> 1 kΩ
+safety resistor -> `VBUS`; keep a hardware 1S–8S LiPo buzzer alarm on a balance Y-splitter). Verify
+`sudo i2cdetect -y -r 7` shows `0x40`, calibrate `voltage_scale` in
+`interfacing_bringup/config/car/jetson_battery.yaml` against a multimeter, and set
+`JETSON_BATTERY=true` in `watod-config.local.sh`. The node fails soft (`present: false`) if the
+sensor or balance plug is unplugged, and `system_monitor` logs `jetson_pack_v` / `jetson_pack_pct`
+into the black-box CSV.
 
 The total is an estimate: drive power + (Jetson module power + `other_loads_w`) /
 `converter_efficiency`, set in `infrastructure_bringup/config/car/system_monitor.yaml`. The lidar,

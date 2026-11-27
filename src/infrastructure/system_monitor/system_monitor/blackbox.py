@@ -33,6 +33,8 @@ FIELDS = (
     "drive_power_w",
     "compute_power_w",
     "total_power_w",
+    "jetson_pack_v",
+    "jetson_pack_pct",
     "cpu_percent",
     "ram_used_percent",
     "max_temperature_c",

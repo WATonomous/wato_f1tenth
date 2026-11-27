@@ -43,7 +43,8 @@
           "label": "NOBODY"
         }
       ],
-      "foxglovePanelTitle": "Who has control (OFFLINE = drive_status not running, STOPPED = dead man off, NOBODY = nothing reaches the motor)"
+      "foxglovePanelTitle":
+        "Who has control (OFFLINE = drive_status not running, STOPPED = dead man off, NOBODY = nothing reaches the motor)"
     },
     "Indicator!direction": {
       "path": "/control/status.direction",
@@ -356,6 +357,12 @@
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "measured"
+        },
+        {
+          "value": "/control/speed_limiter.effective_accel",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "eff accel (m/s^2)"
         }
       ],
       "showXAxisLabels": true,
@@ -524,6 +531,12 @@
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "total A (estimate)"
+        },
+        {
+          "value": "/hal/jetson_battery.voltage",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "jetson 4S V"
         }
       ],
       "showXAxisLabels": true,
@@ -952,7 +965,8 @@
         "poseEstimateThetaDeviation": 0.26179939
       },
       "imageMode": {},
-      "foxglovePanelTitle": "Scan by intensity (blue 0 -> red 1600); white dots = /hal/filter_scan, so coloured points without a white dot were filtered out"
+      "foxglovePanelTitle":
+        "Scan by intensity (blue 0 -> red 1600); white dots = /hal/filter_scan, so coloured points without a white dot were filtered out"
     },
     "Plot!scan_intensity": {
       "paths": [
@@ -969,7 +983,8 @@
       "legendDisplay": "floating",
       "isSynced": false,
       "xAxisVal": "index",
-      "foxglovePanelTitle": "Intensity per beam, latest scan (beam 0 = 113 deg right, ~904 = straight ahead, ~1808 = 113 deg left; 0.125 deg per beam)"
+      "foxglovePanelTitle":
+        "Intensity per beam, latest scan (beam 0 = 113 deg right, ~904 = straight ahead, ~1808 = 113 deg left; 0.125 deg per beam)"
     },
     "Plot!scan_range": {
       "paths": [

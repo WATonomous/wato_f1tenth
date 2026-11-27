@@ -114,13 +114,22 @@ def test_blackbox_writes_flushes_and_prunes(tmp_path):
         str(tmp_path), keep_files=2, flush_period_s=1.0, now=lambda: clock[0]
     )
     for _ in range(15):
-        box.write({"pack_voltage_v": 11.5, "alarms": ""})
+        box.write(
+            {
+                "pack_voltage_v": 11.5,
+                "jetson_pack_v": 15.6,
+                "jetson_pack_pct": 72.5,
+                "alarms": "",
+            }
+        )
         clock[0] += 0.1
     # flushed at least once without close(): what a power cut would leave on disk
     with open(box.path) as f:
         rows = list(csv.DictReader(f))
     assert len(rows) >= 10
     assert rows[0]["pack_voltage_v"] == "11.500"
+    assert rows[0]["jetson_pack_v"] == "15.600"
+    assert rows[0]["jetson_pack_pct"] == "72.500"
     box.close()
     assert (
         len(list(tmp_path.glob("blackbox_*.csv"))) == 2

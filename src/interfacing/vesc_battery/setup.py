@@ -33,6 +33,7 @@ setup(
     entry_points={
         "console_scripts": [
             "battery_node = vesc_battery.battery_node:main",
+            "jetson_battery_node = vesc_battery.jetson_battery_node:main",
         ],
     },
 )

@@ -1,0 +1,24 @@
+---
+# Dedicated 4S Jetson battery monitor (vesc_battery/jetson_battery_node):
+# Reads pack voltage via a TI INA226 I2C module wired to the 4S pack's JST-XH 5-pin balance plug
+# (Pin 1 = B-, Pin 5 = B4+ through a 1 kOhm safety resistor) on Jetson Orin Nano I2C Bus 7
+# (40-pin header Pins 3/5) -> /hal/jetson_battery (sensor_msgs/BatteryState).
+/**:
+  ros__parameters:
+    output_topic: "/hal/jetson_battery"
+    i2c_bus: 7                 # Jetson Orin Nano JetPack 6 header Pins 3 (SDA) / 5 (SCL)
+    i2c_address: 64            # 0x40 (default INA226 address with A0=A1=GND)
+    # Compensates the 1 kOhm inline safety resistor against INA226's 830 kOhm VBUS input impedance
+    # (1 + 1/830 = 1.0012). Fine-tune against a multimeter on the 4S pack.
+    voltage_scale: 1.0012
+    verify_chip_id: true
+    cells: 4                   # 4S LiPo (14.0-16.8 V)
+    capacity_ah: 5.0           # 5000 mAh
+    internal_resistance_ohm: 0.04
+    # Steady Jetson + sensor load (A) for resting-voltage sag compensation; 0.0 = raw pack voltage
+    estimated_load_a: 1.5
+    smoothing_s: 3.0
+    publish_hz: 2.0
+    warn_cell_v: 3.65          # 14.6 V (~10% resting; swap soon)
+    critical_cell_v: 3.50      # 14.0 V (stop and charge immediately)
+    present_min_cell_v: 2.5    # below 10.0 V = balance plug disconnected

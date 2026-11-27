@@ -26,6 +26,7 @@ import rclpy
 from f1tenth_msgs.msg import PowerRail, PowerStatus, SystemStatus, Temperature
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from sensor_msgs.msg import BatteryState
 from vesc_msgs.msg import VescStateStamped
 
 from system_monitor import readers
@@ -40,6 +41,7 @@ class SystemMonitor(Node):
         self.declare_parameter("status_topic", "/system/status")
         self.declare_parameter("power_topic", "/system/power")
         self.declare_parameter("vesc_topic", "/sensors/core")
+        self.declare_parameter("jetson_battery_topic", "/hal/jetson_battery")
         self.declare_parameter("status_hz", 1.0)
         self.declare_parameter("power_hz", 10.0)
         self.declare_parameter("sysfs_root", "/")
@@ -49,6 +51,7 @@ class SystemMonitor(Node):
         self.declare_parameter("other_loads_w", 0.0)
         self.declare_parameter("converter_efficiency", 1.0)
         self.declare_parameter("vesc_stale_s", 1.0)
+        self.declare_parameter("jetson_battery_stale_s", 3.0)
         # Black box: empty = off
         self.declare_parameter("blackbox_dir", "")
         self.declare_parameter("blackbox_keep_files", 30)
@@ -59,6 +62,7 @@ class SystemMonitor(Node):
         self.other_loads_w = p("other_loads_w").value
         self.efficiency = p("converter_efficiency").value
         self.vesc_stale_s = p("vesc_stale_s").value
+        self.jetson_battery_stale_s = p("jetson_battery_stale_s").value
 
         self.hostname = socket.gethostname()
         self.prev_cpu = readers.cpu_times(self.root)
@@ -71,6 +75,9 @@ class SystemMonitor(Node):
         self.pack_v = NAN
         self.drive_a = NAN
         self.vesc_rx = None
+        self.jetson_pack_v = NAN
+        self.jetson_pack_pct = NAN
+        self.jetson_rx = None
 
         self.status_pub = self.create_publisher(
             SystemStatus, p("status_topic").value, 10
@@ -78,6 +85,9 @@ class SystemMonitor(Node):
         self.power_pub = self.create_publisher(PowerStatus, p("power_topic").value, 10)
         self.create_subscription(
             VescStateStamped, p("vesc_topic").value, self.on_vesc, 10
+        )
+        self.create_subscription(
+            BatteryState, p("jetson_battery_topic").value, self.on_jetson_battery, 10
         )
         self.create_timer(
             1.0 / p("status_hz").value, lambda: self.guarded(self.publish_status)
@@ -109,6 +119,18 @@ class SystemMonitor(Node):
         self.pack_v = msg.state.voltage_input
         self.drive_a = msg.state.current_input
         self.vesc_rx = self.now_s()
+
+    def on_jetson_battery(self, msg):
+        if msg.present:
+            self.jetson_pack_v = msg.voltage
+            self.jetson_pack_pct = (
+                msg.percentage * 100.0 if not math.isnan(msg.percentage) else NAN
+            )
+            self.jetson_rx = self.now_s()
+        else:
+            self.jetson_pack_v = NAN
+            self.jetson_pack_pct = NAN
+            self.jetson_rx = None
 
     def publish_status(self):
         cpu_now = readers.cpu_times(self.root)
@@ -178,6 +200,10 @@ class SystemMonitor(Node):
         self.power_pub.publish(msg)
 
         if self.blackbox:
+            jetson_fresh = (
+                self.jetson_rx is not None
+                and self.now_s() - self.jetson_rx < self.jetson_battery_stale_s
+            )
             self.blackbox.write(
                 {
                     "pack_voltage_v": msg.pack_voltage_v,
@@ -185,6 +211,8 @@ class SystemMonitor(Node):
                     "drive_power_w": msg.drive_power_w,
                     "compute_power_w": msg.compute_power_w,
                     "total_power_w": msg.total_power_w,
+                    "jetson_pack_v": self.jetson_pack_v if jetson_fresh else NAN,
+                    "jetson_pack_pct": self.jetson_pack_pct if jetson_fresh else NAN,
                     "cpu_percent": float(self.cpu[0]),
                     "ram_used_percent": float(self.ram[0]),
                     "max_temperature_c": float(

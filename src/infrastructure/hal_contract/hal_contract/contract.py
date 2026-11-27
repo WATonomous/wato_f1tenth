@@ -70,7 +70,12 @@ def load(path):
 
 
 def resolve_sources(
-    platform, imu="auto", localization="auto", mapping=False, realsense=False
+    platform,
+    imu="auto",
+    localization="auto",
+    mapping=False,
+    realsense=False,
+    jetson_battery=False,
 ):
     """Mirror the launch files' auto rules: which IMU, localization and battery source is running."""
     if imu == "auto":
@@ -85,7 +90,13 @@ def resolve_sources(
         localization = "none"
     # The VESC reports the drive pack on the car; AutoDRIVE has no battery
     battery = "vesc" if platform == "car" else "none"
-    return {"imu": imu, "localization": localization, "battery": battery}
+    jetson_bat = "ina226" if (platform == "car" and jetson_battery) else "none"
+    return {
+        "imu": imu,
+        "localization": localization,
+        "battery": battery,
+        "jetson_battery": jetson_bat,
+    }
 
 
 def _required(value, sources):

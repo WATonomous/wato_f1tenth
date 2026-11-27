@@ -132,6 +132,10 @@
 ## `watod bag record --preset car`. DEFAULT = "false"
 # export REALSENSE_IMAGES="true"
 
+## Start the INA226 I2C 4S Jetson battery monitor (/hal/jetson_battery on /dev/i2c-7).
+## DEFAULT = "false"
+# export JETSON_BATTERY="true"
+
 ## Topic preset for `watod bag record` with no topics given (infrastructure_bringup/config/
 ## bag_presets/<name>.txt). DEFAULT = the platform: "car" or "sim". "" = no default.
 # export BAG_PRESET="car"

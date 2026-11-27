@@ -32,18 +32,22 @@
 #define VESC_ACKERMANN__ACKERMANN_TO_VESC_HPP_
 
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <f1tenth_msgs/msg/speed_limiter_status.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64.hpp>
-#include <f1tenth_msgs/msg/speed_limiter_status.hpp>
 #include <vesc_msgs/msg/vesc_state_stamped.hpp>
+
+#include <memory>
+
+#include "vesc_ackermann/speed_limiter.hpp"
 
 namespace vesc_ackermann
 {
 
 using ackermann_msgs::msg::AckermannDriveStamped;
+using f1tenth_msgs::msg::SpeedLimiterStatus;
 using std_msgs::msg::Float64;
 using vesc_msgs::msg::VescStateStamped;
-using f1tenth_msgs::msg::SpeedLimiterStatus;
 
 class AckermannToVesc : public rclcpp::Node
 {
@@ -55,14 +59,12 @@ private:
   // conversion gain and offset
   double speed_to_erpm_gain_, speed_to_erpm_offset_;
   double steering_to_servo_gain_, steering_to_servo_offset_;
+  double cmd_timeout_;
+  double vesc_state_timeout_;
 
-  // speed limiter: m/s^2 when speeding up / slowing down (0 = no limit), and how long (s) without a
-  // command before the limiter brakes to a stop
-  double max_accel_, max_decel_, cmd_timeout_;
+  std::unique_ptr<SpeedLimiter> limiter_;
 
-  /** @todo consider also providing an interpolated look-up table conversion */
-
-  // ROS services
+  // ROS interfaces
   rclcpp::Publisher<Float64>::SharedPtr erpm_pub_;
   rclcpp::Publisher<Float64>::SharedPtr servo_pub_;
   rclcpp::Subscription<AckermannDriveStamped>::SharedPtr ackermann_sub_;
@@ -70,27 +72,29 @@ private:
   rclcpp::TimerBase::SharedPtr limiter_timer_;
   rclcpp::Publisher<SpeedLimiterStatus>::SharedPtr limiter_status_pub_;
 
-  // speed limiter state
+  // speed limiter runtime state
   rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
-  double target_speed_ = 0.0;   // latest commanded speed (m/s)
-  double limited_speed_ = 0.0;  // speed sent to the VESC (m/s)
-  double measured_speed_ = 0.0;
+  double target_speed_ = 0.0;      // latest commanded speed (m/s)
+  double cmd_accel_ = 0.0;         // latest commanded acceleration (m/s^2, 0 = unspecified)
+  double steering_angle_ = 0.0;    // latest commanded steering angle (rad)
+  double measured_speed_ = 0.0;    // wheel speed from VESC sensors/core (m/s)
+  double motor_current_ = 0.0;     // motor current from VESC sensors/core (A)
   bool have_measured_ = false;
   unsigned int tick_count_ = 0;
   bool active_ = false;  // publishing speed; false before the first command and after a stop
   rclcpp::Time last_cmd_time_{0, 0, RCL_STEADY_TIME};
   rclcpp::Time last_tick_time_{0, 0, RCL_STEADY_TIME};
+  rclcpp::Time last_vesc_time_{0, 0, RCL_STEADY_TIME};
 
   // ROS callbacks
   void ackermannCmdCallback(const AckermannDriveStamped::SharedPtr cmd);
   void vescStateCallback(const VescStateStamped::SharedPtr state);
   void limiterTimerCallback();
 
-  bool limiterEnabled() const {return max_accel_ > 0.0 || max_decel_ > 0.0;}
+  bool limiterEnabled() const {return limiter_ && limiter_->enabled();}
+  bool hasFreshVescState(const rclcpp::Time & now) const;
   void publishSpeed(double speed);
   void publishLimiterStatus();
-  // step the limited speed towards target over dt seconds
-  double limitSpeed(double current, double target, double dt) const;
 };
 
 }  // namespace vesc_ackermann
