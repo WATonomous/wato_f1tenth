@@ -38,7 +38,7 @@ __watod_get_modules() {
   modules=$($watod_cmd -h 2>/dev/null | sed -n '/Use "all" for all modules/,/Append :dev/p' | grep -v 'Use "all"' | grep -v 'Append' | awk '{print $1}' | sed 's/://g' | tr '\n' ' ')
   if [[ -z "$modules" ]]; then
     # Fallback to defaults if parsing fails
-    modules="action interfacing perception world_modeling"
+    modules="action interfacing perception world_modeling sim"
   fi
   echo "$modules all"
 }
@@ -118,7 +118,7 @@ _watod_completions() {
   fi
 
   # Top-level commands and options
-  local commands="up down ps logs build pull install test bag contract teleop build-base controller blackbox tools run -m -t -v -s -h"
+  local commands="up down ps logs build pull install test bag contract teleop build-base lint prune controller blackbox tools run -m -t -v -s -h"
   local options="-v --verbose -m --module -t --terminal -s --setup-dev-env -h --help"
 
   # 1. Handle Options contexts regardless of where we are
@@ -260,6 +260,18 @@ _watod_completions() {
       local services
       services=$(__watod_get_running_services "$watod_cmd")
       mapfile -t COMPREPLY < <(compgen -W "$services" -- "$cur")
+      ;;
+
+    lint)
+      if [[ "$cur" == -* ]]; then
+        mapfile -t COMPREPLY < <(compgen -W "-a --all -b --base --hook --rebuild -h --help" -- "$cur")
+      fi
+      ;;
+
+    prune)
+      if [[ "$cur" == -* ]]; then
+        mapfile -t COMPREPLY < <(compgen -W "-n --dry-run -y --yes --bases --cache -h --help" -- "$cur")
+      fi
       ;;
 
     up|down|logs|ps|build|pull|restart|stop|start|kill|rm)

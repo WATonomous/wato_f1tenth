@@ -53,12 +53,30 @@
 ## DEFAULT = "false"
 # export WATCLOUD_MODE="false"
 
-## Name to append to docker containers. DEFAULT = "<your_watcloud_username>"
+## Name to append to docker containers. DEFAULT = "watod_<username>"
+## Customizing this on a shared host (e.g., Jetson) also scopes the local deploy image tag
+## to "local-<COMPOSE_PROJECT_NAME>" in IMAGE_TAG_MODE="auto" so checkouts don't collide.
 # export COMPOSE_PROJECT_NAME=""
 
-## Tag to use. Images are formatted as <IMAGE_NAME>:<TAG> with forward slashes replaced with dashes.
-## DEFAULT = "<your_current_github_branch>"
+## Image tagging strategy for local builds (CI always uses the sanitized branch name):
+##   - "auto"   (DEFAULT) : base images share canonical tags across branches (and auto-suffix
+##                          -<branch> only when docker/base/* differs from main); module deps
+##                          and dev images use content hashes so unchanged environments are shared;
+##                          deploy/test/source images use a single floating "local" tag (or
+##                          "local-<COMPOSE_PROJECT_NAME>" when COMPOSE_PROJECT_NAME is customized).
+##   - "branch"           : tag every image with the sanitized git branch name (legacy behavior).
+##   - "shared"           : like "auto", but forces canonical shared base tags even with local edits.
+# export IMAGE_TAG_MODE="auto"
+
+## Explicit deploy/test/source tag override (overrides IMAGE_TAG_MODE for module deploy tags).
+## Slashes are replaced with dashes.
 # export TAG=""
+
+## Override base image tagging independently of IMAGE_TAG_MODE: "auto" (default), "shared", "branch".
+# export BASE_TAG_MODE="auto"
+
+## Explicit suffix appended to base image tags (e.g., "exp1" -> "jazzy-ubuntu24.04-exp1").
+# export BASE_TAG_SUFFIX=""
 
 # Docker Registry to pull/push images. DEFAULT = "ghcr.io/<owner>/<repo>" from the git origin remote
 # export REGISTRY_URL=""

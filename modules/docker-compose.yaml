@@ -10,6 +10,8 @@ services:
       context: ..
       dockerfile: docker/infrastructure.Dockerfile
       target: source
+      args:
+        BASE_IMAGE: "${BASE_IMAGE_CPU}"
     image: "${INFRASTRUCTURE_IMAGE:?}:source_${TAG}"
 
   infrastructure_deps:
@@ -18,7 +20,9 @@ services:
       context: ..
       dockerfile: docker/infrastructure.Dockerfile
       target: dependencies
-    image: "${INFRASTRUCTURE_IMAGE:?}:deps_${TAG}"
+      args:
+        BASE_IMAGE: "${BASE_IMAGE_CPU}"
+    image: "${INFRASTRUCTURE_IMAGE:?}:deps_${INFRASTRUCTURE_DEPS_TAG}"
 
   infrastructure_bringup:
     init: true
@@ -35,7 +39,10 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${INFRASTRUCTURE_IMAGE:?}:source_${TAG}"
-        MODULE_DEPS: "${INFRASTRUCTURE_IMAGE:?}:deps_${TAG}"
+        MODULE_DEPS: "${INFRASTRUCTURE_IMAGE:?}:deps_${INFRASTRUCTURE_DEPS_TAG}"
+        GIT_BRANCH: "${GIT_BRANCH:-unknown}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        MONO_DIR: "${MONO_DIR:-unknown}"
       target: deploy
     image: "${INFRASTRUCTURE_IMAGE:?}:${TAG}"
     command: /bin/bash -c "ros2 launch infrastructure_bringup infrastructure.launch.yaml foxglove_port:=${FOXGLOVE_BRIDGE_PORT:?}"
@@ -53,6 +60,8 @@ services:
       context: ..
       dockerfile: docker/interfacing.Dockerfile
       target: source
+      args:
+        BASE_IMAGE: "${BASE_IMAGE_CPU}"
     image: "${INTERFACING_IMAGE}:source_${TAG}"
 
   interfacing_deps:
@@ -61,7 +70,9 @@ services:
       context: ..
       dockerfile: docker/interfacing.Dockerfile
       target: dependencies
-    image: "${INTERFACING_IMAGE}:deps_${TAG}"
+      args:
+        BASE_IMAGE: "${BASE_IMAGE_CPU}"
+    image: "${INTERFACING_IMAGE}:deps_${INTERFACING_DEPS_TAG}"
 
   interfacing_bringup:
     init: true
@@ -75,7 +86,10 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${INTERFACING_IMAGE}:source_${TAG}"
-        MODULE_DEPS: "${INTERFACING_IMAGE}:deps_${TAG}"
+        MODULE_DEPS: "${INTERFACING_IMAGE}:deps_${INTERFACING_DEPS_TAG}"
+        GIT_BRANCH: "${GIT_BRANCH:-unknown}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        MONO_DIR: "${MONO_DIR:-unknown}"
       target: deploy
     image: "${INTERFACING_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch interfacing_bringup interfacing.launch.yaml"
@@ -113,6 +127,9 @@ services:
       target: source
       args:
         GPU: "${GPU:-nvidia}"
+        BASE_IMAGE_CPU: "${BASE_IMAGE_CPU}"
+        BASE_IMAGE_AMD64_NVIDIA: "${BASE_IMAGE_AMD64_NVIDIA}"
+        BASE_IMAGE_ARM64_NVIDIA: "${BASE_IMAGE_ARM64_NVIDIA}"
     image: "${PERCEPTION_IMAGE:?}:source_${TAG}"
 
   perception_deps:
@@ -123,7 +140,10 @@ services:
       target: dependencies
       args:
         GPU: "${GPU:-nvidia}"
-    image: "${PERCEPTION_IMAGE:?}:deps_${TAG}"
+        BASE_IMAGE_CPU: "${BASE_IMAGE_CPU}"
+        BASE_IMAGE_AMD64_NVIDIA: "${BASE_IMAGE_AMD64_NVIDIA}"
+        BASE_IMAGE_ARM64_NVIDIA: "${BASE_IMAGE_ARM64_NVIDIA}"
+    image: "${PERCEPTION_IMAGE:?}:deps_${PERCEPTION_DEPS_TAG}"
 
   perception_bringup:
     init: true
@@ -137,7 +157,10 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${PERCEPTION_IMAGE:?}:source_${TAG}"
-        MODULE_DEPS: "${PERCEPTION_IMAGE:?}:deps_${TAG}"
+        MODULE_DEPS: "${PERCEPTION_IMAGE:?}:deps_${PERCEPTION_DEPS_TAG}"
+        GIT_BRANCH: "${GIT_BRANCH:-unknown}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        MONO_DIR: "${MONO_DIR:-unknown}"
       target: deploy
     image: "${PERCEPTION_IMAGE:?}:${TAG}"
     command: /bin/bash -c "ros2 launch perception_bringup perception.launch.yaml"
@@ -162,6 +185,8 @@ services:
       target: source
       args:
         GPU: "${GPU:-nvidia}"
+        BASE_IMAGE_CPU: "${BASE_IMAGE_CPU}"
+        BASE_IMAGE_ARM64_NVIDIA: "${BASE_IMAGE_ARM64_NVIDIA}"
     image: "${WORLD_MODELING_IMAGE}:source_${TAG}"
 
   world_modeling_deps:
@@ -172,7 +197,9 @@ services:
       target: dependencies
       args:
         GPU: "${GPU:-nvidia}"
-    image: "${WORLD_MODELING_IMAGE}:deps_${TAG}"
+        BASE_IMAGE_CPU: "${BASE_IMAGE_CPU}"
+        BASE_IMAGE_ARM64_NVIDIA: "${BASE_IMAGE_ARM64_NVIDIA}"
+    image: "${WORLD_MODELING_IMAGE}:deps_${WORLD_MODELING_DEPS_TAG}"
 
   world_modeling_bringup:
     init: true
@@ -186,7 +213,10 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${WORLD_MODELING_IMAGE}:source_${TAG}"
-        MODULE_DEPS: "${WORLD_MODELING_IMAGE}:deps_${TAG}"
+        MODULE_DEPS: "${WORLD_MODELING_IMAGE}:deps_${WORLD_MODELING_DEPS_TAG}"
+        GIT_BRANCH: "${GIT_BRANCH:-unknown}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        MONO_DIR: "${MONO_DIR:-unknown}"
       target: deploy
     image: "${WORLD_MODELING_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch world_modeling_bringup world_modeling.launch.yaml"
@@ -217,6 +247,9 @@ services:
       target: source
       args:
         GPU: "${GPU:-nvidia}"
+        BASE_IMAGE_CPU: "${BASE_IMAGE_CPU}"
+        BASE_IMAGE_AMD64_NVIDIA: "${BASE_IMAGE_AMD64_NVIDIA}"
+        BASE_IMAGE_ARM64_NVIDIA: "${BASE_IMAGE_ARM64_NVIDIA}"
     image: "${ACTION_IMAGE}:source_${TAG}"
 
   action_deps:
@@ -227,7 +260,10 @@ services:
       target: dependencies
       args:
         GPU: "${GPU:-nvidia}"
-    image: "${ACTION_IMAGE}:deps_${TAG}"
+        BASE_IMAGE_CPU: "${BASE_IMAGE_CPU}"
+        BASE_IMAGE_AMD64_NVIDIA: "${BASE_IMAGE_AMD64_NVIDIA}"
+        BASE_IMAGE_ARM64_NVIDIA: "${BASE_IMAGE_ARM64_NVIDIA}"
+    image: "${ACTION_IMAGE}:deps_${ACTION_DEPS_TAG}"
 
   action_bringup:
     init: true
@@ -241,7 +277,10 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${ACTION_IMAGE}:source_${TAG}"
-        MODULE_DEPS: "${ACTION_IMAGE}:deps_${TAG}"
+        MODULE_DEPS: "${ACTION_IMAGE}:deps_${ACTION_DEPS_TAG}"
+        GIT_BRANCH: "${GIT_BRANCH:-unknown}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        MONO_DIR: "${MONO_DIR:-unknown}"
       target: deploy
     image: "${ACTION_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch action_bringup action.launch.yaml"
@@ -268,6 +307,8 @@ services:
       context: ..
       dockerfile: docker/sim.Dockerfile
       target: source
+      args:
+        BASE_IMAGE: "${BASE_IMAGE_CPU}"
     image: "${SIM_IMAGE}:source_${TAG}"
 
   sim_deps:
@@ -276,7 +317,9 @@ services:
       context: ..
       dockerfile: docker/sim.Dockerfile
       target: dependencies
-    image: "${SIM_IMAGE}:deps_${TAG}"
+      args:
+        BASE_IMAGE: "${BASE_IMAGE_CPU}"
+    image: "${SIM_IMAGE}:deps_${SIM_DEPS_TAG}"
 
   sim_bringup:
     init: true
@@ -290,7 +333,10 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${SIM_IMAGE}:source_${TAG}"
-        MODULE_DEPS: "${SIM_IMAGE}:deps_${TAG}"
+        MODULE_DEPS: "${SIM_IMAGE}:deps_${SIM_DEPS_TAG}"
+        GIT_BRANCH: "${GIT_BRANCH:-unknown}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        MONO_DIR: "${MONO_DIR:-unknown}"
       target: deploy
     image: "${SIM_IMAGE}:${TAG}"
     command: /bin/bash -c "ros2 launch sim_bringup sim.launch.yaml"

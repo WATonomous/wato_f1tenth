@@ -13,10 +13,13 @@ services:
         USER_UID: "${SETUID}"
         USER_GID: "${SETGID}"
         CLAUDE_CODE: "${CLAUDE_CODE}"
-    image: "${INFRASTRUCTURE_IMAGE:?}:dep_${TAG}"
+    image: "${INFRASTRUCTURE_IMAGE:?}:dev_${INFRASTRUCTURE_DEV_TAG}"
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/src/infrastructure:/ws/src/infrastructure
+      - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
+      - ${MONO_DIR}/src/interfacing/vesc/vesc_msgs:/ws/src/vesc_msgs
+      - ${MONO_DIR}/src/world_modeling/global_planner:/ws/src/global_planner
       - ${MONO_DIR}/bags:/ws/bags
 
   #################### INTERFACING SERVICE ####################
@@ -32,10 +35,13 @@ services:
         USER_UID: "${SETUID}"
         USER_GID: "${SETGID}"
         CLAUDE_CODE: "${CLAUDE_CODE}"
-    image: "${INTERFACING_IMAGE:?}:dep_${TAG}"
+    image: "${INTERFACING_IMAGE:?}:dev_${INTERFACING_DEV_TAG}"
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/src/interfacing:/ws/src/interfacing
+      - ${MONO_DIR}/src/infrastructure/f1tenth_msgs:/ws/src/f1tenth_msgs
+      - ${MONO_DIR}/src/infrastructure/wato_lifecycle_manager:/ws/src/wato_lifecycle_manager
+      - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
       - ${MONO_DIR}/bags:/ws/bags
 
   #################### PERCEPTION SERVICE ####################
@@ -51,10 +57,12 @@ services:
         USER_UID: "${SETUID}"
         USER_GID: "${SETGID}"
         CLAUDE_CODE: "${CLAUDE_CODE}"
-    image: "${PERCEPTION_IMAGE:?}:dep_${TAG}"
+    image: "${PERCEPTION_IMAGE:?}:dev_${PERCEPTION_DEV_TAG}"
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/src/perception:/ws/src/perception
+      - ${MONO_DIR}/src/infrastructure/wato_lifecycle_manager:/ws/src/wato_lifecycle_manager
+      - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
       - ${MONO_DIR}/bags:/ws/bags
       - ${MONO_DIR}/models:/opt/watonomous/models
 
@@ -71,11 +79,13 @@ services:
         USER_UID: "${SETUID}"
         USER_GID: "${SETGID}"
         CLAUDE_CODE: "${CLAUDE_CODE}"
-    image: "${WORLD_MODELING_IMAGE:?}:dep_${TAG}"
+    image: "${WORLD_MODELING_IMAGE:?}:dev_${WORLD_MODELING_DEV_TAG}"
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/maps:/opt/watonomous/maps
       - ${MONO_DIR}/src/world_modeling:/ws/src/world_modeling
+      - ${MONO_DIR}/src/infrastructure/wato_lifecycle_manager:/ws/src/wato_lifecycle_manager
+      - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
       - ${MONO_DIR}/bags:/ws/bags
 
   #################### ACTION SERVICE ####################
@@ -91,10 +101,13 @@ services:
         USER_UID: "${SETUID}"
         USER_GID: "${SETGID}"
         CLAUDE_CODE: "${CLAUDE_CODE}"
-    image: "${ACTION_IMAGE:?}:dep_${TAG}"
+    image: "${ACTION_IMAGE:?}:dev_${ACTION_DEV_TAG}"
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/src/action:/ws/src/action
+      - ${MONO_DIR}/src/world_modeling/race_tracks:/ws/src/race_tracks
+      - ${MONO_DIR}/src/infrastructure/wato_lifecycle_manager:/ws/src/wato_lifecycle_manager
+      - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
       - ${MONO_DIR}/bags:/ws/bags
 
   #################### SIM SERVICE ####################
@@ -110,8 +123,10 @@ services:
         USER_UID: "${SETUID}"
         USER_GID: "${SETGID}"
         CLAUDE_CODE: "${CLAUDE_CODE}"
-    image: "${SIM_IMAGE:?}:dep_${TAG}"
+    image: "${SIM_IMAGE:?}:dev_${SIM_DEV_TAG}"
     command: sleep infinity
     volumes:
       - ${MONO_DIR}/src/sim:/ws/src/sim
+      - ${MONO_DIR}/src/wato_test:/ws/src/wato_test
+      - ${MONO_DIR}/src/infrastructure/hal_contract:/ws/src/hal_contract
       - ${MONO_DIR}/bags:/ws/bags

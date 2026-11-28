@@ -90,8 +90,38 @@ else
   COMPOSE_EXTEND_FILE="docker-compose.yaml"
 fi
 
-# Tag for docker images – convert slashes to dashes
-TAG=$(echo "${TAG:-$BRANCH}" | tr '/' '-')
+# Shared image-tagging helpers (base diff detection + per-module env hashing)
+source "$MONO_DIR/watod_scripts/watod-image-tags.sh"
+
+# Tagging mode: CI defaults to "branch" (for GHCR tags); local defaults to "auto"
+if [[ -z "${IMAGE_TAG_MODE:-}" ]]; then
+  if $IS_CI; then
+    IMAGE_TAG_MODE="branch"
+  else
+    IMAGE_TAG_MODE="auto"
+  fi
+fi
+
+# Deploy/test/source tag:
+#   - Explicit TAG always wins
+#   - CI or IMAGE_TAG_MODE=branch uses the sanitized git branch
+#   - Local auto/shared uses floating "local" (or "local-<COMPOSE_PROJECT_NAME>" when customized)
+if [[ -n "${TAG:-}" ]]; then
+  TAG="$(watod_sanitize_tag "$TAG")"
+elif $IS_CI || [[ "$IMAGE_TAG_MODE" == "branch" ]]; then
+  TAG="$(watod_sanitize_tag "$BRANCH")"
+else
+  if [[ "$COMPOSE_PROJECT_NAME" != "watod_${USER}" ]]; then
+    clean_project="$(watod_sanitize_tag "${COMPOSE_PROJECT_NAME#local-}")"
+    TAG="local-${clean_project}"
+  else
+    TAG="local"
+  fi
+fi
+
+# Git metadata stamped on deploy images for stale-build warnings on `watod up`
+GIT_BRANCH="$BRANCH"
+GIT_COMMIT="$(git -C "$MONO_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 # Registry
 # Defaults to this repo's ghcr.io namespace: in CI from GITHUB_REPOSITORY, locally from
@@ -216,6 +246,38 @@ CLAUDE_CODE=${CLAUDE_CODE:-"true"}
 # f1tenth: one shared domain so laptops and the car see each other over DDS
 ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
+############################  Base & Per-Module Env Tags  #############################
+watod_resolve_base_images
+
+if $IS_CI || [[ "$IMAGE_TAG_MODE" == "branch" ]]; then
+  INFRASTRUCTURE_DEPS_TAG="$TAG"; INFRASTRUCTURE_DEV_TAG="$TAG"
+  INTERFACING_DEPS_TAG="$TAG";    INTERFACING_DEV_TAG="$TAG"
+  PERCEPTION_DEPS_TAG="$TAG";     PERCEPTION_DEV_TAG="$TAG"
+  WORLD_MODELING_DEPS_TAG="$TAG"; WORLD_MODELING_DEV_TAG="$TAG"
+  ACTION_DEPS_TAG="$TAG";         ACTION_DEV_TAG="$TAG"
+  SIM_DEPS_TAG="$TAG";            SIM_DEV_TAG="$TAG"
+else
+  INFRASTRUCTURE_DEPS_TAG="$(watod_module_deps_hash "$MONO_DIR" infrastructure "$GPU")"
+  INFRASTRUCTURE_DEV_TAG="$(watod_module_dev_hash "$MONO_DIR" infrastructure "$INFRASTRUCTURE_DEPS_TAG" "$CLAUDE_CODE" "$USERNAME" "$SETUID" "$SETGID")"
+
+  INTERFACING_DEPS_TAG="$(watod_module_deps_hash "$MONO_DIR" interfacing "$GPU")"
+  INTERFACING_DEV_TAG="$(watod_module_dev_hash "$MONO_DIR" interfacing "$INTERFACING_DEPS_TAG" "$CLAUDE_CODE" "$USERNAME" "$SETUID" "$SETGID")"
+
+  PERCEPTION_DEPS_TAG="$(watod_module_deps_hash "$MONO_DIR" perception "$GPU")"
+  PERCEPTION_DEV_TAG="$(watod_module_dev_hash "$MONO_DIR" perception "$PERCEPTION_DEPS_TAG" "$CLAUDE_CODE" "$USERNAME" "$SETUID" "$SETGID")"
+
+  WORLD_MODELING_DEPS_TAG="$(watod_module_deps_hash "$MONO_DIR" world_modeling "$GPU")"
+  WORLD_MODELING_DEV_TAG="$(watod_module_dev_hash "$MONO_DIR" world_modeling "$WORLD_MODELING_DEPS_TAG" "$CLAUDE_CODE" "$USERNAME" "$SETUID" "$SETGID")"
+
+  ACTION_DEPS_TAG="$(watod_module_deps_hash "$MONO_DIR" action "$GPU")"
+  ACTION_DEV_TAG="$(watod_module_dev_hash "$MONO_DIR" action "$ACTION_DEPS_TAG" "$CLAUDE_CODE" "$USERNAME" "$SETUID" "$SETGID")"
+
+  SIM_DEPS_TAG="$(watod_module_deps_hash "$MONO_DIR" sim "$GPU")"
+  SIM_DEV_TAG="$(watod_module_dev_hash "$MONO_DIR" sim "$SIM_DEPS_TAG" "$CLAUDE_CODE" "$USERNAME" "$SETUID" "$SETGID")"
+fi
+
+echo "[setup-env] mode=${IMAGE_TAG_MODE} (base=${BASE_TAG_MODE}) deploy_tag=${TAG} cpu_base=${BASE_TAG_CPU}"
+
 ################################  Write .env  ########################################
 
 mkdir -p "$MODULES_DIR"
@@ -233,7 +295,14 @@ append "COMPOSE_DOCKER_CLI_BUILD" "1"
 append "COMPOSE_PROJECT_NAME" "$COMPOSE_PROJECT_NAME"
 append "COMPOSE_EXTEND_FILE" "$COMPOSE_EXTEND_FILE"
 
+append "IMAGE_TAG_MODE" "$IMAGE_TAG_MODE"
+append "BASE_TAG_MODE" "$BASE_TAG_MODE"
 append "TAG" "$TAG"
+append "GIT_BRANCH" "$GIT_BRANCH"
+append "GIT_COMMIT" "$GIT_COMMIT"
+append "BASE_IMAGE_CPU" "$BASE_IMAGE_CPU"
+append "BASE_IMAGE_AMD64_NVIDIA" "$BASE_IMAGE_AMD64_NVIDIA"
+append "BASE_IMAGE_ARM64_NVIDIA" "$BASE_IMAGE_ARM64_NVIDIA"
 
 if ! $IS_CI; then
   append "SETUID" "$SETUID"
@@ -249,23 +318,35 @@ append "FOXGLOVE_BRIDGE_PORT" "$FOXGLOVE_BRIDGE_PORT"
 append "CLAUDE_CODE" "$CLAUDE_CODE"
 
 
+append "REGISTRY_URL" "$REGISTRY_URL"
 append "REGISTRY" "$REGISTRY"
 append "REPOSITORY" "$REPOSITORY"
 
 # Image variables
 append "INFRASTRUCTURE_IMAGE" "$INFRASTRUCTURE_IMAGE"
+append "INFRASTRUCTURE_DEPS_TAG" "$INFRASTRUCTURE_DEPS_TAG"
+append "INFRASTRUCTURE_DEV_TAG" "$INFRASTRUCTURE_DEV_TAG"
 append "FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES" "$FOXGLOVE_BRIDGE_SEND_BUFFER_LIMIT_BYTES"
 
 append "PERCEPTION_IMAGE" "$PERCEPTION_IMAGE"
+append "PERCEPTION_DEPS_TAG" "$PERCEPTION_DEPS_TAG"
+append "PERCEPTION_DEV_TAG" "$PERCEPTION_DEV_TAG"
 
 append "WORLD_MODELING_IMAGE" "$WORLD_MODELING_IMAGE"
+append "WORLD_MODELING_DEPS_TAG" "$WORLD_MODELING_DEPS_TAG"
+append "WORLD_MODELING_DEV_TAG" "$WORLD_MODELING_DEV_TAG"
 
 append "ACTION_IMAGE" "$ACTION_IMAGE"
-
+append "ACTION_DEPS_TAG" "$ACTION_DEPS_TAG"
+append "ACTION_DEV_TAG" "$ACTION_DEV_TAG"
 
 append "INTERFACING_IMAGE" "$INTERFACING_IMAGE"
+append "INTERFACING_DEPS_TAG" "$INTERFACING_DEPS_TAG"
+append "INTERFACING_DEV_TAG" "$INTERFACING_DEV_TAG"
 
 append "SIM_IMAGE" "$SIM_IMAGE"
+append "SIM_DEPS_TAG" "$SIM_DEPS_TAG"
+append "SIM_DEV_TAG" "$SIM_DEV_TAG"
 
 # f1tenth platform
 append "PLATFORM" "$PLATFORM"

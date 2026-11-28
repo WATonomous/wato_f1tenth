@@ -9,18 +9,6 @@ FROM ${BASE_IMAGE} AS source
 
 WORKDIR ${AMENT_WS}/src
 
-# AutoDRIVE devkit: the ROS 2 bridge the simulator connects to on port 4567.
-# Pinned to the 2026-ICRA release; identical to the devkit inside
-# autodriveecosystem/autodrive_roboracer_api:2026-icra-practice. Its upstream
-# lint tests are dropped so `watod test sim` only tests our code.
-ARG AUTODRIVE_DEVKIT_URL=https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-RoboRacer-Sim-Racing/releases/download/2026-icra/autodrive_devkit.zip
-ARG AUTODRIVE_DEVKIT_SHA256=ac2c3bb49bb32b7c84e000ddc7fecf07e191d3d03d00113d60dc4da693941ee0
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -fsSL -o /tmp/autodrive_devkit.zip "${AUTODRIVE_DEVKIT_URL}" && \
-    echo "${AUTODRIVE_DEVKIT_SHA256}  /tmp/autodrive_devkit.zip" | sha256sum -c - && \
-    python3 -m zipfile -e /tmp/autodrive_devkit.zip . && \
-    rm -rf autodrive_devkit/test /tmp/autodrive_devkit.zip
-
 # Copy in source code
 COPY src/sim sim
 COPY src/wato_test wato_test
@@ -53,3 +41,16 @@ RUN pip3 install --no-cache-dir \
     "gevent==24.11.1" \
     "gevent-websocket==0.10.1" \
     "attrdict3==2.0.2"
+
+# AutoDRIVE devkit: the ROS 2 bridge the simulator connects to on port 4567.
+# Kept in dependencies (pinned release, only declares rclpy in package.xml) so both
+# build and develop (sim_bringup_dev) inherit it without coupling develop to src/sim edits.
+# Its upstream lint tests are dropped so `watod test sim` only tests our code.
+ARG AUTODRIVE_DEVKIT_URL=https://github.com/AutoDRIVE-Ecosystem/AutoDRIVE-RoboRacer-Sim-Racing/releases/download/2026-icra/autodrive_devkit.zip
+ARG AUTODRIVE_DEVKIT_SHA256=ac2c3bb49bb32b7c84e000ddc7fecf07e191d3d03d00113d60dc4da693941ee0
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN mkdir -p "${AMENT_WS}/src" && \
+    curl -fsSL -o /tmp/autodrive_devkit.zip "${AUTODRIVE_DEVKIT_URL}" && \
+    echo "${AUTODRIVE_DEVKIT_SHA256}  /tmp/autodrive_devkit.zip" | sha256sum -c - && \
+    python3 -m zipfile -e /tmp/autodrive_devkit.zip "${AMENT_WS}/src" && \
+    rm -rf "${AMENT_WS}/src/autodrive_devkit/test" /tmp/autodrive_devkit.zip

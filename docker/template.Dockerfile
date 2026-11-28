@@ -53,21 +53,20 @@ COPY docker/config/rmw_zenoh_session_config.json5 ${WATONOMOUS_INSTALL}/rmw_zeno
 COPY docker/config/wato_entrypoint.sh ${WATONOMOUS_INSTALL}/wato_entrypoint.sh
 ENTRYPOINT ["/opt/watonomous/wato_entrypoint.sh"]
 
-# Copy in source code from rosdep_scan stage (which comes from MODULE_SOURCE). Last, so a source
-# change re-runs only the steps after it, not the dependency cleanup and config copies above.
-WORKDIR ${AMENT_WS}
-COPY --from=rosdep_scan ${AMENT_WS}/src src
-WORKDIR /
-
 ################################ Build ################################
 FROM rosdep_install AS build
+
+# Copy in source code from rosdep_scan stage (which comes from MODULE_SOURCE). Kept out of
+# rosdep_install so `develop` (which bind-mounts source from the host) never rebuilds on code edits,
+# and kept last before colcon build so a source change skips dependency install and cleanup.
+WORKDIR ${AMENT_WS}
+COPY --from=rosdep_scan ${AMENT_WS}/src src
 
 # Build and Install ROS2 packages. ccache keeps compiled objects in a BuildKit cache mount shared by
 # every module and kept between image builds, so a rebuild only compiles files that changed, and
 # packages copied into several modules (wato_test, wato_lifecycle_manager) compile once. The cache
 # lives in Docker's build cache, not in the image (`docker builder prune` clears it). build/ stays
 # in the image: the test images (this stage) run colcon test from it.
-WORKDIR ${AMENT_WS}
 ARG TARGETARCH
 # content: hash the compiler itself, so objects are shared between modules on different base images
 ENV CCACHE_DIR=/ccache CCACHE_COMPILERCHECK=content CCACHE_MAXSIZE=5G
@@ -84,6 +83,15 @@ FROM build AS deploy
 
 # Source Cleanup, Security Setup, and Workspace Setup
 RUN rm -rf "${AMENT_WS:?}"/*
+
+# Stamp git metadata last (metadata-only layer) so floating local tags can warn on branch mismatch
+# without invalidating the build/cleanup layers above.
+ARG GIT_BRANCH=unknown
+ARG GIT_COMMIT=unknown
+ARG MONO_DIR=unknown
+LABEL org.watonomous.git_branch="${GIT_BRANCH}" \
+      org.watonomous.git_commit="${GIT_COMMIT}" \
+      org.watonomous.mono_dir="${MONO_DIR}"
 
 ################################ Develop ################################
 FROM rosdep_install AS develop
@@ -119,6 +127,7 @@ RUN existing_user=$(getent passwd ${USER_UID} | cut -d: -f1 || true) \
     && cp /etc/skel/.bashrc /home/$USERNAME/.bashrc \
     && cp /etc/skel/.profile /home/$USERNAME/.profile \
     && chown $USERNAME:$USERNAME /home/$USERNAME/.bashrc /home/$USERNAME/.profile \
+    && mkdir -p "${AMENT_WS}/src" \
     && chown -R "${USERNAME}":"${USERNAME}" "${AMENT_WS}" \
     && rm -rf /var/lib/apt/lists/*
 

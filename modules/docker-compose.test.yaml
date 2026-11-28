@@ -34,7 +34,7 @@ services:
       dockerfile: docker/template.Dockerfile
       args:
         MODULE_SOURCE: "${PERCEPTION_IMAGE:?}:source_${TAG}"
-        MODULE_DEPS: "${PERCEPTION_IMAGE:?}:deps_${TAG}"
+        MODULE_DEPS: "${PERCEPTION_IMAGE:?}:deps_${PERCEPTION_DEPS_TAG}"
       target: build
     image: "${PERCEPTION_IMAGE:?}:test_${TAG}"
     runtime: runc
