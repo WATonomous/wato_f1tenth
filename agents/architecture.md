@@ -127,6 +127,9 @@ a/d = left stick, q/e = speed level, space = X, f = R1, r = O (reverse), p = squ
 It reads keys from a terminal, so
 `./watod teleop` starts it with `docker exec -it` (also over SSH on the car) and stops it when that
 terminal or SSH session ends. A terminal has no key-up, so a key counts as held until its repeats stop.
+The reader pings the terminal (`ESC [ 5 n`) and releases X and R1 if it stops answering for 1 s
+(a network drop over SSH). The keyboard has no handheld stop, so on the car it may not arm autonomy
+(`allow_autonomy: false` in `interfacing_bringup/config/car/keyboard_teleop.yaml`; true in sim).
 
 ## TF tree
 

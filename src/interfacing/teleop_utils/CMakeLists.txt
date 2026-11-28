@@ -59,6 +59,11 @@ if(BUILD_TESTING)
     test/test_keyboard_joy_state.cpp
   )
   target_include_directories(test_keyboard_joy_state PRIVATE include)
+
+  add_wato_test(test_terminal_link
+    test/test_terminal_link.cpp
+  )
+  target_include_directories(test_terminal_link PRIVATE include)
 endif()
 
 install(DIRECTORY

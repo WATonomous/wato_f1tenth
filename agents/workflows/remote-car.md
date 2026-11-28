@@ -86,6 +86,21 @@ ssh <host> 'docker logs --tail 50 watod_wato-world_modeling_bringup-1 2>&1'
 Before anything that can move the car, tell the human what to do: wheels off the ground, and don't
 hold the dead-man switch until the checks pass.
 
+## 7. Keyboard teleop over SSH
+
+`./watod teleop` (`TELEOP=keyboard`) works over SSH. Two things stop the car if the connection
+drops: the reader's own link check (no answer from the terminal for 1 s releases X and R1), and the
+SSH server closing dead sessions, which the human sets up once per Jetson with sudo (re-run after a
+re-flash). Without it, sshd only notices a dead connection after TCP keepalive, about 2 hours:
+
+```bash
+printf 'ClientAliveInterval 1\nClientAliveCountMax 3\n' | sudo tee /etc/ssh/sshd_config.d/10-keepalive.conf
+sudo sshd -t && sudo systemctl reload ssh      # check: sudo sshd -T | grep -i clientalive
+```
+
+That closes an SSH session after about 3 s without an answer from the laptop, for every user, so a
+very lossy Wi-Fi link can drop sessions; raise `ClientAliveCountMax` if that happens.
+
 ## Known car quirks
 
 - DDS on the car runs over loopback only (`docker/config/cyclonedds_car.xml`, set by the car

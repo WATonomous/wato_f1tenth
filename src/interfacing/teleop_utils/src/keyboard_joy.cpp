@@ -30,10 +30,14 @@ Keyboard stand-in for joy_node (TELEOP=keyboard): reads keys from the terminal i
 publishes the sensor_msgs/Joy a gamepad would, so joypad_node stays the only teleop logic (mux input,
 dead man, /control/mode, BLOCKED, watchdog). Started by `watod teleop`, which runs it with
 docker exec -it, also over SSH on the car. It loads joypad_config.yaml (button and axis layout,
-max_speed, steering) and keyboard_config.yaml (speed levels, key hold times).
+max_speed, steering), keyboard_config.yaml (speed levels, key hold times, link check) and the
+platform's interfacing_bringup/config/<platform>/keyboard_teleop.yaml (allow_autonomy).
 
-If the terminal goes away (SSH dropped, window closed), it quits, so /joy stops and joypad_node's
-watchdog releases the dead man. On the way out it sends one /joy with everything released.
+Link check: it asks the terminal for its status every link_ping_period_s, and every common terminal
+answers by itself. No answer for link_timeout_s (an SSH link that dropped without the car noticing)
+means everything is released at once: X and R1 off, so joypad_node stops the car and drops the dead
+man. They stay off when the link comes back. If the terminal closes, the node quits and /joy stops,
+so joypad_node's watchdog releases the dead man.
 */
 
 KeyboardJoy::KeyboardJoy()
@@ -60,6 +64,12 @@ KeyboardJoy::KeyboardJoy()
   this->declare_parameter<double>("initial_speed_level", 1.0);
   this->declare_parameter<double>("initial_hold_s", 0.55);
   this->declare_parameter<double>("repeat_hold_s", 0.15);
+  this->declare_parameter<double>("link_ping_period_s", 0.25);
+  this->declare_parameter<double>("link_timeout_s", 1.0);
+  this->declare_parameter<double>("link_startup_timeout_s", 2.0);
+
+  // interfacing_bringup/config/<platform>/keyboard_teleop.yaml: may the keyboard arm autonomy (R1)?
+  this->declare_parameter<bool>("allow_autonomy", false);
 
   if (!isatty(STDIN_FILENO)) {
     throw std::runtime_error("stdin is not a terminal: start it with `watod teleop`");
@@ -86,6 +96,7 @@ KeyboardJoy::KeyboardJoy()
   config.speed_levels = this->get_parameter("speed_levels").as_double_array();
   config.initial_hold_s = this->get_parameter("initial_hold_s").as_double();
   config.repeat_hold_s = this->get_parameter("repeat_hold_s").as_double();
+  config.allow_autonomy = this->get_parameter("allow_autonomy").as_bool();
 
   std::sort(config.speed_levels.begin(), config.speed_levels.end());
   if (config.speed_levels.back() > config.max_speed * KeyboardJoyState::maxFraction()) {
@@ -120,7 +131,13 @@ KeyboardJoy::KeyboardJoy()
   raw.c_cc[VTIME] = 0;
   tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 
-  // however we exit (Ctrl-C, hang-up, SIGTERM): one last /joy with everything released
+  link_.emplace(
+    this->get_parameter("link_ping_period_s").as_double(), this->get_parameter("link_timeout_s").as_double());
+  waitForTerminal(this->get_parameter("link_startup_timeout_s").as_double());
+
+  // On Ctrl-C, or SIGINT / SIGTERM (watod teleop stopping it): one last /joy with everything released.
+  // A hang-up (SIGHUP) or kill -9 is not caught: the node just dies, /joy stops, and joypad_node's
+  // 0.5 s watchdog releases the dead man.
   this->get_node_base_interface()->get_context()->add_pre_shutdown_callback([this]() {
     state_->releaseAll();
     publishJoy();
@@ -136,7 +153,43 @@ KeyboardJoy::KeyboardJoy()
     "  q / e  speed level up / down                 space  X: manual on/off\n"
     "  f      R1: dead man on/off (autonomy)        r      O: reverse on/off (w reverses slowly)\n"
     "  p      square: pit limit on/off (1 m/s)      Ctrl-C quit (stops the car)\n\n");
+  if (!config.allow_autonomy) {
+    std::printf("  (f is off here: allow_autonomy is false for this platform, so the keyboard can't arm autonomy)\n\n");
+  }
   printStatus();
+}
+
+// The link check needs a terminal that answers the status query; without it, a dropped link would go
+// unnoticed, so refuse to start
+void KeyboardJoy::waitForTerminal(double timeout_s)
+{
+  const auto start = std::chrono::steady_clock::now();
+  sendStatusQuery();
+  while (std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() < timeout_s) {
+    pollfd fd{STDIN_FILENO, POLLIN, 0};
+    if (poll(&fd, 1, 50) > 0 && (fd.revents & POLLIN)) {
+      char buf[64];
+      const ssize_t n = read(STDIN_FILENO, buf, sizeof(buf));
+      for (ssize_t i = 0; i < n; ++i) {
+        char key;
+        if (input_.feed(buf[i], key) == TerminalEvent::kStatusReply) {
+          link_->onReply(this->now().seconds());
+          return;
+        }
+      }
+    }
+  }
+  tcsetattr(STDIN_FILENO, TCSANOW, &*saved_termios_);
+  saved_termios_.reset();
+  throw std::runtime_error(
+    "the terminal did not answer the status query (ESC [ 5 n), so a dropped link could not be detected. "
+    "Use a standard terminal (GNOME Terminal, VS Code, kitty, ...)");
+}
+
+void KeyboardJoy::sendStatusQuery()
+{
+  std::fputs(TerminalInput::kStatusQuery, stdout);
+  std::fflush(stdout);
 }
 
 KeyboardJoy::~KeyboardJoy()
@@ -153,6 +206,17 @@ void KeyboardJoy::timerCallback()
   if (!readKeys(now_s)) {
     rclcpp::shutdown();
     return;
+  }
+  if (link_->pingDue(now_s)) {
+    sendStatusQuery();
+  }
+  if (link_->lost(now_s) && !link_lost_) {
+    link_lost_ = true;
+    state_->releaseAll();
+  } else if (!link_->lost(now_s) && link_lost_) {
+    link_lost_ = false;
+    note_ = "link back: everything was released, press space / f again";
+    note_until_s_ = now_s + 5.0;
   }
   state_->update(now_s);
   publishJoy();
@@ -175,12 +239,27 @@ bool KeyboardJoy::readKeys(double now_s)
     return false;  // readable but empty: end of input
   }
   for (ssize_t i = 0; i < n; ++i) {
-    // arrow and function keys send ESC [ A ...: drop the rest of the burst, or 'A' would steer
-    if (buf[i] == 0x1b) {
-      break;
-    }
-    if (state_->handleKey(buf[i], now_s) == KeyEvent::kQuit) {
-      return false;
+    // arrow and function keys arrive as escape sequences, which TerminalInput drops
+    char key;
+    switch (input_.feed(buf[i], key)) {
+      case TerminalEvent::kStatusReply:
+        link_->onReply(now_s);
+        break;
+      case TerminalEvent::kKey:
+        switch (state_->handleKey(key, now_s)) {
+          case KeyEvent::kQuit:
+            return false;
+          case KeyEvent::kRefused:
+            note_ = "f: the keyboard can't arm autonomy here (allow_autonomy: false)";
+            note_until_s_ = now_s + 3.0;
+            break;
+          case KeyEvent::kChanged:
+          case KeyEvent::kIgnored:
+            break;
+        }
+        break;
+      case TerminalEvent::kNone:
+        break;
     }
   }
   return true;
@@ -198,20 +277,25 @@ void KeyboardJoy::publishJoy()
 
 void KeyboardJoy::printStatus()
 {
-  char line[160];
+  char line[256];
+  const bool show_note = !note_.empty() && this->now().seconds() < note_until_s_;
   std::snprintf(
     line,
     sizeof(line),
-    "  %-10s  level %.1f m/s  %s %s  steer %+5.2f  X %-3s  R1 %-3s  O %-3s  sq %-3s",
-    mode_.c_str(),
+    "  %-10s  level %.1f m/s  %s %s  steer %+5.2f  X %-3s  R1 %-3s  O %-3s  sq %-3s%s%s",
+    link_lost_ ? "LINK LOST" : mode_.c_str(),
     state_->speedLevel(),
     state_->throttleHeld() ? "[w]" : " w ",
     state_->brakeHeld() ? "[s]" : " s ",
     state_->steering(),
     state_->safety() ? "on" : "off",
-    state_->autonomy() ? "on" : "off",
+    !state_->autonomyAllowed() ? "n/a"
+    : state_->autonomy()       ? "on"
+                               : "off",
     state_->reverse() ? "on" : "off",
-    state_->pitLimit() ? "on" : "off");
+    state_->pitLimit() ? "on" : "off",
+    show_note ? "  | " : "",
+    show_note ? note_.c_str() : "");
   if (line != last_status_) {
     last_status_ = line;
     std::printf("\r%s\033[K", line);

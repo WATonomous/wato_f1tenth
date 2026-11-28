@@ -24,6 +24,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "terminal_link.hpp"  // NOLINT(build/include_subdir)
 
 class KeyboardJoy : public rclcpp::Node
 {
@@ -40,6 +41,8 @@ private:
   // functions
   void timerCallback();
   bool readKeys(double now_s);
+  void waitForTerminal(double timeout_s);
+  void sendStatusQuery();
   void publishJoy();
   void printStatus();
 
@@ -48,6 +51,11 @@ private:
 
   // data
   std::optional<KeyboardJoyState> state_;
+  TerminalInput input_;
+  std::optional<LinkMonitor> link_;
+  bool link_lost_ = false;
+  std::string note_;  // shown in the status line until note_until_s_
+  double note_until_s_ = 0.0;
   std::optional<termios> saved_termios_;
   std::string mode_ = "UNKNOWN";  // joypad_node's /control/mode
   std::string last_status_;

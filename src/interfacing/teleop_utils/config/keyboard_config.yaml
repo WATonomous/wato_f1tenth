@@ -1,6 +1,7 @@
 # keyboard_joy_node (TELEOP=keyboard): the keyboard as a stand-in for joy_node.
 # It also loads joypad_config.yaml for the button and axis layout, max_speed and steering, so both
-# inputs drive the same through joypad_node. Started by `watod teleop`.
+# inputs drive the same through joypad_node. Started by `watod teleop`, which also loads
+# interfacing_bringup/config/<platform>/keyboard_teleop.yaml.
 /**:
   ros__parameters:
     mode_topic: "/control/mode"  # joypad_node's mode, shown in the status line
@@ -19,3 +20,14 @@
     # Over a slow SSH link, raise repeat_hold_s if holding a key stutters.
     initial_hold_s: 0.55
     repeat_hold_s: 0.15
+
+    # Link check: the node asks the terminal for its status (ESC [ 5 n) every link_ping_period_s and
+    # releases everything (X and R1 off: the car stops, the dead man drops) if no answer comes for
+    # link_timeout_s. Over SSH, that is what catches a network drop the car's SSH server hasn't noticed.
+    # It refuses to start if the terminal doesn't answer within link_startup_timeout_s.
+    link_ping_period_s: 0.25
+    link_timeout_s: 1.0
+    link_startup_timeout_s: 2.0
+
+    # allow_autonomy (may f arm autonomy?) is per platform:
+    # interfacing_bringup/config/{car,sim}/keyboard_teleop.yaml

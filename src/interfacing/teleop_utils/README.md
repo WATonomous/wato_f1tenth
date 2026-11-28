@@ -102,13 +102,19 @@ Set `TELEOP="keyboard"` in `watod-config.local.sh`, `./watod up`, then run `./wa
 terminal (also over SSH on the car). `joy_node` does not run; `keyboard_joy_node` publishes the
 `/joy` a pad would, so the hand-over, BLOCKED, the watchdog, reverse and the pit limit work as above.
 
+**No handheld stop.** With `TELEOP=keyboard`, `joy_node` doesn't run, so the gamepad can't stop the
+car. The only stops are in that terminal (space, Ctrl-C) and the link check below. So **on the car
+the keyboard drives manually only, and `f` is refused** (`allow_autonomy: false` in
+`interfacing_bringup/config/car/keyboard_teleop.yaml`); autonomy on the car runs with `TELEOP=gamepad`.
+In sim, `f` works (`config/sim/keyboard_teleop.yaml`).
+
 | Key | Gamepad | Does |
 | --- | --- | --- |
 | **w** / **s** | R2 / L2 | Throttle / full brake while held |
 | **a** / **d** | Left stick | Steer left / right while held, ramping at `max_steering_rate` |
 | **q** / **e** | none | Speed level up / down: what holding w asks for (1 to 5 m/s) |
 | **space** | X | Manual control on/off |
-| **f** | R1 | Autonomy dead man on/off |
+| **f** | R1 | Autonomy dead man on/off; sim only (`allow_autonomy`), refused on the car |
 | **r** | O | Reverse on/off: while on, w reverses at `reverse_speed` (every level is past the threshold) |
 | **p** | Square | Pit limit on/off |
 | Ctrl-C | none | Quit: sends one released `/joy`, so the car stops and the dead man drops |
@@ -116,10 +122,21 @@ terminal (also over SSH on the car). `joy_node` does not run; `keyboard_joy_node
 - A terminal sends no key-up, only repeats (about 500 ms after the press, then every 30 ms), so a
   key counts as held until its repeats stop: a tap lasts about 0.5 s, a release takes about 0.15 s.
   Only the newest key repeats; holding w then a keeps both alive.
-- `./watod teleop` refuses a second reader, and stops the reader when its terminal or SSH session
-  ends, so a dropped connection can't leave R1 on.
-- Settings: `config/keyboard_config.yaml` (speed levels, hold times); the button and axis layout,
-  `max_speed` and steering come from `joypad_config.yaml`.
+- Tapping another key while holding w drops the throttle until w is pressed again (the terminal
+  stops repeating w).
+- **Link check.** Every 0.25 s the reader asks the terminal for its status (`ESC [ 5 n`), which every
+  common terminal answers by itself. No answer for 1 s, for example a network drop over SSH that the
+  car's SSH server hasn't noticed, releases everything: X and R1 off, so the car stops and the dead
+  man drops, and they stay off when the link returns. The status line shows `LINK LOST`. The reader
+  refuses to start in a terminal that doesn't answer.
+- `./watod teleop` runs one reader at a time (an `flock` inside the container), and stops the reader
+  when its terminal or SSH session ends. On the car, also set the SSH server keepalive
+  (`agents/workflows/remote-car.md`), so a dead SSH session is closed within a few seconds.
+- Settings: `config/keyboard_config.yaml` (speed levels, hold times, link check); the button and axis
+  layout, `max_speed` and steering come from `joypad_config.yaml`; `allow_autonomy` per platform in
+  `interfacing_bringup/config/{car,sim}/keyboard_teleop.yaml`.
+- Launch by hand: `teleop:=gamepad|keyboard|none` (`none`, no teleop at all, replaces the old
+  `joystick:=false`, which is now ignored).
 
 ## Topics
 

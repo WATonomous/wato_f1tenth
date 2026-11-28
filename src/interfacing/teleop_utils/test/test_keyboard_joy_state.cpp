@@ -26,7 +26,7 @@ constexpr int kSteer = 0, kThrottle = 5, kBrake = 4, kX = 0, kO = 1, kSquare = 2
 constexpr double kMaxSpeed = 10.0;
 constexpr double kReverseThreshold = 0.2;  // joypad_config.yaml's reverse_throttle_threshold
 
-KeyboardJoyState makeState()
+KeyboardJoyState makeState(bool allow_autonomy = true)
 {
   KeyboardJoyConfig config;
   config.steering_axis = kSteer;
@@ -44,6 +44,7 @@ KeyboardJoyState makeState()
   config.initial_level = 0;
   config.initial_hold_s = 0.55;
   config.repeat_hold_s = 0.15;
+  config.allow_autonomy = allow_autonomy;
   return KeyboardJoyState(config);
 }
 
@@ -90,6 +91,19 @@ TEST_CASE("at rest it looks like an untouched gamepad", "[keyboard_joy]")
   for (auto button : buttons) {
     REQUIRE(button == 0);
   }
+}
+
+TEST_CASE("without allow_autonomy, f never turns R1 on", "[keyboard_joy]")
+{
+  auto state = makeState(false);
+  REQUIRE(state.handleKey('f', 0.0) == KeyEvent::kRefused);
+  REQUIRE(state.handleKey('F', 0.1) == KeyEvent::kRefused);
+  REQUIRE(state.buttons()[kR1] == 0);
+  REQUIRE_FALSE(state.autonomy());
+  REQUIRE_FALSE(state.autonomyAllowed());
+  // manual driving still works
+  REQUIRE(state.handleKey(' ', 0.2) == KeyEvent::kChanged);
+  REQUIRE(state.buttons()[kX] == 1);
 }
 
 TEST_CASE("space and f toggle X and R1 like sticky buttons", "[keyboard_joy]")

@@ -29,7 +29,7 @@
 //   a / d    left stick (steer left / right) while held
 //   q / e    raise / lower the speed level (what full w drives at)
 //   space    X: manual on/off (sticky, like joy_node's sticky_buttons)
-//   f        R1: dead man on/off for autonomy (sticky)
+//   f        R1: dead man on/off for autonomy (sticky); refused unless allow_autonomy
 //   r        O: reverse on/off (sticky); while on, w reverses at joypad_node's reverse_speed
 //   p        square: pit limit on/off (sticky), forward speed capped at 1 m/s
 //   Ctrl-C   quit
@@ -48,12 +48,15 @@ struct KeyboardJoyConfig
   std::vector<double> speed_levels;  // m/s, ascending
   std::size_t initial_level;  // index into speed_levels
   double initial_hold_s, repeat_hold_s;
+  // The keyboard has no handheld stop, so it may arm autonomy (R1) only where the config allows it
+  bool allow_autonomy;
 };
 
 enum class KeyEvent
 {
   kIgnored,  // not a key we use
   kChanged,
+  kRefused,  // f while allow_autonomy is false
   kQuit,
 };
 
@@ -91,6 +94,9 @@ public:
         safety_ = !safety_;
         return KeyEvent::kChanged;
       case 'f':
+        if (!config_.allow_autonomy) {
+          return KeyEvent::kRefused;
+        }
         autonomy_ = !autonomy_;
         return KeyEvent::kChanged;
       case 'r':
@@ -196,6 +202,11 @@ public:
   bool autonomy() const
   {
     return autonomy_;
+  }
+
+  bool autonomyAllowed() const
+  {
+    return config_.allow_autonomy;
   }
 
   bool reverse() const

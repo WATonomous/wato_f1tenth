@@ -1,0 +1,5 @@
+# keyboard_joy_node in sim (TELEOP=keyboard, loaded by `watod teleop`)
+/**:
+  ros__parameters:
+    # In sim nothing can get hurt, so f (R1) may arm autonomy from the keyboard
+    allow_autonomy: true

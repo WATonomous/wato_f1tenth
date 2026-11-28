@@ -1,0 +1,7 @@
+# keyboard_joy_node on the car (TELEOP=keyboard, loaded by `watod teleop`)
+/**:
+  ros__parameters:
+    # The keyboard has no handheld stop: with TELEOP=keyboard, joy_node doesn't run, so the gamepad
+    # can't stop the car. So on the car the keyboard drives manually only, and f (R1) is refused.
+    # Autonomy on the car: TELEOP=gamepad.
+    allow_autonomy: false

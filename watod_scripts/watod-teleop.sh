@@ -17,8 +17,9 @@
 # inside the running interfacing container. It reads keys from the terminal and publishes /joy for
 # joypad_node, which interfacing.launch.yaml already runs. Works over SSH on the car.
 #
-# The reader runs inside the container, so a dropped SSH session or a closed terminal must not leave
-# it publishing: this script stops it whenever it exits, including on hang-up (SIGHUP).
+# The reader runs inside the container, so a closed terminal or SSH session must not leave it
+# publishing: this script stops it whenever it exits, including on hang-up (SIGHUP). A network drop
+# the car's SSH server hasn't noticed yet is caught by the reader itself (its link check).
 set -euo pipefail
 
 if [[ "${TELEOP:-}" != "keyboard" ]]; then
@@ -30,9 +31,11 @@ if [[ ! -t 0 ]]; then
   exit 1
 fi
 
+# Capture the list first: `docker ps | grep -q` under pipefail can fail with SIGPIPE
+running=$(docker ps --format '{{.Names}}')
 container=""
 for name in "${COMPOSE_PROJECT_NAME}-interfacing_bringup-1" "${COMPOSE_PROJECT_NAME}-interfacing_bringup_dev-1"; do
-  if docker ps --format '{{.Names}}' | grep -q "^${name}$"; then
+  if grep -qx "$name" <<< "$running"; then
     container="$name"
     break
   fi
@@ -42,19 +45,20 @@ if [[ -z "$container" ]]; then
   exit 1
 fi
 
-# Two readers would both publish /joy and fight over the buttons
+# One reader at a time (two would fight over /joy). The reader holds an flock on $lock for as long as
+# it runs, so taking the lock is atomic and frees itself when the reader dies. $pidfile records the
+# reader's PID with this session's token, so stop_reader only ever stops the reader it started.
+lock=/tmp/keyboard_joy_node.lock
 pidfile=/tmp/keyboard_joy_node.pid
-if docker exec "$container" sh -c "[ -f $pidfile ] && kill -0 \$(cat $pidfile) 2>/dev/null"; then
-  echo "Error: the keyboard reader is already running in $container (another terminal or SSH session)" >&2
-  exit 1
-fi
+token="$$-$RANDOM-$(date +%s%N)"
+refused=3
 
-# SIGINT to the reader's process group: it sends one released /joy and exits. If it is still there
-# after 2 s, kill it; /joy then stops and joypad_node's watchdog releases the dead man.
+# shellcheck disable=SC2317  # called from the EXIT trap
 stop_reader() {
   docker exec "$container" bash -c "
-    [ -f $pidfile ] || exit 0
-    pid=\$(cat $pidfile); rm -f $pidfile
+    read -r pid tok < $pidfile 2>/dev/null || exit 0
+    [ \"\$tok\" = \"$token\" ] || exit 0
+    rm -f $pidfile
     kill -INT -- -\$pid 2>/dev/null || exit 0
     for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 \$pid 2>/dev/null || exit 0; sleep 0.2; done
     kill -KILL -- -\$pid 2>/dev/null" >/dev/null 2>&1 || true
@@ -65,12 +69,25 @@ trap 'exit 143' TERM
 
 # $$ is the container shell, which exec turns into the node itself (not `ros2 run`, whose Python
 # wrapper ignores SIGINT and leaves the node running). docker exec -it makes it a process group leader.
-docker exec -it "$container" bash -c '
-  echo $$ > '"$pidfile"'
+# The node inherits fd 9, so it keeps the lock until it exits.
+set +e
+docker exec -it -e TELEOP_TOKEN="$token" "$container" bash -c '
+  exec 9> '"$lock"'
+  flock -n 9 || exit '"$refused"'
+  echo "$$ $TELEOP_TOKEN" > '"$pidfile"'
   source /opt/ros/$ROS_DISTRO/setup.bash
   for f in /opt/watonomous/setup.bash /ws/install/setup.bash; do [ -f "$f" ] && source "$f"; done
   prefix=$(ros2 pkg prefix teleop_utils)
   config=$prefix/share/teleop_utils/config
+  # allow_autonomy per platform; no PLATFORM falls back to the car (the stricter one)
+  platform_config=$(ros2 pkg prefix interfacing_bringup)/share/interfacing_bringup/config/${PLATFORM:-car}/keyboard_teleop.yaml
   exec "$prefix/lib/teleop_utils/keyboard_joy_node" --ros-args \
-    --params-file "$config/joypad_config.yaml" --params-file "$config/keyboard_config.yaml"
+    --params-file "$config/joypad_config.yaml" --params-file "$config/keyboard_config.yaml" \
+    --params-file "$platform_config"
 '
+status=$?
+set -e
+if [[ $status -eq $refused ]]; then
+  echo "Error: the keyboard reader is already running in $container (another terminal or SSH session)" >&2
+fi
+exit $status

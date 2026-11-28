@@ -19,8 +19,9 @@ launch:
       name: teleop
       default: "$(env TELEOP gamepad)"
       description: >-
-        Teleop input, both read by joypad_node: gamepad (joy_node, USB or Bluetooth pad) or
-        keyboard (keyboard_joy_node, started in a terminal with `watod teleop`)
+        Teleop input, both read by joypad_node: gamepad (joy_node, USB or Bluetooth pad),
+        keyboard (keyboard_joy_node, started in a terminal with `watod teleop`), or none (no teleop
+        at all, by hand only: what the old joystick:=false did; watod accepts only gamepad or keyboard)
 
   - arg:
       name: keyboard
