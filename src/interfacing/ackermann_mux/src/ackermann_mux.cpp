@@ -119,7 +119,7 @@ void AckermannMux::updateActiveInput()
     return;
   }
   active_input_ = active;
-  // Handle names keep their parameter prefix ("topics.joystick"): publish the input's own name
+  // Handle names keep their parameter prefix ("topics.teleop"): publish the input's own name
   const auto name = active.substr(active.rfind('.') + 1);
   RCLCPP_INFO(get_logger(), "in control: %s", name.c_str());
   std_msgs::msg::String msg;

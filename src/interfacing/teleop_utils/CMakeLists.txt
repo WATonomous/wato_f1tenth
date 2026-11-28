@@ -40,11 +40,31 @@ add_executable(keyboard_converter src/keyboard_converter.cpp)
 target_include_directories(keyboard_converter PUBLIC include)
 ament_target_dependencies(keyboard_converter rclcpp ackermann_msgs geometry_msgs)
 
+# TELEOP=keyboard: keys -> /joy for joypad_node, started in a terminal by `watod teleop`
+add_executable(keyboard_joy_node src/keyboard_joy.cpp)
+target_include_directories(keyboard_joy_node PUBLIC include)
+target_link_libraries(keyboard_joy_node rclcpp::rclcpp ${std_msgs_TARGETS} ${sensor_msgs_TARGETS})
+
 install(TARGETS
   joypad_node
   keyboard_converter
+  keyboard_joy_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  find_package(wato_test REQUIRED)
+
+  add_wato_test(test_keyboard_joy_state
+    test/test_keyboard_joy_state.cpp
+  )
+  target_include_directories(test_keyboard_joy_state PRIVATE include)
+
+  add_wato_test(test_terminal_link
+    test/test_terminal_link.cpp
+  )
+  target_include_directories(test_terminal_link PRIVATE include)
+endif()
 
 install(DIRECTORY
   launch

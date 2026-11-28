@@ -14,7 +14,7 @@
 """The status panel's one word, from the input in control and the dead man. No ROS, for tests."""
 
 MUX_STATES = {
-    "joystick": "MANUAL",
+    "teleop": "MANUAL",
     "keyboard": "KEYBOARD",
     "emergency": "EBRAKE",
     "none": "NO_COMMAND",

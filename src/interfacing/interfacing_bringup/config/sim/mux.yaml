@@ -5,8 +5,9 @@ ackermann_mux:
         topic: /hal/drive/ebrake
         timeout: 0.2
         priority: 100
-      joystick:
-        topic: /hal/drive/joystick
+      # Gamepad or keyboard (TELEOP), both through joypad_node
+      teleop:
+        topic: /hal/drive/teleop
         timeout: 0.2
         # strictly above keyboard/autonomy: ackermann_mux breaks ties by list order
         priority: 50

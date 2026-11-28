@@ -65,7 +65,7 @@ topics:
     publishers: controller  # the controller, unless CONTROLLER=none
     subscribers: true  # ackermann_mux
 
-  - name: /hal/drive/joystick
+  - name: /hal/drive/teleop
     type: ackermann_msgs/msg/AckermannDriveStamped
     group: drive
     subscribers: true
@@ -132,7 +132,8 @@ legacy:
   /ackermann_cmd: /hal/ackermann_cmd  # mux output: only the drivers; a controller uses /hal/drive/autonomy
   /drive: /hal/drive/autonomy  # a controller's direct output (MPPI, gym_vis)
   /drive/autonomy: /hal/drive/autonomy
-  /drive/joystick: /hal/drive/joystick
+  /drive/joystick: /hal/drive/teleop
+  /hal/drive/joystick: /hal/drive/teleop  # the gamepad's input before TELEOP added the keyboard
   /drive/keyboard: /hal/drive/keyboard
   /drive/ebreak: /hal/drive/ebrake
   /drive/ebrake: /hal/drive/ebrake

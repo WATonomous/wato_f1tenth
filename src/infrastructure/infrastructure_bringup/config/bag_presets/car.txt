@@ -17,7 +17,7 @@
 /hal/battery
 /hal/ackermann_cmd
 /hal/drive/autonomy
-/hal/drive/joystick
+/hal/drive/teleop
 /hal/drive/keyboard
 /hal/drive/ebrake
 /hal/dead_man_switch

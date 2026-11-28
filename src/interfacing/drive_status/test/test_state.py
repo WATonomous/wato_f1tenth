@@ -23,8 +23,8 @@ from drive_status.state import control_state
     [
         ("autonomy", True, "AUTONOMY"),
         ("autonomy", False, "STOPPED"),
-        ("joystick", False, "MANUAL"),
-        ("joystick", True, "MANUAL"),
+        ("teleop", False, "MANUAL"),
+        ("teleop", True, "MANUAL"),
         ("keyboard", False, "KEYBOARD"),
         ("emergency", True, "EBRAKE"),
         ("none", True, "NO_COMMAND"),
